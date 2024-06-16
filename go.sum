@@ -1,0 +1,8 @@
+fortio.org/cli v1.5.2 h1:MfEcHAhYyIkwG04/K1YJL946Y8/jyAjmF9WeR5ZG/5E=
+fortio.org/cli v1.5.2/go.mod h1:SdQufh5PLd6oX2EtvtzLFw++gw8zVoejD1WlwGXAvYw=
+fortio.org/log v1.12.1 h1:8JNdFqOFbtifrdbqKkQZchGAoooLLr1J/tD2lYl1ZaI=
+fortio.org/log v1.12.1/go.mod h1:1tMBG/Elr6YqjmJCWiejJp2FPvXg7/9UAN0Rfpkyt1o=
+fortio.org/struct2env v0.4.0 h1:k5alSOTf3YHiB3MuacjDHQ3YhVWvNZ95ZP/a6MqvyLo=
+fortio.org/struct2env v0.4.0/go.mod h1:lENUe70UwA1zDUCX+8AsO663QCFqYaprk5lnPhjD410=
+fortio.org/version v1.0.4 h1:FWUMpJ+hVTNc4RhvvOJzb0xesrlRmG/a+D6bjbQ4+5U=
+fortio.org/version v1.0.4/go.mod h1:2JQp9Ax+tm6QKiGuzR5nJY63kFeANcgrZ0osoQFDVm0=
