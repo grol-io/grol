@@ -5,118 +5,117 @@ import "github.com/ldemailly/gorpl/token"
 type Lexer struct {
 	input string
 	pos   int
-	ch    byte
 }
 
 func New(input string) *Lexer {
 	l := &Lexer{input: input}
-	l.readChar()
 	return l
 }
 
 func (l *Lexer) NextToken() token.Token {
-	var tok token.Token
-
 	l.skipWhitespace()
 
-	switch l.ch {
+	ch := l.readChar()
+	switch ch {
 	case '=':
 		if l.peekChar() == '=' {
-			ch := l.ch
-			l.readChar()
-			literal := string(ch) + string(l.ch)
-			tok = token.Token{Type: token.EQ, Literal: literal}
-		} else {
-			tok = newToken(token.ASSIGN, l.ch)
+			nextChar := l.readChar()
+			literal := string(ch) + string(nextChar)
+			return token.Token{Type: token.EQ, Literal: literal}
 		}
+		return newToken(token.ASSIGN, ch)
 	case '+':
-		tok = newToken(token.PLUS, l.ch)
+		return newToken(token.PLUS, ch)
 	case '-':
-		tok = newToken(token.MINUS, l.ch)
+		return newToken(token.MINUS, ch)
 	case '!':
 		if l.peekChar() == '=' {
-			ch := l.ch
-			l.readChar()
-			literal := string(ch) + string(l.ch)
-			tok = token.Token{Type: token.NOTEQ, Literal: literal}
+			nextChar := l.readChar()
+			literal := string(ch) + string(nextChar)
+			return token.Token{Type: token.NOTEQ, Literal: literal}
 		} else {
-			tok = newToken(token.BANG, l.ch)
+			return newToken(token.BANG, ch)
 		}
 	case '/':
-		tok = newToken(token.SLASH, l.ch)
+		return newToken(token.SLASH, ch)
 	case '*':
-		tok = newToken(token.ASTERISK, l.ch)
+		return newToken(token.ASTERISK, ch)
 	case '<':
-		tok = newToken(token.LT, l.ch)
+		return newToken(token.LT, ch)
 	case '>':
-		tok = newToken(token.GT, l.ch)
+		return newToken(token.GT, ch)
 	case ';':
-		tok = newToken(token.SEMICOLON, l.ch)
+		return newToken(token.SEMICOLON, ch)
 	case ',':
-		tok = newToken(token.COMMA, l.ch)
+		return newToken(token.COMMA, ch)
 	case '{':
-		tok = newToken(token.LBRACE, l.ch)
+		return newToken(token.LBRACE, ch)
 	case '}':
-		tok = newToken(token.RBRACE, l.ch)
+		return newToken(token.RBRACE, ch)
 	case '(':
-		tok = newToken(token.LPAREN, l.ch)
+		return newToken(token.LPAREN, ch)
 	case ')':
-		tok = newToken(token.RPAREN, l.ch)
+		return newToken(token.RPAREN, ch)
 	case 0:
-		tok.Literal = ""
-		tok.Type = token.EOF
+		return token.Token{Type: token.EOF, Literal: ""}
 	default:
+		tok := token.Token{}
 		switch {
-		case isLetter(l.ch):
+		case isLetter(ch):
 			tok.Literal = l.readIdentifier()
 			tok.Type = token.LookupIdent(tok.Literal)
 			return tok
-		case isDigit(l.ch):
+		case isDigit(ch):
 			tok.Type = token.INT
 			tok.Literal = l.readNumber()
 			return tok
 		default:
-			tok = newToken(token.ILLEGAL, l.ch)
+			return newToken(token.ILLEGAL, ch)
 		}
 	}
+}
 
-	l.readChar()
-	return tok
+func isWhiteSpace(ch byte) bool {
+	return ch == ' ' || ch == '\t' || ch == '\n' || ch == '\r'
 }
 
 func (l *Lexer) skipWhitespace() {
-	for l.ch == ' ' || l.ch == '\t' || l.ch == '\n' || l.ch == '\r' {
-		l.readChar()
+	// while whitespace, read next char
+	for isWhiteSpace(l.peekChar()) {
+		l.pos++
 	}
 }
 
-func (l *Lexer) readChar() {
-	l.ch = l.peekChar()
+func (l *Lexer) readChar() byte {
+	ch := l.peekChar()
 	l.pos++
+	return ch
 }
 
 func (l *Lexer) peekChar() byte {
+	if l.pos < 0 {
+		panic("Lexer position is negative")
+	}
 	if l.pos >= len(l.input) {
 		return 0
-	} else {
-		return l.input[l.pos]
 	}
+	return l.input[l.pos]
 }
 
 func (l *Lexer) readIdentifier() string {
 	pos := l.pos - 1
-	for isLetter(l.ch) {
-		l.readChar()
+	for isLetter(l.peekChar()) {
+		l.pos++
 	}
-	return l.input[pos : l.pos-1]
+	return l.input[pos:l.pos]
 }
 
 func (l *Lexer) readNumber() string {
 	pos := l.pos - 1
-	for isDigit(l.ch) {
-		l.readChar()
+	for isDigit(l.peekChar()) {
+		l.pos++
 	}
-	return l.input[pos : l.pos-1]
+	return l.input[pos:l.pos]
 }
 
 func isLetter(ch byte) bool {
