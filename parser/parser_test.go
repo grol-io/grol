@@ -44,7 +44,7 @@ let foobar = 838383;
 }
 
 // show the interface nil check bug (fixed now) - test for error
-func TestLetStatementsCrashing(t *testing.T) {
+func TestLetStatementsFormerlyCrashingNowFailingOnPurpose(t *testing.T) {
 	log.SetLogLevelQuiet(log.Debug)
 	log.Config.ForceColor = true
 	log.SetColorMode()
