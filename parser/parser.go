@@ -34,8 +34,8 @@ func (p *Parser) ParseProgram() *ast.Program {
 	program.Statements = []ast.Statement{}
 
 	for p.curToken.Type != token.EOF {
-		stmt := p.parseStatement()
-		if stmt != nil { // classic interface nil check not working.
+		stmt, ok := p.parseStatement()
+		if ok { // classic interface nil check not working.
 			program.Statements = append(program.Statements, stmt)
 		}
 		p.nextToken()
@@ -44,26 +44,26 @@ func (p *Parser) ParseProgram() *ast.Program {
 	return program
 }
 
-func (p *Parser) parseStatement() ast.Statement {
+func (p *Parser) parseStatement() (ast.Statement, bool) {
 	switch p.curToken.Type {
 	case token.LET:
 		return p.parseLetStatement()
 	default:
-		return nil
+		return nil, false
 	}
 }
 
-func (p *Parser) parseLetStatement() *ast.LetStatement {
+func (p *Parser) parseLetStatement() (*ast.LetStatement, bool) {
 	stmt := &ast.LetStatement{Token: p.curToken}
 
 	if !p.expectPeek(token.IDENT) {
-		return nil
+		return nil, false
 	}
 
 	stmt.Name = &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal}
 
 	if !p.expectPeek(token.ASSIGN) {
-		return nil
+		return nil, false
 	}
 
 	// TODO: We're skipping the expressions until we
@@ -72,7 +72,7 @@ func (p *Parser) parseLetStatement() *ast.LetStatement {
 		p.nextToken()
 	}
 
-	return stmt
+	return stmt, true
 }
 
 func sameToken(msg string, actual token.Token, expected token.Type) bool {
