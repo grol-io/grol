@@ -3,6 +3,7 @@ package parser
 import (
 	"testing"
 
+	"fortio.org/log"
 	"github.com/ldemailly/gorpl/ast"
 	"github.com/ldemailly/gorpl/lexer"
 )
@@ -17,6 +18,7 @@ let foobar = 838383;
 	p := New(l)
 
 	program := p.ParseProgram()
+	checkParserErrors(t, p)
 	if program == nil {
 		t.Fatalf("ParseProgram() returned nil")
 	}
@@ -41,8 +43,11 @@ let foobar = 838383;
 	}
 }
 
-// show the interface nil check bug.
+// show the interface nil check bug (fixed now) - test for error
 func TestLetStatementsCrashing(t *testing.T) {
+	log.SetLogLevelQuiet(log.Debug)
+	log.Config.ForceColor = true
+	log.SetColorMode()
 	input := `
 let x; = 5;
 let y = 10;
@@ -52,6 +57,7 @@ let foobar = 838383;
 	p := New(l)
 
 	program := p.ParseProgram()
+	checkParserErrors(t, p)
 	if program == nil {
 		t.Fatalf("ParseProgram() returned nil")
 	}
@@ -100,4 +106,17 @@ func testLetStatement(t *testing.T, s ast.Statement, name string) bool {
 	}
 
 	return true
+}
+
+func checkParserErrors(t *testing.T, p *Parser) {
+	errors := p.Errors()
+	if len(errors) == 0 {
+		return
+	}
+
+	t.Errorf("parser has %d error(s)", len(errors))
+	for _, msg := range errors {
+		t.Errorf("parser error: %s", msg)
+	}
+	t.FailNow()
 }

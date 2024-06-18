@@ -1,5 +1,8 @@
 all: generate lint
 
+tests:
+	go test -v ./...
+
 generate:
 	go generate ./... # if this fails go install golang.org/x/tools/cmd/stringer@latest
 

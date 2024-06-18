@@ -1,6 +1,8 @@
 package parser
 
 import (
+	"fmt"
+
 	"fortio.org/log"
 	"github.com/ldemailly/gorpl/ast"
 	"github.com/ldemailly/gorpl/lexer"
@@ -12,16 +14,25 @@ type Parser struct {
 
 	curToken  token.Token
 	peekToken token.Token
+
+	errors []string
 }
 
 func New(l *lexer.Lexer) *Parser {
-	p := &Parser{l: l}
+	p := &Parser{
+		l:      l,
+		errors: []string{},
+	}
 
 	// Read two tokens, so curToken and peekToken are both set
 	p.nextToken()
 	p.nextToken()
 
 	return p
+}
+
+func (p *Parser) Errors() []string {
+	return p.errors
 }
 
 func (p *Parser) nextToken() {
@@ -80,7 +91,7 @@ func sameToken(msg string, actual token.Token, expected token.Type) bool {
 	if res {
 		log.Debugf("%sTokenIs indeed: %s", msg, actual)
 	} else {
-		log.Warnf("%sTokenIs not: %s - found %s/%s instead", msg, expected, actual.Type, actual.Literal)
+		log.LogVf("%sTokenIs not: %s - found %s/%s instead", msg, expected, actual.Type, actual.Literal)
 	}
 	return res
 }
@@ -97,7 +108,13 @@ func (p *Parser) expectPeek(t token.Type) bool {
 	if p.peekTokenIs(t) {
 		p.nextToken()
 		return true
-	} else {
-		return false
 	}
+	p.peekError(t)
+	return false
+}
+
+func (p *Parser) peekError(t token.Type) {
+	msg := fmt.Sprintf("expected next token to be %s, got %s (%q) instead",
+		t, p.peekToken.Type, p.peekToken.Literal)
+	p.errors = append(p.errors, msg)
 }
