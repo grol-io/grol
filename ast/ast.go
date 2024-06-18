@@ -8,7 +8,35 @@ type Node interface {
 	TokenLiteral() string
 }
 
-type Statement interface {
+// Common to all nodes that have a token and avoids repeating the same TokenLiteral() methods
+type Base struct {
+	token.Token
+}
+
+func (b *Base) TokenLiteral() string {
+	return b.Literal
+}
+
+// BaseStatement and BaseExpression are used to avoid repeating the same marker for all statements and expressions
+
+type BaseStatement struct {
+	Base
+}
+
+func (b *BaseStatement) statementNode() {}
+
+type BaseExpression struct {
+	Base
+}
+
+func (b *BaseExpression) expressionNode() {}
+
+type ReturnStatement struct {
+	BaseStatement
+	ReturnValue Expression
+}
+
+type Statement interface { // Do we need the interface or would the BaseStatement be enough?
 	Node
 	statementNode()
 }
@@ -30,22 +58,12 @@ func (p *Program) TokenLiteral() string {
 }
 
 type LetStatement struct {
-	Token token.Token // the token.LET token
+	BaseStatement
 	Name  *Identifier
 	Value Expression
 }
 
-func (ls *LetStatement) statementNode() {}
-func (ls *LetStatement) TokenLiteral() string {
-	return ls.Token.Literal
-}
-
 type Identifier struct {
-	Token token.Token // the token.IDENT token
+	Base
 	Value string
-}
-
-func (i *Identifier) expressionNode() {}
-func (i *Identifier) TokenLiteral() string {
-	return i.Token.Literal
 }
