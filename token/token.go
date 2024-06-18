@@ -1,6 +1,8 @@
 package token
 
-type Type string
+import "fortio.org/log"
+
+type Type uint8
 
 type Token struct {
 	Type    Type
@@ -8,45 +10,48 @@ type Token struct {
 }
 
 const (
-	ILLEGAL = "ILLEGAL"
-	EOF     = "EOF"
+	ILLEGAL Type = iota
+	EOF
 
 	// Identifiers + literals.
-	IDENT = "IDENT" // add, foobar, x, y, ...
-	INT   = "INT"   // 1343456
+	IDENT // add, foobar, x, y, ...
+	INT   // 1343456
 
 	// Operators.
-	ASSIGN   = "="
-	PLUS     = "+"
-	MINUS    = "-"
-	BANG     = "!"
-	ASTERISK = "*"
-	SLASH    = "/"
+	ASSIGN
+	PLUS
+	MINUS
+	BANG
+	ASTERISK
+	SLASH
 
-	LT = "<"
-	GT = ">"
+	LT
+	GT
 
-	EQ    = "=="
-	NOTEQ = "!="
+	EQ
+	NOTEQ
 
 	// Delimiters.
-	COMMA     = ","
-	SEMICOLON = ";"
+	COMMA
+	SEMICOLON
 
-	LPAREN = "("
-	RPAREN = ")"
-	LBRACE = "{"
-	RBRACE = "}"
+	LPAREN
+	RPAREN
+	LBRACE
+	RBRACE
 
 	// Keywords.
-	FUNCTION = "FUNCTION"
-	LET      = "LET"
-	TRUE     = "TRUE"
-	FALSE    = "FALSE"
-	IF       = "IF"
-	ELSE     = "ELSE"
-	RETURN   = "RETURN"
+	FUNCTION
+	LET
+	TRUE
+	FALSE
+	IF
+	ELSE
+	RETURN
 )
+
+//go:generate stringer -type=Type
+var _ = EOF.String() // force compile error if go generate is missing.
 
 var keywords = map[string]Type{
 	"fn":     FUNCTION,
@@ -60,6 +65,8 @@ var keywords = map[string]Type{
 
 func LookupIdent(ident string) Type {
 	if tok, ok := keywords[ident]; ok {
+		// Ensures compile error if go generate is missing
+		log.Debugf("LookupIdent(%s) found %s", ident, tok.String())
 		return tok
 	}
 	return IDENT

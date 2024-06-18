@@ -1,3 +1,7 @@
+all: generate lint
+
+generate:
+	go generate ./... # if this fails go install golang.org/x/tools/cmd/stringer@latest
 
 lint: .golangci.yml
 	golangci-lint run
@@ -5,4 +9,4 @@ lint: .golangci.yml
 .golangci.yml: Makefile
 	curl -fsS -o .golangci.yml https://raw.githubusercontent.com/fortio/workflows/main/golangci.yml
 
-.PHONY: lint
+.PHONY: all lint generate
