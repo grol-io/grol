@@ -72,3 +72,13 @@ type IntegerLiteral struct {
 func (i *IntegerLiteral) Value() Expression {
 	return i
 }
+
+type PrefixExpression struct {
+	Base
+	Operator string
+	Right    Expression
+}
+
+func (p *PrefixExpression) Value() Expression {
+	return p.Right
+}
