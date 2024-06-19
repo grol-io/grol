@@ -82,3 +82,14 @@ type PrefixExpression struct {
 func (p *PrefixExpression) Value() Expression {
 	return p.Right
 }
+
+type InfixExpression struct {
+	Base
+	Left     Expression
+	Operator string
+	Right    Expression
+}
+
+func (i *InfixExpression) Value() Expression {
+	return i
+}
