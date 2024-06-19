@@ -42,7 +42,7 @@ func (p *Parser) nextToken() {
 
 func (p *Parser) ParseProgram() *ast.Program {
 	program := &ast.Program{}
-	program.Statements = []ast.Statement{}
+	program.Statements = []ast.Node{}
 
 	for p.curToken.Type != token.EOF {
 		stmt := p.parseStatement()
@@ -55,7 +55,7 @@ func (p *Parser) ParseProgram() *ast.Program {
 	return program
 }
 
-func (p *Parser) parseStatement() ast.Statement {
+func (p *Parser) parseStatement() ast.Node {
 	switch p.curToken.Type {
 	case token.LET:
 		return p.parseLetStatement()
@@ -66,7 +66,7 @@ func (p *Parser) parseStatement() ast.Statement {
 	}
 }
 
-func (p *Parser) parseLetStatement() ast.Statement {
+func (p *Parser) parseLetStatement() ast.Node {
 	stmt := &ast.LetStatement{}
 	stmt.Token = p.curToken
 
@@ -89,7 +89,7 @@ func (p *Parser) parseLetStatement() ast.Statement {
 	return stmt
 }
 
-func (p *Parser) parseReturnStatement() ast.Statement {
+func (p *Parser) parseReturnStatement() ast.Node {
 	stmt := &ast.ReturnStatement{}
 	stmt.Token = p.curToken
 
