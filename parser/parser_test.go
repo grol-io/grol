@@ -43,7 +43,7 @@ let foobar = 838383;
 	}
 }
 
-// show the interface nil check bug (fixed now) - test for error
+// show the interface nil check bug (fixed now) - test for error.
 func TestLetStatementsFormerlyCrashingNowFailingOnPurpose(t *testing.T) {
 	log.SetLogLevelQuiet(log.Debug)
 	log.Config.ForceColor = true
@@ -94,8 +94,8 @@ func testLetStatement(t *testing.T, s ast.Node, name string) bool {
 		return false
 	}
 
-	if letStmt.Name.Value != name {
-		t.Errorf("letStmt.Name.Value not '%s'. got=%s", name, letStmt.Name.Value)
+	if letStmt.Name.Val != name {
+		t.Errorf("letStmt.Name.Value not '%s'. got=%s", name, letStmt.Name.Val)
 		return false
 	}
 
@@ -148,5 +148,36 @@ return 993322;
 			t.Errorf("returnStmt.TokenLiteral not 'return', got %q",
 				returnStmt.TokenLiteral())
 		}
+	}
+}
+
+func TestIdentifierExpression(t *testing.T) {
+	input := "foobar;"
+
+	l := lexer.New(input)
+	p := New(l)
+	program := p.ParseProgram()
+	checkParserErrors(t, p)
+
+	if len(program.Statements) != 1 {
+		t.Fatalf("program has not enough statements. got=%d",
+			len(program.Statements))
+	}
+	stmt, ok := program.Statements[0].(ast.Expression)
+	if !ok {
+		t.Fatalf("program.Statements[0] is not ast.ExpressionStatement. got=%T",
+			program.Statements[0])
+	}
+	v := stmt.Value()
+	ident := v.(*ast.Identifier)
+	if !ok {
+		t.Fatalf("exp not *ast.Identifier. got=%T", v)
+	}
+	if ident.Val != "foobar" {
+		t.Errorf("ident.Value not %s. got=%s", "foobar", ident.Val)
+	}
+	if ident.TokenLiteral() != "foobar" {
+		t.Errorf("ident.TokenLiteral not %s. got=%s", "foobar",
+			ident.TokenLiteral())
 	}
 }

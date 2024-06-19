@@ -8,9 +8,12 @@ type Node interface {
 	TokenLiteral() string
 }
 
-type Expression Node
+type Expression interface {
+	Node
+	Value() Expression
+}
 
-// Common to all nodes that have a token and avoids repeating the same TokenLiteral() methods
+// Common to all nodes that have a token and avoids repeating the same TokenLiteral() methods.
 type Base struct {
 	token.Token
 }
@@ -43,5 +46,20 @@ type LetStatement struct {
 
 type Identifier struct {
 	Base
-	Value string
+	Val string
+}
+
+func (i *Identifier) Value() Expression {
+	return i
+}
+
+// TODO: probably refactor.
+
+type ExpressionStatement struct {
+	Base
+	Val Expression
+}
+
+func (e *ExpressionStatement) Value() Expression {
+	return e.Val
 }

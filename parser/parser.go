@@ -9,6 +9,27 @@ import (
 	"github.com/ldemailly/gorpl/token"
 )
 
+type Priority int8
+
+const (
+	_ Priority = iota
+	LOWEST
+	EQUALS      // ==
+	LESSGREATER // > or <
+	SUM         // +
+	PRODUCT     // *
+	PREFIX      // -X or !X
+	CALL        // myFunction(X)
+)
+
+//go:generate stringer -type=Priority
+var _ = CALL.String() // force compile error if go generate is missing.
+
+type (
+	prefixParseFn func() ast.Expression
+	infixParseFn  func(ast.Expression) ast.Expression
+)
+
 type Parser struct {
 	l *lexer.Lexer
 
@@ -16,6 +37,17 @@ type Parser struct {
 	peekToken token.Token
 
 	errors []string
+
+	prefixParseFns map[token.Type]prefixParseFn
+	infixParseFns  map[token.Type]infixParseFn
+}
+
+func (p *Parser) registerPrefix(t token.Type, fn prefixParseFn) {
+	p.prefixParseFns[t] = fn
+}
+
+func (p *Parser) registerInfix(t token.Type, fn infixParseFn) {
+	p.infixParseFns[t] = fn
 }
 
 func New(l *lexer.Lexer) *Parser {
@@ -23,6 +55,9 @@ func New(l *lexer.Lexer) *Parser {
 		l:      l,
 		errors: []string{},
 	}
+
+	p.prefixParseFns = make(map[token.Type]prefixParseFn)
+	p.registerPrefix(token.IDENT, p.parseIdentifier)
 
 	// Read two tokens, so curToken and peekToken are both set
 	p.nextToken()
@@ -62,7 +97,7 @@ func (p *Parser) parseStatement() ast.Node {
 	case token.RETURN:
 		return p.parseReturnStatement()
 	default:
-		return nil
+		return p.parseExpressionStatement()
 	}
 }
 
@@ -74,7 +109,7 @@ func (p *Parser) parseLetStatement() ast.Node {
 		return nil
 	}
 
-	stmt.Name = &ast.Identifier{Base: ast.Base{Token: p.curToken}, Value: p.curToken.Literal}
+	stmt.Name = &ast.Identifier{Base: ast.Base{Token: p.curToken}, Val: p.curToken.Literal}
 
 	if !p.expectPeek(token.ASSIGN) {
 		return nil
@@ -135,4 +170,35 @@ func (p *Parser) peekError(t token.Type) {
 	msg := fmt.Sprintf("expected next token to be %s, got %s (%q) instead",
 		t, p.peekToken.Type, p.peekToken.Literal)
 	p.errors = append(p.errors, msg)
+}
+
+func (p *Parser) parseExpressionStatement() ast.Expression {
+	stmt := &ast.ExpressionStatement{}
+	stmt.Token = p.curToken
+
+	stmt.Val = p.parseExpression(LOWEST)
+
+	if p.peekTokenIs(token.SEMICOLON) {
+		p.nextToken()
+	}
+
+	return stmt
+}
+
+func (p *Parser) parseExpression(precedence Priority) ast.Expression {
+	log.Debugf("parseExpression: %s precedence %s", p.curToken, precedence)
+	prefix := p.prefixParseFns[p.curToken.Type]
+	if prefix == nil {
+		return nil
+	}
+	leftExp := prefix()
+
+	return leftExp
+}
+
+func (p *Parser) parseIdentifier() ast.Expression {
+	i := &ast.Identifier{}
+	i.Token = p.curToken
+	i.Val = p.curToken.Literal
+	return i
 }
