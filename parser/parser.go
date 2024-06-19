@@ -2,6 +2,7 @@ package parser
 
 import (
 	"fmt"
+	"strconv"
 
 	"fortio.org/log"
 	"github.com/ldemailly/gorpl/ast"
@@ -42,11 +43,11 @@ type Parser struct {
 	infixParseFns  map[token.Type]infixParseFn
 }
 
-func (p *Parser) registerPrefix(t token.Type, fn prefixParseFn) {
+func (p *Parser) RegisterPrefix(t token.Type, fn prefixParseFn) {
 	p.prefixParseFns[t] = fn
 }
 
-func (p *Parser) registerInfix(t token.Type, fn infixParseFn) {
+func (p *Parser) RegisterInfix(t token.Type, fn infixParseFn) {
 	p.infixParseFns[t] = fn
 }
 
@@ -57,8 +58,8 @@ func New(l *lexer.Lexer) *Parser {
 	}
 
 	p.prefixParseFns = make(map[token.Type]prefixParseFn)
-	p.registerPrefix(token.IDENT, p.parseIdentifier)
-
+	p.RegisterPrefix(token.IDENT, p.parseIdentifier)
+	p.RegisterPrefix(token.INT, p.parseIntegerLiteral)
 	// Read two tokens, so curToken and peekToken are both set
 	p.nextToken()
 	p.nextToken()
@@ -91,7 +92,7 @@ func (p *Parser) ParseProgram() *ast.Program {
 }
 
 func (p *Parser) parseStatement() ast.Node {
-	switch p.curToken.Type {
+	switch p.curToken.Type { //nolint:exhaustive // we're not done yet TODO: remove.
 	case token.LET:
 		return p.parseLetStatement()
 	case token.RETURN:
@@ -201,4 +202,20 @@ func (p *Parser) parseIdentifier() ast.Expression {
 	i.Token = p.curToken
 	i.Val = p.curToken.Literal
 	return i
+}
+
+func (p *Parser) parseIntegerLiteral() ast.Expression {
+	lit := &ast.IntegerLiteral{}
+	lit.Token = p.curToken
+
+	value, err := strconv.ParseInt(p.curToken.Literal, 0, 64)
+	if err != nil {
+		msg := fmt.Sprintf("could not parse %q as integer", p.curToken.Literal)
+		p.errors = append(p.errors, msg)
+		return nil
+	}
+
+	lit.Val = value
+
+	return lit
 }

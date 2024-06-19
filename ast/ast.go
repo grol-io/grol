@@ -63,3 +63,12 @@ type ExpressionStatement struct {
 func (e *ExpressionStatement) Value() Expression {
 	return e.Val
 }
+
+type IntegerLiteral struct {
+	Base
+	Val int64
+}
+
+func (i *IntegerLiteral) Value() Expression {
+	return i
+}
