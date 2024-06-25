@@ -2,9 +2,10 @@ package parser
 
 import (
 	"fmt"
-	"monkey/ast"
-	"monkey/lexer"
 	"testing"
+
+	"github.com/ldemailly/gorpl/ast"
+	"github.com/ldemailly/gorpl/lexer"
 )
 
 func TestLetStatements(t *testing.T) {
@@ -95,12 +96,13 @@ func TestIdentifierExpression(t *testing.T) {
 			program.Statements[0])
 	}
 
-	ident, ok := stmt.Expression.(*ast.Identifier)
+	v := stmt.Value()
+	ident, ok := v.(*ast.Identifier)
 	if !ok {
-		t.Fatalf("exp not *ast.Identifier. got=%T", stmt.Expression)
+		t.Fatalf("exp not *ast.Identifier. got=%T", v)
 	}
-	if ident.Value != "foobar" {
-		t.Errorf("ident.Value not %s. got=%s", "foobar", ident.Value)
+	if ident.Val != "foobar" {
+		t.Errorf("ident.Value not %s. got=%s", "foobar", ident.Val)
 	}
 	if ident.TokenLiteral() != "foobar" {
 		t.Errorf("ident.TokenLiteral not %s. got=%s", "foobar",
@@ -126,12 +128,13 @@ func TestIntegerLiteralExpression(t *testing.T) {
 			program.Statements[0])
 	}
 
-	literal, ok := stmt.Expression.(*ast.IntegerLiteral)
+	v := stmt.Value()
+	literal, ok := v.(*ast.IntegerLiteral)
 	if !ok {
-		t.Fatalf("exp not *ast.IntegerLiteral. got=%T", stmt.Expression)
+		t.Fatalf("exp not *ast.IntegerLiteral. got=%T", v)
 	}
-	if literal.Value != 5 {
-		t.Errorf("literal.Value not %d. got=%d", 5, literal.Value)
+	if literal.Val != 5 {
+		t.Errorf("literal.Value not %d. got=%d", 5, literal.Val)
 	}
 	if literal.TokenLiteral() != "5" {
 		t.Errorf("literal.TokenLiteral not %s. got=%s", "5",
@@ -169,10 +172,10 @@ func TestParsingPrefixExpressions(t *testing.T) {
 			t.Fatalf("program.Statements[0] is not ast.ExpressionStatement. got=%T",
 				program.Statements[0])
 		}
-
-		exp, ok := stmt.Expression.(*ast.PrefixExpression)
+		v := stmt.Value()
+		exp, ok := v.(*ast.PrefixExpression)
 		if !ok {
-			t.Fatalf("stmt is not ast.PrefixExpression. got=%T", stmt.Expression)
+			t.Fatalf("stmt is not ast.PrefixExpression. got=%T", v)
 		}
 		if exp.Operator != tt.operator {
 			t.Fatalf("exp.Operator is not '%s'. got=%s",
@@ -229,7 +232,7 @@ func TestParsingInfixExpressions(t *testing.T) {
 				program.Statements[0])
 		}
 
-		if !testInfixExpression(t, stmt.Expression, tt.leftValue,
+		if !testInfixExpression(t, stmt.Value(), tt.leftValue,
 			tt.operator, tt.rightValue) {
 			return
 		}
@@ -381,14 +384,14 @@ func TestBooleanExpression(t *testing.T) {
 			t.Fatalf("program.Statements[0] is not ast.ExpressionStatement. got=%T",
 				program.Statements[0])
 		}
-
-		boolean, ok := stmt.Expression.(*ast.Boolean)
+		v := stmt.Value()
+		boolean, ok := v.(*ast.Boolean)
 		if !ok {
-			t.Fatalf("exp not *ast.Boolean. got=%T", stmt.Expression)
+			t.Fatalf("exp not *ast.Boolean. got=%T", v)
 		}
-		if boolean.Value != tt.expectedBoolean {
+		if boolean.Val != tt.expectedBoolean {
 			t.Errorf("boolean.Value not %t. got=%t", tt.expectedBoolean,
-				boolean.Value)
+				boolean.Val)
 		}
 	}
 }
@@ -412,10 +415,11 @@ func TestIfExpression(t *testing.T) {
 			program.Statements[0])
 	}
 
-	exp, ok := stmt.Expression.(*ast.IfExpression)
+	v := stmt.Value()
+	exp, ok := v.(*ast.IfExpression)
 	if !ok {
 		t.Fatalf("stmt.Expression is not ast.IfExpression. got=%T",
-			stmt.Expression)
+			v)
 	}
 
 	if !testInfixExpression(t, exp.Condition, "x", "<", "y") {
@@ -461,9 +465,10 @@ func TestIfElseExpression(t *testing.T) {
 			program.Statements[0])
 	}
 
-	exp, ok := stmt.Expression.(*ast.IfExpression)
+	v := stmt.Value()
+	exp, ok := v.(*ast.IfExpression)
 	if !ok {
-		t.Fatalf("stmt.Expression is not ast.IfExpression. got=%T", stmt.Expression)
+		t.Fatalf("stmt.Expression is not ast.IfExpression. got=%T", v)
 	}
 
 	if !testInfixExpression(t, exp.Condition, "x", "<", "y") {
@@ -520,10 +525,11 @@ func TestFunctionLiteralParsing(t *testing.T) {
 			program.Statements[0])
 	}
 
-	function, ok := stmt.Expression.(*ast.FunctionLiteral)
+	v := stmt.Value()
+	function, ok := v.(*ast.FunctionLiteral)
 	if !ok {
 		t.Fatalf("stmt.Expression is not ast.FunctionLiteral. got=%T",
-			stmt.Expression)
+			v)
 	}
 
 	if len(function.Parameters) != 2 {
@@ -565,7 +571,8 @@ func TestFunctionParameterParsing(t *testing.T) {
 		checkParserErrors(t, p)
 
 		stmt := program.Statements[0].(*ast.ExpressionStatement)
-		function := stmt.Expression.(*ast.FunctionLiteral)
+		v := stmt.Value()
+		function := v.(*ast.FunctionLiteral)
 
 		if len(function.Parameters) != len(tt.expectedParams) {
 			t.Errorf("length parameters wrong. want %d, got=%d\n",
@@ -597,10 +604,11 @@ func TestCallExpressionParsing(t *testing.T) {
 			program.Statements[0])
 	}
 
-	exp, ok := stmt.Expression.(*ast.CallExpression)
+	v := stmt.Value()
+	exp, ok := v.(*ast.CallExpression)
 	if !ok {
 		t.Fatalf("stmt.Expression is not ast.CallExpression. got=%T",
-			stmt.Expression)
+			v)
 	}
 
 	if !testIdentifier(t, exp.Function, "add") {
@@ -646,10 +654,11 @@ func TestCallExpressionParameterParsing(t *testing.T) {
 		checkParserErrors(t, p)
 
 		stmt := program.Statements[0].(*ast.ExpressionStatement)
-		exp, ok := stmt.Expression.(*ast.CallExpression)
+		v := stmt.Value()
+		exp, ok := v.(*ast.CallExpression)
 		if !ok {
 			t.Fatalf("stmt.Expression is not ast.CallExpression. got=%T",
-				stmt.Expression)
+				v)
 		}
 
 		if !testIdentifier(t, exp.Function, tt.expectedIdent) {
@@ -747,8 +756,8 @@ func testIntegerLiteral(t *testing.T, il ast.Expression, value int64) bool {
 		return false
 	}
 
-	if integ.Value != value {
-		t.Errorf("integ.Value not %d. got=%d", value, integ.Value)
+	if integ.Val != value {
+		t.Errorf("integ.Value not %d. got=%d", value, integ.Val)
 		return false
 	}
 
@@ -768,8 +777,8 @@ func testIdentifier(t *testing.T, exp ast.Expression, value string) bool {
 		return false
 	}
 
-	if ident.Value != value {
-		t.Errorf("ident.Value not %s. got=%s", value, ident.Value)
+	if ident.Val != value {
+		t.Errorf("ident.Value not %s. got=%s", value, ident.Val)
 		return false
 	}
 
@@ -789,8 +798,8 @@ func testBooleanLiteral(t *testing.T, exp ast.Expression, value bool) bool {
 		return false
 	}
 
-	if bo.Value != value {
-		t.Errorf("bo.Value not %t. got=%t", value, bo.Value)
+	if bo.Val != value {
+		t.Errorf("bo.Value not %t. got=%t", value, bo.Val)
 		return false
 	}
 

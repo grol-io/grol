@@ -145,3 +145,16 @@ func (i *InfixExpression) String() string {
 
 	return out.String()
 }
+
+type Boolean struct {
+	Base
+	Val bool
+}
+
+func (b *Boolean) Value() Expression {
+	return b
+}
+
+func (b *Boolean) String() string {
+	return b.Literal
+}
