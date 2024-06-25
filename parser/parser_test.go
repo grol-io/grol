@@ -1,4 +1,4 @@
-package parser
+package parser_test
 
 import (
 	"strconv"
@@ -6,16 +6,17 @@ import (
 
 	"github.com/ldemailly/gorpl/ast"
 	"github.com/ldemailly/gorpl/lexer"
+	"github.com/ldemailly/gorpl/parser"
 )
 
-func TestLetStatements(t *testing.T) {
+func Test_LetStatements(t *testing.T) {
 	input := `
 let x = 5;
 let y = 10;
 let foobar = 838383;
 `
 	l := lexer.New(input)
-	p := New(l)
+	p := parser.New(l)
 
 	program := p.ParseProgram()
 	checkParserErrors(t, p)
@@ -69,7 +70,7 @@ func testLetStatement(t *testing.T, s ast.Node, name string) bool {
 	return true
 }
 
-func checkParserErrors(t *testing.T, p *Parser) {
+func checkParserErrors(t *testing.T, p *parser.Parser) {
 	errors := p.Errors()
 	if len(errors) == 0 {
 		return
@@ -82,14 +83,14 @@ func checkParserErrors(t *testing.T, p *Parser) {
 	t.FailNow()
 }
 
-func TestReturnStatements(t *testing.T) {
+func Test_ReturnStatements(t *testing.T) {
 	input := `
 return 5;
 return 10;
 return 993322;
 `
 	l := lexer.New(input)
-	p := New(l)
+	p := parser.New(l)
 
 	program := p.ParseProgram()
 	checkParserErrors(t, p)
@@ -112,11 +113,11 @@ return 993322;
 	}
 }
 
-func TestIdentifierExpression(t *testing.T) {
+func Test_IdentifierExpression(t *testing.T) {
 	input := "foobar;"
 
 	l := lexer.New(input)
-	p := New(l)
+	p := parser.New(l)
 	program := p.ParseProgram()
 	checkParserErrors(t, p)
 
@@ -143,11 +144,11 @@ func TestIdentifierExpression(t *testing.T) {
 	}
 }
 
-func TestIntegerLiteralExpression(t *testing.T) {
+func Test_IntegerLiteralExpression(t *testing.T) {
 	input := "5;"
 
 	l := lexer.New(input)
-	p := New(l)
+	p := parser.New(l)
 	program := p.ParseProgram()
 	checkParserErrors(t, p)
 
@@ -174,8 +175,8 @@ func TestIntegerLiteralExpression(t *testing.T) {
 	}
 }
 
-func TestParsingPrefixExpressions(t *testing.T) {
-	prefixTests := []struct {
+func Test_ParsingPrefixExpressions(t *testing.T) {
+	prefixTest_s := []struct {
 		input        string
 		operator     string
 		integerValue int64
@@ -184,9 +185,9 @@ func TestParsingPrefixExpressions(t *testing.T) {
 		{"-15;", "-", 15},
 	}
 
-	for _, tt := range prefixTests {
+	for _, tt := range prefixTest_s {
 		l := lexer.New(tt.input)
-		p := New(l)
+		p := parser.New(l)
 		program := p.ParseProgram()
 		checkParserErrors(t, p)
 
@@ -236,8 +237,8 @@ func testIntegerLiteral(t *testing.T, il ast.Expression, value int64) bool {
 	return true
 }
 
-func TestParsingInfixExpressions(t *testing.T) {
-	infixTests := []struct {
+func Test_ParsingInfixExpressions(t *testing.T) {
+	infixTest_s := []struct {
 		input      string
 		leftValue  int64
 		operator   string
@@ -253,9 +254,9 @@ func TestParsingInfixExpressions(t *testing.T) {
 		{"5 != 5;", 5, "!=", 5},
 	}
 
-	for _, tt := range infixTests {
+	for _, tt := range infixTest_s {
 		l := lexer.New(tt.input)
-		p := New(l)
+		p := parser.New(l)
 		program := p.ParseProgram()
 		checkParserErrors(t, p)
 
@@ -291,7 +292,7 @@ func TestParsingInfixExpressions(t *testing.T) {
 	}
 }
 
-func TestOperatorPrecedenceParsing(t *testing.T) {
+func Test_OperatorPrecedenceParsing(t *testing.T) {
 	tests := []struct {
 		input    string
 		expected string
@@ -356,7 +357,7 @@ func TestOperatorPrecedenceParsing(t *testing.T) {
 
 	for _, tt := range tests {
 		l := lexer.New(tt.input)
-		p := New(l)
+		p := parser.New(l)
 		program := p.ParseProgram()
 		checkParserErrors(t, p)
 
