@@ -1,6 +1,7 @@
 package ast
 
 import (
+	"bytes"
 	"strings"
 
 	"github.com/ldemailly/gorpl/token"
@@ -157,4 +158,40 @@ func (b *Boolean) Value() Expression {
 
 func (b *Boolean) String() string {
 	return b.Literal
+}
+
+type IfExpression struct {
+	Base
+	Condition   Expression
+	Consequence *BlockStatement
+	Alternative *BlockStatement
+}
+
+func (ie *IfExpression) String() string {
+	var out bytes.Buffer
+
+	out.WriteString("if")
+	out.WriteString(ie.Condition.String())
+	out.WriteString(" ")
+	out.WriteString(ie.Consequence.String())
+
+	if ie.Alternative != nil {
+		out.WriteString("else ")
+		out.WriteString(ie.Alternative.String())
+	}
+
+	return out.String()
+}
+
+func (ie *IfExpression) Value() Expression {
+	return ie
+}
+
+type BlockStatement struct {
+	Base // holds {
+	Program
+}
+
+func (bs *BlockStatement) String() string {
+	return bs.Program.String()
 }
