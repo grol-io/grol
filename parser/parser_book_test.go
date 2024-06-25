@@ -437,7 +437,7 @@ func TestIfExpression(t *testing.T) {
 			exp.Consequence.Statements[0])
 	}
 
-	if !testIdentifier(t, consequence.Expression, "x") {
+	if !testIdentifier(t, consequence.Value(), "x") {
 		return
 	}
 
@@ -486,7 +486,7 @@ func TestIfElseExpression(t *testing.T) {
 			exp.Consequence.Statements[0])
 	}
 
-	if !testIdentifier(t, consequence.Expression, "x") {
+	if !testIdentifier(t, consequence.Value(), "x") {
 		return
 	}
 
@@ -501,7 +501,7 @@ func TestIfElseExpression(t *testing.T) {
 			exp.Alternative.Statements[0])
 	}
 
-	if !testIdentifier(t, alternative.Expression, "y") {
+	if !testIdentifier(t, alternative.Value(), "y") {
 		return
 	}
 }
@@ -551,7 +551,7 @@ func TestFunctionLiteralParsing(t *testing.T) {
 			function.Body.Statements[0])
 	}
 
-	testInfixExpression(t, bodyStmt.Expression, "x", "+", "y")
+	testInfixExpression(t, bodyStmt.Value(), "x", "+", "y")
 }
 
 func TestFunctionParameterParsing(t *testing.T) {
