@@ -35,6 +35,21 @@ type ReturnStatement struct {
 	ReturnValue Expression
 }
 
+func (rs *ReturnStatement) String() string {
+	out := strings.Builder{}
+
+	out.WriteString(rs.TokenLiteral())
+	out.WriteString(" ")
+
+	if rs.ReturnValue != nil {
+		out.WriteString(rs.ReturnValue.String())
+	}
+
+	// out.WriteString(";")
+
+	return out.String()
+}
+
 type Program struct {
 	Statements []Node
 }
@@ -58,6 +73,22 @@ type LetStatement struct {
 	Base
 	Name  *Identifier
 	Value Expression
+}
+
+func (ls *LetStatement) String() string {
+	out := strings.Builder{}
+
+	out.WriteString(ls.TokenLiteral() + " ")
+	out.WriteString(ls.Name.String())
+	out.WriteString(" = ")
+
+	if ls.Value != nil {
+		out.WriteString(ls.Value.String())
+	}
+
+	// out.WriteString(";")
+
+	return out.String()
 }
 
 type Identifier struct {

@@ -353,6 +353,14 @@ func Test_OperatorPrecedenceParsing(t *testing.T) {
 			"3 + 4 * 5 == 3 * 1 + 4 * 5",
 			"((3 + (4 * 5)) == ((3 * 1) + (4 * 5)))",
 		},
+		{
+			"let x = 41 * 6",
+			"let x = (41 * 6)",
+		},
+		{
+			"let foo = fn(a,b) {return a+b}",
+			"let foo = fn(a, b) {\nreturn (a + b)\n}",
+		},
 	}
 
 	for _, tt := range tests {
