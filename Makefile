@@ -1,7 +1,7 @@
 all: generate lint tests failing-tests
 
 tests:
-	go test ./...
+	go test -race ./...
 
 failing-tests:
 	-go test -v ./... -tags=runfailingtests -run TestLetStatementsFormerlyCrashingNowFailingOnPurpose

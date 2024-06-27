@@ -4,11 +4,17 @@ import (
 	"strconv"
 	"testing"
 
+	"fortio.org/log"
 	"github.com/ldemailly/gorpl/ast"
 	"github.com/ldemailly/gorpl/lexer"
 )
 
 func TestLetStatements(t *testing.T) {
+	/* debug some test(s):
+	log.SetLogLevel(log.Debug)
+	log.Config.ForceColor = true
+	log.SetColorMode()
+	*/
 	tests := []struct {
 		input              string
 		expectedIdentifier string
@@ -36,6 +42,7 @@ func TestLetStatements(t *testing.T) {
 
 		val := stmt.(*ast.LetStatement).Value
 		if !testLiteralExpression(t, val, tt.expectedValue) {
+			log.Errf("testLiteralExpression failed for %s got %#v", tt.input, stmt)
 			return
 		}
 	}
@@ -277,7 +284,7 @@ func TestOperatorPrecedenceParsing(t *testing.T) {
 		},
 		{
 			"3 + 4; -5 * 5",
-			"(3 + 4)((-5) * 5)",
+			"(3 + 4)\n((-5) * 5)",
 		},
 		{
 			"5 > 4 == 3 < 4",
