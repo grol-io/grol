@@ -176,7 +176,7 @@ func Test_IntegerLiteralExpression(t *testing.T) {
 }
 
 func Test_ParsingPrefixExpressions(t *testing.T) {
-	prefixTest_s := []struct {
+	prefixTests := []struct {
 		input        string
 		operator     string
 		integerValue int64
@@ -185,7 +185,7 @@ func Test_ParsingPrefixExpressions(t *testing.T) {
 		{"-15;", "-", 15},
 	}
 
-	for _, tt := range prefixTest_s {
+	for _, tt := range prefixTests {
 		l := lexer.New(tt.input)
 		p := parser.New(l)
 		program := p.ParseProgram()
@@ -238,7 +238,7 @@ func testIntegerLiteral(t *testing.T, il ast.Expression, value int64) bool {
 }
 
 func Test_ParsingInfixExpressions(t *testing.T) {
-	infixTest_s := []struct {
+	infixTests := []struct {
 		input      string
 		leftValue  int64
 		operator   string
@@ -254,7 +254,7 @@ func Test_ParsingInfixExpressions(t *testing.T) {
 		{"5 != 5;", 5, "!=", 5},
 	}
 
-	for _, tt := range infixTest_s {
+	for _, tt := range infixTests {
 		l := lexer.New(tt.input)
 		p := parser.New(l)
 		program := p.ParseProgram()

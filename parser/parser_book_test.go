@@ -1,7 +1,7 @@
 package parser
 
 import (
-	"fmt"
+	"strconv"
 	"testing"
 
 	"github.com/ldemailly/gorpl/ast"
@@ -29,7 +29,6 @@ func TestLetStatements(t *testing.T) {
 			t.Fatalf("program.Statements does not contain 1 statements. got=%d",
 				len(program.Statements))
 		}
-
 		stmt := program.Statements[0]
 		if !testLetStatement(t, stmt, tt.expectedIdentifier) {
 			return
@@ -679,7 +678,7 @@ func TestCallExpressionParameterParsing(t *testing.T) {
 	}
 }
 
-func testLetStatement(t *testing.T, s ast.Statement, name string) bool {
+func testLetStatement(t *testing.T, s ast.Node, name string) bool {
 	if s.TokenLiteral() != "let" {
 		t.Errorf("s.TokenLiteral not 'let'. got=%q", s.TokenLiteral())
 		return false
@@ -691,8 +690,8 @@ func testLetStatement(t *testing.T, s ast.Statement, name string) bool {
 		return false
 	}
 
-	if letStmt.Name.Value != name {
-		t.Errorf("letStmt.Name.Value not '%s'. got=%s", name, letStmt.Name.Value)
+	if letStmt.Name.Val != name {
+		t.Errorf("letStmt.Name.Value not '%s'. got=%s", name, letStmt.Name.Val)
 		return false
 	}
 
@@ -706,8 +705,8 @@ func testLetStatement(t *testing.T, s ast.Statement, name string) bool {
 }
 
 func testInfixExpression(t *testing.T, exp ast.Expression, left interface{},
-	operator string, right interface{}) bool {
-
+	operator string, right interface{},
+) bool {
 	opExp, ok := exp.(*ast.InfixExpression)
 	if !ok {
 		t.Errorf("exp is not ast.InfixExpression. got=%T(%s)", exp, exp)
@@ -761,8 +760,9 @@ func testIntegerLiteral(t *testing.T, il ast.Expression, value int64) bool {
 		return false
 	}
 
-	if integ.TokenLiteral() != fmt.Sprintf("%d", value) {
-		t.Errorf("integ.TokenLiteral not %d. got=%s", value,
+	expectedString := strconv.FormatInt(value, 10)
+	if integ.TokenLiteral() != expectedString {
+		t.Errorf("integ.TokenLiteral not %d (%s). got=%s", value, expectedString,
 			integ.TokenLiteral())
 		return false
 	}
@@ -803,9 +803,11 @@ func testBooleanLiteral(t *testing.T, exp ast.Expression, value bool) bool {
 		return false
 	}
 
-	if bo.TokenLiteral() != fmt.Sprintf("%t", value) {
-		t.Errorf("bo.TokenLiteral not %t. got=%s",
-			value, bo.TokenLiteral())
+	expectedString := strconv.FormatBool(value)
+
+	if bo.TokenLiteral() != expectedString {
+		t.Errorf("bo.TokenLiteral not %t (%s). got=%s",
+			value, expectedString, bo.TokenLiteral())
 		return false
 	}
 
