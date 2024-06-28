@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"strings"
 
-	"github.com/ldemailly/gorpl/token"
+	"github.com/ldemailly/gorepl/token"
 )
 
 type Node interface {

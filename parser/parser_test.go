@@ -4,9 +4,9 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/ldemailly/gorpl/ast"
-	"github.com/ldemailly/gorpl/lexer"
-	"github.com/ldemailly/gorpl/parser"
+	"github.com/ldemailly/gorepl/ast"
+	"github.com/ldemailly/gorepl/lexer"
+	"github.com/ldemailly/gorepl/parser"
 )
 
 func Test_LetStatements(t *testing.T) {

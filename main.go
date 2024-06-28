@@ -4,7 +4,7 @@ import (
 	"os"
 
 	"fortio.org/cli"
-	"github.com/ldemailly/gorpl/repl"
+	"github.com/ldemailly/gorepl/repl"
 )
 
 func main() {

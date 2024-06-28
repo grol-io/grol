@@ -1,4 +1,4 @@
-module github.com/ldemailly/gorpl
+module github.com/ldemailly/gorepl
 
 go 1.22.4
 

@@ -24,7 +24,7 @@ go.work.sum
 
 .golangci.yml
 .goreleaser.yaml
-gorpl
+gorepl
 
 .DS_Store
 __*

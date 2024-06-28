@@ -3,8 +3,8 @@ package eval
 import (
 	"fmt"
 
-	"github.com/ldemailly/gorpl/ast"
-	"github.com/ldemailly/gorpl/object"
+	"github.com/ldemailly/gorepl/ast"
+	"github.com/ldemailly/gorepl/object"
 )
 
 func Eval(node any) object.Object {

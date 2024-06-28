@@ -5,9 +5,9 @@ import (
 	"strconv"
 
 	"fortio.org/log"
-	"github.com/ldemailly/gorpl/ast"
-	"github.com/ldemailly/gorpl/lexer"
-	"github.com/ldemailly/gorpl/token"
+	"github.com/ldemailly/gorepl/ast"
+	"github.com/ldemailly/gorepl/lexer"
+	"github.com/ldemailly/gorepl/token"
 )
 
 type Priority int8

@@ -6,9 +6,9 @@ import (
 	"io"
 
 	"fortio.org/log"
-	"github.com/ldemailly/gorpl/eval"
-	"github.com/ldemailly/gorpl/lexer"
-	"github.com/ldemailly/gorpl/parser"
+	"github.com/ldemailly/gorepl/eval"
+	"github.com/ldemailly/gorepl/lexer"
+	"github.com/ldemailly/gorepl/parser"
 )
 
 const PROMPT = "$ "

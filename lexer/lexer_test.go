@@ -3,7 +3,7 @@ package lexer
 import (
 	"testing"
 
-	"github.com/ldemailly/gorpl/token"
+	"github.com/ldemailly/gorepl/token"
 )
 
 func TestNextToken(t *testing.T) {

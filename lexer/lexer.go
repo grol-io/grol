@@ -1,6 +1,6 @@
 package lexer
 
-import "github.com/ldemailly/gorpl/token"
+import "github.com/ldemailly/gorepl/token"
 
 type Lexer struct {
 	input string
