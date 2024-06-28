@@ -28,3 +28,4 @@ gorpl
 
 .DS_Store
 __*
+*_string.go

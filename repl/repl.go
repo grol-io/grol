@@ -5,21 +5,23 @@ import (
 	"fmt"
 	"io"
 
+	"fortio.org/log"
+	"github.com/ldemailly/gorpl/eval"
 	"github.com/ldemailly/gorpl/lexer"
 	"github.com/ldemailly/gorpl/parser"
 )
 
 const PROMPT = "$ "
 
-func printParserErrors(out io.Writer, p *parser.Parser) bool {
+func logParserErrors(p *parser.Parser) bool {
 	errors := p.Errors()
 	if len(errors) == 0 {
 		return false
 	}
 
-	fmt.Fprintf(out, "parser has %d error(s)\n", len(errors))
+	log.Critf("parser has %d error(s)", len(errors))
 	for _, msg := range errors {
-		fmt.Fprintf(out, "parser error: %s\n", msg)
+		log.Errf("parser error: %s", msg)
 	}
 	return true
 }
@@ -39,9 +41,13 @@ func Start(in io.Reader, out io.Writer) {
 
 		p := parser.New(l)
 		program := p.ParseProgram()
-		if printParserErrors(out, p) {
+		if logParserErrors(p) {
 			continue
 		}
+		fmt.Print("== Parse ==> ")
 		fmt.Println(program.String())
+		fmt.Print("== Eval  ==> ")
+		obj := eval.Eval(program)
+		fmt.Println(obj.Inspect())
 	}
 }
