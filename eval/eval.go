@@ -22,6 +22,15 @@ func Eval(node any) object.Object {
 	case *ast.ExpressionStatement:
 		return Eval(node.Val)
 
+	case *ast.BlockStatement:
+		if node == nil { // TODO: only here? this comes from empty else branches.
+			return NULL
+		}
+		return evalStatements(node.Statements)
+
+	case *ast.IfExpression:
+		return evalIfExpression(node)
+
 		// Expressions
 	case *ast.PrefixExpression:
 		right := Eval(node.Right)
@@ -39,6 +48,18 @@ func Eval(node any) object.Object {
 	}
 
 	return &object.Error{Value: fmt.Sprintf("unknown node type: %T", node)}
+}
+
+func evalIfExpression(ie *ast.IfExpression) object.Object {
+	condition := Eval(ie.Condition)
+	switch condition {
+	case TRUE:
+		return Eval(ie.Consequence)
+	case FALSE:
+		return Eval(ie.Alternative)
+	default:
+		return &object.Error{Value: "<condition is not a boolean: " + condition.Inspect() + ">"}
+	}
 }
 
 func evalStatements(stmts []ast.Node) object.Object {
