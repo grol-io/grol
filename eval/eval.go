@@ -17,6 +17,14 @@ var (
 // TODO: don't call the .String() if log level isn't verbose.
 
 func Eval(node any) object.Object {
+	result := evalInternal(node)
+	if returnValue, ok := result.(*object.ReturnValue); ok {
+		return returnValue.Value
+	}
+	return result
+}
+
+func evalInternal(node any) object.Object {
 	switch node := node.(type) {
 	// Statements
 	case *ast.Program:
@@ -25,7 +33,7 @@ func Eval(node any) object.Object {
 
 	case *ast.ExpressionStatement:
 		log.LogVf("eval expr statement")
-		return Eval(node.Val)
+		return evalInternal(node.Val)
 
 	case *ast.BlockStatement:
 		if node == nil { // TODO: only here? this comes from empty else branches.
@@ -40,12 +48,12 @@ func Eval(node any) object.Object {
 		// Expressions
 	case *ast.PrefixExpression:
 		log.LogVf("eval prefix %s", node.String())
-		right := Eval(node.Right)
+		right := evalInternal(node.Right)
 		return evalPrefixExpression(node.Operator, right)
 	case *ast.InfixExpression:
 		log.LogVf("eval infix %s", node.String())
-		left := Eval(node.Left)
-		right := Eval(node.Right)
+		left := evalInternal(node.Left)
+		right := evalInternal(node.Right)
 		return evalInfixExpression(node.Operator, left, right)
 
 	case *ast.IntegerLiteral:
@@ -55,7 +63,7 @@ func Eval(node any) object.Object {
 		return nativeBoolToBooleanObject(node.Val)
 
 	case *ast.ReturnStatement:
-		val := Eval(node.ReturnValue)
+		val := evalInternal(node.ReturnValue)
 		return &object.ReturnValue{Value: val}
 
 	}
@@ -64,14 +72,14 @@ func Eval(node any) object.Object {
 }
 
 func evalIfExpression(ie *ast.IfExpression) object.Object {
-	condition := Eval(ie.Condition)
+	condition := evalInternal(ie.Condition)
 	switch condition {
 	case TRUE:
 		log.LogVf("if %s is TRUE, picking true branch", ie.Condition.String())
-		return Eval(ie.Consequence)
+		return evalInternal(ie.Consequence)
 	case FALSE:
 		log.LogVf("if %s is FALSE, picking else branch", ie.Condition.String())
-		return Eval(ie.Alternative)
+		return evalInternal(ie.Alternative)
 	default:
 		return &object.Error{Value: "<condition is not a boolean: " + condition.Inspect() + ">"}
 	}
@@ -82,9 +90,9 @@ func evalStatements(stmts []ast.Node) object.Object {
 	result = NULL // no crash when empty program.
 
 	for _, statement := range stmts {
-		result = Eval(statement)
+		result = evalInternal(statement)
 		if returnValue, ok := result.(*object.ReturnValue); ok {
-			return returnValue.Value
+			return returnValue
 		}
 	}
 
