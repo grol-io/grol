@@ -17,6 +17,7 @@ const (
 	BOOLEAN
 	NULL
 	ERROR
+	RETURN
 	LAST
 )
 
@@ -58,3 +59,10 @@ type Error struct {
 
 func (e *Error) Type() Type      { return ERROR }
 func (e *Error) Inspect() string { return "<err: " + e.Value + ">" }
+
+type ReturnValue struct {
+	Value Object
+}
+
+func (rv *ReturnValue) Type() Type      { return RETURN }
+func (rv *ReturnValue) Inspect() string { return rv.Value.Inspect() }

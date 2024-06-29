@@ -53,6 +53,11 @@ func Eval(node any) object.Object {
 
 	case *ast.Boolean:
 		return nativeBoolToBooleanObject(node.Val)
+
+	case *ast.ReturnStatement:
+		val := Eval(node.ReturnValue)
+		return &object.ReturnValue{Value: val}
+
 	}
 
 	return &object.Error{Value: fmt.Sprintf("unknown node type: %T", node)}
@@ -78,6 +83,9 @@ func evalStatements(stmts []ast.Node) object.Object {
 
 	for _, statement := range stmts {
 		result = Eval(statement)
+		if returnValue, ok := result.(*object.ReturnValue); ok {
+			return returnValue.Value
+		}
 	}
 
 	return result
