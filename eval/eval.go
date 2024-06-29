@@ -3,6 +3,7 @@ package eval
 import (
 	"fmt"
 
+	"fortio.org/log"
 	"github.com/ldemailly/gorepl/ast"
 	"github.com/ldemailly/gorepl/object"
 )
@@ -13,19 +14,24 @@ var (
 	FALSE = &object.Boolean{Value: false}
 )
 
+// TODO: don't call the .String() if log level isn't verbose.
+
 func Eval(node any) object.Object {
 	switch node := node.(type) {
 	// Statements
 	case *ast.Program:
+		log.LogVf("eval program")
 		return evalStatements(node.Statements)
 
 	case *ast.ExpressionStatement:
+		log.LogVf("eval expr statement")
 		return Eval(node.Val)
 
 	case *ast.BlockStatement:
 		if node == nil { // TODO: only here? this comes from empty else branches.
 			return NULL
 		}
+		log.LogVf("eval block statement")
 		return evalStatements(node.Statements)
 
 	case *ast.IfExpression:
@@ -33,9 +39,11 @@ func Eval(node any) object.Object {
 
 		// Expressions
 	case *ast.PrefixExpression:
+		log.LogVf("eval prefix %s", node.String())
 		right := Eval(node.Right)
 		return evalPrefixExpression(node.Operator, right)
 	case *ast.InfixExpression:
+		log.LogVf("eval infix %s", node.String())
 		left := Eval(node.Left)
 		right := Eval(node.Right)
 		return evalInfixExpression(node.Operator, left, right)
@@ -54,8 +62,10 @@ func evalIfExpression(ie *ast.IfExpression) object.Object {
 	condition := Eval(ie.Condition)
 	switch condition {
 	case TRUE:
+		log.LogVf("if %s is TRUE, picking true branch", ie.Condition.String())
 		return Eval(ie.Consequence)
 	case FALSE:
+		log.LogVf("if %s is FALSE, picking else branch", ie.Condition.String())
 		return Eval(ie.Alternative)
 	default:
 		return &object.Error{Value: "<condition is not a boolean: " + condition.Inspect() + ">"}
