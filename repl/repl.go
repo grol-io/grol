@@ -47,7 +47,7 @@ func Start(in io.Reader, out io.Writer) {
 		fmt.Print("== Parse ==> ")
 		fmt.Println(program.String())
 		fmt.Print("== Eval  ==> ")
-		obj := eval.EvalInternal(program)
+		obj := eval.Eval(program)
 		fmt.Println(obj.Inspect())
 	}
 }

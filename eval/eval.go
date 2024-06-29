@@ -65,7 +65,6 @@ func evalInternal(node any) object.Object {
 	case *ast.ReturnStatement:
 		val := evalInternal(node.ReturnValue)
 		return &object.ReturnValue{Value: val}
-
 	}
 
 	return &object.Error{Value: fmt.Sprintf("unknown node type: %T", node)}
@@ -88,14 +87,12 @@ func evalIfExpression(ie *ast.IfExpression) object.Object {
 func evalStatements(stmts []ast.Node) object.Object {
 	var result object.Object
 	result = NULL // no crash when empty program.
-
 	for _, statement := range stmts {
 		result = evalInternal(statement)
-		if returnValue, ok := result.(*object.ReturnValue); ok {
-			return returnValue
+		if rt := result.Type(); rt == object.RETURN || rt == object.ERROR {
+			return result
 		}
 	}
-
 	return result
 }
 

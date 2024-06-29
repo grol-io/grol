@@ -169,7 +169,8 @@ func TestReturnStatements(t *testing.T) {
 		{"return 10; 9;", 10},
 		{"return 2 * 5; 9;", 10},
 		{"9; return 2 * 5; 9;", 10},
-		{`
+		{
+			`
 		if (10 > 1) {
 		  if (10 > 1) {
 			return 10;
@@ -184,5 +185,65 @@ func TestReturnStatements(t *testing.T) {
 	for _, tt := range tests {
 		evaluated := testEval(tt.input)
 		testIntegerObject(t, evaluated, tt.expected)
+	}
+}
+
+func TestErrorHandling(t *testing.T) {
+	tests := []struct {
+		input           string
+		expectedMessage string
+	}{
+		{
+			"5 + true;",
+			"<operation on non integers left=5 right=true>",
+		},
+		{
+			"5 + true; 5;",
+			"<operation on non integers left=5 right=true>",
+		},
+		{
+			"-true",
+			"<minus of true>",
+		},
+		{
+			"true + false;",
+			"<operation on non integers left=true right=false>",
+		},
+		{
+			"5; true + false; 5",
+			"<operation on non integers left=true right=false>",
+		},
+		{
+			"if (10 > 1) { true + false; }",
+			"<operation on non integers left=true right=false>",
+		},
+		{
+			`
+if (10 > 1) {
+  if (10 > 1) {
+    return true + false;
+  }
+
+  return 1;
+}
+`,
+			"<operation on non integers left=true right=false>",
+		},
+	}
+
+	for _, tt := range tests {
+		evaluated := testEval(tt.input)
+
+		errObj, ok := evaluated.(*object.Error)
+		if !ok {
+			t.Errorf("no error object returned. got=%T(%+v)",
+				evaluated, evaluated)
+			continue
+		}
+
+		if errObj.Value != tt.expectedMessage {
+			t.Errorf("wrong error message. expected=%q, got=%q",
+				tt.expectedMessage, errObj.Value)
+		}
 	}
 }
