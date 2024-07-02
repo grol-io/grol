@@ -1,5 +1,10 @@
 all: generate lint tests failing-tests
 
+GO_BUILD_TAGS:=no_net,no_json
+
+build:
+	CGO_ENABLE=0 go build -trimpath -ldflags="-w -s" -tags "$(GO_BUILD_TAGS)" .
+
 tests:
 	go test -race ./...
 
