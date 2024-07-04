@@ -106,22 +106,31 @@ func (s *State) applyFunction(fn object.Object, args []object.Object) object.Obj
 	if !ok {
 		return &object.Error{Value: "<not a function: " + fn.Type().String() + ">"}
 	}
+	nenv, oerr := extendFunctionEnv(function, args)
+	if oerr != nil {
+		return oerr
+	}
 	curState := s.env
-	s.env = extendFunctionEnv(function, args)
+	s.env = nenv
 	res := s.Eval(function.Body)
 	// restore the previous env/state.
 	s.env = curState
 	return res
 }
 
-func extendFunctionEnv(fn *object.Function, args []object.Object) *object.Environment {
+func extendFunctionEnv(fn *object.Function, args []object.Object) (*object.Environment, *object.Error) {
 	env := object.NewEnclosedEnvironment(fn.Env)
-
+	n := len(fn.Parameters)
+	if len(args) != n {
+		// TODO: would be nice with the function name.
+		return nil, &object.Error{Value: fmt.Sprintf("<wrong number of arguments. got=%d, want=%d>",
+			len(args), n)}
+	}
 	for paramIdx, param := range fn.Parameters {
 		env.Set(param.Val, args[paramIdx])
 	}
 
-	return env
+	return env, nil
 }
 
 // TODO: isn't this same as statements?

@@ -194,6 +194,10 @@ func TestErrorHandling(t *testing.T) {
 		expectedMessage string
 	}{
 		{
+			"let f=fn(x,y) {x+y}; f(1)",
+			"<wrong number of arguments. got=1, want=2>",
+		},
+		{
 			"5 + true;",
 			"<operation on non integers left=5 right=true>",
 		},
