@@ -23,3 +23,5 @@ Status: done up to and including 3.8 - ie functional expressions, if etc with co
 - Introduced errors sooner, it's sort of obviously needed
 
 - Put handling of return/error once at the top instead of peppered all over
+
+- Make all the Eval functions receiver methods on State instead of passing environment around

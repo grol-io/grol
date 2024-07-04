@@ -27,6 +27,7 @@ func logParserErrors(p *parser.Parser) bool {
 }
 
 func Start(in io.Reader, out io.Writer) {
+	s := eval.NewState()
 	scanner := bufio.NewScanner(in)
 
 	for {
@@ -47,7 +48,7 @@ func Start(in io.Reader, out io.Writer) {
 		fmt.Print("== Parse ==> ")
 		fmt.Println(program.String())
 		fmt.Print("== Eval  ==> ")
-		obj := eval.Eval(program)
+		obj := s.Eval(program)
 		fmt.Println(obj.Inspect())
 	}
 }
