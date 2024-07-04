@@ -2,6 +2,9 @@ package object
 
 import (
 	"strconv"
+	"strings"
+
+	"github.com/ldemailly/gorepl/ast"
 )
 
 type Type uint8
@@ -18,6 +21,7 @@ const (
 	NULL
 	ERROR
 	RETURN
+	FUNCTION
 	LAST
 )
 
@@ -66,3 +70,28 @@ type ReturnValue struct {
 
 func (rv *ReturnValue) Type() Type      { return RETURN }
 func (rv *ReturnValue) Inspect() string { return rv.Value.Inspect() }
+
+type Function struct {
+	Parameters []*ast.Identifier
+	Body       *ast.BlockStatement
+	Env        *Environment
+}
+
+func (f *Function) Type() Type { return FUNCTION }
+func (f *Function) Inspect() string {
+	out := &strings.Builder{}
+
+	params := []string{}
+	for _, p := range f.Parameters {
+		params = append(params, p.String())
+	}
+
+	out.WriteString("fn")
+	out.WriteString("(")
+	out.WriteString(strings.Join(params, ", "))
+	out.WriteString(") {\n")
+	out.WriteString(f.Body.String())
+	out.WriteString("\n}")
+
+	return out.String()
+}

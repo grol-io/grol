@@ -85,9 +85,56 @@ func (s *State) evalInternal(node any) object.Object {
 	case *ast.ReturnStatement:
 		val := s.evalInternal(node.ReturnValue)
 		return &object.ReturnValue{Value: val}
+
+	case *ast.FunctionLiteral:
+		params := node.Parameters
+		body := node.Body
+		return &object.Function{Parameters: params, Env: s.env, Body: body}
+	case *ast.CallExpression:
+		f := s.Eval(node.Function)
+		args, oerr := s.evalExpressions(node.Arguments)
+		if oerr != nil {
+			return oerr
+		}
+		return s.applyFunction(f, args)
+	}
+	return &object.Error{Value: fmt.Sprintf("unknown node type: %T", node)}
+}
+
+func (s *State) applyFunction(fn object.Object, args []object.Object) object.Object {
+	function, ok := fn.(*object.Function)
+	if !ok {
+		return &object.Error{Value: "<not a function: " + fn.Type().String() + ">"}
+	}
+	curState := s.env
+	s.env = extendFunctionEnv(function, args)
+	res := s.Eval(function.Body)
+	// restore the previous env/state.
+	s.env = curState
+	return res
+}
+
+func extendFunctionEnv(fn *object.Function, args []object.Object) *object.Environment {
+	env := object.NewEnclosedEnvironment(fn.Env)
+
+	for paramIdx, param := range fn.Parameters {
+		env.Set(param.Val, args[paramIdx])
 	}
 
-	return &object.Error{Value: fmt.Sprintf("unknown node type: %T", node)}
+	return env
+}
+
+// TODO: isn't this same as statements?
+func (s *State) evalExpressions(exps []ast.Expression) ([]object.Object, *object.Error) {
+	result := make([]object.Object, 0, len(exps))
+	for _, e := range exps {
+		evaluated := s.Eval(e)
+		if rt := evaluated.Type(); rt == object.ERROR {
+			return nil, evaluated.(*object.Error)
+		}
+		result = append(result, evaluated)
+	}
+	return result, nil
 }
 
 func (s *State) evalIdentifier(node *ast.Identifier) object.Object {
