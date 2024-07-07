@@ -88,7 +88,17 @@ func (s *State) evalInternal(node any) object.Object {
 	case *ast.ReturnStatement:
 		val := s.evalInternal(node.ReturnValue)
 		return &object.ReturnValue{Value: val}
-
+	case *ast.Len:
+		val := s.evalInternal(node.Parameter)
+		rt := val.Type()
+		switch rt { //nolint:exhaustive // we have default, len doesn't work on many types.
+		case object.ERROR:
+			return val
+		case object.STRING:
+			return &object.Integer{Value: int64(len(val.(*object.String).Value))}
+		default:
+			return &object.Error{Value: fmt.Sprintf("len() not supported on %s", rt)}
+		}
 	case *ast.FunctionLiteral:
 		params := node.Parameters
 		body := node.Body
@@ -230,27 +240,33 @@ func (s *State) evalInfixExpression(
 	switch {
 	case left.Type() == object.INTEGER && right.Type() == object.INTEGER:
 		return s.evalIntegerInfixExpression(operator, left, right)
+	case left.Type() == object.STRING && right.Type() == object.STRING:
+		return evalStringInfixExpression(operator, left, right)
 	case operator == "==":
 		// should be left.Value() and right.Value() as currently this relies
 		// on bool interning and ptr equality.
 		return nativeBoolToBooleanObject(left == right)
 	case operator == "!=":
 		return nativeBoolToBooleanObject(left != right)
-	case left.Type() == object.STRING && right.Type() == object.STRING:
-		return evalStringInfixExpression(operator, left, right)
 	default:
 		return &object.Error{Value: "<operation on non integers left=" + left.Inspect() + " right=" + right.Inspect() + ">"}
 	}
 }
 
 func evalStringInfixExpression(operator string, left, right object.Object) object.Object {
-	if operator != "+" {
+	leftVal := left.(*object.String).Value
+	rightVal := right.(*object.String).Value
+	switch operator {
+	case "==":
+		return nativeBoolToBooleanObject(leftVal == rightVal)
+	case "!=":
+		return nativeBoolToBooleanObject(leftVal != rightVal)
+	case "+":
+		return &object.String{Value: leftVal + rightVal}
+	default:
 		return &object.Error{Value: fmt.Sprintf("<unknown operator: %s %s %s>",
 			left.Type(), operator, right.Type())}
 	}
-	leftVal := left.(*object.String).Value
-	rightVal := right.(*object.String).Value
-	return &object.String{Value: leftVal + rightVal}
 }
 
 func (s *State) evalIntegerInfixExpression(

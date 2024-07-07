@@ -241,6 +241,23 @@ func (bs *BlockStatement) String() string {
 	return "{\n" + bs.Program.String() + "\n}"
 }
 
+type Len struct {
+	Base      // The 'len' token
+	Parameter Expression
+}
+
+func (l *Len) Value() Expression {
+	return l
+}
+
+func (l *Len) String() string {
+	out := strings.Builder{}
+	out.WriteString("len(")
+	out.WriteString(l.Parameter.String())
+	out.WriteString(")")
+	return out.String()
+}
+
 type FunctionLiteral struct {
 	Base       // The 'fn' token
 	Parameters []*Identifier
@@ -248,8 +265,7 @@ type FunctionLiteral struct {
 }
 
 func (fl *FunctionLiteral) String() string {
-	var out bytes.Buffer
-
+	out := strings.Builder{}
 	params := []string{}
 	for _, p := range fl.Parameters {
 		params = append(params, p.String())

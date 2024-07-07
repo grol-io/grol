@@ -49,6 +49,10 @@ const (
 	ELSE
 	RETURN
 	STRING
+	// Built-in functions.
+	LEN
+	FIRST
+	REST
 )
 
 //go:generate stringer -type=Type
@@ -62,6 +66,10 @@ var keywords = map[string]Type{
 	"if":     IF,
 	"else":   ELSE,
 	"return": RETURN,
+	// built-in functions.
+	"len":   LEN,
+	"first": FIRST,
+	"rest":  REST,
 }
 
 func LookupIdent(ident string) Type {
