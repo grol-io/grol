@@ -24,13 +24,13 @@ generate:
 
 generate: $(GEN)
 
-object/type_string.go:
+object/type_string.go: object/object.go
 	go generate ./object
 
-parser/priority_string.go:
+parser/priority_string.go: parser/parser.go
 	go generate ./parser
 
-token/type_string.go:
+token/type_string.go: token/token.go
 	go generate ./token
 
 

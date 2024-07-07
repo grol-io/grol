@@ -15,7 +15,7 @@ x + y;
 };
 
 let result = add(five, ten);
-!-/*5;
+!-/%*5;
 5 < 10 > 5;
 
 if (5 < 10) {
@@ -75,6 +75,7 @@ if (5 < 10) {
 		{token.BANG, "!"},
 		{token.MINUS, "-"},
 		{token.SLASH, "/"},
+		{token.PERCENT, "%"},
 		{token.ASTERISK, "*"},
 		{token.INT, "5"},
 		{token.SEMICOLON, ";"},
