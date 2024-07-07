@@ -5,6 +5,21 @@ Install/run it:
 CGO_ENABLED=0 -trimpath -ldflags="-w -s" -tags no_net,no_json github.com/ldemailly/gorepl@latest
 ```
 
+Sample:
+```shell
+gorepl
+$ fact = fn(n) {if (n<1) {return 1} n*fact(n-1)}
+$ n=fact(6)
+== Parse ==> (n = fact(6))
+== Eval  ==> 720
+$ m=fact(7)
+== Parse ==> (m = fact(7))
+== Eval  ==> 5040
+$ m/n
+== Parse ==> (m / n)
+== Eval  ==> 7
+```
+
 Dev mode:
 ```shell
 go install golang.org/x/tools/cmd/stringer@latest
