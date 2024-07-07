@@ -82,6 +82,9 @@ func (s *State) evalInternal(node any) object.Object {
 	case *ast.Boolean:
 		return nativeBoolToBooleanObject(node.Val)
 
+	case *ast.StringLiteral:
+		return &object.String{Value: node.Val}
+
 	case *ast.ReturnStatement:
 		val := s.evalInternal(node.ReturnValue)
 		return &object.ReturnValue{Value: val}
@@ -233,9 +236,21 @@ func (s *State) evalInfixExpression(
 		return nativeBoolToBooleanObject(left == right)
 	case operator == "!=":
 		return nativeBoolToBooleanObject(left != right)
+	case left.Type() == object.STRING && right.Type() == object.STRING:
+		return evalStringInfixExpression(operator, left, right)
 	default:
 		return &object.Error{Value: "<operation on non integers left=" + left.Inspect() + " right=" + right.Inspect() + ">"}
 	}
+}
+
+func evalStringInfixExpression(operator string, left, right object.Object) object.Object {
+	if operator != "+" {
+		return &object.Error{Value: fmt.Sprintf("<unknown operator: %s %s %s>",
+			left.Type(), operator, right.Type())}
+	}
+	leftVal := left.(*object.String).Value
+	rightVal := right.(*object.String).Value
+	return &object.String{Value: leftVal + rightVal}
 }
 
 func (s *State) evalIntegerInfixExpression(

@@ -2,6 +2,7 @@ package ast
 
 import (
 	"bytes"
+	"strconv"
 	"strings"
 
 	"github.com/ldemailly/gorepl/token"
@@ -130,6 +131,19 @@ func (i *IntegerLiteral) Value() Expression {
 
 func (i *IntegerLiteral) String() string {
 	return i.Literal
+}
+
+type StringLiteral struct {
+	Base
+	Val string
+}
+
+func (s *StringLiteral) Value() Expression {
+	return s
+}
+
+func (s *StringLiteral) String() string {
+	return strconv.Quote(s.Literal)
 }
 
 type PrefixExpression struct {

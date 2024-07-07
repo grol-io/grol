@@ -833,3 +833,23 @@ func checkParserErrors(t *testing.T, p *Parser) {
 	}
 	t.FailNow()
 }
+
+func TestStringLiteralExpression(t *testing.T) {
+	input := `"hello\nworld\"abc";`
+
+	l := lexer.New(input)
+	p := New(l)
+	program := p.ParseProgram()
+	checkParserErrors(t, p)
+
+	stmt := program.Statements[0].(*ast.ExpressionStatement)
+	v := stmt.Value()
+	literal, ok := v.(*ast.StringLiteral)
+	if !ok {
+		t.Fatalf("exp not *ast.StringLiteral. got=%T", v)
+	}
+	expected := "hello\nworld\"abc"
+	if literal.Val != expected {
+		t.Errorf("literal.Value not %q. got=%q", expected, literal.Val)
+	}
+}

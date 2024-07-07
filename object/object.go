@@ -22,6 +22,7 @@ const (
 	ERROR
 	RETURN
 	FUNCTION
+	STRING
 	LAST
 )
 
@@ -50,6 +51,18 @@ func (b *Boolean) Type() Type {
 
 func (b *Boolean) Inspect() string {
 	return strconv.FormatBool(b.Value)
+}
+
+type String struct {
+	Value string
+}
+
+func (s *String) Type() Type {
+	return STRING
+}
+
+func (s *String) Inspect() string {
+	return s.Value
 }
 
 type Null struct{}
