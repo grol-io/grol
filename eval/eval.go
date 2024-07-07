@@ -33,6 +33,21 @@ func (s *State) Eval(node any) object.Object {
 	return result
 }
 
+func (s *State) evalAssignment(right object.Object, node *ast.InfixExpression) object.Object {
+	// let free assignments.
+	id, ok := node.Left.(*ast.Identifier)
+	if !ok {
+		return &object.Error{Value: "<assignment to non identifier: " + node.Left.String() + ">"}
+	}
+	if rt := right.Type(); rt == object.ERROR {
+		log.Warnf("can't assign %q: %v", right.Inspect(), right)
+		return right
+	}
+	log.LogVf("eval assign %#v to %#v", right, id.Val)
+	s.env.Set(id.Val, right)
+	return right // maybe only if it's a literal?
+}
+
 func (s *State) evalInternal(node any) object.Object {
 	switch node := node.(type) {
 	// Statements
@@ -72,8 +87,11 @@ func (s *State) evalInternal(node any) object.Object {
 		return s.evalPrefixExpression(node.Operator, right)
 	case *ast.InfixExpression:
 		log.LogVf("eval infix %s", node.String())
-		left := s.evalInternal(node.Left)
 		right := s.evalInternal(node.Right)
+		if node.Operator == "=" {
+			return s.evalAssignment(right, node)
+		}
+		left := s.evalInternal(node.Left)
 		return s.evalInfixExpression(node.Operator, left, right)
 
 	case *ast.IntegerLiteral:
@@ -233,10 +251,7 @@ func (s *State) evalMinusPrefixOperatorExpression(right object.Object) object.Ob
 	return &object.Integer{Value: -value}
 }
 
-func (s *State) evalInfixExpression(
-	operator string,
-	left, right object.Object,
-) object.Object {
+func (s *State) evalInfixExpression(operator string, left, right object.Object) object.Object {
 	switch {
 	case left.Type() == object.INTEGER && right.Type() == object.INTEGER:
 		return s.evalIntegerInfixExpression(operator, left, right)

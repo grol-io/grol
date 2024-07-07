@@ -16,7 +16,7 @@ Status: done up to and including 3.8 - ie functional expressions, if etc with co
 
 - [x] interface nil check in parser
 
-- [ ] Do we really need all these `let `, wouldn't `x = a + 3` be enough?
+- [x] Do we really need all these `let `, wouldn't `x = a + 3` be enough? made optional
 
 - [ ] Seems like ast and object are redundant to a large extent
 
