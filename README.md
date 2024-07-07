@@ -1,11 +1,14 @@
 Following along https://interpreterbook.com and making changes/simplification/cleanups
 
-Required (dev or even run as I don't like checking in generated files, though I guess I will eventually):
+Install/run it:
+```shell
+CGO_ENABLED=0 -trimpath -ldflags="-w -s" -tags no_net,no_json github.com/ldemailly/gorepl@latest
 ```
+
+Dev mode:
+```shell
 go install golang.org/x/tools/cmd/stringer@latest
-go generate ./...
-# or
-make build # for stripped down executable including build tags etc to make it minimal
+make # for stripped down executable including build tags etc to make it minimal
 ```
 
 Status: done up to and including 3.8 - ie functional expressions, if etc with constants but no variable.

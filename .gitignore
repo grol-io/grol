@@ -28,4 +28,4 @@ gorepl
 
 .DS_Store
 __*
-*_string.go
+# *_string.go
