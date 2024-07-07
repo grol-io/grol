@@ -8,6 +8,7 @@ import (
 	"fortio.org/log"
 	"github.com/ldemailly/gorepl/eval"
 	"github.com/ldemailly/gorepl/lexer"
+	"github.com/ldemailly/gorepl/object"
 	"github.com/ldemailly/gorepl/parser"
 )
 
@@ -49,6 +50,12 @@ func Start(in io.Reader, out io.Writer) {
 		fmt.Println(program.String())
 		fmt.Print("== Eval  ==> ")
 		obj := s.Eval(program)
+		if obj.Type() == object.ERROR {
+			fmt.Print(log.Colors.Red)
+		} else {
+			fmt.Print(log.Colors.Green)
+		}
 		fmt.Println(obj.Inspect())
+		fmt.Print(log.ANSIColors.Reset)
 	}
 }
