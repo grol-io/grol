@@ -48,6 +48,7 @@ const (
 	IF
 	ELSE
 	RETURN
+	STRING
 )
 
 //go:generate stringer -type=Type

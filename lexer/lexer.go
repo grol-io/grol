@@ -1,6 +1,10 @@
 package lexer
 
-import "github.com/ldemailly/gorepl/token"
+import (
+	"strings"
+
+	"github.com/ldemailly/gorepl/token"
+)
 
 type Lexer struct {
 	input string
@@ -56,6 +60,8 @@ func (l *Lexer) NextToken() token.Token {
 		return newToken(token.LPAREN, ch)
 	case ')':
 		return newToken(token.RPAREN, ch)
+	case '"':
+		return token.Token{Type: token.STRING, Literal: l.readString()}
 	case 0:
 		return token.Token{Type: token.EOF, Literal: ""}
 	default:
@@ -90,6 +96,28 @@ func (l *Lexer) readChar() byte {
 	ch := l.peekChar()
 	l.pos++
 	return ch
+}
+
+func (l *Lexer) readString() string {
+	buf := strings.Builder{}
+scanLoop:
+	for {
+		ch := l.readChar()
+		switch ch {
+		case '\\':
+			ch = l.readChar()
+			switch ch {
+			case 'n':
+				ch = '\n'
+			case 't':
+				ch = '\t'
+			}
+		case '"', 0:
+			break scanLoop
+		}
+		buf.WriteByte(ch)
+	}
+	return buf.String()
 }
 
 func (l *Lexer) peekChar() byte {
