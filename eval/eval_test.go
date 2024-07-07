@@ -368,8 +368,9 @@ func TestBuiltinFunctions(t *testing.T) {
 		{`len("")`, 0},
 		{`len("four")`, 4},
 		{`len("hello world")`, 11},
-		{`len(1)`, "argument to `len` not supported, got INTEGER"},
-		{`len("one", "two")`, "wrong number of arguments. got=2, want=1"},
+		{`len(1)`, "len() not supported on INTEGER"},
+		// That's a parser test not an eval test as we made len a built in keyword.
+		// {`len("one", "two")`, "wrong number of arguments. got=2, want=1"},
 	}
 
 	for _, tt := range tests {

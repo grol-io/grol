@@ -410,7 +410,7 @@ func (p *Parser) parseLen() ast.Expression {
 		return nil
 	}
 
-	params := p.parseFunctionParameters()
+	params := p.parseCallArguments()
 	if len(params) != 1 {
 		msg := fmt.Sprintf("len() takes exactly 1 argument, got %d", len(params))
 		p.errors = append(p.errors, msg)
