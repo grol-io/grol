@@ -70,6 +70,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.FUNCTION, p.parseFunctionLiteral)
 	p.registerPrefix(token.STRING, p.parseStringLiteral)
 	p.registerPrefix(token.LEN, p.parseLen)
+	p.registerPrefix(token.LBRACKET, p.parseArrayLiteral)
 
 	p.infixParseFns = make(map[token.Type]infixParseFn)
 	p.registerInfix(token.PLUS, p.parseInfixExpression)
@@ -115,6 +116,15 @@ func (p *Parser) ParseProgram() *ast.Program {
 	}
 
 	return program
+}
+
+func (p *Parser) parseArrayLiteral() ast.Expression {
+	array := &ast.ArrayLiteral{}
+	array.Token = p.curToken
+
+	array.Elements = p.parseExpressionList(token.RBRACKET)
+
+	return array
 }
 
 func (p *Parser) parseStringLiteral() ast.Expression {
@@ -417,7 +427,7 @@ func (p *Parser) parseLen() ast.Expression {
 		return nil
 	}
 
-	params := p.parseCallArguments()
+	params := p.parseExpressionList(token.RPAREN)
 	if len(params) != 1 {
 		msg := fmt.Sprintf("len() takes exactly 1 argument, got %d", len(params))
 		p.errors = append(p.errors, msg)
@@ -458,11 +468,11 @@ func (p *Parser) parseFunctionParameters() []*ast.Identifier {
 func (p *Parser) parseCallExpression(function ast.Expression) ast.Expression {
 	exp := &ast.CallExpression{Function: function}
 	exp.Token = p.curToken
-	exp.Arguments = p.parseCallArguments()
+	exp.Arguments = p.parseExpressionList(token.RPAREN)
 	return exp
 }
 
-func (p *Parser) parseCallArguments() []ast.Expression {
+func (p *Parser) parseExpressionList(end token.Type) []ast.Expression {
 	args := []ast.Expression{}
 
 	if p.peekTokenIs(token.RPAREN) {
@@ -478,7 +488,7 @@ func (p *Parser) parseCallArguments() []ast.Expression {
 		args = append(args, p.parseExpression(LOWEST))
 	}
 
-	if !p.expectPeek(token.RPAREN) {
+	if !p.expectPeek(end) {
 		return nil
 	}
 

@@ -1,7 +1,6 @@
 package ast
 
 import (
-	"bytes"
 	"strconv"
 	"strings"
 
@@ -213,7 +212,7 @@ type IfExpression struct {
 }
 
 func (ie *IfExpression) String() string {
-	var out bytes.Buffer
+	out := strings.Builder{}
 
 	out.WriteString("if")
 	out.WriteString(ie.Condition.String())
@@ -293,7 +292,7 @@ func (ce *CallExpression) Value() Expression {
 }
 
 func (ce *CallExpression) String() string {
-	var out bytes.Buffer
+	out := strings.Builder{}
 
 	args := []string{}
 	for _, a := range ce.Arguments {
@@ -304,6 +303,30 @@ func (ce *CallExpression) String() string {
 	out.WriteString("(")
 	out.WriteString(strings.Join(args, ", "))
 	out.WriteString(")")
+
+	return out.String()
+}
+
+type ArrayLiteral struct {
+	Base     // The [ token
+	Elements []Expression
+}
+
+func (al *ArrayLiteral) Value() Expression {
+	return al
+}
+
+func (al *ArrayLiteral) String() string {
+	out := strings.Builder{}
+
+	elements := []string{}
+	for _, el := range al.Elements {
+		elements = append(elements, el.String())
+	}
+
+	out.WriteString("[")
+	out.WriteString(strings.Join(elements, ", "))
+	out.WriteString("]")
 
 	return out.String()
 }
