@@ -269,23 +269,6 @@ func (b *Builtin) String() string {
 	return out.String()
 }
 
-type Len struct {
-	Base      // The 'len' token
-	Parameter Expression
-}
-
-func (l *Len) Value() Expression {
-	return l
-}
-
-func (l *Len) String() string {
-	out := strings.Builder{}
-	out.WriteString("len(")
-	out.WriteString(l.Parameter.String())
-	out.WriteString(")")
-	return out.String()
-}
-
 type FunctionLiteral struct {
 	Base       // The 'fn' token
 	Parameters []*Identifier

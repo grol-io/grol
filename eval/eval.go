@@ -6,6 +6,7 @@ import (
 	"fortio.org/log"
 	"github.com/ldemailly/gorepl/ast"
 	"github.com/ldemailly/gorepl/object"
+	"github.com/ldemailly/gorepl/token"
 )
 
 var (
@@ -48,7 +49,14 @@ func (s *State) evalAssignment(right object.Object, node *ast.InfixExpression) o
 	return right // maybe only if it's a literal?
 }
 
-func (s *State) evalInternal(node any) object.Object { //nolint:funlen // we have a lot of cases.
+func ArgCheck[T any](msg string, n int, args []T) *object.Error {
+	if len(args) != n {
+		return &object.Error{Value: fmt.Sprintf("%s: wrong number of arguments. got=%d, want=%d", msg, len(args), n)}
+	}
+	return nil
+}
+
+func (s *State) evalInternal(node any) object.Object {
 	switch node := node.(type) {
 	// Statements
 	case *ast.Program:
@@ -106,19 +114,8 @@ func (s *State) evalInternal(node any) object.Object { //nolint:funlen // we hav
 	case *ast.ReturnStatement:
 		val := s.evalInternal(node.ReturnValue)
 		return &object.ReturnValue{Value: val}
-	case *ast.Len:
-		val := s.evalInternal(node.Parameter)
-		rt := val.Type()
-		switch rt { //nolint:exhaustive // we have default, len doesn't work on many types.
-		case object.ERROR:
-			return val
-		case object.STRING:
-			return &object.Integer{Value: int64(len(val.(*object.String).Value))}
-		case object.ARRAY:
-			return &object.Integer{Value: int64(len(val.(*object.Array).Elements))}
-		default:
-			return &object.Error{Value: fmt.Sprintf("len() not supported on %s", rt)}
-		}
+	case *ast.Builtin:
+		return s.evalBuiltin(node)
 	case *ast.FunctionLiteral:
 		params := node.Parameters
 		body := node.Body
@@ -142,6 +139,44 @@ func (s *State) evalInternal(node any) object.Object { //nolint:funlen // we hav
 		return evalIndexExpression(left, index)
 	}
 	return &object.Error{Value: fmt.Sprintf("unknown node type: %T", node)}
+}
+
+func (s *State) evalBuiltin(node *ast.Builtin) object.Object {
+	// so far all 3 have exactly 1 argument.
+	if oerr := ArgCheck(node.Literal, 1, node.Parameters); oerr != nil {
+		return oerr
+	}
+	val := s.evalInternal(node.Parameters[0])
+	rt := val.Type()
+	if rt == object.ERROR {
+		return val
+	}
+	arr, _ := val.(*object.Array)
+	switch node.Type { //nolint:exhaustive // we have default, only 2 cases.
+	case token.FIRST:
+		if rt != object.ARRAY {
+			break
+		}
+		if len(arr.Elements) == 0 {
+			return NULL
+		}
+		return arr.Elements[0]
+	case token.REST:
+		if rt != object.ARRAY {
+			break
+		}
+		return &object.Array{Elements: arr.Elements[1:]}
+	case token.LEN:
+		switch rt { //nolint:exhaustive // we have default, len doesn't work on many types.
+		case object.STRING:
+			return &object.Integer{Value: int64(len(val.(*object.String).Value))}
+		case object.ARRAY:
+			return &object.Integer{Value: int64(len(arr.Elements))}
+		}
+	default:
+		return &object.Error{Value: fmt.Sprintf("builtin %s yet implemented", node.Type)}
+	}
+	return &object.Error{Value: node.Literal + ": not supported on " + rt.String()}
 }
 
 func evalIndexExpression(left, index object.Object) object.Object {

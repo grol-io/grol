@@ -70,7 +70,9 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.IF, p.parseIfExpression)
 	p.registerPrefix(token.FUNCTION, p.parseFunctionLiteral)
 	p.registerPrefix(token.STRING, p.parseStringLiteral)
-	p.registerPrefix(token.LEN, p.parseLen)
+	p.registerPrefix(token.LEN, p.parseBuiltin)
+	p.registerPrefix(token.FIRST, p.parseBuiltin)
+	p.registerPrefix(token.REST, p.parseBuiltin)
 	p.registerPrefix(token.LBRACKET, p.parseArrayLiteral)
 
 	p.infixParseFns = make(map[token.Type]infixParseFn)
@@ -422,22 +424,15 @@ func (p *Parser) parseFunctionLiteral() ast.Expression {
 	return lit
 }
 
-func (p *Parser) parseLen() ast.Expression {
-	lit := &ast.Len{}
-	lit.Token = p.curToken
+func (p *Parser) parseBuiltin() ast.Expression {
+	bi := &ast.Builtin{}
+	bi.Token = p.curToken
 
 	if !p.expectPeek(token.LPAREN) {
 		return nil
 	}
-
-	params := p.parseExpressionList(token.RPAREN)
-	if len(params) != 1 {
-		msg := fmt.Sprintf("len() takes exactly 1 argument, got %d", len(params))
-		p.errors = append(p.errors, msg)
-		return nil
-	}
-	lit.Parameter = params[0]
-	return lit
+	bi.Parameters = p.parseExpressionList(token.RPAREN)
+	return bi
 }
 
 func (p *Parser) parseFunctionParameters() []*ast.Identifier {

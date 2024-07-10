@@ -862,21 +862,6 @@ func TestStringLiteralExpression(t *testing.T) {
 	}
 }
 
-func TestLenArgsError(t *testing.T) {
-	input := `len("ab", "cd")`
-	l := lexer.New(input)
-	p := New(l)
-	_ = p.ParseProgram()
-	errors := p.Errors()
-	if len(errors) != 1 {
-		t.Errorf("parser has %d errors, expecting 1", len(errors))
-	}
-	expected := "len() takes exactly 1 argument, got 2"
-	if errors[0] != expected {
-		t.Errorf("error message not %q. got=%q", expected, errors[0])
-	}
-}
-
 func TestParsingArrayLiterals(t *testing.T) {
 	input := "[1, 2 * 2, 3 + 3]"
 
