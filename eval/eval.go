@@ -172,6 +172,8 @@ func (s *State) evalBuiltin(node *ast.Builtin) object.Object {
 			return &object.Integer{Value: int64(len(val.(*object.String).Value))}
 		case object.ARRAY:
 			return &object.Integer{Value: int64(len(arr.Elements))}
+		case object.NULL:
+			return &object.Integer{Value: 0}
 		}
 	default:
 		return &object.Error{Value: fmt.Sprintf("builtin %s yet implemented", node.Type)}
