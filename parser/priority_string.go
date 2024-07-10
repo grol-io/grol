@@ -16,11 +16,12 @@ func _() {
 	_ = x[PRODUCT-6]
 	_ = x[PREFIX-7]
 	_ = x[CALL-8]
+	_ = x[INDEX-9]
 }
 
-const _Priority_name = "LOWESTASSIGNEQUALSLESSGREATERSUMPRODUCTPREFIXCALL"
+const _Priority_name = "LOWESTASSIGNEQUALSLESSGREATERSUMPRODUCTPREFIXCALLINDEX"
 
-var _Priority_index = [...]uint8{0, 6, 12, 18, 29, 32, 39, 45, 49}
+var _Priority_index = [...]uint8{0, 6, 12, 18, 29, 32, 39, 45, 49, 54}
 
 func (i Priority) String() string {
 	i -= 1

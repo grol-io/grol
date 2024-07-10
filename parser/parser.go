@@ -22,6 +22,7 @@ const (
 	PRODUCT     // *
 	PREFIX      // -X or !X
 	CALL        // myFunction(X)
+	INDEX       // array[index]
 )
 
 //go:generate stringer -type=Priority
@@ -83,6 +84,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerInfix(token.LT, p.parseInfixExpression)
 	p.registerInfix(token.GT, p.parseInfixExpression)
 	p.registerInfix(token.LPAREN, p.parseCallExpression)
+	p.registerInfix(token.LBRACKET, p.parseIndexExpression)
 
 	// no let:
 	p.registerInfix(token.ASSIGN, p.parseInfixExpression)
@@ -319,6 +321,7 @@ var precedences = map[token.Type]Priority{
 	token.ASTERISK: PRODUCT,
 	token.PERCENT:  PRODUCT,
 	token.LPAREN:   CALL,
+	token.LBRACKET: INDEX,
 }
 
 func (p *Parser) peekPrecedence() Priority {
@@ -493,4 +496,18 @@ func (p *Parser) parseExpressionList(end token.Type) []ast.Expression {
 	}
 
 	return args
+}
+
+func (p *Parser) parseIndexExpression(left ast.Expression) ast.Expression {
+	exp := &ast.IndexExpression{Left: left}
+	exp.Token = p.curToken
+
+	p.nextToken()
+	exp.Index = p.parseExpression(LOWEST)
+
+	if !p.expectPeek(token.RBRACKET) {
+		return nil
+	}
+
+	return exp
 }

@@ -319,14 +319,33 @@ func (al *ArrayLiteral) Value() Expression {
 func (al *ArrayLiteral) String() string {
 	out := strings.Builder{}
 
-	elements := []string{}
-	for _, el := range al.Elements {
-		elements = append(elements, el.String())
-	}
-
 	out.WriteString("[")
-	out.WriteString(strings.Join(elements, ", "))
+	for i, el := range al.Elements {
+		if i > 0 {
+			out.WriteString(", ")
+		}
+		out.WriteString(el.String())
+	}
 	out.WriteString("]")
+
+	return out.String()
+}
+
+type IndexExpression struct {
+	Base
+	Left  Expression
+	Index Expression
+}
+
+func (ie *IndexExpression) Value() Expression { return ie }
+func (ie *IndexExpression) String() string {
+	out := strings.Builder{}
+
+	out.WriteString("(")
+	out.WriteString(ie.Left.String())
+	out.WriteString("[")
+	out.WriteString(ie.Index.String())
+	out.WriteString("])")
 
 	return out.String()
 }

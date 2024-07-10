@@ -48,7 +48,7 @@ func (s *State) evalAssignment(right object.Object, node *ast.InfixExpression) o
 	return right // maybe only if it's a literal?
 }
 
-func (s *State) evalInternal(node any) object.Object {
+func (s *State) evalInternal(node any) object.Object { //nolint:funlen // we have a lot of cases.
 	switch node := node.(type) {
 	// Statements
 	case *ast.Program:
@@ -70,7 +70,7 @@ func (s *State) evalInternal(node any) object.Object {
 		return s.evalIfExpression(node)
 		// assignement
 	case *ast.LetStatement:
-		val := s.Eval(node.Value)
+		val := s.evalInternal(node.Value)
 		if rt := val.Type(); rt == object.ERROR {
 			log.Warnf("can't eval %q: %v", node.String(), val)
 			return val
@@ -122,7 +122,7 @@ func (s *State) evalInternal(node any) object.Object {
 		body := node.Body
 		return &object.Function{Parameters: params, Env: s.env, Body: body}
 	case *ast.CallExpression:
-		f := s.Eval(node.Function)
+		f := s.evalInternal(node.Function)
 		args, oerr := s.evalExpressions(node.Arguments)
 		if oerr != nil {
 			return oerr
@@ -134,8 +134,32 @@ func (s *State) evalInternal(node any) object.Object {
 			return objerr
 		}
 		return &object.Array{Elements: elements}
+	case *ast.IndexExpression:
+		left := s.evalInternal(node.Left)
+		index := s.evalInternal(node.Index)
+		return evalIndexExpression(left, index)
 	}
 	return &object.Error{Value: fmt.Sprintf("unknown node type: %T", node)}
+}
+
+func evalIndexExpression(left, index object.Object) object.Object {
+	switch {
+	case left.Type() == object.ARRAY && index.Type() == object.INTEGER:
+		return evalArrayIndexExpression(left, index)
+	default:
+		return &object.Error{Value: "index operator not supported: " + left.Type().String() + "[" + index.Type().String() + "]"}
+	}
+}
+
+func evalArrayIndexExpression(array, index object.Object) object.Object {
+	arrayObject := array.(*object.Array)
+	idx := index.(*object.Integer).Value
+	max := int64(len(arrayObject.Elements) - 1)
+
+	if idx < 0 || idx > max {
+		return NULL
+	}
+	return arrayObject.Elements[idx]
 }
 
 func (s *State) applyFunction(fn object.Object, args []object.Object) object.Object {
@@ -149,7 +173,7 @@ func (s *State) applyFunction(fn object.Object, args []object.Object) object.Obj
 	}
 	curState := s.env
 	s.env = nenv
-	res := s.Eval(function.Body)
+	res := s.evalInternal(function.Body)
 	// restore the previous env/state.
 	s.env = curState
 	return res
@@ -174,7 +198,7 @@ func extendFunctionEnv(fn *object.Function, args []object.Object) (*object.Envir
 func (s *State) evalExpressions(exps []ast.Expression) ([]object.Object, *object.Error) {
 	result := make([]object.Object, 0, len(exps))
 	for _, e := range exps {
-		evaluated := s.Eval(e)
+		evaluated := s.evalInternal(e)
 		if rt := evaluated.Type(); rt == object.ERROR {
 			return nil, evaluated.(*object.Error)
 		}
