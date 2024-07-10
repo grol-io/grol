@@ -26,7 +26,7 @@ go install golang.org/x/tools/cmd/stringer@latest
 make # for stripped down executable including build tags etc to make it minimal
 ```
 
-Status: done up to and including 4.4 - ie functional int, string and boolean expressions, functions, lambdas etc
+Status: done up to and including 4.4 - ie functional int, string and boolean expressions, functions, lambdas, arrays, etc
 
 ### Reading notes
 
@@ -56,4 +56,6 @@ Status: done up to and including 4.4 - ie functional int, string and boolean exp
 
 - [x] don't make a slice to join with , when there is already a strings builder. replace byte buffers by string builder.
 
-- [ ] generalize core/tokenized built in additions and maybe also "extension" ones (calling into a go function)
+- [x] generalized tokenized built in (token id based instead of string)
+
+- [ ] Add "extension" internal functions (calling into a go function), with variadic params, param types etc
