@@ -55,3 +55,5 @@ Status: done up to and including 4.4 - ie functional int, string and boolean exp
 - [ ] call maps maps and not hash (or maybe assoc array but that's long)
 
 - [x] don't make a slice to join with , when there is already a strings builder. replace byte buffers by string builder.
+
+- [ ] generalize core/tokenized built in additions and maybe also "extension" ones (calling into a go function)

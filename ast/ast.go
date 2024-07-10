@@ -1,6 +1,7 @@
 package ast
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -240,6 +241,34 @@ func (bs *BlockStatement) String() string {
 	return "{\n" + bs.Program.String() + "\n}"
 }
 
+func WriteStrings[T fmt.Stringer](out *strings.Builder, list []T, sep string) {
+	for i, p := range list {
+		if i > 0 {
+			out.WriteString(sep)
+		}
+		out.WriteString(p.String())
+	}
+}
+
+// Similar to CallExpression.
+type Builtin struct {
+	Base       // The 'len' or 'first' or... core builtin token
+	Parameters []Expression
+}
+
+func (b *Builtin) Value() Expression {
+	return b
+}
+
+func (b *Builtin) String() string {
+	out := strings.Builder{}
+	out.WriteString(b.Literal)
+	out.WriteString("(")
+	WriteStrings(&out, b.Parameters, ", ")
+	out.WriteString(")")
+	return out.String()
+}
+
 type Len struct {
 	Base      // The 'len' token
 	Parameter Expression
@@ -265,13 +294,9 @@ type FunctionLiteral struct {
 
 func (fl *FunctionLiteral) String() string {
 	out := strings.Builder{}
-	params := []string{}
-	for _, p := range fl.Parameters {
-		params = append(params, p.String())
-	}
 	out.WriteString(fl.TokenLiteral())
 	out.WriteString("(")
-	out.WriteString(strings.Join(params, ", "))
+	WriteStrings(&out, fl.Parameters, ", ")
 	out.WriteString(") ")
 	out.WriteString(fl.Body.String())
 	return out.String()
@@ -293,17 +318,10 @@ func (ce *CallExpression) Value() Expression {
 
 func (ce *CallExpression) String() string {
 	out := strings.Builder{}
-
-	args := []string{}
-	for _, a := range ce.Arguments {
-		args = append(args, a.String())
-	}
-
 	out.WriteString(ce.Function.String())
 	out.WriteString("(")
-	out.WriteString(strings.Join(args, ", "))
+	WriteStrings(&out, ce.Arguments, ", ")
 	out.WriteString(")")
-
 	return out.String()
 }
 
@@ -320,12 +338,7 @@ func (al *ArrayLiteral) String() string {
 	out := strings.Builder{}
 
 	out.WriteString("[")
-	for i, el := range al.Elements {
-		if i > 0 {
-			out.WriteString(", ")
-		}
-		out.WriteString(el.String())
-	}
+	WriteStrings(&out, al.Elements, ", ")
 	out.WriteString("]")
 
 	return out.String()

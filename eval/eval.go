@@ -114,6 +114,8 @@ func (s *State) evalInternal(node any) object.Object { //nolint:funlen // we hav
 			return val
 		case object.STRING:
 			return &object.Integer{Value: int64(len(val.(*object.String).Value))}
+		case object.ARRAY:
+			return &object.Integer{Value: int64(len(val.(*object.Array).Elements))}
 		default:
 			return &object.Error{Value: fmt.Sprintf("len() not supported on %s", rt)}
 		}

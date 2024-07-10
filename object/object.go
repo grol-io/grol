@@ -91,21 +91,26 @@ type Function struct {
 	Env        *Environment
 }
 
+func WriteStrings(out *strings.Builder, list []Object, before, sep, after string) {
+	out.WriteString(before)
+	for i, p := range list {
+		if i > 0 {
+			out.WriteString(sep)
+		}
+		out.WriteString(p.Inspect())
+	}
+	out.WriteString(after)
+}
+
 func (f *Function) Type() Type { return FUNCTION }
 func (f *Function) Inspect() string {
 	out := strings.Builder{}
 
 	out.WriteString("fn")
 	out.WriteString("(")
-	for i, p := range f.Parameters {
-		if i > 0 {
-			out.WriteString(", ")
-		}
-		out.WriteString(p.String())
-	}
-	out.WriteString(") {\n")
+	ast.WriteStrings(&out, f.Parameters, ", ")
+	out.WriteString(") ")
 	out.WriteString(f.Body.String())
-	out.WriteString("\n}")
 	return out.String()
 }
 
@@ -116,14 +121,6 @@ type Array struct {
 func (ao *Array) Type() Type { return ARRAY }
 func (ao *Array) Inspect() string {
 	out := strings.Builder{}
-	out.WriteString("[")
-	for i, e := range ao.Elements {
-		if i > 0 {
-			out.WriteString(", ")
-		}
-		out.WriteString(e.Inspect())
-	}
-	out.WriteString("]")
-
+	WriteStrings(&out, ao.Elements, "[", ", ", "]")
 	return out.String()
 }
