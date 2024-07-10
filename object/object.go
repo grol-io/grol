@@ -23,6 +23,7 @@ const (
 	RETURN
 	FUNCTION
 	STRING
+	ARRAY
 	LAST
 )
 
@@ -62,7 +63,7 @@ func (s *String) Type() Type {
 }
 
 func (s *String) Inspect() string {
-	return s.Value
+	return strconv.Quote(s.Value)
 }
 
 type Null struct{}
@@ -92,19 +93,37 @@ type Function struct {
 
 func (f *Function) Type() Type { return FUNCTION }
 func (f *Function) Inspect() string {
-	out := &strings.Builder{}
-
-	params := []string{}
-	for _, p := range f.Parameters {
-		params = append(params, p.String())
-	}
+	out := strings.Builder{}
 
 	out.WriteString("fn")
 	out.WriteString("(")
-	out.WriteString(strings.Join(params, ", "))
+	for i, p := range f.Parameters {
+		if i > 0 {
+			out.WriteString(", ")
+		}
+		out.WriteString(p.String())
+	}
 	out.WriteString(") {\n")
 	out.WriteString(f.Body.String())
 	out.WriteString("\n}")
+	return out.String()
+}
+
+type Array struct {
+	Elements []Object
+}
+
+func (ao *Array) Type() Type { return ARRAY }
+func (ao *Array) Inspect() string {
+	out := strings.Builder{}
+	out.WriteString("[")
+	for i, e := range ao.Elements {
+		if i > 0 {
+			out.WriteString(", ")
+		}
+		out.WriteString(e.Inspect())
+	}
+	out.WriteString("]")
 
 	return out.String()
 }

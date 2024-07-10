@@ -128,6 +128,12 @@ func (s *State) evalInternal(node any) object.Object {
 			return oerr
 		}
 		return s.applyFunction(f, args)
+	case *ast.ArrayLiteral:
+		elements, objerr := s.evalExpressions(node.Elements)
+		if objerr != nil {
+			return objerr
+		}
+		return &object.Array{Elements: elements}
 	}
 	return &object.Error{Value: fmt.Sprintf("unknown node type: %T", node)}
 }

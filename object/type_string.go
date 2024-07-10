@@ -16,12 +16,13 @@ func _() {
 	_ = x[RETURN-5]
 	_ = x[FUNCTION-6]
 	_ = x[STRING-7]
-	_ = x[LAST-8]
+	_ = x[ARRAY-8]
+	_ = x[LAST-9]
 }
 
-const _Type_name = "UNKNOWNINTEGERBOOLEANNULLERRORRETURNFUNCTIONSTRINGLAST"
+const _Type_name = "UNKNOWNINTEGERBOOLEANNULLERRORRETURNFUNCTIONSTRINGARRAYLAST"
 
-var _Type_index = [...]uint8{0, 7, 14, 21, 25, 30, 36, 44, 50, 54}
+var _Type_index = [...]uint8{0, 7, 14, 21, 25, 30, 36, 44, 50, 55, 59}
 
 func (i Type) String() string {
 	if i >= Type(len(_Type_index)-1) {
