@@ -7,7 +7,7 @@ CGO_ENABLED=0 -trimpath -ldflags="-w -s" -tags no_net,no_json github.com/ldemail
 
 Sample:
 ```shell
-gorepl
+gorepl -parse
 $ fact = fn(n) {if (n<1) {return 1} n*fact(n-1)}
 $ n=fact(6)
 == Parse ==> (n = fact(6))
@@ -18,6 +18,11 @@ $ m=fact(7)
 $ m/n
 == Parse ==> (m / n)
 == Eval  ==> 7
+```
+
+See also [sample.gr](sample.gr) that you can run with
+```
+gorepl *.gr
 ```
 
 Dev mode:
