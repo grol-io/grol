@@ -142,6 +142,14 @@ func (s *State) evalMapLiteral(node *ast.MapLiteral) object.Object {
 
 	for keyNode, valueNode := range node.Pairs {
 		key := s.evalInternal(keyNode)
+		switch key.Type() {
+		case object.FUNCTION: // because it contains env which is a map.
+			fallthrough
+		case object.ARRAY:
+			fallthrough
+		case object.MAP:
+			return object.Error{Value: key.Type().String() + " not usable as map key"}
+		}
 		value := s.evalInternal(valueNode)
 		pairs[key] = value
 	}
