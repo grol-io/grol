@@ -89,11 +89,11 @@ func (s *State) evalInternal(node any) object.Object {
 		return s.evalPrefixExpression(node.Operator, right)
 	case *ast.InfixExpression:
 		log.LogVf("eval infix %s", node.String())
-		right := s.evalInternal(node.Right)
+		right := s.Eval(node.Right) // need to unwrap "return"
 		if node.Operator == "=" {
 			return s.evalAssignment(right, node)
 		}
-		left := s.evalInternal(node.Left)
+		left := s.Eval(node.Left)
 		return s.evalInfixExpression(node.Operator, left, right)
 
 	case *ast.IntegerLiteral:
@@ -118,13 +118,13 @@ func (s *State) evalInternal(node any) object.Object {
 		f := s.evalInternal(node.Function)
 		args, oerr := s.evalExpressions(node.Arguments)
 		if oerr != nil {
-			return oerr
+			return *oerr
 		}
 		return s.applyFunction(f, args)
 	case *ast.ArrayLiteral:
-		elements, objerr := s.evalExpressions(node.Elements)
-		if objerr != nil {
-			return objerr
+		elements, oerr := s.evalExpressions(node.Elements)
+		if oerr != nil {
+			return *oerr
 		}
 		return object.Array{Elements: elements}
 	case *ast.MapLiteral:

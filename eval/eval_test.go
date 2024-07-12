@@ -36,6 +36,7 @@ func TestEvalIntegerExpression(t *testing.T) {
 		{"19 % 5", 4},
 		{"20 % -5", 0},
 		{"-21 % 5", -1},
+		{`fact = fn(n) {if (n<2) {return 1} n*fact(n-1)}; fact(5)`, 120},
 	}
 
 	for i, tt := range tests {

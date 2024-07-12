@@ -215,7 +215,7 @@ type IfExpression struct {
 func (ie *IfExpression) String() string {
 	out := strings.Builder{}
 
-	out.WriteString("if")
+	out.WriteString("if ")
 	out.WriteString(ie.Condition.String())
 	out.WriteString(" ")
 	out.WriteString(ie.Consequence.String())

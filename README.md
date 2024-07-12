@@ -66,3 +66,15 @@ Status: done up to and including 4.5- ie functional int, string and boolean expr
   -> implies death to pointers (need non pointer receiver and use plain objects and not references)
 
 - [ ] unicode
+
+- [x] flags for showing parse or not (default not pass `-parse` to see parsing)
+
+- [x] file input vs stdin repl (made up .gr for gorepl)
+
+- [ ] actual name for the language - it's not monkey (though it's monkey compatible, just better/simpler/...)
+
+- [ ] multiline support in stdin repl
+
+- [ ] add >= and <= comparaison operators
+
+- [ ] add comments support
