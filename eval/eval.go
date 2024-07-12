@@ -366,7 +366,11 @@ func Equals(left, right object.Object) object.Object {
 		return nativeBoolToBooleanObject(left.Value == right.(*object.String).Value)
 	case *object.Boolean:
 		return nativeBoolToBooleanObject(left.Value == right.(*object.Boolean).Value)
-	default:
+	case *object.Null:
+		return TRUE
+	case *object.Array:
+		return arrayEquals(left.Elements, right.(*object.Array).Elements)
+	default: /*	ERROR RETURN FUNCTION */
 		return FALSE
 	}
 }
@@ -401,7 +405,7 @@ func evalArrayInfixExpression(operator string, left, right object.Object) object
 			return TRUE
 		}
 		return FALSE
-	case "+":
+	case "+": // concat / append
 		if right.Type() != object.ARRAY {
 			return &object.Array{Elements: append(leftVal, right)}
 		}
