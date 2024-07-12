@@ -2,7 +2,7 @@ Following along https://interpreterbook.com and making changes/simplification/cl
 
 Install/run it:
 ```shell
-CGO_ENABLED=0 -trimpath -ldflags="-w -s" -tags no_net,no_json github.com/ldemailly/gorepl@latest
+CGO_ENABLED=0 go install -trimpath -ldflags="-w -s" -tags no_net,no_json github.com/ldemailly/gorepl@latest
 ```
 
 Sample:
