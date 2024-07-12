@@ -24,6 +24,7 @@ const (
 	FUNCTION
 	STRING
 	ARRAY
+	MAP
 	LAST
 )
 
@@ -31,12 +32,12 @@ const (
 var _ = LAST.String() // force compile error if go generate is missing.
 
 var (
-	NULL  = &Null{}
-	TRUE  = &Boolean{Value: true}
-	FALSE = &Boolean{Value: false}
+	NULL  = Null{}
+	TRUE  = Boolean{Value: true}
+	FALSE = Boolean{Value: false}
 )
 
-func NativeBoolToBooleanObject(input bool) *Boolean {
+func NativeBoolToBooleanObject(input bool) Boolean {
 	if input {
 		return TRUE
 	}
@@ -171,9 +172,30 @@ func (ao Array) Inspect() string {
 }
 
 type Map struct {
+	// possible optimization: us a map of any and put the inner value of object in there, would be faster than
+	// wrapping strings etc into object.
 	Pairs map[Object]Object
 }
 
 func NewMap() *Map {
 	return &Map{Pairs: make(map[Object]Object)}
+}
+
+func (m Map) Type() Type { return MAP }
+
+func (m Map) Inspect() string {
+	out := strings.Builder{}
+	out.WriteString("{")
+	first := true
+	for k, v := range m.Pairs {
+		if !first {
+			out.WriteString(", ")
+		}
+		first = false
+		out.WriteString(k.Inspect())
+		out.WriteString(":")
+		out.WriteString(v.Inspect())
+	}
+	out.WriteString("}")
+	return out.String()
 }

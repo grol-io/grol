@@ -17,12 +17,13 @@ func _() {
 	_ = x[FUNCTION-6]
 	_ = x[STRING-7]
 	_ = x[ARRAY-8]
-	_ = x[LAST-9]
+	_ = x[MAP-9]
+	_ = x[LAST-10]
 }
 
-const _Type_name = "UNKNOWNINTEGERBOOLEANNILERRORRETURNFUNCTIONSTRINGARRAYLAST"
+const _Type_name = "UNKNOWNINTEGERBOOLEANNILERRORRETURNFUNCTIONSTRINGARRAYMAPLAST"
 
-var _Type_index = [...]uint8{0, 7, 14, 21, 24, 29, 35, 43, 49, 54, 58}
+var _Type_index = [...]uint8{0, 7, 14, 21, 24, 29, 35, 43, 49, 54, 57, 61}
 
 func (i Type) String() string {
 	if i >= Type(len(_Type_index)-1) {

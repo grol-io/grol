@@ -63,5 +63,6 @@ Status: done up to and including 4.4 - ie functional int, string and boolean exp
 - [x] Identifiers are letter followed by alphanum*
 
 - [x] map of interface correctly equals the actual underlying types, no need for custom hashing
+  -> implies death to pointers (need non pointer receiver and use plain objects and not references)
 
 - [ ] unicode
