@@ -26,7 +26,7 @@ go install golang.org/x/tools/cmd/stringer@latest
 make # for stripped down executable including build tags etc to make it minimal
 ```
 
-Status: done up to and including 4.4 - ie functional int, string and boolean expressions, functions, lambdas, arrays, etc
+Status: done up to and including 4.5- ie functional int, string and boolean expressions, functions, lambdas, arrays, maps, etc
 
 ### Reading notes
 

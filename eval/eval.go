@@ -137,20 +137,24 @@ func (s *State) evalInternal(node any) object.Object {
 	return object.Error{Value: fmt.Sprintf("unknown node type: %T", node)}
 }
 
+func hashable(o object.Object) *object.Error {
+	t := o.Type()
+	// because it contains env which is a map.
+	if t == object.FUNCTION || t == object.ARRAY || t == object.MAP {
+		return &object.Error{Value: o.Type().String() + " not usable as map key"}
+	}
+	return nil
+}
+
 func (s *State) evalMapLiteral(node *ast.MapLiteral) object.Object {
 	pairs := make(map[object.Object]object.Object)
 
 	for keyNode, valueNode := range node.Pairs {
 		key := s.evalInternal(keyNode)
-		switch key.Type() {
-		case object.FUNCTION: // because it contains env which is a map.
-			fallthrough
-		case object.ARRAY:
-			fallthrough
-		case object.MAP:
-			return object.Error{Value: key.Type().String() + " not usable as map key"}
-		}
 		value := s.evalInternal(valueNode)
+		if oerr := hashable(key); oerr != nil {
+			return *oerr
+		}
 		pairs[key] = value
 	}
 	return object.Map{Pairs: pairs}
@@ -200,9 +204,23 @@ func evalIndexExpression(left, index object.Object) object.Object {
 	switch {
 	case left.Type() == object.ARRAY && index.Type() == object.INTEGER:
 		return evalArrayIndexExpression(left, index)
+	case left.Type() == object.MAP:
+		return evalMapIndexExpression(left, index)
 	default:
 		return object.Error{Value: "index operator not supported: " + left.Type().String() + "[" + index.Type().String() + "]"}
 	}
+}
+
+func evalMapIndexExpression(hash, key object.Object) object.Object {
+	if oerr := hashable(key); oerr != nil {
+		return *oerr
+	}
+	m := hash.(object.Map)
+	v, ok := m.Pairs[key]
+	if !ok {
+		return object.NULL
+	}
+	return v
 }
 
 func evalArrayIndexExpression(array, index object.Object) object.Object {
