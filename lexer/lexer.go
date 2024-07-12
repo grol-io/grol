@@ -41,6 +41,11 @@ func (l *Lexer) NextToken() token.Token { //nolint:funlen // many cases to lex.
 			return newToken(token.BANG, ch)
 		}
 	case '/':
+		if l.peekChar() == '/' {
+			tok := token.Token{Type: token.LINECOMMENT}
+			tok.Literal = l.readLineComment()
+			return tok
+		}
 		return newToken(token.SLASH, ch)
 	case '%':
 		return newToken(token.PERCENT, ch)
@@ -151,6 +156,18 @@ func (l *Lexer) peekChar() byte {
 func (l *Lexer) readIdentifier() string {
 	pos := l.pos - 1
 	for isAlphaNum(l.peekChar()) {
+		l.pos++
+	}
+	return l.input[pos:l.pos]
+}
+
+func notEOL(ch byte) bool {
+	return ch != '\n' && ch != 0
+}
+
+func (l *Lexer) readLineComment() string {
+	pos := l.pos - 1
+	for notEOL(l.peekChar()) {
 		l.pos++
 	}
 	return l.input[pos:l.pos]

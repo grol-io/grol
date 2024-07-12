@@ -1,12 +1,18 @@
-fact=fn(n) {
+// Sample file that our gorepl can interpret
+// <--- comments
+
+fact=fn(n) { // function
     if (n<=1) {
         return 1
     }
-    n*fact(n-1)
+    n*fact(n-1) // recursion, also last evaluated expression is returned (ie return at the end is optional)
 }
 
-a=[fact(5), "abc", 76-3]
+a=[fact(5), "abc", 76-3] // array can contain different types
 
-m={"key": a}
+m={"key": a, 73: 29} // so do maps
 
-m["key"][0]
+first(m["key"]) // get the value from key from map, which is an array, and the first element of the array is our factorial 5
+// could also have been m["key"][0]
+
+// ^^^ gorepl sample.gr should output 120

@@ -82,4 +82,6 @@ Status: done up to and including 4.5- ie functional int, string and boolean expr
 
 - [ ] add >= and <= comparaison operators
 
-- [ ] add comments support
+- [x] add comments support (line)
+
+- [ ] line numbers for errors (for file mode)

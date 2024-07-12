@@ -3,7 +3,7 @@ all: generate lint tests run
 GO_BUILD_TAGS:=no_net,no_json
 
 run: gorepl
-	./gorepl
+	./gorepl -parse
 
 GEN:=object/type_string.go parser/priority_string.go token/type_string.go
 

@@ -301,10 +301,24 @@ func (s *State) evalIfExpression(ie *ast.IfExpression) object.Object {
 	}
 }
 
+func isComment(node ast.Node) bool {
+	v, ok := node.(*ast.ExpressionStatement) // TODO: which nodes aren't an expressionstatement?
+	if !ok {
+		return false
+	}
+	_, ok = v.Val.(*ast.Comment)
+	return ok
+}
+
 func (s *State) evalStatements(stmts []ast.Node) object.Object {
 	var result object.Object
 	result = object.NULL // no crash when empty program.
 	for _, statement := range stmts {
+		log.LogVf("eval statement %T %s", statement, statement.String())
+		if isComment(statement) {
+			log.Debugf("skipping comment")
+			continue
+		}
 		result = s.evalInternal(statement)
 		if rt := result.Type(); rt == object.RETURN || rt == object.ERROR {
 			return result

@@ -75,6 +75,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.REST, p.parseBuiltin)
 	p.registerPrefix(token.LBRACKET, p.parseArrayLiteral)
 	p.registerPrefix(token.LBRACE, p.parseMapLiteral)
+	p.registerPrefix(token.LINECOMMENT, p.parseComment)
 
 	p.infixParseFns = make(map[token.Type]infixParseFn)
 	p.registerInfix(token.PLUS, p.parseInfixExpression)
@@ -136,6 +137,12 @@ func (p *Parser) parseArrayLiteral() ast.Expression {
 
 func (p *Parser) parseStringLiteral() ast.Expression {
 	r := &ast.StringLiteral{Val: p.curToken.Literal}
+	r.Token = p.curToken
+	return r
+}
+
+func (p *Parser) parseComment() ast.Expression {
+	r := &ast.Comment{Val: p.curToken.Literal}
 	r.Token = p.curToken
 	return r
 }

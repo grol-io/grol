@@ -105,6 +105,19 @@ func (i *Identifier) String() string {
 	return i.Literal
 }
 
+type Comment struct {
+	Base
+	Val string
+}
+
+func (c *Comment) Value() Expression {
+	return c
+}
+
+func (c *Comment) String() string {
+	return c.Literal
+}
+
 // TODO: probably refactor.
 
 type ExpressionStatement struct {
