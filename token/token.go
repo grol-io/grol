@@ -28,6 +28,9 @@ const (
 
 	LT
 	GT
+	// or equal variants.
+	LTEQ
+	GTEQ
 
 	EQ
 	NOTEQ

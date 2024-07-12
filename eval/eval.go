@@ -430,8 +430,12 @@ func (s *State) evalIntegerInfixExpression(
 		return object.Integer{Value: leftVal % rightVal}
 	case "<":
 		return object.NativeBoolToBooleanObject(leftVal < rightVal)
+	case "<=":
+		return object.NativeBoolToBooleanObject(leftVal <= rightVal)
 	case ">":
 		return object.NativeBoolToBooleanObject(leftVal > rightVal)
+	case ">=":
+		return object.NativeBoolToBooleanObject(leftVal >= rightVal)
 	case "==":
 		return object.NativeBoolToBooleanObject(leftVal == rightVal)
 	case "!=":

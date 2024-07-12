@@ -16,7 +16,7 @@ func New(input string) *Lexer {
 	return l
 }
 
-func (l *Lexer) NextToken() token.Token {
+func (l *Lexer) NextToken() token.Token { //nolint:funlen // many cases to lex.
 	l.skipWhitespace()
 
 	ch := l.readChar()
@@ -47,8 +47,18 @@ func (l *Lexer) NextToken() token.Token {
 	case '*':
 		return newToken(token.ASTERISK, ch)
 	case '<':
+		if l.peekChar() == '=' {
+			nextChar := l.readChar()
+			literal := string(ch) + string(nextChar)
+			return token.Token{Type: token.LTEQ, Literal: literal}
+		}
 		return newToken(token.LT, ch)
 	case '>':
+		if l.peekChar() == '=' {
+			nextChar := l.readChar()
+			literal := string(ch) + string(nextChar)
+			return token.Token{Type: token.GTEQ, Literal: literal}
+		}
 		return newToken(token.GT, ch)
 	case ';':
 		return newToken(token.SEMICOLON, ch)

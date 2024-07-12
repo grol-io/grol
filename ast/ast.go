@@ -170,7 +170,7 @@ func (p *PrefixExpression) String() string {
 type InfixExpression struct {
 	Base
 	Left     Expression
-	Operator string
+	Operator string // TODO switch to using the token instead of string rep (e.g token.LTEQ instead of "<=")
 	Right    Expression
 }
 
