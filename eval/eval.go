@@ -326,6 +326,8 @@ func (s *State) evalInfixExpression(operator string, left, right object.Object) 
 		return s.evalIntegerInfixExpression(operator, left, right)
 	case left.Type() == object.STRING && right.Type() == object.STRING:
 		return evalStringInfixExpression(operator, left, right)
+	case left.Type() == object.ARRAY:
+		return evalArrayInfixExpression(operator, left, right)
 	case operator == "==":
 		// should be left.Value() and right.Value() as currently this relies
 		// on bool interning and ptr equality.
@@ -347,6 +349,63 @@ func evalStringInfixExpression(operator string, left, right object.Object) objec
 		return nativeBoolToBooleanObject(leftVal != rightVal)
 	case "+":
 		return &object.String{Value: leftVal + rightVal}
+	default:
+		return &object.Error{Value: fmt.Sprintf("<unknown operator: %s %s %s>",
+			left.Type(), operator, right.Type())}
+	}
+}
+
+func Equals(left, right object.Object) object.Object {
+	if left.Type() != right.Type() {
+		return FALSE
+	}
+	switch left := left.(type) {
+	case *object.Integer:
+		return nativeBoolToBooleanObject(left.Value == right.(*object.Integer).Value)
+	case *object.String:
+		return nativeBoolToBooleanObject(left.Value == right.(*object.String).Value)
+	case *object.Boolean:
+		return nativeBoolToBooleanObject(left.Value == right.(*object.Boolean).Value)
+	default:
+		return FALSE
+	}
+}
+
+func arrayEquals(left, right []object.Object) object.Object {
+	if len(left) != len(right) {
+		return FALSE
+	}
+	for i, l := range left {
+		if Equals(l, right[i]) == FALSE {
+			return FALSE
+		}
+	}
+	return TRUE
+}
+
+func evalArrayInfixExpression(operator string, left, right object.Object) object.Object {
+	leftVal := left.(*object.Array).Elements
+	switch operator {
+	case "==":
+		if right.Type() != object.ARRAY {
+			return FALSE
+		}
+		rightVal := right.(*object.Array).Elements
+		return arrayEquals(leftVal, rightVal)
+	case "!=":
+		if right.Type() != object.ARRAY {
+			return TRUE
+		}
+		rightVal := right.(*object.Array).Elements
+		if arrayEquals(leftVal, rightVal) == FALSE {
+			return TRUE
+		}
+		return FALSE
+	case "+":
+		if right.Type() != object.ARRAY {
+			return &object.Array{Elements: append(leftVal, right)}
+		}
+		return &object.Array{Elements: append(leftVal, right.(*object.Array).Elements...)}
 	default:
 		return &object.Error{Value: fmt.Sprintf("<unknown operator: %s %s %s>",
 			left.Type(), operator, right.Type())}
