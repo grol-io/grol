@@ -138,7 +138,7 @@ func (l *Lexer) peekChar() byte {
 
 func (l *Lexer) readIdentifier() string {
 	pos := l.pos - 1
-	for isLetter(l.peekChar()) {
+	for isAlphaNum(l.peekChar()) {
 		l.pos++
 	}
 	return l.input[pos:l.pos]
@@ -154,6 +154,10 @@ func (l *Lexer) readNumber() string {
 
 func isLetter(ch byte) bool {
 	return 'a' <= ch && ch <= 'z' || 'A' <= ch && ch <= 'Z' || ch == '_'
+}
+
+func isAlphaNum(ch byte) bool {
+	return isLetter(ch) || isDigit(ch)
 }
 
 func isDigit(ch byte) bool {

@@ -59,3 +59,7 @@ Status: done up to and including 4.4 - ie functional int, string and boolean exp
 - [x] generalized tokenized built in (token id based instead of string)
 
 - [ ] Add "extension" internal functions (calling into a go function), with variadic params, param types etc
+
+- [x] Identifiers are letter followed by alphanum*
+
+- [ ] unicode
