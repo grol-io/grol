@@ -1,0 +1,12 @@
+fact=fn(n) {
+    if (n<=1) {
+        return 1
+    }
+    n*fact(n-1)
+}
+
+a=[fact(5), "abc", 76-3]
+
+m={"key": a}
+
+m["key"][0]
