@@ -162,7 +162,7 @@ func TestIfElseExpressions(t *testing.T) {
 }
 
 func testNullObject(t *testing.T, obj object.Object) {
-	if obj != eval.NULL {
+	if obj != object.NULL {
 		t.Errorf("object is not NULL. got=%#v", obj)
 	}
 }

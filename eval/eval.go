@@ -9,12 +9,6 @@ import (
 	"github.com/ldemailly/gorepl/token"
 )
 
-var (
-	NULL  = &object.Null{}
-	TRUE  = &object.Boolean{Value: true}
-	FALSE = &object.Boolean{Value: false}
-)
-
 type State struct {
 	env *object.Environment
 }
@@ -69,7 +63,7 @@ func (s *State) evalInternal(node any) object.Object {
 
 	case *ast.BlockStatement:
 		if node == nil { // TODO: only here? this comes from empty else branches.
-			return NULL
+			return object.NULL
 		}
 		log.LogVf("eval block statement")
 		return s.evalStatements(node.Statements)
@@ -106,7 +100,7 @@ func (s *State) evalInternal(node any) object.Object {
 		return &object.Integer{Value: node.Val}
 
 	case *ast.Boolean:
-		return nativeBoolToBooleanObject(node.Val)
+		return object.NativeBoolToBooleanObject(node.Val)
 
 	case *ast.StringLiteral:
 		return &object.String{Value: node.Val}
@@ -158,7 +152,7 @@ func (s *State) evalBuiltin(node *ast.Builtin) object.Object {
 			break
 		}
 		if len(arr.Elements) == 0 {
-			return NULL
+			return object.NULL
 		}
 		return arr.Elements[0]
 	case token.REST:
@@ -172,7 +166,7 @@ func (s *State) evalBuiltin(node *ast.Builtin) object.Object {
 			return &object.Integer{Value: int64(len(val.(*object.String).Value))}
 		case object.ARRAY:
 			return &object.Integer{Value: int64(len(arr.Elements))}
-		case object.NULL:
+		case object.NIL:
 			return &object.Integer{Value: 0}
 		}
 	default:
@@ -196,7 +190,7 @@ func evalArrayIndexExpression(array, index object.Object) object.Object {
 	max := int64(len(arrayObject.Elements) - 1)
 
 	if idx < 0 || idx > max {
-		return NULL
+		return object.NULL
 	}
 	return arrayObject.Elements[idx]
 }
@@ -257,11 +251,11 @@ func (s *State) evalIdentifier(node *ast.Identifier) object.Object {
 func (s *State) evalIfExpression(ie *ast.IfExpression) object.Object {
 	condition := s.evalInternal(ie.Condition)
 	switch condition {
-	case TRUE:
-		log.LogVf("if %s is TRUE, picking true branch", ie.Condition.String())
+	case object.TRUE:
+		log.LogVf("if %s is object.TRUE, picking true branch", ie.Condition.String())
 		return s.evalInternal(ie.Consequence)
-	case FALSE:
-		log.LogVf("if %s is FALSE, picking else branch", ie.Condition.String())
+	case object.FALSE:
+		log.LogVf("if %s is object.FALSE, picking else branch", ie.Condition.String())
 		return s.evalInternal(ie.Alternative)
 	default:
 		return &object.Error{Value: "<condition is not a boolean: " + condition.Inspect() + ">"}
@@ -270,7 +264,7 @@ func (s *State) evalIfExpression(ie *ast.IfExpression) object.Object {
 
 func (s *State) evalStatements(stmts []ast.Node) object.Object {
 	var result object.Object
-	result = NULL // no crash when empty program.
+	result = object.NULL // no crash when empty program.
 	for _, statement := range stmts {
 		result = s.evalInternal(statement)
 		if rt := result.Type(); rt == object.RETURN || rt == object.ERROR {
@@ -278,13 +272,6 @@ func (s *State) evalStatements(stmts []ast.Node) object.Object {
 		}
 	}
 	return result
-}
-
-func nativeBoolToBooleanObject(input bool) *object.Boolean {
-	if input {
-		return TRUE
-	}
-	return FALSE
 }
 
 func (s *State) evalPrefixExpression(operator string, right object.Object) object.Object {
@@ -300,12 +287,12 @@ func (s *State) evalPrefixExpression(operator string, right object.Object) objec
 
 func (s *State) evalBangOperatorExpression(right object.Object) object.Object {
 	switch right {
-	case TRUE:
-		return FALSE
-	case FALSE:
-		return TRUE
-	case NULL:
-		return &object.Error{Value: "<not of NULL>"}
+	case object.TRUE:
+		return object.FALSE
+	case object.FALSE:
+		return object.TRUE
+	case object.NULL:
+		return &object.Error{Value: "<not of object.NULL>"}
 	default:
 		return &object.Error{Value: "<not of " + right.Inspect() + ">"}
 	}
@@ -331,9 +318,9 @@ func (s *State) evalInfixExpression(operator string, left, right object.Object) 
 	case operator == "==":
 		// should be left.Value() and right.Value() as currently this relies
 		// on bool interning and ptr equality.
-		return nativeBoolToBooleanObject(left == right)
+		return object.NativeBoolToBooleanObject(left == right)
 	case operator == "!=":
-		return nativeBoolToBooleanObject(left != right)
+		return object.NativeBoolToBooleanObject(left != right)
 	default:
 		return &object.Error{Value: "<operation on non integers left=" + left.Inspect() + " right=" + right.Inspect() + ">"}
 	}
@@ -344,9 +331,9 @@ func evalStringInfixExpression(operator string, left, right object.Object) objec
 	rightVal := right.(*object.String).Value
 	switch operator {
 	case "==":
-		return nativeBoolToBooleanObject(leftVal == rightVal)
+		return object.NativeBoolToBooleanObject(leftVal == rightVal)
 	case "!=":
-		return nativeBoolToBooleanObject(leftVal != rightVal)
+		return object.NativeBoolToBooleanObject(leftVal != rightVal)
 	case "+":
 		return &object.String{Value: leftVal + rightVal}
 	default:
@@ -355,56 +342,24 @@ func evalStringInfixExpression(operator string, left, right object.Object) objec
 	}
 }
 
-func Equals(left, right object.Object) object.Object {
-	if left.Type() != right.Type() {
-		return FALSE
-	}
-	switch left := left.(type) {
-	case *object.Integer:
-		return nativeBoolToBooleanObject(left.Value == right.(*object.Integer).Value)
-	case *object.String:
-		return nativeBoolToBooleanObject(left.Value == right.(*object.String).Value)
-	case *object.Boolean:
-		return nativeBoolToBooleanObject(left.Value == right.(*object.Boolean).Value)
-	case *object.Null:
-		return TRUE
-	case *object.Array:
-		return arrayEquals(left.Elements, right.(*object.Array).Elements)
-	default: /*	ERROR RETURN FUNCTION */
-		return FALSE
-	}
-}
-
-func arrayEquals(left, right []object.Object) object.Object {
-	if len(left) != len(right) {
-		return FALSE
-	}
-	for i, l := range left {
-		if Equals(l, right[i]) == FALSE {
-			return FALSE
-		}
-	}
-	return TRUE
-}
-
 func evalArrayInfixExpression(operator string, left, right object.Object) object.Object {
 	leftVal := left.(*object.Array).Elements
 	switch operator {
 	case "==":
 		if right.Type() != object.ARRAY {
-			return FALSE
+			return object.FALSE
 		}
 		rightVal := right.(*object.Array).Elements
-		return arrayEquals(leftVal, rightVal)
+		return object.ArrayEquals(leftVal, rightVal)
 	case "!=":
 		if right.Type() != object.ARRAY {
-			return TRUE
+			return object.TRUE
 		}
 		rightVal := right.(*object.Array).Elements
-		if arrayEquals(leftVal, rightVal) == FALSE {
-			return TRUE
+		if object.ArrayEquals(leftVal, rightVal) == object.FALSE {
+			return object.TRUE
 		}
-		return FALSE
+		return object.FALSE
 	case "+": // concat / append
 		if right.Type() != object.ARRAY {
 			return &object.Array{Elements: append(leftVal, right)}
@@ -435,13 +390,13 @@ func (s *State) evalIntegerInfixExpression(
 	case "%":
 		return &object.Integer{Value: leftVal % rightVal}
 	case "<":
-		return nativeBoolToBooleanObject(leftVal < rightVal)
+		return object.NativeBoolToBooleanObject(leftVal < rightVal)
 	case ">":
-		return nativeBoolToBooleanObject(leftVal > rightVal)
+		return object.NativeBoolToBooleanObject(leftVal > rightVal)
 	case "==":
-		return nativeBoolToBooleanObject(leftVal == rightVal)
+		return object.NativeBoolToBooleanObject(leftVal == rightVal)
 	case "!=":
-		return nativeBoolToBooleanObject(leftVal != rightVal)
+		return object.NativeBoolToBooleanObject(leftVal != rightVal)
 	default:
 		return &object.Error{Value: "unknown operator: " + operator}
 	}

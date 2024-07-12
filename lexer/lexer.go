@@ -66,6 +66,8 @@ func (l *Lexer) NextToken() token.Token {
 		return newToken(token.LBRACKET, ch)
 	case ']':
 		return newToken(token.RBRACKET, ch)
+	case ':':
+		return newToken(token.COLON, ch)
 	case '"':
 		return token.Token{Type: token.STRING, Literal: l.readString()}
 	case 0:

@@ -52,7 +52,7 @@ Status: done up to and including 4.4 - ie functional int, string and boolean exp
 
 - [ ] use + for concat of arrays and merging of maps
 
-- [ ] call maps maps and not hash (or maybe assoc array but that's long)
+- [x] call maps maps and not hash (or maybe assoc array but that's long)
 
 - [x] don't make a slice to join with , when there is already a strings builder. replace byte buffers by string builder.
 
@@ -61,5 +61,7 @@ Status: done up to and including 4.4 - ie functional int, string and boolean exp
 - [ ] Add "extension" internal functions (calling into a go function), with variadic params, param types etc
 
 - [x] Identifiers are letter followed by alphanum*
+
+- [x] map of interface correctly equals the actual underlying types, no need for custom hashing
 
 - [ ] unicode

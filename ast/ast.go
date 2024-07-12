@@ -345,3 +345,30 @@ func (ie *IndexExpression) String() string {
 
 	return out.String()
 }
+
+type MapLiteral struct {
+	Base  // the '{' token
+	Pairs map[Expression]Expression
+}
+
+func (hl *MapLiteral) Value() Expression {
+	return hl
+}
+
+func (hl *MapLiteral) String() string {
+	out := strings.Builder{}
+
+	out.WriteString("{")
+	first := true
+	for key, value := range hl.Pairs {
+		if !first {
+			out.WriteString(", ")
+		}
+		first = false
+		out.WriteString(key.String())
+		out.WriteString(":")
+		out.WriteString(value.String())
+	}
+	out.WriteString("}")
+	return out.String()
+}

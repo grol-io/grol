@@ -6,7 +6,7 @@ import (
 	"github.com/ldemailly/gorepl/token"
 )
 
-func TestNextToken(t *testing.T) {
+func TestNextToken(t *testing.T) { //nolint:funlen // this is a test function with many cases back to back.
 	input := `let five = 5;
 let ten = 10;
 
@@ -32,6 +32,7 @@ if (5 < 10) {
 "foo\nbar\t\\"
 [1, 2];
 a2=3
+{"foo": "bar"}
 `
 
 	tests := []struct {
@@ -125,6 +126,11 @@ a2=3
 		{token.IDENT, "a2"},
 		{token.ASSIGN, "="},
 		{token.INT, "3"},
+		{token.LBRACE, "{"},
+		{token.STRING, "foo"},
+		{token.COLON, ":"},
+		{token.STRING, "bar"},
+		{token.RBRACE, "}"},
 		{token.EOF, ""},
 	}
 
