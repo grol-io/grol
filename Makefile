@@ -11,8 +11,9 @@ gorepl: Makefile *.go */*.go $(GEN)
 	CGO_ENABLED=0 go build -trimpath -ldflags="-w -s" -tags "$(GO_BUILD_TAGS)" .
 	ls -l gorepl
 
-tests:
+tests: gorepl
 	CGO_ENABLED=0 go test -race -tags $(GO_BUILD_TAGS) ./...
+	./gorepl *.gr
 
 failing-tests:
 	-go test -v ./... -tags=runfailingtests -run TestLetStatementsFormerlyCrashingNowFailingOnPurpose

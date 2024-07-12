@@ -1,5 +1,6 @@
 // Sample file that our gorepl can interpret
 // <--- comments
+// See also the other *.gr files
 
 fact=fn(n) { // function
     if (n<=1) {
