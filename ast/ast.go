@@ -283,7 +283,7 @@ func (b *Builtin) String() string {
 }
 
 type FunctionLiteral struct {
-	Base       // The 'fn' token
+	Base       // The 'func' token
 	Parameters []*Identifier
 	Body       *BlockStatement
 }

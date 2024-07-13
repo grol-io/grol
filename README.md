@@ -8,7 +8,7 @@ CGO_ENABLED=0 go install -trimpath -ldflags="-w -s" -tags no_net,no_json github.
 Sample:
 ```shell
 gorepl -parse
-$ fact = fn(n) {if (n<1) {return 1} n*fact(n-1)}
+$ fact = func(n) {if (n<=1) {return 1} n*fact(n-1)}
 $ n=fact(6)
 == Parse ==> (n = fact(6))
 == Eval  ==> 720

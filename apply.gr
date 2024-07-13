@@ -2,13 +2,13 @@
 
 a = [ 1, 3, 5, 7]
 
-apply = fn(f, a) {
+apply = func(f, a) {
     if (len(a)==0) {
         return []
     }
     return [f(first(a))]+apply(f,rest(a))
 }
 
-apply(fn(x) {2*x}, a)
+apply(func(x) {2*x}, a)
 
 // ^^^ [2, 6, 10, 14]

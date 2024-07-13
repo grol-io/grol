@@ -358,8 +358,8 @@ func Test_OperatorPrecedenceParsing(t *testing.T) {
 			"let x = (41 * 6)",
 		},
 		{
-			"let foo = fn(a,b) {return a+b}",
-			"let foo = fn(a, b) {\nreturn (a + b)\n}",
+			"let foo = func(a,b) {return a+b}",
+			"let foo = func(a, b) {\nreturn (a + b)\n}",
 		},
 	}
 

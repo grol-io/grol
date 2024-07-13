@@ -70,7 +70,7 @@ const (
 var _ = EOF.String() // force compile error if go generate is missing.
 
 var keywords = map[string]Type{
-	"fn":     FUNCTION,
+	"func":   FUNCTION,
 	"let":    LET,
 	"true":   TRUE,
 	"false":  FALSE,

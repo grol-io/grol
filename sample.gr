@@ -2,7 +2,7 @@
 // <--- comments
 // See also the other *.gr files
 
-fact=fn(n) { // function
+fact=func(n) { // function
     if (n<=1) {
         return 1
     }

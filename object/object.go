@@ -152,7 +152,7 @@ func (f Function) Type() Type { return FUNCTION }
 func (f Function) Inspect() string {
 	out := strings.Builder{}
 
-	out.WriteString("fn")
+	out.WriteString("func")
 	out.WriteString("(")
 	ast.WriteStrings(&out, f.Parameters, ", ")
 	out.WriteString(") ")

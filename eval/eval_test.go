@@ -36,7 +36,7 @@ func TestEvalIntegerExpression(t *testing.T) {
 		{"19 % 5", 4},
 		{"20 % -5", 0},
 		{"-21 % 5", -1},
-		{`fact = fn(n) {if (n<2) {return 1} n*fact(n-1)}; fact(5)`, 120},
+		{`fact = func(n) {if (n<2) {return 1} n*fact(n-1)}; fact(5)`, 120},
 	}
 
 	for i, tt := range tests {
@@ -208,7 +208,7 @@ func TestErrorHandling(t *testing.T) {
 		expectedMessage string
 	}{
 		{
-			"let f=fn(x,y) {x+y}; f(1)",
+			"let f=func(x,y) {x+y}; f(1)",
 			"<wrong number of arguments. got=1, want=2>",
 		},
 		{
@@ -256,7 +256,7 @@ if (10 > 1) {
 			"<unknown operator: STRING - STRING>",
 		},
 		{
-			`{"name": "Monkey"}[fn(x) { x }];`,
+			`{"name": "Monkey"}[func(x) { x }];`,
 			"FUNCTION not usable as map key",
 		},
 	}
@@ -298,7 +298,7 @@ func TestLetStatements(t *testing.T) {
 }
 
 func TestFunctionObject(t *testing.T) {
-	input := "fn(x) { x + 2; };"
+	input := "func(x) { x + 2; };"
 
 	evaluated := testEval(t, input)
 	fn, ok := evaluated.(object.Function)
@@ -327,12 +327,12 @@ func TestFunctionApplication(t *testing.T) {
 		input    string
 		expected int64
 	}{
-		{"let identity = fn(x) { x; }; identity(5);", 5},
-		{"let identity = fn(x) { return x; }; identity(5);", 5},
-		{"let double = fn(x) { x * 2; }; double(5);", 10},
-		{"let add = fn(x, y) { x + y; }; add(5, 5);", 10},
-		{"let add = fn(x, y) { x + y; }; add(5 + 5, add(5, 5));", 20},
-		{"fn(x) { x; }(5)", 5},
+		{"let identity = func(x) { x; }; identity(5);", 5},
+		{"let identity = func(x) { return x; }; identity(5);", 5},
+		{"let double = func(x) { x * 2; }; double(5);", 10},
+		{"let add = func(x, y) { x + y; }; add(5, 5);", 10},
+		{"let add = func(x, y) { x + y; }; add(5 + 5, add(5, 5));", 20},
+		{"func(x) { x; }(5)", 5},
 	}
 	for _, tt := range tests {
 		testIntegerObject(t, testEval(t, tt.input), tt.expected)
@@ -341,8 +341,8 @@ func TestFunctionApplication(t *testing.T) {
 
 func TestClosures(t *testing.T) {
 	input := `
-let newAdder = fn(x) {
-  fn(y) { x + y };
+let newAdder = func(x) {
+  func(y) { x + y };
 };
 
 let addTwo = newAdder(2);
