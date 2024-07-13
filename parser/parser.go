@@ -187,6 +187,13 @@ func (p *Parser) parseReturnStatement() ast.Node {
 	stmt := &ast.ReturnStatement{}
 	stmt.Token = p.curToken
 
+	// hacky for empty expressions like plain `return`.
+	if p.peekTokenIs(token.SEMICOLON) || p.peekTokenIs(token.RBRACE) || p.peekTokenIs(token.EOF) {
+		log.Debugf("parseExpression: %s returning nil", p.curToken)
+		// nil return value
+		return stmt
+	}
+
 	p.nextToken()
 
 	stmt.ReturnValue = p.parseExpression(LOWEST)

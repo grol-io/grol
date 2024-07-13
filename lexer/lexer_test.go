@@ -33,6 +33,7 @@ if (5 < 10) {
 [1, 2];
 a2=3
 {"foo": "bar"}
+return // nil return
 `
 
 	tests := []struct {
@@ -131,6 +132,8 @@ a2=3
 		{token.COLON, ":"},
 		{token.STRING, "bar"},
 		{token.RBRACE, "}"},
+		{token.RETURN, "return"},
+		{token.LINECOMMENT, "// nil return"},
 		{token.EOF, ""},
 	}
 

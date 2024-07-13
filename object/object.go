@@ -115,7 +115,7 @@ func (s String) Inspect() string {
 type Null struct{}
 
 func (n Null) Type() Type      { return NIL }
-func (n Null) Inspect() string { return "<nil>" }
+func (n Null) Inspect() string { return "nil" }
 
 type Error struct {
 	Value string // message

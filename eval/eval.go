@@ -106,6 +106,9 @@ func (s *State) evalInternal(node any) object.Object {
 		return object.String{Value: node.Val}
 
 	case *ast.ReturnStatement:
+		if node.ReturnValue == nil {
+			return object.ReturnValue{Value: object.NULL}
+		}
 		val := s.evalInternal(node.ReturnValue)
 		return object.ReturnValue{Value: val}
 	case *ast.Builtin:
@@ -272,7 +275,8 @@ func (s *State) evalExpressions(exps []ast.Expression) ([]object.Object, *object
 	for _, e := range exps {
 		evaluated := s.evalInternal(e)
 		if rt := evaluated.Type(); rt == object.ERROR {
-			return nil, evaluated.(*object.Error)
+			oerr := evaluated.(object.Error)
+			return nil, &oerr
 		}
 		result = append(result, evaluated)
 	}
