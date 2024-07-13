@@ -130,7 +130,7 @@ func (s *State) evalInternal(node any) object.Object { //nolint:funlen // we hav
 			if oerr := ArgCheck("quote", 1, false, node.Arguments); oerr != nil {
 				return *oerr
 			}
-			return quote(node.Arguments[0])
+			return s.quote(node.Arguments[0])
 		}
 		f := s.evalInternal(node.Function)
 		args, oerr := s.evalExpressions(node.Arguments)
