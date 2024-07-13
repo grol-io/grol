@@ -1,7 +1,7 @@
 // Another example (see sample.gr)
 // Variant with accumulation of result down the stack
 
-a = [ 1, 3, 5, 7]
+a = [ 1, 3, 5, 7] // or run `gorepl -shared-state *.gr` and you can comment this out (a defined in apply.gr)
 
 apply = func(f, a) {
     // helper function

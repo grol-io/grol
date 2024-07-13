@@ -64,6 +64,8 @@ const (
 	LEN
 	FIRST
 	REST
+	PRINT
+	LOG
 )
 
 //go:generate stringer -type=Type
@@ -81,6 +83,8 @@ var keywords = map[string]Type{
 	"len":   LEN,
 	"first": FIRST,
 	"rest":  REST,
+	"print": PRINT,
+	"log":   LOG,
 }
 
 func LookupIdent(ident string) Type {

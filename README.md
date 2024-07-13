@@ -31,7 +31,9 @@ go install golang.org/x/tools/cmd/stringer@latest
 make # for stripped down executable including build tags etc to make it minimal
 ```
 
-Status: done up to and including 4.5: ie functional int, string and boolean expressions, functions, lambdas, arrays, maps, etc
+Status: All done: ie functional int, string and boolean expressions, functions, lambdas, arrays, maps,
+print, log, and more
+
 
 ### Reading notes
 
@@ -94,3 +96,20 @@ Status: done up to and including 4.5: ie functional int, string and boolean expr
 - [ ] assignment to maps and arrays
 
 - [ ] for loop
+
+### Usage
+
+```
+gorepl 0.15.0 usage:
+	gorepl [flags] *.gr files to interpret or no arg for stdin repl...
+or 1 of the special arguments
+	gorepl {help|envhelp|version|buildinfo}
+flags:
+  -eval
+    	show eval results (default true)
+  -parse
+    	show parse tree
+  -shared-state
+    	All files share same interpreter state (default is new state for each)
+```
+(excluding logger control, see `gorepl help` for all the flags, of note `-logger-no-color` will turn off colors for gorepl too)

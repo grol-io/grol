@@ -13,6 +13,7 @@ import (
 func main() {
 	showParse := flag.Bool("parse", false, "show parse tree")
 	showEval := flag.Bool("eval", true, "show eval results")
+	sharedState := flag.Bool("shared-state", false, "All files share same interpreter state (default is new state for each)")
 	cli.ArgsHelp = "*.gr files to interpret or no arg for stdin repl..."
 	cli.MaxArgs = -1
 	cli.Main()
@@ -26,13 +27,18 @@ func main() {
 		return
 	}
 	options.All = true
+	s := eval.NewState()
 	for _, file := range flag.Args() {
-		s := eval.NewState()
 		f, err := os.Open(file)
 		if err != nil {
 			log.Fatalf("%v", err)
 		}
+		log.Infof("Running %s", file)
 		repl.EvalAll(s, f, os.Stdout, options)
 		f.Close()
+		if !*sharedState {
+			s = eval.NewState()
+		}
 	}
+	log.Infof("All done")
 }

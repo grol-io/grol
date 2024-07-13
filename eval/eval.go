@@ -2,6 +2,8 @@ package eval
 
 import (
 	"fmt"
+	"os"
+	"strings"
 
 	"fortio.org/log"
 	"github.com/ldemailly/gorepl/ast"
@@ -43,7 +45,13 @@ func (s *State) evalAssignment(right object.Object, node *ast.InfixExpression) o
 	return right // maybe only if it's a literal?
 }
 
-func ArgCheck[T any](msg string, n int, args []T) *object.Error {
+func ArgCheck[T any](msg string, n int, vararg bool, args []T) *object.Error {
+	if vararg {
+		if len(args) < n {
+			return &object.Error{Value: fmt.Sprintf("%s: wrong number of arguments. got=%d, want at least %d", msg, len(args), n)}
+		}
+		return nil
+	}
 	if len(args) != n {
 		return &object.Error{Value: fmt.Sprintf("%s: wrong number of arguments. got=%d, want=%d", msg, len(args), n)}
 	}
@@ -164,8 +172,9 @@ func (s *State) evalMapLiteral(node *ast.MapLiteral) object.Object {
 }
 
 func (s *State) evalBuiltin(node *ast.Builtin) object.Object {
-	// so far all 3 have exactly 1 argument.
-	if oerr := ArgCheck(node.Literal, 1, node.Parameters); oerr != nil {
+	// all take 1 arg exactly except print and log which take 1+.
+	varArg := node.Type == token.PRINT || node.Type == token.LOG
+	if oerr := ArgCheck(node.Literal, 1, varArg, node.Parameters); oerr != nil {
 		return *oerr
 	}
 	val := s.evalInternal(node.Parameters[0])
@@ -175,6 +184,27 @@ func (s *State) evalBuiltin(node *ast.Builtin) object.Object {
 	}
 	arr, _ := val.(object.Array)
 	switch node.Type { //nolint:exhaustive // we have default, only 2 cases.
+	case token.PRINT:
+		fallthrough
+	case token.LOG:
+		buf := strings.Builder{}
+		for i, v := range node.Parameters {
+			if i > 0 {
+				buf.WriteString(" ")
+			}
+			r := s.evalInternal(v)
+			if isString := r.Type() == object.STRING; isString {
+				buf.WriteString(r.(object.String).Value)
+			} else {
+				buf.WriteString(r.Inspect())
+			}
+		}
+		if node.Type == token.PRINT {
+			os.Stdout.WriteString(buf.String())
+		} else {
+			log.Printf(buf.String())
+		}
+		return object.NULL
 	case token.FIRST:
 		if rt != object.ARRAY {
 			break
