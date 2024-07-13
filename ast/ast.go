@@ -214,11 +214,11 @@ type Boolean struct {
 	Val bool
 }
 
-func (b *Boolean) Value() Expression {
+func (b Boolean) Value() Expression {
 	return b
 }
 
-func (b *Boolean) String() string {
+func (b Boolean) String() string {
 	return b.Literal
 }
 

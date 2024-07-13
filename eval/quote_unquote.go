@@ -32,6 +32,7 @@ func (s *State) evalUnquoteCalls(quoted ast.Node) ast.Node {
 	})
 }
 
+// feels like we should merge ast and object and avoid these?
 func convertObjectToASTNode(obj object.Object) ast.Node {
 	switch obj := obj.(type) {
 	case object.Integer:
@@ -42,6 +43,14 @@ func convertObjectToASTNode(obj object.Object) ast.Node {
 		r := ast.IntegerLiteral{Val: obj.Value}
 		r.Token = t
 		return r
+	case object.Boolean:
+		var t token.Token
+		if obj.Value {
+			t = token.Token{Type: token.TRUE, Literal: "true"}
+		} else {
+			t = token.Token{Type: token.FALSE, Literal: "false"}
+		}
+		return ast.Boolean{Base: ast.Base{Token: t}, Val: obj.Value}
 	default:
 		return nil
 	}
