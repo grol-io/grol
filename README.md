@@ -80,8 +80,10 @@ Status: done up to and including 4.5- ie functional int, string and boolean expr
 
 - [ ] multiline support in stdin repl
 
-- [ ] add >= and <= comparaison operators
+- [x] add >= and <= comparaison operators
 
 - [x] add comments support (line)
 
 - [ ] line numbers for errors (for file mode)
+
+- [x] use `func` instead of `fn` for functions
