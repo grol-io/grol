@@ -9,16 +9,16 @@ import (
 func TestStringMapKey(t *testing.T) {
 	hello1 := object.String{Value: "Hello World"}
 	hello2 := object.String{Value: "Hello World"}
-	diff1 := &object.String{Value: "My name is johnny"}
-	diff2 := &object.String{Value: "My name is johnny"}
+	diff1 := object.String{Value: "My name is johnny"}
+	diff2 := object.String{Value: "My name is johnny"}
 	if &hello1 == &hello2 {
 		t.Errorf("strings pointer somehow same, unexpected")
 	}
 
 	m := object.NewMap()
-	m.Pairs[hello1] = diff1
+	m[hello1] = diff1
 
-	v, ok := m.Pairs[hello2]
+	v, ok := m[hello2]
 	if !ok {
 		t.Errorf("no value found for key %v", hello2)
 	}

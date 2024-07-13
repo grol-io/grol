@@ -31,7 +31,7 @@ go install golang.org/x/tools/cmd/stringer@latest
 make # for stripped down executable including build tags etc to make it minimal
 ```
 
-Status: done up to and including 4.5- ie functional int, string and boolean expressions, functions, lambdas, arrays, maps, etc
+Status: done up to and including 4.5: ie functional int, string and boolean expressions, functions, lambdas, arrays, maps, etc
 
 ### Reading notes
 
@@ -53,7 +53,7 @@ Status: done up to and including 4.5- ie functional int, string and boolean expr
 
 - [ ] fix up == and != in 3 places (int, string and default)
 
-- [ ] change int to ... float? number? or add float or big int?
+- [ ] change int to ... float? number? or rather add float/double (maybe also or big int?...)
 
 - [ ] use + for concat of arrays and merging of maps
 

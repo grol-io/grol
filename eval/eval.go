@@ -150,7 +150,7 @@ func hashable(o object.Object) *object.Error {
 }
 
 func (s *State) evalMapLiteral(node *ast.MapLiteral) object.Object {
-	pairs := make(map[object.Object]object.Object)
+	result := object.NewMap()
 
 	for keyNode, valueNode := range node.Pairs {
 		key := s.evalInternal(keyNode)
@@ -158,9 +158,9 @@ func (s *State) evalMapLiteral(node *ast.MapLiteral) object.Object {
 		if oerr := hashable(key); oerr != nil {
 			return *oerr
 		}
-		pairs[key] = value
+		result[key] = value
 	}
-	return object.Map{Pairs: pairs}
+	return result
 }
 
 func (s *State) evalBuiltin(node *ast.Builtin) object.Object {
@@ -219,7 +219,7 @@ func evalMapIndexExpression(hash, key object.Object) object.Object {
 		return *oerr
 	}
 	m := hash.(object.Map)
-	v, ok := m.Pairs[key]
+	v, ok := m[key]
 	if !ok {
 		return object.NULL
 	}
@@ -372,6 +372,8 @@ func (s *State) evalInfixExpression(operator string, left, right object.Object) 
 		return evalStringInfixExpression(operator, left, right)
 	case left.Type() == object.ARRAY:
 		return evalArrayInfixExpression(operator, left, right)
+	case left.Type() == object.MAP && right.Type() == object.MAP:
+		return evalMapInfixExpression(operator, left, right)
 	case operator == "==":
 		// should be left.Value() and right.Value() as currently this relies
 		// on bool interning and ptr equality.
@@ -422,6 +424,32 @@ func evalArrayInfixExpression(operator string, left, right object.Object) object
 			return object.Array{Elements: append(leftVal, right)}
 		}
 		return object.Array{Elements: append(leftVal, right.(object.Array).Elements...)}
+	default:
+		return object.Error{Value: fmt.Sprintf("<unknown operator: %s %s %s>",
+			left.Type(), operator, right.Type())}
+	}
+}
+
+func evalMapInfixExpression(operator string, left, right object.Object) object.Object {
+	leftMap := left.(object.Map)
+	rightMap := right.(object.Map)
+	switch operator {
+	case "==":
+		return object.MapEquals(leftMap, rightMap)
+	case "!=":
+		if object.MapEquals(leftMap, rightMap) == object.FALSE {
+			return object.TRUE
+		}
+		return object.FALSE
+	case "+": // concat / append
+		res := object.NewMap()
+		for k, v := range leftMap {
+			res[k] = v
+		}
+		for k, v := range rightMap {
+			res[k] = v
+		}
+		return res
 	default:
 		return object.Error{Value: fmt.Sprintf("<unknown operator: %s %s %s>",
 			left.Type(), operator, right.Type())}

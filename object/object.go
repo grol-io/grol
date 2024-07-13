@@ -49,16 +49,18 @@ func Equals(left, right Object) Object {
 		return FALSE
 	}
 	switch left := left.(type) {
-	case *Integer:
-		return NativeBoolToBooleanObject(left.Value == right.(*Integer).Value)
-	case *String:
-		return NativeBoolToBooleanObject(left.Value == right.(*String).Value)
-	case *Boolean:
-		return NativeBoolToBooleanObject(left.Value == right.(*Boolean).Value)
-	case *Null:
+	case Integer:
+		return NativeBoolToBooleanObject(left.Value == right.(Integer).Value)
+	case String:
+		return NativeBoolToBooleanObject(left.Value == right.(String).Value)
+	case Boolean:
+		return NativeBoolToBooleanObject(left.Value == right.(Boolean).Value)
+	case Null:
 		return TRUE
-	case *Array:
-		return ArrayEquals(left.Elements, right.(*Array).Elements)
+	case Array:
+		return ArrayEquals(left.Elements, right.(Array).Elements)
+	case Map:
+		return MapEquals(left, right.(Map))
 	default: /*	ERROR RETURN FUNCTION */
 		return FALSE
 	}
@@ -70,6 +72,18 @@ func ArrayEquals(left, right []Object) Object {
 	}
 	for i, l := range left {
 		if Equals(l, right[i]) == FALSE {
+			return FALSE
+		}
+	}
+	return TRUE
+}
+
+func MapEquals(left, right Map) Object {
+	if len(left) != len(right) {
+		return FALSE
+	}
+	for k, v := range left {
+		if Equals(v, right[k]) == FALSE {
 			return FALSE
 		}
 	}
@@ -171,14 +185,12 @@ func (ao Array) Inspect() string {
 	return out.String()
 }
 
-type Map struct {
-	// possible optimization: us a map of any and put the inner value of object in there, would be faster than
-	// wrapping strings etc into object.
-	Pairs map[Object]Object
-}
+// possible optimization: us a map of any and put the inner value of object in there, would be faster than
+// wrapping strings etc into object.
+type Map map[Object]Object
 
-func NewMap() *Map {
-	return &Map{Pairs: make(map[Object]Object)}
+func NewMap() Map {
+	return make(map[Object]Object)
 }
 
 func (m Map) Type() Type { return MAP }
@@ -187,7 +199,7 @@ func (m Map) Inspect() string {
 	out := strings.Builder{}
 	out.WriteString("{")
 	first := true
-	for k, v := range m.Pairs {
+	for k, v := range m {
 		if !first {
 			out.WriteString(", ")
 		}
