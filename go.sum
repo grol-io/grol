@@ -6,5 +6,7 @@ fortio.org/struct2env v0.4.1 h1:rJludAMO5eBvpWplWEQNqoVDFZr4RWMQX7RUapgZyc0=
 fortio.org/struct2env v0.4.1/go.mod h1:lENUe70UwA1zDUCX+8AsO663QCFqYaprk5lnPhjD410=
 fortio.org/version v1.0.4 h1:FWUMpJ+hVTNc4RhvvOJzb0xesrlRmG/a+D6bjbQ4+5U=
 fortio.org/version v1.0.4/go.mod h1:2JQp9Ax+tm6QKiGuzR5nJY63kFeANcgrZ0osoQFDVm0=
+github.com/google/go-cmp v0.6.0 h1:ofyhxvXcZhMsU5ulbFiLKl/XBFqE1GSq7atu8tAmTRI=
+github.com/google/go-cmp v0.6.0/go.mod h1:17dUlkBOakJ0+DkrSSNjCkIjxS6bF9zb3elmeNGIjoY=
 golang.org/x/crypto/x509roots/fallback v0.0.0-20240626151235-a6a393ffd658 h1:i7K6wQLN/0oxF7FT3tKkfMCstxoT4VGG36YIB9ZKLzI=
 golang.org/x/crypto/x509roots/fallback v0.0.0-20240626151235-a6a393ffd658/go.mod h1:kNa9WdvYnzFwC79zRpLRMJbdEFlhyM5RPFBBZp/wWH8=

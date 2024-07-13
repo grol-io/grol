@@ -58,7 +58,7 @@ func ArgCheck[T any](msg string, n int, vararg bool, args []T) *object.Error {
 	return nil
 }
 
-func (s *State) evalInternal(node any) object.Object {
+func (s *State) evalInternal(node any) object.Object { //nolint:funlen // we have a lot of cases.
 	switch node := node.(type) {
 	// Statements
 	case *ast.Program:
@@ -126,6 +126,12 @@ func (s *State) evalInternal(node any) object.Object {
 		body := node.Body
 		return object.Function{Parameters: params, Env: s.env, Body: body}
 	case *ast.CallExpression:
+		if node.Function.TokenLiteral() == "quote" { // TODO use code instead of string
+			if oerr := ArgCheck("quote", 1, false, node.Arguments); oerr != nil {
+				return *oerr
+			}
+			return &object.Quote{Node: node.Arguments[0]}
+		}
 		f := s.evalInternal(node.Function)
 		args, oerr := s.evalExpressions(node.Arguments)
 		if oerr != nil {

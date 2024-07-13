@@ -1,3 +1,4 @@
+// Gorepl is a simple interpreted language with a syntax similar to Go.
 package main
 
 import (

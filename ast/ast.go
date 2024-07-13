@@ -9,8 +9,8 @@ import (
 )
 
 type Node interface {
-	TokenLiteral() string
-	String() string // normalized string representation of the expression/statement.
+	TokenLiteral() string // TODO: return the token code instead of the string when available.
+	String() string       // normalized string representation of the expression/statement.
 }
 
 type Expression interface {
@@ -23,11 +23,11 @@ type Base struct {
 	token.Token
 }
 
-func (b *Base) TokenLiteral() string {
+func (b Base) TokenLiteral() string {
 	return b.Literal
 }
 
-func (b *Base) String() string {
+func (b Base) String() string {
 	return b.Type.String() + " " + b.Literal
 }
 
@@ -53,6 +53,10 @@ func (rs *ReturnStatement) String() string {
 
 type Program struct {
 	Statements []Node
+}
+
+func (p *Program) TokenLiteral() string {
+	return "PROGRAM"
 }
 
 func (p *Program) String() string {
@@ -138,11 +142,11 @@ type IntegerLiteral struct {
 	Val int64
 }
 
-func (i *IntegerLiteral) Value() Expression {
+func (i IntegerLiteral) Value() Expression {
 	return i
 }
 
-func (i *IntegerLiteral) String() string {
+func (i IntegerLiteral) String() string {
 	return i.Literal
 }
 
@@ -246,13 +250,21 @@ func (ie *IfExpression) Value() Expression {
 }
 
 type BlockStatement struct {
-	Base // holds {
+	// initially had: Base // holds {
 	Program
 }
 
+// needed so dumping if and function bodies sort of look like the original.
 func (bs *BlockStatement) String() string {
 	return "{\n" + bs.Program.String() + "\n}"
 }
+
+// Could specialize the TokenLiteral but... we'll use program's.
+/*
+func (bs *BlockStatement) TokenLiteral() string {
+	return "PROGRAM"
+}
+*/
 
 func WriteStrings[T fmt.Stringer](out *strings.Builder, list []T, sep string) {
 	for i, p := range list {

@@ -411,7 +411,7 @@ func (p *Parser) parseIfExpression() ast.Expression {
 
 func (p *Parser) parseBlockStatement() *ast.BlockStatement {
 	block := &ast.BlockStatement{}
-	block.Token = p.curToken
+	// block.Token = p.curToken
 	block.Statements = []ast.Node{}
 
 	p.nextToken()

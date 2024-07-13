@@ -25,6 +25,7 @@ const (
 	STRING
 	ARRAY
 	MAP
+	QUOTE
 	LAST
 )
 
@@ -210,4 +211,13 @@ func (m Map) Inspect() string {
 	}
 	out.WriteString("}")
 	return out.String()
+}
+
+type Quote struct {
+	Node ast.Node
+}
+
+func (q *Quote) Type() Type { return QUOTE }
+func (q *Quote) Inspect() string {
+	return "quote(" + q.Node.String() + ")"
 }

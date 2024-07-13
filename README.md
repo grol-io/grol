@@ -42,6 +42,7 @@ print, log, and more
 - [x] interface nil check in parser
 
 - [x] Do we really need all these `let `, wouldn't `x = a + 3` be enough? made optional
+   - [ ] remove let entirely ?
 
 - [ ] Seems like ast and object are redundant to a large extent
 
@@ -96,6 +97,8 @@ print, log, and more
 - [ ] assignment to maps and arrays
 
 - [ ] for loop
+
+- [x] switched to non pointer receivers in Object and (base/integer) Ast so equality checks in maps work without special hashing (big win)
 
 ### Usage
 
