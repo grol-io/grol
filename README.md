@@ -83,7 +83,14 @@ Status: done up to and including 4.5: ie functional int, string and boolean expr
 - [x] add >= and <= comparaison operators
 
 - [x] add comments support (line)
+   - [ ] add /* */ style
 
 - [ ] line numbers for errors (for file mode)
 
 - [x] use `func` instead of `fn` for functions
+
+- [x] figure out how to get syntax highlighting (go style closest - done thx to viulisti -> .gitattributes)
+
+- [ ] assignment to maps and arrays
+
+- [ ] for loop
