@@ -20,6 +20,11 @@ func NewState() *State {
 	return &State{env: object.NewEnvironment()}
 }
 
+// Forward to env to count the number of bindings. Used mostly to know if there are any macros.
+func (s *State) Len() int {
+	return s.env.Len()
+}
+
 // TODO: don't call the .String() if log level isn't verbose.
 
 func (s *State) Eval(node any) object.Object {

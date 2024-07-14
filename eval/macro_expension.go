@@ -1,8 +1,7 @@
 package eval
 
 import (
-	"log"
-
+	"fortio.org/log"
 	"github.com/ldemailly/gorepl/ast"
 	"github.com/ldemailly/gorepl/object"
 )
@@ -80,7 +79,7 @@ func (s *State) ExpandMacros(program ast.Node) ast.Node {
 
 		quote, ok := evaluated.(object.Quote)
 		if !ok {
-			log.Fatalf("We only support returning AST-nodes from macros, got %T", evaluated)
+			log.Fatalf("We only support returning AST-nodes from macros, got %#v", evaluated)
 		}
 		return quote.Node
 	})
