@@ -12,7 +12,10 @@ import (
 	"github.com/ldemailly/gorepl/parser"
 )
 
-const PROMPT = "$ "
+const (
+	PROMPT       = "$ "
+	CONTINUATION = "> "
+)
 
 func logParserErrors(p *parser.Parser) bool {
 	errors := p.Errors()
@@ -47,23 +50,41 @@ func Interactive(in io.Reader, out io.Writer, options Options) {
 	macroState := eval.NewState()
 
 	scanner := bufio.NewScanner(in)
+	prev := ""
+	prompt := PROMPT
 	for {
-		fmt.Fprint(out, PROMPT)
+		fmt.Fprint(out, prompt)
 		scanned := scanner.Scan()
 		if !scanned {
 			return
 		}
-		l := scanner.Text()
-		EvalOne(s, macroState, l, out, options)
+		l := prev + scanner.Text()
+		contNeeded := EvalOne(s, macroState, l, out, options)
+		if contNeeded {
+			prev = l + "\n"
+			prompt = CONTINUATION
+		} else {
+			prev = ""
+			prompt = PROMPT
+		}
 	}
 }
 
-func EvalOne(s, macroState *eval.State, what string, out io.Writer, options Options) {
-	l := lexer.New(what)
+// Returns true in line mode if more should be fed to the parser.
+func EvalOne(s, macroState *eval.State, what string, out io.Writer, options Options) bool {
+	var l *lexer.Lexer
+	if options.All {
+		l = lexer.New(what)
+	} else {
+		l = lexer.NewLineMode(what)
+	}
 	p := parser.New(l)
 	program := p.ParseProgram()
 	if logParserErrors(p) {
-		return
+		return false
+	}
+	if p.ContinuationNeeded() {
+		return true
 	}
 	if options.ShowParse {
 		fmt.Fprint(out, "== Parse ==> ")
@@ -88,7 +109,7 @@ func EvalOne(s, macroState *eval.State, what string, out io.Writer, options Opti
 	}
 	obj := s.Eval(program)
 	if !options.ShowEval {
-		return
+		return false
 	}
 	if obj.Type() == object.ERROR {
 		fmt.Fprint(out, log.Colors.Red)
@@ -97,4 +118,5 @@ func EvalOne(s, macroState *eval.State, what string, out io.Writer, options Opti
 	}
 	fmt.Fprintln(out, obj.Inspect())
 	fmt.Fprint(out, log.ANSIColors.Reset)
+	return false
 }

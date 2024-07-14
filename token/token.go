@@ -11,7 +11,7 @@ type Token struct {
 
 const (
 	ILLEGAL Type = iota
-	EOF
+	EOL
 
 	// Identifiers + literals.
 	IDENT // add, foobar, x, y, ...
@@ -68,6 +68,7 @@ const (
 	REST
 	PRINT
 	LOG
+	EOF
 )
 
 //go:generate stringer -type=Type

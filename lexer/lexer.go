@@ -7,12 +7,19 @@ import (
 )
 
 type Lexer struct {
-	input string
-	pos   int
+	input    string
+	pos      int
+	lineMode bool
 }
 
+// Mode with input expected the be complete (multiline/file).
 func New(input string) *Lexer {
 	l := &Lexer{input: input}
+	return l
+}
+
+func NewLineMode(input string) *Lexer {
+	l := &Lexer{input: input, lineMode: true}
 	return l
 }
 
@@ -86,7 +93,11 @@ func (l *Lexer) NextToken() token.Token { //nolint:funlen // many cases to lex.
 	case '"':
 		return token.Token{Type: token.STRING, Literal: l.readString()}
 	case 0:
-		return token.Token{Type: token.EOF, Literal: ""}
+		if l.lineMode {
+			return token.Token{Type: token.EOL}
+		} else {
+			return token.Token{Type: token.EOF}
+		}
 	default:
 		tok := token.Token{}
 		switch {
