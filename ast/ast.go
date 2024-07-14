@@ -150,6 +150,19 @@ func (i IntegerLiteral) String() string {
 	return i.Literal
 }
 
+type FloatLiteral struct {
+	Base
+	Val float64
+}
+
+func (i FloatLiteral) Value() Expression {
+	return i
+}
+
+func (i FloatLiteral) String() string {
+	return i.Literal
+}
+
 type StringLiteral struct {
 	Base
 	Val string

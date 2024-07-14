@@ -106,6 +106,8 @@ func (s *State) evalInternal(node any) object.Object { //nolint:funlen // we hav
 
 	case *ast.IntegerLiteral:
 		return object.Integer{Value: node.Val}
+	case *ast.FloatLiteral:
+		return object.Float{Value: node.Val}
 
 	case *ast.Boolean:
 		return object.NativeBoolToBooleanObject(node.Val)

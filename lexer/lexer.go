@@ -95,8 +95,7 @@ func (l *Lexer) NextToken() token.Token { //nolint:funlen // many cases to lex.
 			tok.Type = token.LookupIdent(tok.Literal)
 			return tok
 		case isDigit(ch):
-			tok.Type = token.INT
-			tok.Literal = l.readNumber()
+			tok.Literal, tok.Type = l.readNumber()
 			return tok
 		default:
 			return newToken(token.ILLEGAL, ch)
@@ -173,12 +172,20 @@ func (l *Lexer) readLineComment() string {
 	return l.input[pos:l.pos]
 }
 
-func (l *Lexer) readNumber() string {
+func (l *Lexer) readNumber() (string, token.Type) {
+	t := token.INT
 	pos := l.pos - 1
 	for isDigit(l.peekChar()) {
 		l.pos++
 	}
-	return l.input[pos:l.pos]
+	if l.peekChar() == '.' {
+		t = token.FLOAT
+		l.pos++
+		for isDigit(l.peekChar()) {
+			l.pos++
+		}
+	}
+	return l.input[pos:l.pos], t
 }
 
 func isLetter(ch byte) bool {
