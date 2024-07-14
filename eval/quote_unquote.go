@@ -3,6 +3,7 @@ package eval
 import (
 	"strconv"
 
+	"fortio.org/log"
 	"github.com/ldemailly/gorepl/ast"
 	"github.com/ldemailly/gorepl/object"
 	"github.com/ldemailly/gorepl/token"
@@ -34,6 +35,7 @@ func (s *State) evalUnquoteCalls(quoted ast.Node) ast.Node {
 
 // feels like we should merge ast and object and avoid these?
 func convertObjectToASTNode(obj object.Object) ast.Node {
+	// TODD: more types
 	switch obj := obj.(type) {
 	case object.Integer:
 		t := token.Token{
@@ -51,7 +53,10 @@ func convertObjectToASTNode(obj object.Object) ast.Node {
 			t = token.Token{Type: token.FALSE, Literal: "false"}
 		}
 		return ast.Boolean{Base: ast.Base{Token: t}, Val: obj.Value}
+	case object.Quote:
+		return obj.Node
 	default:
+		log.Warnf("convertObjectToASTNode: unsupported object type %T", obj)
 		return nil
 	}
 }
