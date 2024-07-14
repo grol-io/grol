@@ -36,7 +36,7 @@ type ReturnStatement struct {
 	ReturnValue Expression
 }
 
-func (rs *ReturnStatement) String() string {
+func (rs ReturnStatement) String() string {
 	out := strings.Builder{}
 
 	out.WriteString(rs.TokenLiteral())
@@ -55,11 +55,11 @@ type Program struct {
 	Statements []Node
 }
 
-func (p *Program) TokenLiteral() string {
+func (p Program) TokenLiteral() string {
 	return "PROGRAM"
 }
 
-func (p *Program) String() string {
+func (p Program) String() string {
 	if len(p.Statements) == 0 {
 		return "<empty>"
 	}
@@ -80,7 +80,7 @@ type LetStatement struct {
 	Value Expression
 }
 
-func (ls *LetStatement) String() string {
+func (ls LetStatement) String() string {
 	out := strings.Builder{}
 
 	out.WriteString(ls.TokenLiteral() + " ")
@@ -101,11 +101,11 @@ type Identifier struct {
 	Val string
 }
 
-func (i *Identifier) Value() Expression {
+func (i Identifier) Value() Expression {
 	return i
 }
 
-func (i *Identifier) String() string {
+func (i Identifier) String() string {
 	return i.Literal
 }
 
@@ -114,11 +114,11 @@ type Comment struct {
 	Val string
 }
 
-func (c *Comment) Value() Expression {
+func (c Comment) Value() Expression {
 	return c
 }
 
-func (c *Comment) String() string {
+func (c Comment) String() string {
 	return c.Literal
 }
 
@@ -129,11 +129,11 @@ type ExpressionStatement struct {
 	Val Expression
 }
 
-func (e *ExpressionStatement) Value() Expression {
+func (e ExpressionStatement) Value() Expression {
 	return e.Val
 }
 
-func (e *ExpressionStatement) String() string {
+func (e ExpressionStatement) String() string {
 	return e.Val.String()
 }
 
@@ -155,11 +155,11 @@ type StringLiteral struct {
 	Val string
 }
 
-func (s *StringLiteral) Value() Expression {
+func (s StringLiteral) Value() Expression {
 	return s
 }
 
-func (s *StringLiteral) String() string {
+func (s StringLiteral) String() string {
 	return strconv.Quote(s.Literal)
 }
 
@@ -169,11 +169,11 @@ type PrefixExpression struct {
 	Right    Expression
 }
 
-func (p *PrefixExpression) Value() Expression {
+func (p PrefixExpression) Value() Expression {
 	return p.Right
 }
 
-func (p *PrefixExpression) String() string {
+func (p PrefixExpression) String() string {
 	var out strings.Builder
 
 	out.WriteString("(")
@@ -191,11 +191,11 @@ type InfixExpression struct {
 	Right    Expression
 }
 
-func (i *InfixExpression) Value() Expression {
+func (i InfixExpression) Value() Expression {
 	return i
 }
 
-func (i *InfixExpression) String() string {
+func (i InfixExpression) String() string {
 	var out strings.Builder
 
 	out.WriteString("(")
@@ -229,7 +229,7 @@ type IfExpression struct {
 	Alternative *BlockStatement
 }
 
-func (ie *IfExpression) String() string {
+func (ie IfExpression) String() string {
 	out := strings.Builder{}
 
 	out.WriteString("if ")
@@ -245,7 +245,7 @@ func (ie *IfExpression) String() string {
 	return out.String()
 }
 
-func (ie *IfExpression) Value() Expression {
+func (ie IfExpression) Value() Expression {
 	return ie
 }
 
@@ -255,13 +255,13 @@ type BlockStatement struct {
 }
 
 // needed so dumping if and function bodies sort of look like the original.
-func (bs *BlockStatement) String() string {
+func (bs BlockStatement) String() string {
 	return "{\n" + bs.Program.String() + "\n}"
 }
 
 // Could specialize the TokenLiteral but... we'll use program's.
 /*
-func (bs *BlockStatement) TokenLiteral() string {
+func (bs BlockStatement) TokenLiteral() string {
 	return "PROGRAM"
 }
 */
@@ -281,11 +281,11 @@ type Builtin struct {
 	Parameters []Expression
 }
 
-func (b *Builtin) Value() Expression {
+func (b Builtin) Value() Expression {
 	return b
 }
 
-func (b *Builtin) String() string {
+func (b Builtin) String() string {
 	out := strings.Builder{}
 	out.WriteString(b.Literal)
 	out.WriteString("(")
@@ -300,7 +300,7 @@ type FunctionLiteral struct {
 	Body       *BlockStatement
 }
 
-func (fl *FunctionLiteral) String() string {
+func (fl FunctionLiteral) String() string {
 	out := strings.Builder{}
 	out.WriteString(fl.TokenLiteral())
 	out.WriteString("(")
@@ -310,7 +310,7 @@ func (fl *FunctionLiteral) String() string {
 	return out.String()
 }
 
-func (fl *FunctionLiteral) Value() Expression {
+func (fl FunctionLiteral) Value() Expression {
 	return fl
 }
 
@@ -320,11 +320,11 @@ type CallExpression struct {
 	Arguments []Expression
 }
 
-func (ce *CallExpression) Value() Expression {
+func (ce CallExpression) Value() Expression {
 	return ce
 }
 
-func (ce *CallExpression) String() string {
+func (ce CallExpression) String() string {
 	out := strings.Builder{}
 	out.WriteString(ce.Function.String())
 	out.WriteString("(")
@@ -338,11 +338,11 @@ type ArrayLiteral struct {
 	Elements []Expression
 }
 
-func (al *ArrayLiteral) Value() Expression {
+func (al ArrayLiteral) Value() Expression {
 	return al
 }
 
-func (al *ArrayLiteral) String() string {
+func (al ArrayLiteral) String() string {
 	out := strings.Builder{}
 
 	out.WriteString("[")
@@ -358,8 +358,8 @@ type IndexExpression struct {
 	Index Expression
 }
 
-func (ie *IndexExpression) Value() Expression { return ie }
-func (ie *IndexExpression) String() string {
+func (ie IndexExpression) Value() Expression { return ie }
+func (ie IndexExpression) String() string {
 	out := strings.Builder{}
 
 	out.WriteString("(")
@@ -376,11 +376,11 @@ type MapLiteral struct {
 	Pairs map[Expression]Expression
 }
 
-func (hl *MapLiteral) Value() Expression {
+func (hl MapLiteral) Value() Expression {
 	return hl
 }
 
-func (hl *MapLiteral) String() string {
+func (hl MapLiteral) String() string {
 	out := strings.Builder{}
 
 	out.WriteString("{")
@@ -395,5 +395,25 @@ func (hl *MapLiteral) String() string {
 		out.WriteString(value.String())
 	}
 	out.WriteString("}")
+	return out.String()
+}
+
+type MacroLiteral struct {
+	Base
+	Parameters []*Identifier
+	Body       *BlockStatement
+}
+
+func (ml MacroLiteral) Value() Expression {
+	return ml
+}
+
+func (ml MacroLiteral) String() string {
+	out := strings.Builder{}
+	out.WriteString(ml.TokenLiteral())
+	out.WriteString("(")
+	WriteStrings(&out, ml.Parameters, ", ")
+	out.WriteString(") ")
+	out.WriteString(ml.Body.String())
 	return out.String()
 }

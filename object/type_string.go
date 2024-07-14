@@ -19,12 +19,13 @@ func _() {
 	_ = x[ARRAY-8]
 	_ = x[MAP-9]
 	_ = x[QUOTE-10]
-	_ = x[LAST-11]
+	_ = x[MACRO-11]
+	_ = x[LAST-12]
 }
 
-const _Type_name = "UNKNOWNINTEGERBOOLEANNILERRORRETURNFUNCTIONSTRINGARRAYMAPQUOTELAST"
+const _Type_name = "UNKNOWNINTEGERBOOLEANNILERRORRETURNFUNCTIONSTRINGARRAYMAPQUOTEMACROLAST"
 
-var _Type_index = [...]uint8{0, 7, 14, 21, 24, 29, 35, 43, 49, 54, 57, 62, 66}
+var _Type_index = [...]uint8{0, 7, 14, 21, 24, 29, 35, 43, 49, 54, 57, 62, 67, 71}
 
 func (i Type) String() string {
 	if i >= Type(len(_Type_index)-1) {

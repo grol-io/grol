@@ -34,6 +34,7 @@ if (5 < 10) {
 a2=3
 {"foo": "bar"}
 return // nil return
+macro(x, y) { x + y }
 `
 
 	tests := []struct {
@@ -134,6 +135,17 @@ return // nil return
 		{token.RBRACE, "}"},
 		{token.RETURN, "return"},
 		{token.LINECOMMENT, "// nil return"},
+		{token.MACRO, "macro"},
+		{token.LPAREN, "("},
+		{token.IDENT, "x"},
+		{token.COMMA, ","},
+		{token.IDENT, "y"},
+		{token.RPAREN, ")"},
+		{token.LBRACE, "{"},
+		{token.IDENT, "x"},
+		{token.PLUS, "+"},
+		{token.IDENT, "y"},
+		{token.RBRACE, "}"},
 		{token.EOF, ""},
 	}
 

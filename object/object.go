@@ -26,6 +26,7 @@ const (
 	ARRAY
 	MAP
 	QUOTE
+	MACRO
 	LAST
 )
 
@@ -220,4 +221,21 @@ type Quote struct {
 func (q Quote) Type() Type { return QUOTE }
 func (q Quote) Inspect() string {
 	return "quote(" + q.Node.String() + ")"
+}
+
+type Macro struct {
+	Parameters []*ast.Identifier
+	Body       *ast.BlockStatement
+	Env        *Environment
+}
+
+func (m Macro) Type() Type { return MACRO }
+func (m Macro) Inspect() string {
+	out := strings.Builder{}
+	out.WriteString("macro(")
+	ast.WriteStrings(&out, m.Parameters, ", ")
+	out.WriteString(") {\n")
+	out.WriteString(m.Body.String())
+	out.WriteString("\n}")
+	return out.String()
 }

@@ -60,6 +60,7 @@ const (
 	ELSE
 	RETURN
 	STRING
+	MACRO
 	// Built-in functions.
 	LEN
 	FIRST
@@ -79,6 +80,7 @@ var keywords = map[string]Type{
 	"if":     IF,
 	"else":   ELSE,
 	"return": RETURN,
+	"macro":  MACRO,
 	// built-in functions.
 	"len":   LEN,
 	"first": FIRST,
