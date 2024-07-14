@@ -94,9 +94,9 @@ func (l *Lexer) NextToken() token.Token { //nolint:funlen // many cases to lex.
 		return token.Token{Type: token.STRING, Literal: l.readString()}
 	case 0:
 		if l.lineMode {
-			return token.Token{Type: token.EOL, Literal: ""}
+			return token.Token{Type: token.EOL}
 		} else {
-			return token.Token{Type: token.EOF, Literal: ""}
+			return token.Token{Type: token.EOF}
 		}
 	default:
 		tok := token.Token{}
