@@ -40,6 +40,12 @@ var (
 	FALSE = Boolean{Value: false}
 )
 
+/* Wish this could be used/useful:
+type Number interface {
+	Integer | Float
+}
+*/
+
 func NativeBoolToBooleanObject(input bool) Boolean {
 	if input {
 		return TRUE

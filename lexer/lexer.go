@@ -94,8 +94,9 @@ func (l *Lexer) NextToken() token.Token { //nolint:funlen // many cases to lex.
 			tok.Literal = l.readIdentifier()
 			tok.Type = token.LookupIdent(tok.Literal)
 			return tok
-		case isDigit(ch):
-			tok.Literal, tok.Type = l.readNumber()
+		case isDigit(ch) || ch == '.':
+			// number can start with . eg .5
+			tok.Literal, tok.Type = l.readNumber(ch)
 			return tok
 		default:
 			return newToken(token.ILLEGAL, ch)
@@ -172,13 +173,17 @@ func (l *Lexer) readLineComment() string {
 	return l.input[pos:l.pos]
 }
 
-func (l *Lexer) readNumber() (string, token.Type) {
+func (l *Lexer) readNumber(ch byte) (string, token.Type) {
 	t := token.INT
+	if ch == '.' {
+		t = token.FLOAT
+	}
 	pos := l.pos - 1
 	for isDigit(l.peekChar()) {
 		l.pos++
 	}
-	if l.peekChar() == '.' {
+	// if we haven't seen a dot at the start already.
+	if t == token.INT && l.peekChar() == '.' {
 		t = token.FLOAT
 		l.pos++
 		for isDigit(l.peekChar()) {

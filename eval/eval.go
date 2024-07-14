@@ -2,6 +2,7 @@ package eval
 
 import (
 	"fmt"
+	"math"
 	"os"
 	"strings"
 
@@ -404,8 +405,11 @@ func (s *State) evalMinusPrefixOperatorExpression(right object.Object) object.Ob
 
 func (s *State) evalInfixExpression(operator string, left, right object.Object) object.Object {
 	switch {
+	// can't use generics :/ see other comment.
 	case left.Type() == object.INTEGER && right.Type() == object.INTEGER:
-		return s.evalIntegerInfixExpression(operator, left, right)
+		return evalIntegerInfixExpression(operator, left, right)
+	case left.Type() == object.FLOAT || right.Type() == object.FLOAT:
+		return evalFloatInfixExpression(operator, left, right)
 	case left.Type() == object.STRING && right.Type() == object.STRING:
 		return evalStringInfixExpression(operator, left, right)
 	case left.Type() == object.ARRAY:
@@ -494,14 +498,15 @@ func evalMapInfixExpression(operator string, left, right object.Object) object.O
 	}
 }
 
-func (s *State) evalIntegerInfixExpression(
-	operator string,
-	left, right object.Object,
-) object.Object {
+// You would think this is an ideal case for generics... yet...
+// can't use fields directly in generic code,
+// https://github.com/golang/go/issues/48522
+// would need getters/setters which is not very go idiomatic.
+func evalIntegerInfixExpression(operator string, left, right object.Object) object.Object {
 	leftVal := left.(object.Integer).Value
 	rightVal := right.(object.Integer).Value
 
-	switch operator {
+	switch operator { // TODO use the token instead of strings
 	case "+":
 		return object.Integer{Value: leftVal + rightVal}
 	case "-":
@@ -512,6 +517,55 @@ func (s *State) evalIntegerInfixExpression(
 		return object.Integer{Value: leftVal / rightVal}
 	case "%":
 		return object.Integer{Value: leftVal % rightVal}
+	case "<":
+		return object.NativeBoolToBooleanObject(leftVal < rightVal)
+	case "<=":
+		return object.NativeBoolToBooleanObject(leftVal <= rightVal)
+	case ">":
+		return object.NativeBoolToBooleanObject(leftVal > rightVal)
+	case ">=":
+		return object.NativeBoolToBooleanObject(leftVal >= rightVal)
+	case "==":
+		return object.NativeBoolToBooleanObject(leftVal == rightVal)
+	case "!=":
+		return object.NativeBoolToBooleanObject(leftVal != rightVal)
+	default:
+		return object.Error{Value: "unknown operator: " + operator}
+	}
+}
+
+func getFloatValue(o object.Object) (float64, *object.Error) {
+	switch o.Type() { //nolint:exhaustive // we handle the others in default.
+	case object.INTEGER:
+		return float64(o.(object.Integer).Value), nil
+	case object.FLOAT:
+		return o.(object.Float).Value, nil
+	default:
+		return math.NaN(), &object.Error{Value: "not converting to float: " + o.Type().String()}
+	}
+}
+
+// So we copy-pasta instead :-(.
+func evalFloatInfixExpression(operator string, left, right object.Object) object.Object {
+	leftVal, oerr := getFloatValue(left)
+	if oerr != nil {
+		return *oerr
+	}
+	rightVal, oerr := getFloatValue(right)
+	if oerr != nil {
+		return *oerr
+	}
+	switch operator { // TODO use the token instead of strings
+	case "+":
+		return object.Float{Value: leftVal + rightVal}
+	case "-":
+		return object.Float{Value: leftVal - rightVal}
+	case "*":
+		return object.Float{Value: leftVal * rightVal}
+	case "/":
+		return object.Float{Value: leftVal / rightVal}
+	case "%":
+		return object.Float{Value: math.Mod(leftVal, rightVal)}
 	case "<":
 		return object.NativeBoolToBooleanObject(leftVal < rightVal)
 	case "<=":
