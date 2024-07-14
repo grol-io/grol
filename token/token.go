@@ -16,6 +16,7 @@ const (
 	// Identifiers + literals.
 	IDENT // add, foobar, x, y, ...
 	INT   // 1343456
+	FLOAT // 1. 1e3
 
 	// Operators.
 	ASSIGN

@@ -690,3 +690,41 @@ func TestQuoteUnquote(t *testing.T) {
 		}
 	}
 }
+
+func TestEvalFloatExpression(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected float64
+	}{
+		{".5 // is 0.5", 0.5},
+		{"3./2", 1.5},
+		{".1", 0.1},
+		{".2", 0.2},
+		{".3", 0.3},
+		{"0.5*3", 1.5},
+		{"0.5*6", 3},
+	}
+
+	for i, tt := range tests {
+		evaluated := testEval(t, tt.input)
+		r := testFloatObject(t, evaluated, tt.expected)
+		if !r {
+			t.Logf("test %d input: %s failed float %f", i, tt.input, tt.expected)
+		}
+	}
+}
+
+// == on float is usually not a good thing...
+func testFloatObject(t *testing.T, obj object.Object, expected float64) bool {
+	result, ok := obj.(object.Float)
+	if !ok {
+		t.Errorf("object is not float. got=%T (%+v)", obj, obj)
+		return false
+	}
+	if result.Value != expected {
+		t.Errorf("object has wrong value. got=%f, want=%f", result.Value, expected)
+		return false
+	}
+
+	return true
+}

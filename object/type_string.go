@@ -10,22 +10,23 @@ func _() {
 	var x [1]struct{}
 	_ = x[UNKNOWN-0]
 	_ = x[INTEGER-1]
-	_ = x[BOOLEAN-2]
-	_ = x[NIL-3]
-	_ = x[ERROR-4]
-	_ = x[RETURN-5]
-	_ = x[FUNCTION-6]
-	_ = x[STRING-7]
-	_ = x[ARRAY-8]
-	_ = x[MAP-9]
-	_ = x[QUOTE-10]
-	_ = x[MACRO-11]
-	_ = x[LAST-12]
+	_ = x[FLOAT-2]
+	_ = x[BOOLEAN-3]
+	_ = x[NIL-4]
+	_ = x[ERROR-5]
+	_ = x[RETURN-6]
+	_ = x[FUNCTION-7]
+	_ = x[STRING-8]
+	_ = x[ARRAY-9]
+	_ = x[MAP-10]
+	_ = x[QUOTE-11]
+	_ = x[MACRO-12]
+	_ = x[LAST-13]
 }
 
-const _Type_name = "UNKNOWNINTEGERBOOLEANNILERRORRETURNFUNCTIONSTRINGARRAYMAPQUOTEMACROLAST"
+const _Type_name = "UNKNOWNINTEGERFLOATBOOLEANNILERRORRETURNFUNCTIONSTRINGARRAYMAPQUOTEMACROLAST"
 
-var _Type_index = [...]uint8{0, 7, 14, 21, 24, 29, 35, 43, 49, 54, 57, 62, 67, 71}
+var _Type_index = [...]uint8{0, 7, 14, 19, 26, 29, 34, 40, 48, 54, 59, 62, 67, 72, 76}
 
 func (i Type) String() string {
 	if i >= Type(len(_Type_index)-1) {

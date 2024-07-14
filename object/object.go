@@ -17,6 +17,7 @@ type Object interface {
 const (
 	UNKNOWN Type = iota
 	INTEGER
+	FLOAT
 	BOOLEAN
 	NIL
 	ERROR
@@ -38,6 +39,12 @@ var (
 	TRUE  = Boolean{Value: true}
 	FALSE = Boolean{Value: false}
 )
+
+/* Wish this could be used/useful:
+type Number interface {
+	Integer | Float
+}
+*/
 
 func NativeBoolToBooleanObject(input bool) Boolean {
 	if input {
@@ -102,6 +109,18 @@ func (i Integer) Inspect() string {
 
 func (i Integer) Type() Type {
 	return INTEGER
+}
+
+type Float struct {
+	Value float64
+}
+
+func (f Float) Type() Type {
+	return FLOAT
+}
+
+func (f Float) Inspect() string {
+	return strconv.FormatFloat(f.Value, 'f', -1, 64)
 }
 
 type Boolean struct {
