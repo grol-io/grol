@@ -25,6 +25,7 @@ a=[fact(5), "abc", 76-3] // array can contain different types
 m={"key": a, 73: 29} // so do maps
 
 print("m is:", m, "\n") // stdout print
+print("Outputting a smiley: 😀\n")
 
 first(m["key"]) // get the value from key from map, which is an array, and the first element of the array is our factorial 5
 // could also have been m["key"][0]
