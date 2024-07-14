@@ -39,10 +39,15 @@ type Parser struct {
 	curToken  token.Token
 	peekToken token.Token
 
-	errors []string
+	errors             []string
+	continuationNeeded bool
 
 	prefixParseFns map[token.Type]prefixParseFn
 	infixParseFns  map[token.Type]infixParseFn
+}
+
+func (p *Parser) ContinuationNeeded() bool {
+	return p.continuationNeeded
 }
 
 func (p *Parser) registerPrefix(t token.Type, fn prefixParseFn) {
@@ -119,7 +124,7 @@ func (p *Parser) ParseProgram() *ast.Program {
 	program := &ast.Program{}
 	program.Statements = []ast.Node{}
 
-	for p.curToken.Type != token.EOF {
+	for p.curToken.Type != token.EOF && p.curToken.Type != token.EOL {
 		stmt := p.parseStatement()
 		if stmt != nil { // classic interface nil gotcha, must make sure explicit nil interface is returned (right type)
 			program.Statements = append(program.Statements, stmt)
@@ -192,7 +197,7 @@ func (p *Parser) parseReturnStatement() ast.Node {
 	stmt.Token = p.curToken
 
 	// hacky for empty expressions like plain `return`.
-	if p.peekTokenIs(token.SEMICOLON) || p.peekTokenIs(token.RBRACE) || p.peekTokenIs(token.EOF) {
+	if p.peekTokenIs(token.SEMICOLON) || p.peekTokenIs(token.RBRACE) || p.peekTokenIs(token.EOF) || p.peekTokenIs(token.EOL) {
 		log.Debugf("parseExpression: %s returning nil", p.curToken)
 		// nil return value
 		return stmt
@@ -413,6 +418,9 @@ func (p *Parser) parseIfExpression() ast.Expression {
 	}
 
 	expression.Consequence = p.parseBlockStatement()
+	if p.continuationNeeded {
+		return nil
+	}
 
 	if p.peekTokenIs(token.ELSE) {
 		p.nextToken()
@@ -422,6 +430,9 @@ func (p *Parser) parseIfExpression() ast.Expression {
 		}
 
 		expression.Alternative = p.parseBlockStatement()
+		if p.continuationNeeded {
+			return nil
+		}
 	}
 
 	return expression
@@ -435,6 +446,11 @@ func (p *Parser) parseBlockStatement() *ast.BlockStatement {
 	p.nextToken()
 
 	for !p.curTokenIs(token.RBRACE) && !p.curTokenIs(token.EOF) {
+		if p.curTokenIs(token.EOL) {
+			log.Debugf("parseBlockStatement: EOL")
+			p.continuationNeeded = true
+			return nil
+		}
 		stmt := p.parseStatement()
 		if stmt != nil {
 			block.Statements = append(block.Statements, stmt)
@@ -459,6 +475,9 @@ func (p *Parser) parseFunctionLiteral() ast.Expression {
 	}
 
 	lit.Body = p.parseBlockStatement()
+	if p.continuationNeeded {
+		return nil
+	}
 
 	return lit
 }
@@ -587,5 +606,8 @@ func (p *Parser) parseMacroLiteral() ast.Expression {
 		return nil
 	}
 	lit.Body = p.parseBlockStatement()
+	if p.continuationNeeded {
+		return nil
+	}
 	return lit
 }

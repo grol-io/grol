@@ -11,6 +11,7 @@ type Token struct {
 
 const (
 	ILLEGAL Type = iota
+	EOL
 	EOF
 
 	// Identifiers + literals.
