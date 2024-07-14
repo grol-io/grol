@@ -237,6 +237,10 @@ func (p *Parser) expectPeek(t token.Type) bool {
 		p.nextToken()
 		return true
 	}
+	if p.peekTokenIs(token.EOL) {
+		p.continuationNeeded = true
+		return false
+	}
 	p.peekError(t)
 	return false
 }
