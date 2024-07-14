@@ -33,17 +33,19 @@ type Options struct {
 	All       bool
 }
 
-func EvalAll(s *eval.State, in io.Reader, out io.Writer, options Options) {
+func EvalAll(s, macroState *eval.State, in io.Reader, out io.Writer, options Options) {
 	b, err := io.ReadAll(in)
 	if err != nil {
 		log.Fatalf("%v", err)
 	}
 	what := string(b)
-	EvalOne(s, what, out, options)
+	EvalOne(s, macroState, what, out, options)
 }
 
 func Interactive(in io.Reader, out io.Writer, options Options) {
 	s := eval.NewState()
+	macroState := eval.NewState()
+
 	scanner := bufio.NewScanner(in)
 	for {
 		fmt.Fprint(out, PROMPT)
@@ -52,11 +54,11 @@ func Interactive(in io.Reader, out io.Writer, options Options) {
 			return
 		}
 		l := scanner.Text()
-		EvalOne(s, l, out, options)
+		EvalOne(s, macroState, l, out, options)
 	}
 }
 
-func EvalOne(s *eval.State, what string, out io.Writer, options Options) {
+func EvalOne(s, macroState *eval.State, what string, out io.Writer, options Options) {
 	l := lexer.New(what)
 	p := parser.New(l)
 	program := p.ParseProgram()
@@ -67,13 +69,19 @@ func EvalOne(s *eval.State, what string, out io.Writer, options Options) {
 		fmt.Fprint(out, "== Parse ==> ")
 		fmt.Fprintln(out, program.String())
 	}
-	if !options.ShowEval {
-		return
-	}
+	macroState.DefineMacros(program)
+	expanded := macroState.ExpandMacros(program)
 	if options.ShowParse {
+		fmt.Fprint(out, "== Macro ==> ")
+		fmt.Fprintln(out, expanded.String())
+	}
+	if options.ShowParse && options.ShowEval {
 		fmt.Fprint(out, "== Eval  ==> ")
 	}
 	obj := s.Eval(program)
+	if !options.ShowEval {
+		return
+	}
 	if obj.Type() == object.ERROR {
 		fmt.Fprint(out, log.Colors.Red)
 	} else {

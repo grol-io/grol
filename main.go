@@ -29,16 +29,18 @@ func main() {
 	}
 	options.All = true
 	s := eval.NewState()
+	macroState := eval.NewState()
 	for _, file := range flag.Args() {
 		f, err := os.Open(file)
 		if err != nil {
 			log.Fatalf("%v", err)
 		}
 		log.Infof("Running %s", file)
-		repl.EvalAll(s, f, os.Stdout, options)
+		repl.EvalAll(s, macroState, f, os.Stdout, options)
 		f.Close()
 		if !*sharedState {
 			s = eval.NewState()
+			macroState = eval.NewState()
 		}
 	}
 	log.Infof("All done")

@@ -2,6 +2,16 @@
 // <--- comments
 // See also the other *.gr files
 
+let unless = macro(cond, iffalse, iftrue) {
+    quote(if (!(unquote(cond))) {
+        unquote(iffalse)
+    } else {
+        unquote(iftrue)
+    })
+}
+
+unless(10 > 5, print("BUG: not greater\n"), print("macro test: greater\n"))
+
 fact=func(n) { // function
     log("called fact ", n) // log (timestamped stderr output)
     if (n<=1) {

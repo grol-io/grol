@@ -32,7 +32,7 @@ make # for stripped down executable including build tags etc to make it minimal
 ```
 
 Status: All done: ie functional int, string and boolean expressions, functions, lambdas, arrays, maps,
-print, log, and more
+print, log, macros and more
 
 
 ### Reading notes
@@ -43,6 +43,7 @@ print, log, and more
 
 - [x] Do we really need all these `let `, wouldn't `x = a + 3` be enough? made optional
    - [ ] remove let entirely ?
+   - [ ] no let for macros?
 
 - [ ] Seems like ast and object are redundant to a large extent
 
