@@ -70,10 +70,18 @@ func EvalOne(s, macroState *eval.State, what string, out io.Writer, options Opti
 		fmt.Fprintln(out, program.String())
 	}
 	macroState.DefineMacros(program)
-	expanded := macroState.ExpandMacros(program)
-	if options.ShowParse {
-		fmt.Fprint(out, "== Macro ==> ")
-		fmt.Fprintln(out, expanded.String())
+	numMacros := macroState.Len()
+	if numMacros > 0 {
+		log.LogVf("Expanding, %d macros defined", numMacros)
+		// This actually modifies the original program, not sure... that's good but that's why
+		// expanded return value doesn't need to be used.
+		_ = macroState.ExpandMacros(program)
+		if options.ShowParse {
+			fmt.Fprint(out, "== Macro ==> ")
+			fmt.Fprintln(out, program.String())
+		}
+	} else {
+		log.LogVf("Skipping macro expansion as none are defined")
 	}
 	if options.ShowParse && options.ShowEval {
 		fmt.Fprint(out, "== Eval  ==> ")
