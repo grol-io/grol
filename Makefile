@@ -12,7 +12,7 @@ grol: Makefile *.go */*.go $(GEN)
 	ls -l grol
 
 test: grol
-	CGO_ENABLED=0 go test -race -tags $(GO_BUILD_TAGS) ./...
+	CGO_ENABLED=0 go test -tags $(GO_BUILD_TAGS) ./...
 	./grol *.gr
 
 failing-tests:
