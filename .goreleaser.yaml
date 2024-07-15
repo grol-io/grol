@@ -47,13 +47,13 @@ docker_manifests:
 -
   name_template: ghcr.io/grol-io/{{ .ProjectName }}:{{ .Version }}
   image_templates:
-  - grol/{{ .ProjectName }}:{{ .Version }}-amd64
-  - grol/{{ .ProjectName }}:{{ .Version }}-arm64
+  - ghcr.io/grol-io/{{ .ProjectName }}:{{ .Version }}-amd64
+  - ghcr.io/grol-io/{{ .ProjectName }}:{{ .Version }}-arm64
 -
   name_template: ghcr.io/grol-io/{{ .ProjectName }}:latest
   image_templates:
-  - grol/{{ .ProjectName }}:{{ .Version }}-amd64
-  - grol/{{ .ProjectName }}:{{ .Version }}-arm64
+  - ghcr.io/grol-io/{{ .ProjectName }}:{{ .Version }}-amd64
+  - ghcr.io/grol-io/{{ .ProjectName }}:{{ .Version }}-arm64
 release:
   prerelease: auto
   mode: append
