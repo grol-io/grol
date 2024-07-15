@@ -33,27 +33,27 @@ archives:
     - goos: darwin
       format: zip
 dockers:
-  - image_templates: ["fortio/{{ .ProjectName }}:{{ .Version }}-amd64"]
+  - image_templates: ["grol/{{ .ProjectName }}:{{ .Version }}-amd64"]
     use: buildx
     goarch: amd64
     build_flag_templates:
     - --platform=linux/amd64
-  - image_templates: ["fortio/{{ .ProjectName }}:{{ .Version }}-arm64"]
+  - image_templates: ["grol/{{ .ProjectName }}:{{ .Version }}-arm64"]
     use: buildx
     goarch: arm64
     build_flag_templates:
     - --platform=linux/arm64
 docker_manifests:
 -
-  name_template: fortio/{{ .ProjectName }}:{{ .Version }}
+  name_template: grol/{{ .ProjectName }}:{{ .Version }}
   image_templates:
-  - fortio/{{ .ProjectName }}:{{ .Version }}-amd64
-  - fortio/{{ .ProjectName }}:{{ .Version }}-arm64
+  - grol/{{ .ProjectName }}:{{ .Version }}-amd64
+  - grol/{{ .ProjectName }}:{{ .Version }}-arm64
 -
-  name_template: fortio/{{ .ProjectName }}:latest
+  name_template: grol/{{ .ProjectName }}:latest
   image_templates:
-  - fortio/{{ .ProjectName }}:{{ .Version }}-amd64
-  - fortio/{{ .ProjectName }}:{{ .Version }}-arm64
+  - grol/{{ .ProjectName }}:{{ .Version }}-amd64
+  - grol/{{ .ProjectName }}:{{ .Version }}-arm64
 release:
   prerelease: auto
   mode: append
@@ -62,7 +62,7 @@ brews:
   -
     # GitHub/GitLab repository to push the formula to
     repository:
-      owner: fortio
+      owner: grol
       name: homebrew-tap
 
     # Git author used to commit to the repository.
@@ -80,7 +80,7 @@ brews:
 
     # Your app's homepage.
     # Default is empty.
-    homepage: "https://fortio.org/"
+    homepage: "https://grol.io/"
 
     # Template of your app's description.
     # Default is empty.
