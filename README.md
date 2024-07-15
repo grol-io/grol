@@ -12,6 +12,11 @@ Install/run it:
 CGO_ENABLED=0 go install -trimpath -ldflags="-w -s" -tags no_net,no_json grol.io/grol@latest
 ```
 
+Or with docker:
+```
+docker run -ti ghcr.io/grol-io/grol:latest
+```
+
 Or get one of the [binary releases](https://github.com/grol-io/grol/releases)
 
 ## What it does
