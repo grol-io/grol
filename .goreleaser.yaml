@@ -33,24 +33,24 @@ archives:
     - goos: darwin
       format: zip
 dockers:
-  - image_templates: ["grol/{{ .ProjectName }}:{{ .Version }}-amd64"]
+  - image_templates: ["ghcr.io/grol-io/{{ .ProjectName }}:{{ .Version }}-amd64"]
     use: buildx
     goarch: amd64
     build_flag_templates:
     - --platform=linux/amd64
-  - image_templates: ["grol/{{ .ProjectName }}:{{ .Version }}-arm64"]
+  - image_templates: ["ghcr.io/grol-io/{{ .ProjectName }}:{{ .Version }}-arm64"]
     use: buildx
     goarch: arm64
     build_flag_templates:
     - --platform=linux/arm64
 docker_manifests:
 -
-  name_template: grol/{{ .ProjectName }}:{{ .Version }}
+  name_template: ghcr.io/grol-io/{{ .ProjectName }}:{{ .Version }}
   image_templates:
   - grol/{{ .ProjectName }}:{{ .Version }}-amd64
   - grol/{{ .ProjectName }}:{{ .Version }}-arm64
 -
-  name_template: grol/{{ .ProjectName }}:latest
+  name_template: ghcr.io/grol-io/{{ .ProjectName }}:latest
   image_templates:
   - grol/{{ .ProjectName }}:{{ .Version }}-amd64
   - grol/{{ .ProjectName }}:{{ .Version }}-arm64
@@ -62,7 +62,7 @@ brews:
   -
     # GitHub/GitLab repository to push the formula to
     repository:
-      owner: grol
+      owner: grol-io
       name: homebrew-tap
 
     # Git author used to commit to the repository.
