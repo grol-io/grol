@@ -1,5 +1,6 @@
+![GROL's mascot](http://grol.io/grol_logo.png)
+
 # GROL
-<img src="http://grol.io/grol_logo.png" height=100 width=100 align=right />
 
 ## History
 
