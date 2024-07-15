@@ -31,13 +31,13 @@ Factorial of 5 is 120` + " \n120\n" // there is an extra space before \n that vs
 
 func TestEvalStringParsingError(t *testing.T) {
 	s := `x:=3`
-	expected := "\n"
+	expected := ""
 	res, errs := repl.EvalString(s)
 	if len(errs) == 0 {
 		t.Errorf("EvalString() got no errors (res %q), expected some", res)
 	}
 	if res != expected {
-		t.Errorf("EvalString() got %v\n---\n%s\n---want---\n%s\n---", errs, res, expected)
+		t.Errorf("EvalString() got (%v) %q vs %q", errs, res, expected)
 	}
 }
 
