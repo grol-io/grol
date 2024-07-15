@@ -14,13 +14,11 @@ type Lexer struct {
 
 // Mode with input expected the be complete (multiline/file).
 func New(input string) *Lexer {
-	l := &Lexer{input: input}
-	return l
+	return &Lexer{input: input}
 }
 
 func NewLineMode(input string) *Lexer {
-	l := &Lexer{input: input, lineMode: true}
-	return l
+	return &Lexer{input: input, lineMode: true}
 }
 
 func (l *Lexer) NextToken() token.Token { //nolint:funlen // many cases to lex.
