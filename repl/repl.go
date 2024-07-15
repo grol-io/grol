@@ -48,14 +48,15 @@ func EvalAll(s, macroState *eval.State, in io.Reader, out io.Writer, options Opt
 }
 
 // EvalString can be used from playground etc for single eval.
-func EvalString(what string) string {
+// returns the eval errors and an array of errors if any.
+func EvalString(what string) (string, []string) {
 	s := eval.NewState()
 	macroState := eval.NewState()
 	out := &strings.Builder{}
 	s.Out = out
 	s.NoLog = true
-	EvalOne(s, macroState, what, out, Options{All: true, ShowEval: true, NoColor: true})
-	return out.String()
+	_, errs := EvalOne(s, macroState, what, out, Options{All: true, ShowEval: true, NoColor: true})
+	return out.String(), errs
 }
 
 func Interactive(in io.Reader, out io.Writer, options Options) {
@@ -72,7 +73,7 @@ func Interactive(in io.Reader, out io.Writer, options Options) {
 			return
 		}
 		l := prev + scanner.Text()
-		contNeeded := EvalOne(s, macroState, l, out, options)
+		contNeeded, _ := EvalOne(s, macroState, l, out, options)
 		if contNeeded {
 			prev = l + "\n"
 			prompt = CONTINUATION
@@ -84,7 +85,8 @@ func Interactive(in io.Reader, out io.Writer, options Options) {
 }
 
 // Returns true in line mode if more should be fed to the parser.
-func EvalOne(s, macroState *eval.State, what string, out io.Writer, options Options) bool {
+// TODO: this one size fits 3 different calls (file, interactive, bot) is getting spaghetti.
+func EvalOne(s, macroState *eval.State, what string, out io.Writer, options Options) (bool, []string) {
 	var l *lexer.Lexer
 	if options.All {
 		l = lexer.New(what)
@@ -94,10 +96,10 @@ func EvalOne(s, macroState *eval.State, what string, out io.Writer, options Opti
 	p := parser.New(l)
 	program := p.ParseProgram()
 	if logParserErrors(p) {
-		return false
+		return false, p.Errors()
 	}
 	if p.ContinuationNeeded() {
-		return true
+		return true, nil
 	}
 	if options.ShowParse {
 		fmt.Fprint(out, "== Parse ==> ")
@@ -122,7 +124,11 @@ func EvalOne(s, macroState *eval.State, what string, out io.Writer, options Opti
 	}
 	obj := s.Eval(program)
 	if !options.ShowEval {
-		return false
+		return false, nil
+	}
+	var errs []string
+	if obj.Type() == object.ERROR {
+		errs = append(errs, obj.Inspect())
 	}
 	if !options.NoColor {
 		if obj.Type() == object.ERROR {
@@ -135,5 +141,5 @@ func EvalOne(s, macroState *eval.State, what string, out io.Writer, options Opti
 	if !options.NoColor {
 		fmt.Fprint(out, log.ANSIColors.Reset)
 	}
-	return false
+	return false, errs
 }
