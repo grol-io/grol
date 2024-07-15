@@ -1,4 +1,4 @@
-all: generate lint tests run
+all: generate lint test run
 
 GO_BUILD_TAGS:=no_net,no_json
 
@@ -11,14 +11,12 @@ grol: Makefile *.go */*.go $(GEN)
 	CGO_ENABLED=0 go build -trimpath -ldflags="-w -s" -tags "$(GO_BUILD_TAGS)" .
 	ls -l grol
 
-tests: grol
+test: grol
 	CGO_ENABLED=0 go test -race -tags $(GO_BUILD_TAGS) ./...
 	./grol *.gr
 
 failing-tests:
 	-go test -v ./... -tags=runfailingtests -run TestLetStatementsFormerlyCrashingNowFailingOnPurpose
-
-test: tests
 
 generate:
 	go generate ./... # if this fails go install golang.org/x/tools/cmd/stringer@latest
@@ -46,4 +44,4 @@ lint: .golangci.yml
 .golangci.yml: Makefile
 	curl -fsS -o .golangci.yml https://raw.githubusercontent.com/fortio/workflows/main/golangci.yml
 
-.PHONY: all lint generate tests test clean run build
+.PHONY: all lint generate test clean run build
