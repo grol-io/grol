@@ -36,6 +36,7 @@ jobs:
         with:
           distribution: goreleaser
           version: latest
-          args: release --rm-dist
+          args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAP_DESCRIPTION: "Go Repl Open Language: simple, small but powerful interpreted language in Go"
