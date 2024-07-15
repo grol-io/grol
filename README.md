@@ -1,4 +1,4 @@
-![GROL's mascot](http://grol.io/grol_logo.png)
+<img src="https://grol.io/grol_mascot.png" width="50%" />
 
 # GROL
 
