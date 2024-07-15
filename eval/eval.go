@@ -222,7 +222,8 @@ func (s *State) evalBuiltin(node *ast.Builtin) object.Object {
 			buf.WriteRune('\n') // log() has a implicit newline when using log.Xxx, print() doesn't.
 		}
 		if doLog {
-			log.Printf(buf.String())
+			// Consider passing the arguments to log instead of making a string concatenation.
+			log.Printf("%s", buf.String())
 		} else {
 			_, err := s.Out.Write([]byte(buf.String()))
 			if err != nil {
