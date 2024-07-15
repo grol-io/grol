@@ -1,6 +1,4 @@
-<img src="https://grol.io/grol_mascot.png" width="50%" />
-
-# GROL
+<a id="grol"><img alt="GROL" src="https://grol.io/grol_mascot.png" width="50%"/></a>
 
 ## History
 
