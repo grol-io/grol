@@ -1,12 +1,20 @@
-Following along https://interpreterbook.com and making changes/simplification/cleanups
+# GROL
+<img src="http://grol.io/grol_logo.png" height=100 width=100 align=right />
+
+## History
+
+Initially created by following along https://interpreterbook.com and making changes/simplification/cleanups
+
+## Install
 
 Install/run it:
 ```shell
-CGO_ENABLED=0 go install -trimpath -ldflags="-w -s" -tags no_net,no_json github.com/ldemailly/gorepl@latest
+CGO_ENABLED=0 go install -trimpath -ldflags="-w -s" -tags no_net,no_json grol.io/grol@latest
 ```
 
+## What it does
 Sample:
-```shell
+```go
 gorepl -parse
 $ fact = func(n) {if (n<=1) {return 1} n*fact(n-1)}
 $ n=fact(6)
@@ -20,24 +28,32 @@ $ m/n
 == Eval  ==> 7
 ```
 
+## Language features
+
+Functional int, float, string and boolean expressions
+
+Functions, lambdas, closures
+
+Arrays, maps,
+
+print, log
+
+macros and more all the time
+
 See also [sample.gr](sample.gr) that you can run with
 ```
 gorepl *.gr
 ```
 
-Dev mode:
+## Dev mode:
 ```shell
 go install golang.org/x/tools/cmd/stringer@latest
 make # for stripped down executable including build tags etc to make it minimal
 ```
 
-Status: All done: ie functional int, string and boolean expressions, functions, lambdas, arrays, maps,
-print, log, macros and more
-
-
 ### Reading notes
 
-See [Open Issues](https://github.com/ldemailly/gorepl/issues) for what's left to do
+See [Open Issues](https://grol.io/grol/issues) for what's left to do
 
 - See the commit history for improvements/changes (e.g redundant state in lexer etc)
 
@@ -101,7 +117,7 @@ See [Open Issues](https://github.com/ldemailly/gorepl/issues) for what's left to
 
 - [x] switched to non pointer receivers in Object and (base/integer) Ast so equality checks in maps work without special hashing (big win)
 
-### Usage
+### CLI Usage
 
 ```
 gorepl 0.15.0 usage:

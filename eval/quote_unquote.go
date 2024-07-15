@@ -4,9 +4,9 @@ import (
 	"strconv"
 
 	"fortio.org/log"
-	"github.com/ldemailly/gorepl/ast"
-	"github.com/ldemailly/gorepl/object"
-	"github.com/ldemailly/gorepl/token"
+	"grol.io/grol/ast"
+	"grol.io/grol/object"
+	"grol.io/grol/token"
 )
 
 func (s *State) quote(node ast.Node) object.Quote {

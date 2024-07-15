@@ -12,7 +12,7 @@ var _ = `
 INSTALL/BUILD ERROR: this file should not be built with cgo or without no_net or no_json tags, please re
 install using
 
-CGO_ENABLED=0 go install -trimpath -ldflags="-w -s" -tags no_net,no_json github.com/ldemailly/gorepl@latest
+CGO_ENABLED=0 go install -trimpath -ldflags="-w -s" -tags no_net,no_json grol.io/grol@latest
 
 ##############
 `.(int)

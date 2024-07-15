@@ -3,7 +3,7 @@ package lexer
 import (
 	"strings"
 
-	"github.com/ldemailly/gorepl/token"
+	"grol.io/grol/token"
 )
 
 type Lexer struct {

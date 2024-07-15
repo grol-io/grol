@@ -3,7 +3,7 @@ package lexer
 import (
 	"testing"
 
-	"github.com/ldemailly/gorepl/token"
+	"grol.io/grol/token"
 )
 
 func TestNextToken(t *testing.T) { //nolint:funlen // this is a test function with many cases back to back.

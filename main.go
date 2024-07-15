@@ -7,8 +7,8 @@ import (
 
 	"fortio.org/cli"
 	"fortio.org/log"
-	"github.com/ldemailly/gorepl/eval"
-	"github.com/ldemailly/gorepl/repl"
+	"grol.io/grol/eval"
+	"grol.io/grol/repl"
 )
 
 func main() {

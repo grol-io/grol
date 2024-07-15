@@ -3,10 +3,10 @@ package eval
 import (
 	"testing"
 
-	"github.com/ldemailly/gorepl/ast"
-	"github.com/ldemailly/gorepl/lexer"
-	"github.com/ldemailly/gorepl/object"
-	"github.com/ldemailly/gorepl/parser"
+	"grol.io/grol/ast"
+	"grol.io/grol/lexer"
+	"grol.io/grol/object"
+	"grol.io/grol/parser"
 )
 
 func TestDefineMacros(t *testing.T) {

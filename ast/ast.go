@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/ldemailly/gorepl/token"
+	"grol.io/grol/token"
 )
 
 type Node interface {

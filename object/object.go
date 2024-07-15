@@ -4,7 +4,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/ldemailly/gorepl/ast"
+	"grol.io/grol/ast"
 )
 
 type Type uint8

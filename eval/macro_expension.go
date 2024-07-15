@@ -2,8 +2,8 @@ package eval
 
 import (
 	"fortio.org/log"
-	"github.com/ldemailly/gorepl/ast"
-	"github.com/ldemailly/gorepl/object"
+	"grol.io/grol/ast"
+	"grol.io/grol/object"
 )
 
 func (s *State) DefineMacros(program *ast.Program) {

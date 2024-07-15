@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	"fortio.org/log"
-	"github.com/ldemailly/gorepl/ast"
-	"github.com/ldemailly/gorepl/lexer"
+	"grol.io/grol/ast"
+	"grol.io/grol/lexer"
 )
 
 func TestLetStatements(t *testing.T) {

@@ -1,4 +1,4 @@
-module github.com/ldemailly/gorepl
+module grol.io/grol
 
 go 1.22.5
 

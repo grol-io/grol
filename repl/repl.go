@@ -6,10 +6,10 @@ import (
 	"io"
 
 	"fortio.org/log"
-	"github.com/ldemailly/gorepl/eval"
-	"github.com/ldemailly/gorepl/lexer"
-	"github.com/ldemailly/gorepl/object"
-	"github.com/ldemailly/gorepl/parser"
+	"grol.io/grol/eval"
+	"grol.io/grol/lexer"
+	"grol.io/grol/object"
+	"grol.io/grol/parser"
 )
 
 const (

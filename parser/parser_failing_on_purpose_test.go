@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"fortio.org/log"
-	"github.com/ldemailly/gorepl/lexer"
+	"grol.io/grol/lexer"
 )
 
 // show the interface nil check bug (fixed now) - test for error.

@@ -3,7 +3,7 @@ package object_test
 import (
 	"testing"
 
-	"github.com/ldemailly/gorepl/object"
+	"grol.io/grol/object"
 )
 
 func TestStringMapKey(t *testing.T) {
