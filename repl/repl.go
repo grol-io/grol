@@ -51,8 +51,10 @@ func EvalAll(s, macroState *eval.State, in io.Reader, out io.Writer, options Opt
 func EvalString(what string) string {
 	s := eval.NewState()
 	macroState := eval.NewState()
-	out := strings.Builder{}
-	EvalOne(s, macroState, what, &out, Options{All: true, ShowEval: true, NoColor: true})
+	out := &strings.Builder{}
+	s.Out = out
+	s.NoLog = true
+	EvalOne(s, macroState, what, out, Options{All: true, ShowEval: true, NoColor: true})
 	return out.String()
 }
 
