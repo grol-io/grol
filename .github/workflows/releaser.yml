@@ -13,6 +13,7 @@ jobs:
   build:
     # The type of runner that the job will run on
     runs-on: ubuntu-latest
+    permissions: write-all
     steps:
       - name: Checkout
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # pin@v3
@@ -25,16 +26,18 @@ jobs:
         with:
           go-version: '1.22'
           check-latest: true
-      - name: Log in to Docker Hub
+      - name: Log in to Docker
         uses: docker/login-action@0d4c9c5ea7693da7b068278f7b52bda2a190a446 # pin@v2
         with:
-          username: ${{ secrets.DOCKER_USER }}
-          password: ${{ secrets.DOCKER_TOKEN }}
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
       - name: "GoReleaser Action"
         uses: goreleaser/goreleaser-action@286f3b13b1b49da4ac219696163fb8c1c93e1200 # pin@v6.0.0
         with:
           distribution: goreleaser
           version: latest
-          args: release --rm-dist
+          args: release --clean
         env:
-          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAP_DESCRIPTION: "Go Repl Open Language: simple, small but powerful interpreted language in Go"
