@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"strings"
 
 	"fortio.org/log"
 	"grol.io/grol/eval"
@@ -34,6 +35,7 @@ type Options struct {
 	ShowParse bool
 	ShowEval  bool
 	All       bool
+	NoColor   bool // color controlled by log package, unless this is set to true.
 }
 
 func EvalAll(s, macroState *eval.State, in io.Reader, out io.Writer, options Options) {
@@ -43,6 +45,15 @@ func EvalAll(s, macroState *eval.State, in io.Reader, out io.Writer, options Opt
 	}
 	what := string(b)
 	EvalOne(s, macroState, what, out, options)
+}
+
+// EvalString can be used from playground etc for single eval.
+func EvalString(what string) string {
+	s := eval.NewState()
+	macroState := eval.NewState()
+	out := strings.Builder{}
+	EvalOne(s, macroState, what, &out, Options{All: true, ShowEval: true, NoColor: true})
+	return out.String()
 }
 
 func Interactive(in io.Reader, out io.Writer, options Options) {
@@ -111,12 +122,16 @@ func EvalOne(s, macroState *eval.State, what string, out io.Writer, options Opti
 	if !options.ShowEval {
 		return false
 	}
-	if obj.Type() == object.ERROR {
-		fmt.Fprint(out, log.Colors.Red)
-	} else {
-		fmt.Fprint(out, log.Colors.Green)
+	if !options.NoColor {
+		if obj.Type() == object.ERROR {
+			fmt.Fprint(out, log.Colors.Red)
+		} else {
+			fmt.Fprint(out, log.Colors.Green)
+		}
 	}
 	fmt.Fprintln(out, obj.Inspect())
-	fmt.Fprint(out, log.ANSIColors.Reset)
+	if !options.NoColor {
+		fmt.Fprint(out, log.ANSIColors.Reset)
+	}
 	return false
 }
