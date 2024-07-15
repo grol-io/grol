@@ -1,4 +1,5 @@
-<a id="grol"><img alt="GROL" src="https://grol.io/grol_mascot.png" width="50%"/></a>
+<a id="grol"></a>
+<img alt="GROL" src="https://grol.io/grol_mascot.png" width="50%"/>
 
 ## History
 
