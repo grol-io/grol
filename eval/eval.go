@@ -2,6 +2,7 @@ package eval
 
 import (
 	"fmt"
+	"io"
 	"math"
 	"os"
 	"strings"
@@ -13,11 +14,13 @@ import (
 )
 
 type State struct {
-	env *object.Environment
+	env   *object.Environment
+	Out   io.Writer
+	NoLog bool // turn log() into print() (for EvalString)
 }
 
 func NewState() *State {
-	return &State{env: object.NewEnvironment()}
+	return &State{env: object.NewEnvironment(), Out: os.Stdout}
 }
 
 // Forward to env to count the number of bindings. Used mostly to know if there are any macros.
@@ -213,10 +216,19 @@ func (s *State) evalBuiltin(node *ast.Builtin) object.Object {
 				buf.WriteString(r.Inspect())
 			}
 		}
-		if node.Type == token.PRINT {
-			os.Stdout.WriteString(buf.String())
+		doLog := node.Type != token.PRINT
+		if s.NoLog && doLog {
+			doLog = false
+			buf.WriteRune('\n') // log() has a implicit newline when using log.Xxx, print() doesn't.
+		}
+		if doLog {
+			// Consider passing the arguments to log instead of making a string concatenation.
+			log.Printf("%s", buf.String())
 		} else {
-			log.Printf(buf.String())
+			_, err := s.Out.Write([]byte(buf.String()))
+			if err != nil {
+				log.Warnf("print: %v", err)
+			}
 		}
 		return object.NULL
 	case token.FIRST:
