@@ -17,6 +17,11 @@ Or with docker:
 docker run -ti ghcr.io/grol-io/grol:latest
 ```
 
+On a mac
+```
+brew install grol-io/tap/grol
+```
+
 Or get one of the [binary releases](https://github.com/grol-io/grol/releases)
 
 ## What it does
