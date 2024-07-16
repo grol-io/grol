@@ -30,3 +30,7 @@ grol
 __*
 # *_string.go
 dist/
+wasm/wasm_exec.js
+wasm/wasm_exec.html
+wasm/grol.wasm
+wasm/test.wasm

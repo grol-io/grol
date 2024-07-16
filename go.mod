@@ -4,7 +4,7 @@ go 1.22.5
 
 require (
 	fortio.org/cli v1.7.0
-	fortio.org/log v1.14.0
+	fortio.org/log v1.15.0-pre1
 	github.com/google/go-cmp v0.6.0 // only for tests
 )
 

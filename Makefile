@@ -11,6 +11,19 @@ grol: Makefile *.go */*.go $(GEN)
 	CGO_ENABLED=0 go build -trimpath -ldflags="-w -s" -tags "$(GO_BUILD_TAGS)" .
 	ls -l grol
 
+wasm: Makefile *.go */*.go $(GEN) wasm/wasm_exec.js wasm/wasm_exec.html
+	GOOS=js GOARCH=wasm go build -o wasm/test.wasm -trimpath -ldflags="-w -s" -tags "$(GO_BUILD_TAGS)" .
+	-pkill wasm
+	go run ./wasm ./wasm &
+	sleep 3
+	open http://localhost:8080/wasm_exec.html
+
+wasm/wasm_exec.js:
+	cp "$(shell go env GOROOT)/misc/wasm/wasm_exec.js" ./wasm/
+
+wasm/wasm_exec.html:
+	cp "$(shell go env GOROOT)/misc/wasm/wasm_exec.html" ./wasm/
+
 test: grol
 	CGO_ENABLED=0 go test -tags $(GO_BUILD_TAGS) ./...
 	./grol *.gr
@@ -44,4 +57,4 @@ lint: .golangci.yml
 .golangci.yml: Makefile
 	curl -fsS -o .golangci.yml https://raw.githubusercontent.com/fortio/workflows/main/golangci.yml
 
-.PHONY: all lint generate test clean run build
+.PHONY: all lint generate test clean run build wasm
