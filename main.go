@@ -4,7 +4,6 @@ package main
 import (
 	"flag"
 	"os"
-	"runtime"
 
 	"fortio.org/cli"
 	"fortio.org/log"
@@ -13,10 +12,6 @@ import (
 )
 
 func main() {
-	if runtime.GOARCH == "wasm" {
-		log.SetOutput(os.Stdout)
-		log.Infof("wasm detected, adjusted logger to stdout.")
-	}
 	showParse := flag.Bool("parse", false, "show parse tree")
 	showEval := flag.Bool("eval", true, "show eval results")
 	sharedState := flag.Bool("shared-state", false, "All files share same interpreter state (default is new state for each)")

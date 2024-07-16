@@ -1,7 +1,7 @@
 fortio.org/cli v1.7.0 h1:w+uXZLGi4t3Vn/BvbeMuSw84Z1pvNPG9HqeGfpP68cc=
 fortio.org/cli v1.7.0/go.mod h1:s4vxWz7P7T4cYOWdMF0NA693Nu1gK9OW4KoDj54/Do4=
-fortio.org/log v1.15.0-pre1 h1:jg4lj4NMPqd+JFGCo4Y0wXHl2OPMk9BMxt0Dd01xtJw=
-fortio.org/log v1.15.0-pre1/go.mod h1:1tnXMqd5rZAgvSeHJkD2xXpyXRBzdeXtKLZuzNLIwtA=
+fortio.org/log v1.15.0-pre2 h1:lVlwcOSHMAva7MGn14ZXwHax8VB06GyQn8L9WTbQJPg=
+fortio.org/log v1.15.0-pre2/go.mod h1:1tnXMqd5rZAgvSeHJkD2xXpyXRBzdeXtKLZuzNLIwtA=
 fortio.org/struct2env v0.4.1 h1:rJludAMO5eBvpWplWEQNqoVDFZr4RWMQX7RUapgZyc0=
 fortio.org/struct2env v0.4.1/go.mod h1:lENUe70UwA1zDUCX+8AsO663QCFqYaprk5lnPhjD410=
 fortio.org/version v1.0.4 h1:FWUMpJ+hVTNc4RhvvOJzb0xesrlRmG/a+D6bjbQ4+5U=
