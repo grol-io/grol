@@ -1,7 +1,7 @@
 // Make go install fail if wrong tags are set
 
-//go:build cgo || !no_net || !no_json
-// +build cgo !no_net !no_json
+//go:build (cgo && !tinygo) || !no_net || !no_json
+// +build cgo,!tinygo !no_net !no_json
 
 package main
 

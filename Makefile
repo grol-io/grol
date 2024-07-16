@@ -9,9 +9,15 @@ GEN:=object/type_string.go parser/priority_string.go token/type_string.go
 
 grol: Makefile *.go */*.go $(GEN)
 	CGO_ENABLED=0 go build -trimpath -ldflags="-w -s" -tags "$(GO_BUILD_TAGS)" .
-	ls -l grol
+	ls -lh grol
+
+tinygo: Makefile *.go */*.go $(GEN) wasm/wasm_exec.js wasm/wasm_exec.html
+	CGO_ENABLED=0 tinygo build -o grol.tiny -tags "$(GO_BUILD_TAGS)" .
+	strip grol.tiny
+	ls -lh grol.tiny
 
 wasm: Makefile *.go */*.go $(GEN) wasm/wasm_exec.js wasm/wasm_exec.html
+	GOOS=wasip1 GOARCH=wasm go build -o grol.wasm -trimpath -ldflags="-w -s" -tags "$(GO_BUILD_TAGS)" .
 	GOOS=js GOARCH=wasm go build -o wasm/test.wasm -trimpath -ldflags="-w -s" -tags "$(GO_BUILD_TAGS)" .
 	-pkill wasm
 	go run ./wasm ./wasm &
@@ -57,4 +63,4 @@ lint: .golangci.yml
 .golangci.yml: Makefile
 	curl -fsS -o .golangci.yml https://raw.githubusercontent.com/fortio/workflows/main/golangci.yml
 
-.PHONY: all lint generate test clean run build wasm
+.PHONY: all lint generate test clean run build wasm tinygo failing-tests
