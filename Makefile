@@ -19,8 +19,9 @@ tinygo: Makefile *.go */*.go $(GEN) wasm/wasm_exec.js wasm/wasm_exec.html
 wasm: Makefile *.go */*.go $(GEN) wasm/wasm_exec.js wasm/wasm_exec.html
 	GOOS=wasip1 GOARCH=wasm go build -o grol.wasm -trimpath -ldflags="-w -s" -tags "$(GO_BUILD_TAGS)" .
 	GOOS=js GOARCH=wasm go build -o wasm/test.wasm -trimpath -ldflags="-w -s" -tags "$(GO_BUILD_TAGS)" .
-	GOOS=wasip1 GOARCH=wasm tinygo build -o grol_tiny.wasm -tags "$(GO_BUILD_TAGS)" .
-	GOOS=js GOARCH=wasm tinygo build -o wasm/grol_tiny.wasm -tags "$(GO_BUILD_TAGS)" .
+	GOOS=wasip1 GOARCH=wasm tinygo build -target=wasi -no-debug -o grol_tiny.wasm -tags "$(GO_BUILD_TAGS)" .
+	GOOS=js GOARCH=wasm tinygo build -no-debug -o wasm/grol_tiny.wasm -tags "$(GO_BUILD_TAGS)" .
+	ls -lh *.wasm wasm/*.wasm
 	-pkill wasm
 	go run ./wasm ./wasm &
 	sleep 3
