@@ -24,7 +24,6 @@ go.work.sum
 
 .golangci.yml
 gorepl
-grol
 
 .DS_Store
 __*
@@ -34,3 +33,9 @@ wasm/wasm_exec.js
 wasm/wasm_exec.html
 wasm/grol.wasm
 wasm/test.wasm
+wasm/grol_tiny.wasm
+grol
+grol.tiny
+grol.wasm
+grol_tiny.wasm
+wasm/grol_tiny.wasm
