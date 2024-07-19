@@ -1,0 +1,16 @@
+f = func(n, fac, dfac, exp, N) {
+  // log("Call n=", n, fac, dfac, exp)
+  if (n>N) {
+    [fac, dfac, exp]
+  } else {
+    dfac = 1.*dfac*(2*n - 1)
+    exp = exp * 2
+    fac = fac * n
+    f(n+1, fac, dfac, exp, N)
+  }
+}
+N = 100
+r = f(1,1.,1.,1.,N)
+// log("r", r)
+approx = r[0] * r[2] / r[1]
+approx * approx / N

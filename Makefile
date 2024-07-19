@@ -17,18 +17,20 @@ tinygo: Makefile *.go */*.go $(GEN) wasm/wasm_exec.js wasm/wasm_exec.html
 	ls -lh grol.tiny
 
 wasm: Makefile *.go */*.go $(GEN) wasm/wasm_exec.js wasm/wasm_exec.html
-	GOOS=wasip1 GOARCH=wasm go build -o grol.wasm -trimpath -ldflags="-w -s" -tags "$(GO_BUILD_TAGS)" .
-	GOOS=js GOARCH=wasm go build -o wasm/test.wasm -trimpath -ldflags="-w -s" -tags "$(GO_BUILD_TAGS)" .
-	GOOS=wasip1 GOARCH=wasm tinygo build -target=wasi -no-debug -o grol_tiny.wasm -tags "$(GO_BUILD_TAGS)" .
-	GOOS=js GOARCH=wasm tinygo build -no-debug -o wasm/grol_tiny.wasm -tags "$(GO_BUILD_TAGS)" .
-	ls -lh *.wasm wasm/*.wasm
+#	GOOS=wasip1 GOARCH=wasm go build -o grol.wasm -trimpath -ldflags="-w -s" -tags "$(GO_BUILD_TAGS)" .
+	GOOS=js GOARCH=wasm go build -o wasm/grol.wasm -trimpath -ldflags="-w -s" -tags "$(GO_BUILD_TAGS)" ./wasm
+#	GOOS=wasip1 GOARCH=wasm tinygo build -target=wasi -no-debug -o grol_tiny.wasm -tags "$(GO_BUILD_TAGS)" .
+# Tiny go generates errors https://github.com/tinygo-org/tinygo/issues/1140
+# GOOS=js GOARCH=wasm tinygo build -no-debug -o wasm/test.wasm -tags "$(GO_BUILD_TAGS)" ./wasm
+	-ls -lh wasm/*.wasm
 	-pkill wasm
 	go run ./wasm ./wasm &
 	sleep 3
-	open http://localhost:8080/wasm_exec.html
+	open http://localhost:8080/
 
-wasm/wasm_exec.js:
-	cp "$(shell go env GOROOT)/misc/wasm/wasm_exec.js" ./wasm/
+wasm/wasm_exec.js: Makefile
+#	cp "$(shell tinygo env TINYGOROOT)/targets/wasm_exec.js" ./wasm/
+	cp "$(shell tinygo env GOROOT)/misc/wasm/wasm_exec.js" ./wasm/
 
 wasm/wasm_exec.html:
 	cp "$(shell go env GOROOT)/misc/wasm/wasm_exec.html" ./wasm/
