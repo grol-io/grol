@@ -49,14 +49,20 @@ func EvalAll(s, macroState *eval.State, in io.Reader, out io.Writer, options Opt
 
 // EvalString can be used from playground etc for single eval.
 // returns the eval errors and an array of errors if any.
-func EvalString(what string) (string, []string) {
+func EvalString(what string) (res string, errs []string) {
+	defer func() {
+		if r := recover(); r != nil {
+			errs = append(errs, fmt.Sprintf("panic: %v", r))
+		}
+	}()
 	s := eval.NewState()
 	macroState := eval.NewState()
 	out := &strings.Builder{}
 	s.Out = out
 	s.NoLog = true
-	_, errs := EvalOne(s, macroState, what, out, Options{All: true, ShowEval: true, NoColor: true})
-	return out.String(), errs
+	_, errs = EvalOne(s, macroState, what, out, Options{All: true, ShowEval: true, NoColor: true})
+	res = out.String()
+	return
 }
 
 func Interactive(in io.Reader, out io.Writer, options Options) {

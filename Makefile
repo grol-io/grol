@@ -16,12 +16,15 @@ tinygo: Makefile *.go */*.go $(GEN) wasm/wasm_exec.js wasm/wasm_exec.html
 	strip grol.tiny
 	ls -lh grol.tiny
 
-wasm: Makefile *.go */*.go $(GEN) wasm/wasm_exec.js wasm/wasm_exec.html
+wasm: Makefile *.go */*.go $(GEN) wasm/wasm_exec.js wasm/wasm_exec.html wasm/grol_wasm.html
 #	GOOS=wasip1 GOARCH=wasm go build -o grol.wasm -trimpath -ldflags="-w -s" -tags "$(GO_BUILD_TAGS)" .
 	GOOS=js GOARCH=wasm go build -o wasm/grol.wasm -trimpath -ldflags="-w -s" -tags "$(GO_BUILD_TAGS)" ./wasm
 #	GOOS=wasip1 GOARCH=wasm tinygo build -target=wasi -no-debug -o grol_tiny.wasm -tags "$(GO_BUILD_TAGS)" .
 # Tiny go generates errors https://github.com/tinygo-org/tinygo/issues/1140
 # GOOS=js GOARCH=wasm tinygo build -no-debug -o wasm/test.wasm -tags "$(GO_BUILD_TAGS)" ./wasm
+	echo '<!doctype html><html><head><meta charset="utf-8"><title>Grol</title></head>' > wasm/index.html
+	cat wasm/grol_wasm.html >> wasm/index.html
+	echo '</html>' >> wasm/index.html
 	-ls -lh wasm/*.wasm
 	-pkill wasm
 	go run ./wasm ./wasm &

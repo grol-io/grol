@@ -1,0 +1,129 @@
+<!--
+  Keep grol/wasm/grol_wasm.html and web-site/_includes/grol_wasm.html in sync
+  Using `make sync` in web-site/
+  make wasm to test changes
+  make wasm-release once tagged (before the sync above copies a non release wasm)
+-->
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+    }
+
+    .container {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    textarea,
+    label,
+    div {
+        font-size: 14px;
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    button {
+        align-self: flex-start;
+    }
+
+    label {
+        margin-bottom: 5px;
+    }
+
+    .error-textarea {
+        color: red;
+    }
+</style>
+<script src="wasm_exec.js"></script>
+<script>
+    if (!WebAssembly.instantiateStreaming) { // polyfill
+        WebAssembly.instantiateStreaming = async (resp, importObject) => {
+            const source = await (await resp).arrayBuffer();
+            return await WebAssembly.instantiate(source, importObject);
+        };
+    }
+    const go = new Go();
+    let mod, inst;
+    WebAssembly.instantiateStreaming(fetch("grol.wasm"), go.importObject).then((result) => {
+        mod = result.module;
+        inst = result.instance;
+        document.getElementById("runButton").disabled = false;
+    }).catch((err) => {
+        console.error(err);
+    });
+    function resizeTextarea(textarea) {
+        textarea.style.height = 'auto';
+        textarea.style.height = (textarea.scrollHeight) + 'px';
+    }
+    function formatError(error) {
+        return `Error: ${error.message}`;
+    }
+    async function run() {
+        try {
+            // console.clear();
+            console.log('In run')
+            go.run(inst);
+            var input = document.getElementById('input').value
+            // Call the grol function with the input
+            var output = grol(input);
+            console.log('Eval done:');
+            console.log(output);
+            if (output && output.result !== undefined) {
+                // Write the result to the output textarea
+                document.getElementById('output').value = output.result;
+                document.getElementById('errors').value = output.errors.join("\n");
+            } else {
+                document.getElementById('errors').value = "Unexpected runtime error, see JS console";
+            }
+            document.getElementById('version').innerHTML = "GROL " + grolVersion;
+        } catch (e) {
+            console.error(e);
+            const formattedError = formatError(e);
+            document.getElementById('errors').value = formattedError;
+        } finally {
+            inst = await WebAssembly.instantiate(mod, go.importObject); // reset instance
+        }
+        resizeTextarea(document.getElementById('output'));
+        resizeTextarea(document.getElementById('errors'));
+    }
+    document.addEventListener('DOMContentLoaded', (event) => {
+        document.getElementById('input').addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') {
+                run();
+            }
+        });
+    });
+
+</script>
+
+<div>
+    <label for="input">Edit the sample/Enter your GROL code here:</label>
+    <textarea id="input" rows="12" cols="80">
+print("Outputting a smiley: 😀\n")
+fact=func(n) { // function
+log("called fact ", n) // log output
+if (n<=1) {
+    return 1
+}
+n*fact(n-1) // recursion
+}
+
+a=[fact(5), "abc", 76-3] // heterogeneous array
+m={"str key": a, 42: "str val"} // maps also can have any key,value types
+</textarea>
+</div>
+<div>
+
+    Hit enter or click <button onClick="run();" id="runButton" disabled>Run</button>
+</div>
+<div>
+    <label for="output">Result:</label>
+    <textarea id="output" rows="2" cols="80"></textarea>
+</div>
+<div>
+    <label for="errors">Errors:</label>
+    <textarea id="errors" rows="1" cols="80" class="error-textarea"></textarea>
+</div>
+<div id="version">GROL</div>
