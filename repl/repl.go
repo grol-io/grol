@@ -73,6 +73,7 @@ func Interactive(in io.Reader, out io.Writer, options Options) {
 			return
 		}
 		l := prev + scanner.Text()
+		// errors are already logged and this is the only case that can get contNeeded (EOL instead of EOF mode)
 		contNeeded, _ := EvalOne(s, macroState, l, out, options)
 		if contNeeded {
 			prev = l + "\n"
