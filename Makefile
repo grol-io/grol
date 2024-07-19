@@ -32,7 +32,8 @@ GIT_TAG:=$(shell git describe --tags --abbrev=0)
 # used to copy to site a release version
 wasm-release: Makefile *.go */*.go $(GEN) wasm/wasm_exec.js wasm/wasm_exec.html
 	@echo "Building wasm release GIT_TAG=$(GIT_TAG)"
-	GOOS=js GOARCH=wasm BINPATH=. go install -trimpath -ldflags="-w -s" -tags "$(GO_BUILD_TAGS)" grol.io/grol/wasm@$(GIT_TAG)
+	GOOS=js GOARCH=wasm go install -trimpath -ldflags="-w -s" -tags "$(GO_BUILD_TAGS)" grol.io/grol/wasm@$(GIT_TAG)
+	mv "$(shell go env GOPATH)/bin/js_wasm/wasm" wasm/grol.wasm
 	ls -lh wasm/*.wasm
 
 wasm/wasm_exec.js: Makefile
@@ -65,7 +66,7 @@ token/type_string.go: token/token.go
 
 
 clean:
-	rm -f grol */*_string.go
+	rm -f grol */*_string.go *.wasm wasm/*.wasm wasm/wasm_exec.html wasm/wasm_exec.js
 
 build: grol
 
