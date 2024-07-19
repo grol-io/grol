@@ -16,7 +16,8 @@
             gap: 10px;
         }
 
-        textarea {
+        textarea, label, div {
+            font-size: 14px;
             width: 100%;
             box-sizing: border-box;
         }
@@ -71,6 +72,7 @@
                 // Write the result to the output textarea
                 document.getElementById('output').value = output.result;
                 document.getElementById('errors').value = output.errors.join("\n");
+                document.getElementById('version').innerHTML = "GROL " + grolVersion;
                 resizeTextarea(document.getElementById('output'));
                 resizeTextarea(document.getElementById('errors'));
             } catch (e) {
@@ -103,6 +105,7 @@
         <label for="errors">Errors:</label>
         <textarea id="errors" rows="1" cols="80" class="error-textarea"></textarea>
     </div>
+    <div id="version">GROL</div>
 </body>
 
 </html>

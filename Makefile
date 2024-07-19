@@ -28,6 +28,13 @@ wasm: Makefile *.go */*.go $(GEN) wasm/wasm_exec.js wasm/wasm_exec.html
 	sleep 3
 	open http://localhost:8080/
 
+GIT_TAG:=$(shell git describe --tags --abbrev=0)
+# used to copy to site a release version
+wasm-release: Makefile *.go */*.go $(GEN) wasm/wasm_exec.js wasm/wasm_exec.html
+	@echo "Building wasm release GIT_TAG=$(GIT_TAG)"
+	GOOS=js GOARCH=wasm BINPATH=. go install -trimpath -ldflags="-w -s" -tags "$(GO_BUILD_TAGS)" grol.io/grol/wasm@$(GIT_TAG)
+	ls -lh wasm/*.wasm
+
 wasm/wasm_exec.js: Makefile
 #	cp "$(shell tinygo env TINYGOROOT)/targets/wasm_exec.js" ./wasm/
 	cp "$(shell tinygo env GOROOT)/misc/wasm/wasm_exec.js" ./wasm/
@@ -68,4 +75,4 @@ lint: .golangci.yml
 .golangci.yml: Makefile
 	curl -fsS -o .golangci.yml https://raw.githubusercontent.com/fortio/workflows/main/golangci.yml
 
-.PHONY: all lint generate test clean run build wasm tinygo failing-tests
+.PHONY: all lint generate test clean run build wasm tinygo failing-tests wasm-release

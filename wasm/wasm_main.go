@@ -40,5 +40,6 @@ func main() {
 	done := make(chan struct{}, 0)
 	global := js.Global()
 	global.Set("grol", js.FuncOf(jsEval))
+	global.Set("grolVersion", js.ValueOf(grolVersion))
 	<-done
 }
