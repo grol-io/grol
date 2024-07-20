@@ -10,7 +10,6 @@ import (
 )
 
 func TestDefineMacros(t *testing.T) {
-	// TODO: make it work without `let` or... keep just for macros?
 	input := `number = 1
     function = func(x, y) { x + y }
     mymacro = macro(x, y) { x + y; }

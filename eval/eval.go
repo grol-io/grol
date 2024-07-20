@@ -307,7 +307,7 @@ func (s *State) applyFunction(fn object.Object, args []object.Object) object.Obj
 	}
 	curState := s.env
 	s.env = nenv
-	res := s.Eval(function.Body) // Need to have the return value unwrapped. Bug #46
+	res := s.Eval(function.Body) // Need to have the return value unwrapped. Fixes bug #46
 	// restore the previous env/state.
 	s.env = curState
 	return res
