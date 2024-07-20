@@ -693,7 +693,7 @@ func TestCallExpressionParameterParsing(t *testing.T) {
 	}
 }
 
-// Kept the name 'let*' but it's now just the `id = val` test
+// Kept the name 'let*' but it's now just the `id = val` test.
 func CheckLetStatement(t *testing.T, s ast.Node, name string) bool {
 	if s.TokenLiteral() != name {
 		t.Errorf("s.TokenLiteral not %q. got=%q", name, s.TokenLiteral())
