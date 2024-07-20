@@ -30,8 +30,6 @@ func Modify(node Node, f func(Node) Node) Node {
 		}
 	case *ReturnStatement:
 		node.ReturnValue, _ = Modify(node.ReturnValue, f).(Expression)
-	case *LetStatement:
-		node.Value, _ = Modify(node.Value, f).(Expression)
 	case *FunctionLiteral:
 		for i := range node.Parameters {
 			node.Parameters[i], _ = Modify(node.Parameters[i], f).(*Identifier)

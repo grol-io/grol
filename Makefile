@@ -50,9 +50,6 @@ test: grol
 	CGO_ENABLED=0 go test -tags $(GO_BUILD_TAGS) ./...
 	./grol *.gr
 
-failing-tests:
-	-go test -v ./... -tags=runfailingtests -run TestLetStatementsFormerlyCrashingNowFailingOnPurpose
-
 generate:
 	go generate ./... # if this fails go install golang.org/x/tools/cmd/stringer@latest
 
@@ -79,4 +76,4 @@ lint: .golangci.yml
 .golangci.yml: Makefile
 	curl -fsS -o .golangci.yml https://raw.githubusercontent.com/fortio/workflows/main/golangci.yml
 
-.PHONY: all lint generate test clean run build wasm tinygo failing-tests wasm-release
+.PHONY: all lint generate test clean run build wasm tinygo wasm-release

@@ -67,7 +67,20 @@ func ArgCheck[T any](msg string, n int, vararg bool, args []T) *object.Error {
 	return nil
 }
 
-func (s *State) evalInternal(node any) object.Object { //nolint:funlen // we have a lot of cases.
+func isAssign(node any) (*ast.InfixExpression, bool) {
+	// TODO cleanup that weird double wrapping/casting. same in testLetStatement.
+	es, ok := node.(*ast.ExpressionStatement)
+	if ok {
+		node = es.Val
+	}
+	exp, ok := node.(*ast.InfixExpression)
+	if ok && exp.Operator == "=" {
+		return exp, true
+	}
+	return nil, false
+}
+
+func (s *State) evalInternal(node any) object.Object {
 	switch node := node.(type) {
 	// Statements
 	case *ast.Program:
@@ -87,16 +100,6 @@ func (s *State) evalInternal(node any) object.Object { //nolint:funlen // we hav
 
 	case *ast.IfExpression:
 		return s.evalIfExpression(node)
-		// assignement
-	case *ast.LetStatement:
-		val := s.evalInternal(node.Value)
-		if rt := val.Type(); rt == object.ERROR {
-			log.Warnf("can't eval %q: %v", node.String(), val)
-			return val
-		}
-		log.LogVf("eval let %s to %#v", node.Name.Val, val)
-		s.env.Set(node.Name.Val, val)
-		return val // maybe only if it's a literal?
 		// Expressions
 	case *ast.Identifier:
 		return s.evalIdentifier(node)
@@ -107,7 +110,7 @@ func (s *State) evalInternal(node any) object.Object { //nolint:funlen // we hav
 	case *ast.InfixExpression:
 		log.LogVf("eval infix %s", node.String())
 		right := s.Eval(node.Right) // need to unwrap "return"
-		if node.Operator == "=" {
+		if _, ok := isAssign(node); ok {
 			return s.evalAssignment(right, node)
 		}
 		left := s.Eval(node.Left)

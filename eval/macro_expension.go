@@ -19,18 +19,19 @@ func (s *State) DefineMacros(program *ast.Program) {
 }
 
 func isMacroDefinition(node ast.Node) bool {
-	letStatement, ok := node.(*ast.LetStatement)
+	exp, ok := isAssign(node)
 	if !ok {
 		return false
 	}
-
-	_, ok = letStatement.Value.(*ast.MacroLiteral)
+	_, ok = exp.Right.(*ast.MacroLiteral)
 	return ok
 }
 
 func (s *State) addMacro(stmt ast.Node) {
-	letStatement, _ := stmt.(*ast.LetStatement)
-	macroLiteral, _ := letStatement.Value.(*ast.MacroLiteral)
+	// TODO ok checks
+	assign, _ := stmt.(*ast.ExpressionStatement).Value().(*ast.InfixExpression)
+	macroLiteral, _ := assign.Right.(*ast.MacroLiteral)
+	name := assign.Left.(*ast.Identifier).Val
 
 	macro := &object.Macro{
 		Parameters: macroLiteral.Parameters,
@@ -38,7 +39,7 @@ func (s *State) addMacro(stmt ast.Node) {
 		Body:       macroLiteral.Body,
 	}
 
-	s.env.Set(letStatement.Name.Val, macro)
+	s.env.Set(name, macro)
 }
 
 func (s *State) isMacroCall(exp *ast.CallExpression) (*object.Macro, bool) {

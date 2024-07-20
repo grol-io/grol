@@ -10,10 +10,10 @@ import (
 )
 
 func TestDefineMacros(t *testing.T) {
-	// TODO: make it work without `let` or... keep let just for macros?
+	// TODO: make it work without `let` or... keep just for macros?
 	input := `number = 1
     function = func(x, y) { x + y }
-    let mymacro = macro(x, y) { x + y; }
+    mymacro = macro(x, y) { x + y; }
 	number + 1`
 
 	state := NewState()
@@ -78,7 +78,7 @@ func TestExpandMacros(t *testing.T) {
 	}{
 		{
 			`
-            let infixExpression = macro() { quote(1 + 2); };
+            infixExpression = macro() { quote(1 + 2); };
 
             infixExpression();
             `,
@@ -86,7 +86,7 @@ func TestExpandMacros(t *testing.T) {
 		},
 		{
 			`
-            let reverse = macro(a, b) { quote(unquote(b) - unquote(a)); };
+            reverse = macro(a, b) { quote(unquote(b) - unquote(a)); };
 
             reverse(2 + 2, 10 - 5);
             `,
@@ -94,7 +94,7 @@ func TestExpandMacros(t *testing.T) {
 		},
 		{
 			`
-            let unless = macro(condition, consequence, alternative) {
+            unless = macro(condition, consequence, alternative) {
                 quote(if (!(unquote(condition))) {
                     unquote(consequence);
                 } else {

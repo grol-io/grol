@@ -11,9 +11,9 @@ import (
 
 func Test_LetStatements(t *testing.T) {
 	input := `
-let x = 5;
-let y = 10;
-let foobar = 838383;
+x = 5;
+y = 10;
+foobar = 838383;
 `
 	l := lexer.New(input)
 	p := parser.New(l)
@@ -44,26 +44,41 @@ let foobar = 838383;
 	}
 }
 
+// dup from _book.
 func testLetStatement(t *testing.T, s ast.Node, name string) bool {
-	if s.TokenLiteral() != "let" {
-		t.Errorf("s.TokenLiteral not 'let'. got=%q", s.TokenLiteral())
+	// Kept the name 'let*' but it's now just the `id = val` test
+	if s.TokenLiteral() != name {
+		t.Errorf("s.TokenLiteral not '='. got=%q", s.TokenLiteral())
 		return false
 	}
-
-	letStmt, ok := s.(*ast.LetStatement)
+	// Either an expression statement containing an infix expression or just an infix expression directly.
+	exp, ok := s.(*ast.ExpressionStatement)
+	if ok {
+		s = exp.Value()
+	}
+	var letStmt *ast.InfixExpression
+	letStmt, ok = s.(*ast.InfixExpression)
 	if !ok {
-		t.Errorf("s not *ast.LetStatement. got=%T", s)
+		t.Errorf("s not *ast.InfixExpression. got=%T", s)
+		return false
+	}
+	if letStmt.Operator != "=" {
+		t.Errorf("letStmt.Operator is not '='. got=%q", letStmt.Operator)
+		return false
+	}
+	id, ok := letStmt.Left.(*ast.Identifier)
+	if !ok {
+		t.Errorf("letStmt.Left not *ast.Identifier. got=%T", letStmt.Left)
+		return false
+	}
+	if id.Val != name {
+		t.Errorf("letStmt.Name.Value not '%s'. got=%s", name, id.Val)
 		return false
 	}
 
-	if letStmt.Name.Val != name {
-		t.Errorf("letStmt.Name.Value not '%s'. got=%s", name, letStmt.Name.Val)
-		return false
-	}
-
-	if letStmt.Name.TokenLiteral() != name {
+	if id.TokenLiteral() != name {
 		t.Errorf("letStmt.Name.TokenLiteral() not '%s'. got=%s",
-			name, letStmt.Name.TokenLiteral())
+			name, id.TokenLiteral())
 		return false
 	}
 
@@ -354,12 +369,12 @@ func Test_OperatorPrecedenceParsing(t *testing.T) {
 			"((3 + (4 * 5)) == ((3 * 1) + (4 * 5)))",
 		},
 		{
-			"let x = 41 * 6",
-			"let x = (41 * 6)",
+			"x = 41 * 6",
+			"(x = (41 * 6))",
 		},
 		{
-			"let foo = func(a,b) {return a+b}",
-			"let foo = func(a, b) {\nreturn (a + b)\n}",
+			"foo = func(a,b) {return a+b}",
+			"(foo = func(a, b) {\nreturn (a + b)\n})",
 		},
 	}
 

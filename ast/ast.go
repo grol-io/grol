@@ -74,28 +74,6 @@ func (p Program) String() string {
 	return buf.String()
 }
 
-type LetStatement struct {
-	Base
-	Name  *Identifier
-	Value Expression
-}
-
-func (ls LetStatement) String() string {
-	out := strings.Builder{}
-
-	out.WriteString(ls.TokenLiteral() + " ")
-	out.WriteString(ls.Name.String())
-	out.WriteString(" = ")
-
-	if ls.Value != nil {
-		out.WriteString(ls.Value.String())
-	}
-
-	// out.WriteString(";")
-
-	return out.String()
-}
-
 type Identifier struct {
 	Base
 	Val string
