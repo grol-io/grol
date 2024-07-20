@@ -1,0 +1,90 @@
+# testscript framework tests for grol's main binary / command line
+
+# Basic usage test
+!grol -foo
+!stdout .
+stderr 'flag provided but not defined: -foo'
+
+# (short) version
+grol version
+stdout '^dev$'
+!stderr .
+
+# (long) version
+grol buildinfo
+stdout '^dev  go'
+stdout 'path	grol.io/grol'
+!stderr .
+
+# most basic expression
+grol -c '1+1'
+stdout '^2$'
+stderr welcome
+!stderr 'rror' # no Errors or other case/singular/plural
+
+# syntax error
+!grol -c 'foo'
+stderr 'Errors'
+stderr 'identifier not found: foo'
+stdout '<err: <identifier not found: foo>>'
+
+# sample_test.gr
+grol sample_test.gr
+!stderr 'Errors'
+cmp stdout sample_test_stdout.gr
+stderr 'I] Running sample_test.gr'
+stderr 'called fact 5'
+stderr 'called fact 1'
+stderr 'I] All done'
+
+# Bug repro, return aborts the whole program
+grol -c 'f=func(){return 1;2};log(f());f();3'
+stdout '^1\n3$'
+!stderr 'Errors'
+
+# same one more level
+grol -c 'f=func(n){if (n==5) {return 1};2};log(f(5));f(5);3'
+stdout '^1\n3$'
+!stderr 'Errors'
+
+
+-- sample_test.gr --
+// Sample file that our gorepl can interpret
+// <--- comments
+// See also the other *.gr files
+
+let unless = macro(cond, iffalse, iftrue) {
+    quote(if (!(unquote(cond))) {
+        unquote(iffalse)
+    } else {
+        unquote(iftrue)
+    })
+}
+
+unless(10 > 5, print("BUG: not greater\n"), print("macro test: greater\n"))
+
+fact=func(n) { // function
+    log("called fact", n) // log (timestamped stderr output)
+    if (n<=1) {
+        return 1
+    }
+    n*fact(n-1) // recursion, also last evaluated expression is returned (ie return at the end is optional)
+}
+
+a=[fact(5), "abc", 76-3] // array can contain different types
+
+m={"key": a, 73: 29} // so do maps
+
+print("m is:", m, ".\n") // stdout print
+print("Outputting a smiley: 😀\n")
+
+first(m["key"]) // get the value from key from map, which is an array, and the first element of the array is our factorial 5
+// could also have been m["key"][0]
+
+// ^^^ gorepl sample.gr should output 120
+
+-- sample_test_stdout.gr --
+macro test: greater
+m is: {73:29, "key":[120, "abc", 73]} .
+Outputting a smiley: 😀
+120

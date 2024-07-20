@@ -13,4 +13,4 @@ apply(func(x) {2*x}, a)
 
 // ^^^ [2, 6, 10, 14]
 
-log("should be reached, won't")
+log("should be reached, and now is")
