@@ -1,9 +1,11 @@
 <a id="grol"></a>
-<img alt="GROL" src="https://grol.io/grol_mascot.png" width="50%"/>
+<img alt="GROL" src="https://grol.io/grol_mascot.png" width="33%"/>
 
 ## History
 
-Initially created by following along https://interpreterbook.com and making changes/simplification/cleanups
+Initially created by following along https://interpreterbook.com and making many changes/simplification/cleanups.
+
+There is also now a [discord bot](https://github.com/grol-io/grol-discord-bot#grol-discord-bot) as well as a `wasm` version that runs directly in your browser, try it on [grol.io](https://grol.io/)
 
 ## Install
 
