@@ -68,19 +68,6 @@ func ArgCheck[T any](msg string, n int, vararg bool, args []T) *object.Error {
 	return nil
 }
 
-func isAssign(node any) (*ast.InfixExpression, bool) {
-	// TODO cleanup that weird double wrapping/casting. same in testLetStatement.
-	es, ok := node.(*ast.ExpressionStatement)
-	if ok {
-		node = es.Val
-	}
-	exp, ok := node.(*ast.InfixExpression)
-	if ok && exp.Operator == "=" {
-		return exp, true
-	}
-	return nil, false
-}
-
 // Doesn't unwrap return - return bubbles up.
 func (s *State) evalInternal(node any) object.Object {
 	switch node := node.(type) {
@@ -112,7 +99,7 @@ func (s *State) evalInternal(node any) object.Object {
 	case *ast.InfixExpression:
 		log.LogVf("eval infix %s", node.String())
 		right := s.Eval(node.Right) // need to unwrap "return"
-		if _, ok := isAssign(node); ok {
+		if node.Operator == "=" {
 			return s.evalAssignment(right, node)
 		}
 		left := s.Eval(node.Left)

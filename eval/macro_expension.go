@@ -18,6 +18,18 @@ func (s *State) DefineMacros(program *ast.Program) {
 	}
 }
 
+func isAssign(node ast.Node) (*ast.InfixExpression, bool) {
+	es, ok := node.(*ast.ExpressionStatement)
+	if !ok {
+		return nil, false
+	}
+	exp, ok := es.Val.(*ast.InfixExpression)
+	if ok && exp.Operator == "=" {
+		return exp, true
+	}
+	return nil, false
+}
+
 func isMacroDefinition(node ast.Node) bool {
 	exp, ok := isAssign(node)
 	if !ok {

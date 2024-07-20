@@ -51,13 +51,13 @@ func testLetStatement(t *testing.T, s ast.Node, name string) bool {
 		t.Errorf("s.TokenLiteral not '='. got=%q", s.TokenLiteral())
 		return false
 	}
-	// Either an expression statement containing an infix expression or just an infix expression directly.
+	// Expecting an expression statement containing an infix expression
 	exp, ok := s.(*ast.ExpressionStatement)
-	if ok {
-		s = exp.Value()
+	if !ok {
+		t.Errorf("s not *ast.ExpressionStatement. got=%T", s)
+		return false
 	}
-	var letStmt *ast.InfixExpression
-	letStmt, ok = s.(*ast.InfixExpression)
+	letStmt, ok := exp.Val.(*ast.InfixExpression)
 	if !ok {
 		t.Errorf("s not *ast.InfixExpression. got=%T", s)
 		return false
