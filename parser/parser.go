@@ -126,10 +126,7 @@ func (p *Parser) ParseProgram() *ast.Program {
 
 	for p.curToken.Type != token.EOF && p.curToken.Type != token.EOL {
 		stmt := p.parseStatement()
-		// linters swear it's not possible to get nil anymore
-		// if stmt != nil { // classic interface nil gotcha, must make sure explicit nil interface is returned (right type)
 		program.Statements = append(program.Statements, stmt)
-		// }
 		p.nextToken()
 	}
 
@@ -429,10 +426,7 @@ func (p *Parser) parseBlockStatement() *ast.BlockStatement {
 			p.continuationNeeded = true
 			return nil
 		}
-		stmt := p.parseStatement()
-		// if stmt != nil {
-		block.Statements = append(block.Statements, stmt)
-		// }
+		block.Statements = append(block.Statements, p.parseStatement())
 		p.nextToken()
 	}
 	return block
