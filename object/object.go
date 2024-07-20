@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"strings"
 
+	"fortio.org/log"
 	"grol.io/grol/ast"
 )
 
@@ -220,6 +221,7 @@ type MapKeys []Object
 func (mk MapKeys) Len() int {
 	return len(mk)
 }
+
 func (mk MapKeys) Less(i, j int) bool {
 	ti := mk[i].Type()
 	tj := mk[j].Type()
@@ -229,7 +231,7 @@ func (mk MapKeys) Less(i, j int) bool {
 	if ti > tj {
 		return false
 	}
-	switch ti {
+	switch ti { //nolint:exhaustive // We have all the types that exist and can be in a map.
 	case INTEGER:
 		return mk[i].(Integer).Value < mk[j].(Integer).Value
 	case FLOAT:
@@ -243,6 +245,9 @@ func (mk MapKeys) Less(i, j int) bool {
 		return bj
 	case STRING:
 		return mk[i].(String).Value < mk[j].(String).Value
+	default:
+		log.Warnf("Unexpected type in map keys: %s", ti)
+		// UNKNOWN, NIL, ERROR, RETURN, FUNCTION, ARRAY, MAP, QUOTE, MACRO, LAST
 	}
 	return false
 }
