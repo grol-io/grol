@@ -30,6 +30,7 @@ func (s *State) Len() int {
 
 // TODO: don't call the .String() if log level isn't verbose.
 
+// Does unwrap (so stop bubbling up) return values.
 func (s *State) Eval(node any) object.Object {
 	result := s.evalInternal(node)
 	// unwrap return values only at the top.
@@ -80,6 +81,7 @@ func isAssign(node any) (*ast.InfixExpression, bool) {
 	return nil, false
 }
 
+// Doesn't unwrap return - return bubbles up.
 func (s *State) evalInternal(node any) object.Object {
 	switch node := node.(type) {
 	// Statements
