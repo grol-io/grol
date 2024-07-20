@@ -146,7 +146,7 @@ func EvalOne(s, macroState *eval.State, what string, out io.Writer, options Opti
 	}
 	fmt.Fprintln(out, obj.Inspect())
 	if !options.NoColor {
-		fmt.Fprint(out, log.ANSIColors.Reset)
+		fmt.Fprint(out, log.Colors.Reset)
 	}
 	return false, errs
 }

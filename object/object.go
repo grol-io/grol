@@ -1,6 +1,7 @@
 package object
 
 import (
+	"sort"
 	"strconv"
 	"strings"
 
@@ -214,17 +215,58 @@ func NewMap() Map {
 	return make(map[Object]Object)
 }
 
+type MapKeys []Object
+
+func (mk MapKeys) Len() int {
+	return len(mk)
+}
+func (mk MapKeys) Less(i, j int) bool {
+	ti := mk[i].Type()
+	tj := mk[j].Type()
+	if ti < tj {
+		return true
+	}
+	if ti > tj {
+		return false
+	}
+	switch ti {
+	case INTEGER:
+		return mk[i].(Integer).Value < mk[j].(Integer).Value
+	case FLOAT:
+		return mk[i].(Float).Value < mk[j].(Float).Value
+	case BOOLEAN:
+		bi := mk[i].(Boolean).Value
+		bj := mk[j].(Boolean).Value
+		if bi {
+			return false
+		}
+		return bj
+	case STRING:
+		return mk[i].(String).Value < mk[j].(String).Value
+	}
+	return false
+}
+
+func (mk MapKeys) Swap(i, j int) {
+	mk[i], mk[j] = mk[j], mk[i]
+}
+
 func (m Map) Type() Type { return MAP }
 
 func (m Map) Inspect() string {
 	out := strings.Builder{}
 	out.WriteString("{")
-	first := true
-	for k, v := range m {
-		if !first {
+	keys := make(MapKeys, 0, len(m))
+	for key := range m {
+		keys = append(keys, key)
+	}
+	// Sort the keys
+	sort.Sort(keys)
+	for i, k := range keys {
+		if i != 0 {
 			out.WriteString(", ")
 		}
-		first = false
+		v := m[k]
 		out.WriteString(k.Inspect())
 		out.WriteString(":")
 		out.WriteString(v.Inspect())
