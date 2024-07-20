@@ -21,7 +21,7 @@ func NewLineMode(input string) *Lexer {
 	return &Lexer{input: input, lineMode: true}
 }
 
-func (l *Lexer) NextToken() token.Token { //nolint:funlen // many cases to lex.
+func (l *Lexer) NextToken() token.Token { //nolint:funlen,gocyclo // many cases to lex.
 	l.skipWhitespace()
 
 	ch := l.readChar()
@@ -87,6 +87,10 @@ func (l *Lexer) NextToken() token.Token { //nolint:funlen // many cases to lex.
 	case ']':
 		return newToken(token.RBRACKET, ch)
 	case ':':
+		if l.peekChar() == '=' { // semi hacky treat := as = (without changing literal etc so tests work with either)
+			nextChar := l.readChar()
+			return newToken(token.ASSIGN, nextChar)
+		}
 		return newToken(token.COLON, ch)
 	case '"':
 		return token.Token{Type: token.STRING, Literal: l.readString()}
