@@ -13,6 +13,10 @@ import (
 )
 
 func main() {
+	os.Exit(Main())
+}
+
+func Main() int {
 	commandFlag := flag.String("c", "", "command/inline script to run instead of interactive mode")
 	showParse := flag.Bool("parse", false, "show parse tree")
 	showEval := flag.Bool("eval", true, "show eval results")
@@ -32,11 +36,11 @@ func main() {
 			log.Errf("Errors: %v", errs)
 		}
 		fmt.Println(res)
-		return
+		return len(errs)
 	}
 	if nArgs == 0 {
 		repl.Interactive(os.Stdin, os.Stdout, options)
-		return
+		return 0
 	}
 	options.All = true
 	s := eval.NewState()
@@ -55,4 +59,5 @@ func main() {
 		}
 	}
 	log.Infof("All done")
+	return 0
 }
