@@ -30,7 +30,7 @@ Factorial of 5 is 120` + " \n120\n" // there is an extra space before \n that vs
 }
 
 func TestEvalStringParsingError(t *testing.T) {
-	s := `x:=3`
+	s := `.`
 	expected := ""
 	res, errs := repl.EvalString(s)
 	if len(errs) == 0 {

@@ -35,6 +35,7 @@ a2=3
 {"foo": "bar"}
 return // nil return
 macro(x, y) { x + y }
+a3:=5
 `
 
 	tests := []struct {
@@ -142,6 +143,9 @@ macro(x, y) { x + y }
 		{token.PLUS, "+"},
 		{token.IDENT, "y"},
 		{token.RBRACE, "}"},
+		{token.IDENT, "a3"},
+		{token.ASSIGN, "="}, // `:=` changed to `=`.
+		{token.INT, "5"},
 		{token.EOF, ""},
 	}
 
