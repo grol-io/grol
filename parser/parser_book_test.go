@@ -36,7 +36,7 @@ func TestLetStatements(t *testing.T) {
 				len(program.Statements))
 		}
 		stmt := program.Statements[0]
-		if !testLetStatement(t, stmt, tt.expectedIdentifier) {
+		if !CheckLetStatement(t, stmt, tt.expectedIdentifier) {
 			return
 		}
 
@@ -693,10 +693,10 @@ func TestCallExpressionParameterParsing(t *testing.T) {
 	}
 }
 
-func testLetStatement(t *testing.T, s ast.Node, name string) bool {
-	// Kept the name 'let*' but it's now just the `id = val` test
+// Kept the name 'let*' but it's now just the `id = val` test
+func CheckLetStatement(t *testing.T, s ast.Node, name string) bool {
 	if s.TokenLiteral() != name {
-		t.Errorf("s.TokenLiteral not '='. got=%q", s.TokenLiteral())
+		t.Errorf("s.TokenLiteral not %q. got=%q", name, s.TokenLiteral())
 		return false
 	}
 	// Expecting an expression statement containing an infix expression

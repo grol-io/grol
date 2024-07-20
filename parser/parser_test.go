@@ -38,51 +38,10 @@ foobar = 838383;
 
 	for i, tt := range tests {
 		stmt := program.Statements[i]
-		if !testLetStatement(t, stmt, tt.expectedIdentifier) {
+		if !parser.CheckLetStatement(t, stmt, tt.expectedIdentifier) {
 			return
 		}
 	}
-}
-
-// dup from _book.
-func testLetStatement(t *testing.T, s ast.Node, name string) bool {
-	// Kept the name 'let*' but it's now just the `id = val` test
-	if s.TokenLiteral() != name {
-		t.Errorf("s.TokenLiteral not '='. got=%q", s.TokenLiteral())
-		return false
-	}
-	// Expecting an expression statement containing an infix expression
-	exp, ok := s.(*ast.ExpressionStatement)
-	if !ok {
-		t.Errorf("s not *ast.ExpressionStatement. got=%T", s)
-		return false
-	}
-	letStmt, ok := exp.Val.(*ast.InfixExpression)
-	if !ok {
-		t.Errorf("s not *ast.InfixExpression. got=%T", s)
-		return false
-	}
-	if letStmt.Operator != "=" {
-		t.Errorf("letStmt.Operator is not '='. got=%q", letStmt.Operator)
-		return false
-	}
-	id, ok := letStmt.Left.(*ast.Identifier)
-	if !ok {
-		t.Errorf("letStmt.Left not *ast.Identifier. got=%T", letStmt.Left)
-		return false
-	}
-	if id.Val != name {
-		t.Errorf("letStmt.Name.Value not '%s'. got=%s", name, id.Val)
-		return false
-	}
-
-	if id.TokenLiteral() != name {
-		t.Errorf("letStmt.Name.TokenLiteral() not '%s'. got=%s",
-			name, id.TokenLiteral())
-		return false
-	}
-
-	return true
 }
 
 func checkParserErrors(t *testing.T, p *parser.Parser) {
