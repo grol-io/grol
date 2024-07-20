@@ -54,7 +54,6 @@ const (
 
 	// Keywords.
 	FUNCTION
-	LET
 	TRUE
 	FALSE
 	IF
@@ -76,7 +75,6 @@ var _ = EOF.String() // force compile error if go generate is missing.
 
 var keywords = map[string]Type{
 	"func":   FUNCTION,
-	"let":    LET,
 	"true":   TRUE,
 	"false":  FALSE,
 	"if":     IF,

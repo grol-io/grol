@@ -7,14 +7,14 @@ import (
 )
 
 func TestNextToken(t *testing.T) { //nolint:funlen // this is a test function with many cases back to back.
-	input := `let five = 5;
-let ten = 10;
+	input := `five = 5;
+ten = 10;
 
-let add = func(x, y) {
+add = func(x, y) {
 x + y;
 };
 
-let result = add(five, ten);
+result = add(five, ten);
 !-/%*5;
 5 < 10 > 5;
 
@@ -41,17 +41,14 @@ macro(x, y) { x + y }
 		expectedType    token.Type
 		expectedLiteral string
 	}{
-		{token.LET, "let"},
 		{token.IDENT, "five"},
 		{token.ASSIGN, "="},
 		{token.INT, "5"},
 		{token.SEMICOLON, ";"},
-		{token.LET, "let"},
 		{token.IDENT, "ten"},
 		{token.ASSIGN, "="},
 		{token.INT, "10"},
 		{token.SEMICOLON, ";"},
-		{token.LET, "let"},
 		{token.IDENT, "add"},
 		{token.ASSIGN, "="},
 		{token.FUNCTION, "func"},
@@ -67,7 +64,6 @@ macro(x, y) { x + y }
 		{token.SEMICOLON, ";"},
 		{token.RBRACE, "}"},
 		{token.SEMICOLON, ";"},
-		{token.LET, "let"},
 		{token.IDENT, "result"},
 		{token.ASSIGN, "="},
 		{token.IDENT, "add"},

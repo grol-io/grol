@@ -126,9 +126,7 @@ func (p *Parser) ParseProgram() *ast.Program {
 
 	for p.curToken.Type != token.EOF && p.curToken.Type != token.EOL {
 		stmt := p.parseStatement()
-		if stmt != nil { // classic interface nil gotcha, must make sure explicit nil interface is returned (right type)
-			program.Statements = append(program.Statements, stmt)
-		}
+		program.Statements = append(program.Statements, stmt)
 		p.nextToken()
 	}
 
@@ -158,38 +156,11 @@ func (p *Parser) parseComment() ast.Expression {
 
 func (p *Parser) parseStatement() ast.Node {
 	switch p.curToken.Type { //nolint:exhaustive // we're not done yet TODO: remove.
-	case token.LET:
-		return p.parseLetStatement()
 	case token.RETURN:
 		return p.parseReturnStatement()
 	default:
 		return p.parseExpressionStatement()
 	}
-}
-
-func (p *Parser) parseLetStatement() ast.Node {
-	stmt := &ast.LetStatement{}
-	stmt.Token = p.curToken
-
-	if !p.expectPeek(token.IDENT) {
-		return nil
-	}
-
-	stmt.Name = &ast.Identifier{Base: ast.Base{Token: p.curToken}, Val: p.curToken.Literal}
-
-	if !p.expectPeek(token.ASSIGN) {
-		return nil
-	}
-
-	p.nextToken()
-
-	stmt.Value = p.parseExpression(LOWEST)
-
-	if p.peekTokenIs(token.SEMICOLON) {
-		p.nextToken()
-	}
-
-	return stmt
 }
 
 func (p *Parser) parseReturnStatement() ast.Node {
@@ -455,10 +426,7 @@ func (p *Parser) parseBlockStatement() *ast.BlockStatement {
 			p.continuationNeeded = true
 			return nil
 		}
-		stmt := p.parseStatement()
-		if stmt != nil {
-			block.Statements = append(block.Statements, stmt)
-		}
+		block.Statements = append(block.Statements, p.parseStatement())
 		p.nextToken()
 	}
 	return block

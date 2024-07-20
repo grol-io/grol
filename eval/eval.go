@@ -30,6 +30,7 @@ func (s *State) Len() int {
 
 // TODO: don't call the .String() if log level isn't verbose.
 
+// Does unwrap (so stop bubbling up) return values.
 func (s *State) Eval(node any) object.Object {
 	result := s.evalInternal(node)
 	// unwrap return values only at the top.
@@ -67,7 +68,8 @@ func ArgCheck[T any](msg string, n int, vararg bool, args []T) *object.Error {
 	return nil
 }
 
-func (s *State) evalInternal(node any) object.Object { //nolint:funlen // we have a lot of cases.
+// Doesn't unwrap return - return bubbles up.
+func (s *State) evalInternal(node any) object.Object {
 	switch node := node.(type) {
 	// Statements
 	case *ast.Program:
@@ -87,16 +89,6 @@ func (s *State) evalInternal(node any) object.Object { //nolint:funlen // we hav
 
 	case *ast.IfExpression:
 		return s.evalIfExpression(node)
-		// assignement
-	case *ast.LetStatement:
-		val := s.evalInternal(node.Value)
-		if rt := val.Type(); rt == object.ERROR {
-			log.Warnf("can't eval %q: %v", node.String(), val)
-			return val
-		}
-		log.LogVf("eval let %s to %#v", node.Name.Val, val)
-		s.env.Set(node.Name.Val, val)
-		return val // maybe only if it's a literal?
 		// Expressions
 	case *ast.Identifier:
 		return s.evalIdentifier(node)
@@ -304,7 +296,7 @@ func (s *State) applyFunction(fn object.Object, args []object.Object) object.Obj
 	}
 	curState := s.env
 	s.env = nenv
-	res := s.Eval(function.Body) // Need to have the return value unwrapped. Bug #46
+	res := s.Eval(function.Body) // Need to have the return value unwrapped. Fixes bug #46
 	// restore the previous env/state.
 	s.env = curState
 	return res

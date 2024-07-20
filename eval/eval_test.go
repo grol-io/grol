@@ -208,7 +208,7 @@ func TestErrorHandling(t *testing.T) {
 		expectedMessage string
 	}{
 		{
-			"let f=func(x,y) {x+y}; f(1)",
+			"f=func(x,y) {x+y}; f(1)",
 			"<wrong number of arguments. got=1, want=2>",
 		},
 		{
@@ -283,10 +283,10 @@ func TestLetStatements(t *testing.T) {
 		input    string
 		expected int64
 	}{
-		{"let a = 5; a;", 5},
-		{"let a = 5 * 5; a;", 25},
-		{"let a = 5; let b = a; b;", 5},
-		{"let a = 5; let b = a; let c = a + b + 5; c;", 15},
+		{"a = 5; a;", 5},
+		{"a = 5 * 5; a;", 25},
+		{"a = 5; b = a; b;", 5},
+		{"a = 5; b = a; c = a + b + 5; c;", 15},
 		// and let-free:
 		{"x = 3+2; x", 5},
 		{`y = "ab"=="a"+"b"; if (y) {1} else {2}`, 1},
@@ -327,11 +327,11 @@ func TestFunctionApplication(t *testing.T) {
 		input    string
 		expected int64
 	}{
-		{"let identity = func(x) { x; }; identity(5);", 5},
-		{"let identity = func(x) { return x; }; identity(5);", 5},
-		{"let double = func(x) { x * 2; }; double(5);", 10},
-		{"let add = func(x, y) { x + y; }; add(5, 5);", 10},
-		{"let add = func(x, y) { x + y; }; add(5 + 5, add(5, 5));", 20},
+		{"identity = func(x) { x; }; identity(5);", 5},
+		{"identity = func(x) { return x; }; identity(5);", 5},
+		{"double = func(x) { x * 2; }; double(5);", 10},
+		{"add = func(x, y) { x + y; }; add(5, 5);", 10},
+		{"add = func(x, y) { x + y; }; add(5 + 5, add(5, 5));", 20},
 		{"func(x) { x; }(5)", 5},
 	}
 	for _, tt := range tests {
@@ -341,11 +341,11 @@ func TestFunctionApplication(t *testing.T) {
 
 func TestClosures(t *testing.T) {
 	input := `
-let newAdder = func(x) {
+newAdder = func(x) {
   func(y) { x + y };
 };
 
-let addTwo = newAdder(2);
+addTwo = newAdder(2);
 addTwo(2);`
 
 	testIntegerObject(t, testEval(t, input), 4)
@@ -549,7 +549,7 @@ func TestMapIndexExpressions(t *testing.T) {
 			nil,
 		},
 		{
-			`let key = "foo"; {"foo": 5}[key]`,
+			`key = "foo"; {"foo": 5}[key]`,
 			5,
 		},
 		{

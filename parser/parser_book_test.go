@@ -20,9 +20,9 @@ func TestLetStatements(t *testing.T) {
 		expectedIdentifier string
 		expectedValue      interface{}
 	}{
-		{"let x = 5;", "x", 5},
-		{"let y = true;", "y", true},
-		{"let foobar = y;", "foobar", "y"},
+		{"x = 5;", "x", 5},
+		{"y = true;", "y", true},
+		{"foobar = y;", "foobar", "y"},
 	}
 
 	for _, tt := range tests {
@@ -36,11 +36,11 @@ func TestLetStatements(t *testing.T) {
 				len(program.Statements))
 		}
 		stmt := program.Statements[0]
-		if !testLetStatement(t, stmt, tt.expectedIdentifier) {
+		if !CheckLetStatement(t, stmt, tt.expectedIdentifier) {
 			return
 		}
 
-		val := stmt.(*ast.LetStatement).Value
+		val := stmt.(*ast.ExpressionStatement).Val.(*ast.InfixExpression).Right
 		if !testLiteralExpression(t, val, tt.expectedValue) {
 			log.Errf("testLiteralExpression failed for %s got %#v", tt.input, stmt)
 			return
@@ -693,26 +693,40 @@ func TestCallExpressionParameterParsing(t *testing.T) {
 	}
 }
 
-func testLetStatement(t *testing.T, s ast.Node, name string) bool {
-	if s.TokenLiteral() != "let" {
-		t.Errorf("s.TokenLiteral not 'let'. got=%q", s.TokenLiteral())
+// Kept the name 'let*' but it's now just the `id = val` test.
+func CheckLetStatement(t *testing.T, s ast.Node, name string) bool {
+	if s.TokenLiteral() != name {
+		t.Errorf("s.TokenLiteral not %q. got=%q", name, s.TokenLiteral())
 		return false
 	}
-
-	letStmt, ok := s.(*ast.LetStatement)
+	// Expecting an expression statement containing an infix expression
+	exp, ok := s.(*ast.ExpressionStatement)
 	if !ok {
-		t.Errorf("s not *ast.LetStatement. got=%T", s)
+		t.Errorf("s not *ast.ExpressionStatement. got=%T", s)
+		return false
+	}
+	letStmt, ok := exp.Val.(*ast.InfixExpression)
+	if !ok {
+		t.Errorf("s not *ast.InfixExpression. got=%T", s)
+		return false
+	}
+	if letStmt.Operator != "=" {
+		t.Errorf("letStmt.Operator is not '='. got=%q", letStmt.Operator)
+		return false
+	}
+	id, ok := letStmt.Left.(*ast.Identifier)
+	if !ok {
+		t.Errorf("letStmt.Left not *ast.Identifier. got=%T", letStmt.Left)
+		return false
+	}
+	if id.Val != name {
+		t.Errorf("letStmt.Name.Value not '%s'. got=%s", name, id.Val)
 		return false
 	}
 
-	if letStmt.Name.Val != name {
-		t.Errorf("letStmt.Name.Value not '%s'. got=%s", name, letStmt.Name.Val)
-		return false
-	}
-
-	if letStmt.Name.TokenLiteral() != name {
+	if id.TokenLiteral() != name {
 		t.Errorf("letStmt.Name.TokenLiteral() not '%s'. got=%s",
-			name, letStmt.Name.TokenLiteral())
+			name, id.TokenLiteral())
 		return false
 	}
 

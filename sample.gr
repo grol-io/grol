@@ -2,7 +2,7 @@
 // <--- comments
 // See also the other *.gr files
 
-let unless = macro(cond, iffalse, iftrue) {
+unless = macro(cond, iffalse, iftrue) {
     quote(if (!(unquote(cond))) {
         unquote(iffalse)
     } else {
