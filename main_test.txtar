@@ -1,0 +1,34 @@
+# testscript framework tests for grol's main binary / command line
+
+# Basic usage test
+!grol -foo
+!stdout .
+stderr 'flag provided but not defined: -foo'
+
+# (short) version
+grol version
+stdout '^dev$'
+!stderr .
+
+# (long) version
+grol buildinfo
+stdout '^dev  go'
+stdout 'path	grol.io/grol'
+!stderr .
+
+# most basic expression
+grol -c '1+1'
+stdout '^2$'
+stderr welcome
+!stderr 'rror' # no Errors or other case/singular/plural
+
+# syntax error
+!grol -c 'foo'
+stderr 'Errors'
+stderr 'identifier not found: foo'
+stdout '<err: <identifier not found: foo>>'
+
+# Bug repro, return aborts the whole program
+grol -c 'f=func(){if (true) {return 1};2};log(f());f();3'
+stdout '^1\n3$'
+!stderr 'Errors'

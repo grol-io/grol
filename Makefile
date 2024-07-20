@@ -31,7 +31,7 @@ wasm: Makefile *.go */*.go $(GEN) wasm/wasm_exec.js wasm/wasm_exec.html wasm/gro
 	sleep 3
 	open http://localhost:8080/
 
-GIT_TAG:=$(shell git describe --tags --abbrev=0)
+GIT_TAG=$(shell git describe --tags --abbrev=0)
 # used to copy to site a release version
 wasm-release: Makefile *.go */*.go $(GEN) wasm/wasm_exec.js wasm/wasm_exec.html
 	@echo "Building wasm release GIT_TAG=$(GIT_TAG)"
