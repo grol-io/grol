@@ -11,17 +11,22 @@ grol: Makefile *.go */*.go $(GEN)
 	CGO_ENABLED=0 go build -trimpath -ldflags="-w -s" -tags "$(GO_BUILD_TAGS)" .
 	ls -lh grol
 
-tinygo: Makefile *.go */*.go $(GEN) wasm/wasm_exec.js wasm/wasm_exec.html
+tinygo-tests: Makefile *.go */*.go $(GEN)
+	CGO_ENABLED=0 tinygo test $(TINYGO_STACKS) -tags "$(GO_BUILD_TAGS)" -v ./...
+
+tinygo: Makefile *.go */*.go $(GEN)
 	CGO_ENABLED=0 tinygo build -o grol.tiny -tags "$(GO_BUILD_TAGS)" .
 	strip grol.tiny
 	ls -lh grol.tiny
+
+TINYGO_STACKS:=-stack-size=40mb
 
 wasm: Makefile *.go */*.go $(GEN) wasm/wasm_exec.js wasm/wasm_exec.html wasm/grol_wasm.html
 #	GOOS=wasip1 GOARCH=wasm go build -o grol.wasm -trimpath -ldflags="-w -s" -tags "$(GO_BUILD_TAGS)" .
 #	GOOS=js GOARCH=wasm go build -o wasm/grol.wasm -trimpath -ldflags="-w -s" -tags "$(GO_BUILD_TAGS)" ./wasm
 #	GOOS=wasip1 GOARCH=wasm tinygo build -target=wasi -no-debug -o grol_tiny.wasm -tags "$(GO_BUILD_TAGS)" .
 # Tiny go generates errors https://github.com/tinygo-org/tinygo/issues/1140
-	GOOS=js GOARCH=wasm tinygo build -no-debug -o wasm/grol.wasm -tags "$(GO_BUILD_TAGS)" ./wasm
+	GOOS=js GOARCH=wasm tinygo build $(TINYGO_STACKS) -no-debug -o wasm/grol.wasm -tags "$(GO_BUILD_TAGS)" ./wasm
 	echo '<!doctype html><html><head><meta charset="utf-8"><title>Grol</title></head>' > wasm/index.html
 	cat wasm/grol_wasm.html >> wasm/index.html
 	echo '</html>' >> wasm/index.html
@@ -37,7 +42,7 @@ wasm-release: Makefile *.go */*.go $(GEN) wasm/wasm_exec.js wasm/wasm_exec.html
 	@echo "Building wasm release GIT_TAG=$(GIT_TAG)"
 #	GOOS=js GOARCH=wasm go install -trimpath -ldflags="-w -s" -tags "$(GO_BUILD_TAGS)" grol.io/grol/wasm@$(GIT_TAG)
 	# No buildinfo and no tinygo install so we set version old style:
-	GOOS=js GOARCH=wasm tinygo build -o wasm/grol.wasm -no-debug -ldflags="-X main.TinyGoVersion=$(GIT_TAG)" -tags  "$(GO_BUILD_TAGS)" ./wasm
+	GOOS=js GOARCH=wasm tinygo build $(TINYGO_STACKS) -o wasm/grol.wasm -no-debug -ldflags="-X main.TinyGoVersion=$(GIT_TAG)" -tags  "$(GO_BUILD_TAGS)" ./wasm
 #	mv "$(shell go env GOPATH)/bin/js_wasm/wasm" wasm/grol.wasm
 	ls -lh wasm/*.wasm
 
