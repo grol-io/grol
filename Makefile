@@ -14,6 +14,15 @@ grol: Makefile *.go */*.go $(GEN)
 tinygo-tests: Makefile *.go */*.go $(GEN)
 	CGO_ENABLED=0 tinygo test $(TINYGO_STACKS) -tags "$(GO_BUILD_TAGS)" -v ./...
 
+TINY_TEST_PACKAGE:=./ast
+tiny_test:
+	# Make a binary that can be debugged, use
+	# make TINY_TEST_PACKAGE=.
+	# to set the package to test to . for instance
+	-rm -f $@
+	CGO_ENABLED=0 tinygo test -tags "no_net,no_json" -c -o $@ -x $(TINY_TEST_PACKAGE)
+	./tiny_test -test.v
+
 tinygo: Makefile *.go */*.go $(GEN)
 	CGO_ENABLED=0 tinygo build -o grol.tiny -tags "$(GO_BUILD_TAGS)" .
 	strip grol.tiny
@@ -83,4 +92,4 @@ lint: .golangci.yml
 .golangci.yml: Makefile
 	curl -fsS -o .golangci.yml https://raw.githubusercontent.com/fortio/workflows/main/golangci.yml
 
-.PHONY: all lint generate test clean run build wasm tinygo wasm-release
+.PHONY: all lint generate test clean run build wasm tinygo wasm-release tiny_test tinygo-tests
