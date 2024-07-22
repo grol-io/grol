@@ -47,6 +47,9 @@ grol -c 'f=func(n){if (n==5) {return 1};2};log(f(5));f(5);3'
 stdout '^1\n3$'
 !stderr 'Errors'
 
+# test bad macro as well as indirectly the error() builtin
+!grol -c 'm=macro(){};m()'
+stdout '^<err: macro should return Quote. got=object.Null \({}\)>\n$'
 
 -- sample_test.gr --
 // Sample file that our gorepl can interpret

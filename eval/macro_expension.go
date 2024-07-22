@@ -1,9 +1,12 @@
 package eval
 
 import (
+	"fmt"
+
 	"fortio.org/log"
 	"grol.io/grol/ast"
 	"grol.io/grol/object"
+	"grol.io/grol/token"
 )
 
 func (s *State) DefineMacros(program *ast.Program) {
@@ -92,7 +95,15 @@ func (s *State) ExpandMacros(program ast.Node) ast.Node {
 
 		quote, ok := evaluated.(object.Quote)
 		if !ok {
-			log.Fatalf("We only support returning AST-nodes from macros, got %#v", evaluated)
+			estr := fmt.Sprintf("macro should return Quote. got=%T (%+v)", evaluated, evaluated)
+			log.Critf("%s", estr)
+			res := ast.Builtin{}
+			res.Type = token.ERROR
+			res.Literal = "error"
+			msg := ast.StringLiteral{}
+			msg.Literal = estr
+			res.Parameters = []ast.Expression{&msg}
+			return &res
 		}
 		return quote.Node
 	})
