@@ -378,14 +378,16 @@ func (p *Parser) parseIfExpression() ast.Expression {
 	expression := &ast.IfExpression{}
 	expression.Token = p.curToken
 
-	if !p.expectPeek(token.LPAREN) {
-		return nil
+	needCloseParen := false
+	if p.peekTokenIs(token.LPAREN) {
+		needCloseParen = true
+		p.nextToken()
 	}
 
 	p.nextToken()
 	expression.Condition = p.parseExpression(LOWEST)
 
-	if !p.expectPeek(token.RPAREN) {
+	if needCloseParen && !p.expectPeek(token.RPAREN) {
 		return nil
 	}
 

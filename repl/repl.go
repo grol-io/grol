@@ -32,10 +32,11 @@ func logParserErrors(p *parser.Parser) bool {
 }
 
 type Options struct {
-	ShowParse bool
-	ShowEval  bool
-	All       bool
-	NoColor   bool // color controlled by log package, unless this is set to true.
+	ShowParse  bool
+	ShowEval   bool
+	All        bool
+	NoColor    bool // color controlled by log package, unless this is set to true.
+	FormatOnly bool
 }
 
 func EvalAll(s, macroState *eval.State, in io.Reader, out io.Writer, options Options) {
@@ -107,6 +108,10 @@ func EvalOne(s, macroState *eval.State, what string, out io.Writer, options Opti
 	}
 	if p.ContinuationNeeded() {
 		return true, nil
+	}
+	if options.FormatOnly {
+		fmt.Fprintln(out, program.String())
+		return false, nil
 	}
 	if options.ShowParse {
 		fmt.Fprint(out, "== Parse ==> ")

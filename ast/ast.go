@@ -189,13 +189,13 @@ func (i InfixExpression) Value() Expression {
 func (i InfixExpression) String() string {
 	var out strings.Builder
 
-	out.WriteString("(")
+	// out.WriteString("(")
 	out.WriteString(i.Left.String())
 	out.WriteString(" ")
 	out.WriteString(i.Operator)
 	out.WriteString(" ")
 	out.WriteString(i.Right.String())
-	out.WriteString(")")
+	// out.WriteString(")")
 
 	return out.String()
 }
