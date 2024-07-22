@@ -114,7 +114,7 @@ func (s *State) evalInternal(node any) object.Object {
 		return object.NativeBoolToBooleanObject(node.Val)
 
 	case *ast.StringLiteral:
-		return object.String{Value: node.Val}
+		return object.String{Value: node.Literal}
 
 	case *ast.ReturnStatement:
 		if node.ReturnValue == nil {
@@ -182,7 +182,7 @@ func (s *State) evalMapLiteral(node *ast.MapLiteral) object.Object {
 
 func (s *State) evalBuiltin(node *ast.Builtin) object.Object {
 	// all take 1 arg exactly except print and log which take 1+.
-	varArg := node.Type == token.PRINT || node.Type == token.LOG
+	varArg := node.Type == token.PRINT || node.Type == token.LOG || node.Type == token.ERROR
 	if oerr := ArgCheck(node.Literal, 1, varArg, node.Parameters); oerr != nil {
 		return *oerr
 	}
@@ -193,6 +193,8 @@ func (s *State) evalBuiltin(node *ast.Builtin) object.Object {
 	}
 	arr, _ := val.(object.Array)
 	switch node.Type { //nolint:exhaustive // we have default, only 2 cases.
+	case token.ERROR:
+		fallthrough
 	case token.PRINT:
 		fallthrough
 	case token.LOG:
@@ -207,6 +209,9 @@ func (s *State) evalBuiltin(node *ast.Builtin) object.Object {
 			} else {
 				buf.WriteString(r.Inspect())
 			}
+		}
+		if node.Type == token.ERROR {
+			return object.Error{Value: buf.String()}
 		}
 		doLog := node.Type != token.PRINT
 		if s.NoLog && doLog {

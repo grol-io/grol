@@ -67,6 +67,7 @@ const (
 	REST
 	PRINT
 	LOG
+	ERROR
 	EOF
 )
 
@@ -87,6 +88,7 @@ var keywords = map[string]Type{
 	"rest":  REST,
 	"print": PRINT,
 	"log":   LOG,
+	"error": ERROR,
 }
 
 func LookupIdent(ident string) Type {

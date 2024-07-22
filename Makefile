@@ -3,7 +3,7 @@ all: generate lint test run
 GO_BUILD_TAGS:=no_net,no_json
 
 run: grol
-	./grol -parse
+	./grol -parse -loglevel debug
 
 GEN:=object/type_string.go parser/priority_string.go token/type_string.go
 

@@ -871,8 +871,8 @@ func TestStringLiteralExpression(t *testing.T) {
 		t.Fatalf("exp not *ast.StringLiteral. got=%T", v)
 	}
 	expected := "hello\nworld\"abc"
-	if literal.Val != expected {
-		t.Errorf("literal.Value not %q. got=%q", expected, literal.Val)
+	if literal.Literal != expected {
+		t.Errorf("literal.Value not %q. got=%q", expected, literal.Literal)
 	}
 }
 
@@ -984,7 +984,7 @@ func TestParsingMapLiteralsStringKeys(t *testing.T) {
 			t.Errorf("key is not ast.StringLiteral. got=%T", key)
 		}
 
-		expectedValue := expected[literal.Val]
+		expectedValue := expected[literal.Literal]
 
 		testIntegerLiteral(t, value, expectedValue)
 	}
@@ -1048,7 +1048,7 @@ func TestParsingMapLiteralsWithExpressions(t *testing.T) {
 			continue
 		}
 
-		testFunc, ok := tests[literal.Val]
+		testFunc, ok := tests[literal.Literal]
 		if !ok {
 			t.Errorf("No test function for key %q found", literal.String())
 			continue
