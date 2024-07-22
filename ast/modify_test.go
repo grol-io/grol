@@ -1,6 +1,3 @@
-// Not enough reflection implemented in TinyGo to do deep equal.
-//go:build !tinygo
-
 package ast
 
 import (
