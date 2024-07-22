@@ -8,6 +8,7 @@ Web assembly main for grol, exposing grol (repl.EvalString for now) to JS
 package main
 
 import (
+	"runtime"
 	"syscall/js"
 
 	"fortio.org/cli"
@@ -33,9 +34,14 @@ func jsEval(this js.Value, args []js.Value) interface{} {
 	return result
 }
 
+var TinyGoVersion string
+
 func main() {
 	cli.Main() // just to get version etc
 	_, grolVersion, _ := version.FromBuildInfoPath("grol.io/grol")
+	if TinyGoVersion != "" { // tinygo doesn't have modules info in buildinfo nor tinygo install...
+		grolVersion = TinyGoVersion + " " + runtime.Compiler + runtime.Version() + " " + runtime.GOARCH + " " + runtime.GOOS
+	}
 	log.Infof("Grol wasm main %s", grolVersion)
 	done := make(chan struct{}, 0)
 	global := js.Global()
