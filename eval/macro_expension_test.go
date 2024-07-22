@@ -17,7 +17,7 @@ func TestDefineMacros(t *testing.T) {
 
 	state := NewState()
 	env := state.env
-	program := testParseProgram(input)
+	program := testParseProgram(t, input)
 
 	state.DefineMacros(program)
 
@@ -64,10 +64,19 @@ func TestDefineMacros(t *testing.T) {
 	}
 }
 
-func testParseProgram(input string) *ast.Program {
+func testParseProgram(t *testing.T, input string) *ast.Program {
 	l := lexer.New(input)
 	p := parser.New(l)
-	return p.ParseProgram()
+	r := p.ParseProgram()
+	errors := p.Errors()
+	if len(errors) != 0 {
+		t.Errorf("parser has %d error(s)", len(errors))
+		for _, msg := range errors {
+			t.Errorf("parser error: %s", msg)
+		}
+		t.FailNow()
+	}
+	return r
 }
 
 func TestExpandMacros(t *testing.T) {
@@ -75,6 +84,10 @@ func TestExpandMacros(t *testing.T) {
 		input    string
 		expected string
 	}{
+		{
+			`m=macro(){}; m()`, // bad macro
+			`error("macro should return Quote. got=object.Null ({})")`,
+		},
 		{
 			`
             infixExpression = macro() { quote(1 + 2); };
@@ -108,8 +121,8 @@ func TestExpandMacros(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		expected := testParseProgram(tt.expected)
-		program := testParseProgram(tt.input)
+		expected := testParseProgram(t, tt.expected)
+		program := testParseProgram(t, tt.input)
 
 		state := NewState()
 		state.DefineMacros(program)

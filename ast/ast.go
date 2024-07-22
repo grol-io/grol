@@ -143,7 +143,7 @@ func (i FloatLiteral) String() string {
 
 type StringLiteral struct {
 	Base
-	Val string
+	// Val string // Literal is enough to store the string value.
 }
 
 func (s StringLiteral) Value() Expression {
