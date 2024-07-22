@@ -19,7 +19,7 @@ jobs:
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # pin@v3
         with:
           fetch-depth: 0
-      - uses: docker/setup-qemu-action@5927c834f5b4fdf503fca6f4c7eccda82949e1ee # pin@v1
+      - uses: docker/setup-qemu-action@49b3bc8e6bdd4a60e6116a5414239cba5943d3cf # pin@v1
       - uses: docker/setup-buildx-action@aa33708b10e362ff993539393ff100fa93ed6a27 # pin@v1
       - name: Set up Go
         uses: actions/setup-go@v5 # pin@v3
