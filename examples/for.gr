@@ -1,0 +1,18 @@
+// for loop example, functional style
+// executes with 1..n passed to the function parameter.
+
+for=func(n, f) {
+    l=func(i,f) { // internal lambda with the index param
+       r = f(i)
+       if (i>=n) {
+           return r
+       }
+       l(i+1, f)
+    }
+    l(1,f)
+}
+
+for(5, func(n) {
+   log("n is", n)
+   n // return value at the end
+})

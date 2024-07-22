@@ -64,7 +64,7 @@ wasm/wasm_exec.html:
 
 test: grol
 	CGO_ENABLED=0 go test -tags $(GO_BUILD_TAGS) ./...
-	./grol *.gr
+	./grol examples/*.gr
 
 generate:
 	go generate ./... # if this fails go install golang.org/x/tools/cmd/stringer@latest

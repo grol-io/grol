@@ -54,10 +54,12 @@ print, log
 
 macros and more all the time
 
-See also [sample.gr](sample.gr) that you can run with
+See also [sample.gr](examples/sample.gr) and others in that folder, that you can run with
 ```
-gorepl *.gr
+gorepl examples/*.gr
 ```
+
+or copypaste to the online version on [grol.io](https://grol.io)
 
 ## Dev mode:
 ```shell
