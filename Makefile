@@ -1,4 +1,4 @@
-all: generate lint test run
+all: generate lint check test run
 
 GO_BUILD_TAGS:=no_net,no_json
 
@@ -66,6 +66,9 @@ test: grol
 	CGO_ENABLED=0 go test -tags $(GO_BUILD_TAGS) ./...
 	./grol examples/*.gr
 
+check: grol
+	./check_samples_double_format.sh examples/*.gr
+
 generate:
 	go generate ./... # if this fails go install golang.org/x/tools/cmd/stringer@latest
 
@@ -92,4 +95,4 @@ lint: .golangci.yml
 .golangci.yml: Makefile
 	curl -fsS -o .golangci.yml https://raw.githubusercontent.com/fortio/workflows/main/golangci.yml
 
-.PHONY: all lint generate test clean run build wasm tinygo wasm-release tiny_test tinygo-tests
+.PHONY: all lint generate test clean run build wasm tinygo wasm-release tiny_test tinygo-tests check

@@ -140,7 +140,7 @@ grol 0.25.0 usage:
 	grol [flags] *.gr files to interpret or `-` for stdin without prompt
   or no arguments for stdin repl...
 or 1 of the special arguments
-	./grol {help|envhelp|version|buildinfo}
+	grol {help|envhelp|version|buildinfo}
 flags:
   -c string
     	command/inline script to run instead of interactive mode
