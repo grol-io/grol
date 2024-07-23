@@ -21,7 +21,7 @@ func NewLineMode(input string) *Lexer {
 	return &Lexer{input: input, lineMode: true}
 }
 
-func (l *Lexer) NextToken() *token.Token { //nolint:funlen,gocyclo // many cases to lex.
+func (l *Lexer) NextToken() *token.Token {
 	l.skipWhitespace()
 
 	ch := l.readChar()
@@ -55,9 +55,9 @@ func (l *Lexer) NextToken() *token.Token { //nolint:funlen,gocyclo // many cases
 		return token.Intern(token.STRING, l.readString())
 	case 0:
 		if l.lineMode {
-			return token.EOL_TOKEN
+			return token.EOLT
 		} else {
-			return token.EOF_TOKEN
+			return token.EOFT
 		}
 	default:
 		switch {

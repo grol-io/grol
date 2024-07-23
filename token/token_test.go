@@ -96,7 +96,7 @@ func TestSingleCharTokens(t *testing.T) {
 	for _, tt := range tests {
 		tok := ConstantTokenChar(tt.input)
 		if tok == nil {
-			t.Errorf("ConstantTokenChar[%c] was not found", tt.input)
+			t.Fatalf("ConstantTokenChar[%c] was not found", tt.input)
 		}
 		if tok.Type != tt.expected {
 			t.Errorf("ConstantTokenChar[%c] returned %v, expected %v", tt.input, tok.Type, tt.expected)
@@ -111,6 +111,9 @@ func TestColonEqualAlias(t *testing.T) {
 	Init()
 	// Test := alias
 	tok := ConstantTokenStr(":=")
+	if tok == nil {
+		t.Fatalf("ConstantTokenStr[:=] was not found")
+	}
 	if tok.Type != ASSIGN {
 		t.Errorf("ConstantTokenStr[:=] returned %v, expected ASSIGN", tok.Type)
 	}

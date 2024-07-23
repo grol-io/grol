@@ -114,14 +114,16 @@ const (
 )
 
 var (
-	EOL_TOKEN = &Token{Type: EOL}
-	EOF_TOKEN = &Token{Type: EOF}
+	EOLT = &Token{Type: EOL}
+	EOFT = &Token{Type: EOF}
 )
 
-var keywords map[string]*Token
-var cTokens map[byte]*Token
-var tToChar map[Type]byte
-var sTokens map[string]*Token
+var (
+	keywords map[string]*Token
+	cTokens  map[byte]*Token
+	tToChar  map[Type]byte
+	sTokens  map[string]*Token
+)
 
 func init() {
 	Init()
