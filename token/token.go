@@ -113,6 +113,11 @@ const (
 	EOF
 )
 
+var (
+	EOL_TOKEN = &Token{Type: EOL}
+	EOF_TOKEN = &Token{Type: EOF}
+)
+
 var keywords map[string]*Token
 var cTokens map[byte]*Token
 var tToChar map[Type]byte
@@ -189,6 +194,8 @@ func Init() {
 	assocS(GTEQ, ">=")
 	assocS(EQ, "==")
 	assocS(NOTEQ, "!=")
+	// Special alias for := to be same as ASSIGN.
+	sTokens[":="] = cTokens['=']
 }
 
 //go:generate stringer -type=Type

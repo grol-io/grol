@@ -106,3 +106,15 @@ func TestSingleCharTokens(t *testing.T) {
 		}
 	}
 }
+
+func TestColonEqualAlias(t *testing.T) {
+	Init()
+	// Test := alias
+	tok := ConstantTokenStr(":=")
+	if tok.Type != ASSIGN {
+		t.Errorf("ConstantTokenStr[:=] returned %v, expected ASSIGN", tok.Type)
+	}
+	if tok.Literal() != "=" {
+		t.Errorf("ConstantTokenStr[:=] returned %v, expected '='", tok.Literal())
+	}
+}

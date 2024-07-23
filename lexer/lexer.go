@@ -21,98 +21,53 @@ func NewLineMode(input string) *Lexer {
 	return &Lexer{input: input, lineMode: true}
 }
 
-func (l *Lexer) NextToken() token.Token { //nolint:funlen,gocyclo // many cases to lex.
+func (l *Lexer) NextToken() *token.Token { //nolint:funlen,gocyclo // many cases to lex.
 	l.skipWhitespace()
 
 	ch := l.readChar()
 	switch ch {
-	case '=':
+	case '=', '!', ':':
 		if l.peekChar() == '=' {
 			nextChar := l.readChar()
 			literal := string(ch) + string(nextChar)
-			return token.Token{Type: token.EQ, Literal: literal}
+			// := is aliased directly to ASSIGN (with = as literal), a bit hacky but
+			// so we normalize := like it didn't exist.
+			return token.ConstantTokenStr(literal)
 		}
-		return newToken(token.ASSIGN, ch)
-	case '+':
-		return newToken(token.PLUS, ch)
-	case '-':
-		return newToken(token.MINUS, ch)
-	case '!':
-		if l.peekChar() == '=' {
-			nextChar := l.readChar()
-			literal := string(ch) + string(nextChar)
-			return token.Token{Type: token.NOTEQ, Literal: literal}
-		} else {
-			return newToken(token.BANG, ch)
-		}
+		return token.ConstantTokenChar(ch)
+
+	case '%', '*', '+', ';', ',', '{', '}', '(', ')', '[', ']', '-':
+		// TODO maybe reorder so it's a continuous range for pure single character tokens
+		return token.ConstantTokenChar(ch)
 	case '/':
 		if l.peekChar() == '/' {
-			tok := token.Token{Type: token.LINECOMMENT}
-			tok.Literal = l.readLineComment()
-			return tok
+			return token.Intern(token.LINECOMMENT, l.readLineComment())
 		}
-		return newToken(token.SLASH, ch)
-	case '%':
-		return newToken(token.PERCENT, ch)
-	case '*':
-		return newToken(token.ASTERISK, ch)
-	case '<':
+		return token.ConstantTokenChar(ch)
+	case '<', '>':
 		if l.peekChar() == '=' {
 			nextChar := l.readChar()
 			literal := string(ch) + string(nextChar)
-			return token.Token{Type: token.LTEQ, Literal: literal}
+			return token.ConstantTokenStr(literal)
 		}
-		return newToken(token.LT, ch)
-	case '>':
-		if l.peekChar() == '=' {
-			nextChar := l.readChar()
-			literal := string(ch) + string(nextChar)
-			return token.Token{Type: token.GTEQ, Literal: literal}
-		}
-		return newToken(token.GT, ch)
-	case ';':
-		return newToken(token.SEMICOLON, ch)
-	case ',':
-		return newToken(token.COMMA, ch)
-	case '{':
-		return newToken(token.LBRACE, ch)
-	case '}':
-		return newToken(token.RBRACE, ch)
-	case '(':
-		return newToken(token.LPAREN, ch)
-	case ')':
-		return newToken(token.RPAREN, ch)
-	case '[':
-		return newToken(token.LBRACKET, ch)
-	case ']':
-		return newToken(token.RBRACKET, ch)
-	case ':':
-		if l.peekChar() == '=' { // semi hacky treat := as = (without changing literal etc so tests work with either)
-			nextChar := l.readChar()
-			return newToken(token.ASSIGN, nextChar)
-		}
-		return newToken(token.COLON, ch)
+		return token.ConstantTokenChar(ch)
 	case '"':
-		return token.Token{Type: token.STRING, Literal: l.readString()}
+		return token.Intern(token.STRING, l.readString())
 	case 0:
 		if l.lineMode {
-			return token.Token{Type: token.EOL}
+			return token.EOL_TOKEN
 		} else {
-			return token.Token{Type: token.EOF}
+			return token.EOF_TOKEN
 		}
 	default:
-		tok := token.Token{}
 		switch {
 		case isLetter(ch):
-			tok.Literal = l.readIdentifier()
-			tok.Type = token.LookupIdent(tok.Literal)
-			return tok
+			return token.LookupIdent(l.readIdentifier())
 		case isDigit(ch) || ch == '.':
 			// number can start with . eg .5
-			tok.Literal, tok.Type = l.readNumber(ch)
-			return tok
+			return token.Intern(l.readNumber(ch))
 		default:
-			return newToken(token.ILLEGAL, ch)
+			return token.Intern(token.ILLEGAL, string(ch))
 		}
 	}
 }
@@ -186,7 +141,7 @@ func (l *Lexer) readLineComment() string {
 	return l.input[pos:l.pos]
 }
 
-func (l *Lexer) readNumber(ch byte) (string, token.Type) {
+func (l *Lexer) readNumber(ch byte) (token.Type, string) {
 	t := token.INT
 	if ch == '.' {
 		t = token.FLOAT
@@ -203,7 +158,7 @@ func (l *Lexer) readNumber(ch byte) (string, token.Type) {
 			l.pos++
 		}
 	}
-	return l.input[pos:l.pos], t
+	return t, l.input[pos:l.pos]
 }
 
 func isLetter(ch byte) bool {
@@ -216,8 +171,4 @@ func isAlphaNum(ch byte) bool {
 
 func isDigit(ch byte) bool {
 	return '0' <= ch && ch <= '9'
-}
-
-func newToken(typ token.Type, ch byte) token.Token {
-	return token.Token{Type: typ, Literal: string(ch)}
 }

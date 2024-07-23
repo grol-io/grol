@@ -36,6 +36,8 @@ a2=3
 return // nil return
 macro(x, y) { x + y }
 a3:=5
+4>=3.1
+@
 `
 
 	tests := []struct {
@@ -52,7 +54,7 @@ a3:=5
 		{token.SEMICOLON, ";"},
 		{token.IDENT, "add"},
 		{token.ASSIGN, "="},
-		{token.FUNCTION, "func"},
+		{token.FUNC, "func"},
 		{token.LPAREN, "("},
 		{token.IDENT, "x"},
 		{token.COMMA, ","},
@@ -146,6 +148,10 @@ a3:=5
 		{token.IDENT, "a3"},
 		{token.ASSIGN, "="}, // `:=` changed to `=`.
 		{token.INT, "5"},
+		{token.INT, "4"},
+		{token.GTEQ, ">="},
+		{token.FLOAT, "3.1"},
+		{token.ILLEGAL, "@"},
 		{token.EOF, ""},
 	}
 
@@ -159,7 +165,34 @@ a3:=5
 				i, tt.expectedType, tt.expectedLiteral, tok)
 		}
 
-		if tok.Literal != tt.expectedLiteral {
+		if tok.Literal() != tt.expectedLiteral {
+			t.Fatalf("tests[%d] - literal wrong. expected=%q, got=%v",
+				i, tt.expectedLiteral, tok)
+		}
+	}
+}
+
+func TestNextTokenEOLMode(t *testing.T) {
+	input := `if .5 {`
+	l := NewLineMode(input)
+	tests := []struct {
+		expectedType    token.Type
+		expectedLiteral string
+	}{
+		{token.IF, "if"},
+		{token.FLOAT, ".5"},
+		{token.LBRACE, "{"},
+		{token.EOL, ""},
+	}
+	for i, tt := range tests {
+		tok := l.NextToken()
+
+		if tok.Type != tt.expectedType {
+			t.Fatalf("tests[%d] - tokentype wrong. expected=%q and %q, got=%v",
+				i, tt.expectedType, tt.expectedLiteral, tok)
+		}
+
+		if tok.Literal() != tt.expectedLiteral {
 			t.Fatalf("tests[%d] - literal wrong. expected=%q, got=%v",
 				i, tt.expectedLiteral, tok)
 		}
