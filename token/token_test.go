@@ -4,9 +4,9 @@ import "testing"
 
 func TestInterning(t *testing.T) {
 	Init()
-	myToken1 := &Token{Type: IDENT, literal: "myToken 1"}
-	myToken2 := &Token{Type: IDENT, literal: "myToken 2"}
-	myToken1Again := &Token{Type: IDENT, literal: "myToken 1"}
+	myToken1 := &Token{tokenType: IDENT, literal: "myToken 1"}
+	myToken2 := &Token{tokenType: IDENT, literal: "myToken 2"}
+	myToken1Again := &Token{tokenType: IDENT, literal: "myToken 1"}
 	if myToken1 == myToken1Again {
 		t.Errorf("myToken1 and myToken1Again should not be the same pointer value")
 	}
@@ -24,21 +24,21 @@ func TestInterning(t *testing.T) {
 func TestLookup(t *testing.T) {
 	Init()
 	tf := LookupIdent("func")
-	if tf.Type != FUNC {
+	if tf.Type() != FUNC {
 		t.Errorf("LookupIdent(func) returned %v, expected FUNC", tf)
 	}
 	if tf.literal != "func" {
 		t.Errorf("LookupIdent(func) returned %v, expected 'func'", tf)
 	}
 	te := LookupIdent("error")
-	if te.Type != ERROR { // ERROR is a keyword
+	if te.Type() != ERROR { // ERROR is a keyword
 		t.Errorf("LookupIdent(error) returned %v, expected ERROR", te)
 	}
 	if te.literal != "error" {
 		t.Errorf("LookupIdent(error) returned %v, expected 'error'", te)
 	}
 	tu := LookupIdent("unknown")
-	if tu.Type != IDENT {
+	if tu.Type() != IDENT {
 		t.Errorf("LookupIdent(unknown) returned %v, expected IDENT", tu)
 	}
 	if tu.literal != "unknown" {
@@ -71,7 +71,7 @@ func TestMultiCharTokens(t *testing.T) {
 		{"<=", LTEQ},
 	}
 	for _, tt := range tests {
-		tok := &Token{Type: tt.expected, literal: tt.input}
+		tok := &Token{tokenType: tt.expected, literal: tt.input}
 		tok2 := InternToken(tok)
 		if tok == tok2 {
 			t.Errorf("Intern[%s] was unexpectedly created", tt.input)
@@ -98,8 +98,8 @@ func TestSingleCharTokens(t *testing.T) {
 		if tok == nil {
 			t.Fatalf("ConstantTokenChar[%c] was not found", tt.input)
 		}
-		if tok.Type != tt.expected {
-			t.Errorf("ConstantTokenChar[%c] returned %v, expected %v", tt.input, tok.Type, tt.expected)
+		if tok.Type() != tt.expected {
+			t.Errorf("ConstantTokenChar[%c] returned %v, expected %v", tt.input, tok.Type(), tt.expected)
 		}
 		if tok.Literal() != string(tt.input) {
 			t.Errorf("ConstantTokenChar[%c] returned %v, expected '%c'", tt.input, tok.Literal(), tt.input)
@@ -114,8 +114,8 @@ func TestColonEqualAlias(t *testing.T) {
 	if tok == nil {
 		t.Fatalf("ConstantTokenStr[:=] was not found")
 	}
-	if tok.Type != ASSIGN {
-		t.Errorf("ConstantTokenStr[:=] returned %v, expected ASSIGN", tok.Type)
+	if tok.Type() != ASSIGN {
+		t.Errorf("ConstantTokenStr[:=] returned %v, expected ASSIGN", tok.Type())
 	}
 	if tok.Literal() != "=" {
 		t.Errorf("ConstantTokenStr[:=] returned %v, expected '='", tok.Literal())

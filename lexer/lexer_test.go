@@ -160,7 +160,7 @@ a3:=5
 	for i, tt := range tests {
 		tok := l.NextToken()
 
-		if tok.Type != tt.expectedType {
+		if tok.Type() != tt.expectedType {
 			t.Fatalf("tests[%d] - tokentype wrong. expected=%q and %q, got=%v",
 				i, tt.expectedType, tt.expectedLiteral, tok)
 		}
@@ -187,7 +187,7 @@ func TestNextTokenEOLMode(t *testing.T) {
 	for i, tt := range tests {
 		tok := l.NextToken()
 
-		if tok.Type != tt.expectedType {
+		if tok.Type() != tt.expectedType {
 			t.Fatalf("tests[%d] - tokentype wrong. expected=%q and %q, got=%v",
 				i, tt.expectedType, tt.expectedLiteral, tok)
 		}

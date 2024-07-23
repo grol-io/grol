@@ -23,9 +23,8 @@ func NewLineMode(input string) *Lexer {
 
 func (l *Lexer) NextToken() *token.Token {
 	l.skipWhitespace()
-
 	ch := l.readChar()
-	switch ch {
+	switch ch { // Maybe benchmark and do our own lookup table?
 	case '=', '!', ':':
 		if l.peekChar() == '=' {
 			nextChar := l.readChar()

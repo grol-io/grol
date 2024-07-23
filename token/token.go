@@ -9,11 +9,21 @@ import (
 	"strings"
 )
 
+// 'noCopy' Stolen from
+// https://cs.opensource.google/go/go/+/master:src/sync/atomic/type.go;l=224-235?q=noCopy&ss=go%2Fgo
+type noCopy struct{}
+
+func (*noCopy) Lock()   {}
+func (*noCopy) Unlock() {}
+
 type Type uint8
 
 type Token struct {
-	Type    Type
-	literal string
+	// Allows go vet to flag accidental copies of this type,
+	// though with an error about lock value which can be confusing
+	_         noCopy
+	tokenType Type
+	literal   string
 }
 
 // Single threaded (famous last words), no need for sync.Map.
@@ -31,7 +41,7 @@ func InternToken(t *Token) *Token {
 }
 
 func Intern(t Type, literal string) *Token {
-	return InternToken(&Token{Type: t, literal: literal})
+	return InternToken(&Token{tokenType: t, literal: literal})
 }
 
 func ResetInterning() {
@@ -114,8 +124,8 @@ const (
 )
 
 var (
-	EOLT = &Token{Type: EOL}
-	EOFT = &Token{Type: EOF}
+	EOLT = &Token{tokenType: EOL}
+	EOFT = &Token{tokenType: EOF}
 )
 
 var (
@@ -131,11 +141,11 @@ func init() {
 
 func assoc(t Type, c byte) {
 	tToChar[t] = c
-	cTokens[c] = &Token{Type: t, literal: string(c)}
+	cTokens[c] = &Token{tokenType: t, literal: string(c)}
 }
 
 func assocS(t Type, s string) *Token {
-	tok := &Token{Type: t, literal: s}
+	tok := &Token{tokenType: t, literal: s}
 	old := InternToken(tok)
 	if old != tok {
 		panic("duplicate token for " + s)
@@ -183,8 +193,8 @@ func Init() {
 		if !ok {
 			panic("missing single character token for " + i.String())
 		}
-		if v.Type != i {
-			panic("mismatched single character token for " + i.String() + ":" + v.Type.String())
+		if v.tokenType != i {
+			panic("mismatched single character token for " + i.String() + ":" + v.tokenType.String())
 		}
 		if v.literal != string(b) {
 			panic(fmt.Sprintf("unexpected literal for single character token for %q: %q vs %q",
@@ -208,11 +218,15 @@ func LookupIdent(ident string) *Token {
 	if t, ok := keywords[ident]; ok {
 		return t
 	}
-	return InternToken(&Token{Type: IDENT, literal: ident})
+	return InternToken(&Token{tokenType: IDENT, literal: ident})
 }
 
-func (t Token) Literal() string {
+func (t *Token) Literal() string {
 	return t.literal
+}
+
+func (t *Token) Type() Type {
+	return t.tokenType
 }
 
 func ConstantTokenChar(literal byte) *Token {
