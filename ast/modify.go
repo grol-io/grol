@@ -1,5 +1,7 @@
 package ast
 
+import "fortio.org/log"
+
 // Note, this is somewhat similar to eval.go's eval... both are "apply"ing.
 func Modify(node Node, f func(Node) Node) Node {
 	// TODO: add err checks for _s.
@@ -52,6 +54,8 @@ func Modify(node Node, f func(Node) Node) Node {
 			newPairs[newKey] = newVal
 		}
 		node.Pairs = newPairs
+	default:
+		log.LogVf("default for node type %T", node)
 	}
 	return f(node)
 }

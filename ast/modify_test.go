@@ -1,6 +1,7 @@
 package ast
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -11,7 +12,7 @@ func TestModify(t *testing.T) {
 	two := func() Node { return &IntegerLiteral{Val: 2} }
 
 	turnOneIntoTwo := func(node Node) Node {
-		integer, ok := node.(IntegerLiteral)
+		integer, ok := node.(*IntegerLiteral)
 		if !ok {
 			return node
 		}
@@ -127,6 +128,9 @@ func TestModify(t *testing.T) {
 	}
 	for _, tt := range tests {
 		modified := Modify(tt.input, turnOneIntoTwo)
+		if !reflect.DeepEqual(modified, tt.expected) {
+			t.Errorf("not equal.\n%#v\n-vs-\n%#v", modified, tt.expected)
+		}
 		if !cmp.Equal(modified, tt.expected) {
 			t.Errorf("not equal. %v", cmp.Diff(modified, tt.expected))
 		}
