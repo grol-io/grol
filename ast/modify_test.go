@@ -7,8 +7,8 @@ import (
 )
 
 func TestModify(t *testing.T) {
-	one := func() Expression { return IntegerLiteral{Val: 1} }
-	two := func() Expression { return IntegerLiteral{Val: 2} }
+	one := func() Node { return &IntegerLiteral{Val: 1} }
+	two := func() Node { return &IntegerLiteral{Val: 2} }
 
 	turnOneIntoTwo := func(node Node) Node {
 		integer, ok := node.(IntegerLiteral)
@@ -45,16 +45,16 @@ func TestModify(t *testing.T) {
 			},
 		},
 		{
-			&InfixExpression{Left: one(), Operator: "+", Right: two()},
-			&InfixExpression{Left: two(), Operator: "+", Right: two()},
+			&InfixExpression{Left: one(), Right: two()},
+			&InfixExpression{Left: two(), Right: two()},
 		},
 		{
-			&InfixExpression{Left: two(), Operator: "+", Right: one()},
-			&InfixExpression{Left: two(), Operator: "+", Right: two()},
+			&InfixExpression{Left: two(), Right: one()},
+			&InfixExpression{Left: two(), Right: two()},
 		},
 		{
-			&PrefixExpression{Operator: "-", Right: one()},
-			&PrefixExpression{Operator: "-", Right: two()},
+			&PrefixExpression{Right: one()},
+			&PrefixExpression{Right: two()},
 		},
 		{
 			&IndexExpression{Left: one(), Index: one()},
@@ -94,7 +94,7 @@ func TestModify(t *testing.T) {
 		},
 		{
 			&FunctionLiteral{
-				Parameters: []*Identifier{},
+				Parameters: []Node{},
 				Body: &BlockStatement{
 					Program: Program{Statements: []Node{
 						&ExpressionStatement{Val: one()},
@@ -102,7 +102,7 @@ func TestModify(t *testing.T) {
 				},
 			},
 			&FunctionLiteral{
-				Parameters: []*Identifier{},
+				Parameters: []Node{},
 				Body: &BlockStatement{
 					Program: Program{Statements: []Node{
 						&ExpressionStatement{Val: two()},
@@ -111,15 +111,15 @@ func TestModify(t *testing.T) {
 			},
 		},
 		{
-			&ArrayLiteral{Elements: []Expression{one(), one()}},
-			&ArrayLiteral{Elements: []Expression{two(), two()}},
+			&ArrayLiteral{Elements: []Node{one(), one()}},
+			&ArrayLiteral{Elements: []Node{two(), two()}},
 		},
 		{
-			&MapLiteral{Pairs: map[Expression]Expression{
+			&MapLiteral{Pairs: map[Node]Node{
 				one(): one(),
 				one(): one(),
 			}},
-			&MapLiteral{Pairs: map[Expression]Expression{
+			&MapLiteral{Pairs: map[Node]Node{
 				two(): two(),
 				two(): two(),
 			}},

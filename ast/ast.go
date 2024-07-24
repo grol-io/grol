@@ -1,118 +1,138 @@
 package ast
 
 import (
-	"fmt"
+	"io"
 	"strconv"
 	"strings"
 
+	"fortio.org/log"
 	"grol.io/grol/token"
 )
 
-type Node interface {
-	TokenLiteral() string // TODO: return the token code instead of the string when available.
-	String() string       // normalized string representation of the expression/statement.
+type PrintState struct {
+	Out             io.Writer
+	IndentLevel     int
+	ExpressionLevel int
+	IdentationDone  bool // already put N number of tabs, reset on each new line
 }
 
-type Expression interface {
-	Node
-	Value() Expression
+func NewPrintState() *PrintState {
+	return &PrintState{Out: &strings.Builder{}}
+}
+
+func (ps *PrintState) String() string {
+	return ps.Out.(*strings.Builder).String()
+}
+
+// Will print indented to current level. with a newline if arguments are passed.
+func (ps *PrintState) Println(str ...string) *PrintState {
+	ps.Print(str...)
+	_, _ = ps.Out.Write([]byte{'\n'})
+	ps.IdentationDone = false
+	return ps
+}
+
+func (ps *PrintState) Print(str ...string) *PrintState {
+	if !ps.IdentationDone {
+		_, _ = ps.Out.Write([]byte(strings.Repeat("\t", ps.IndentLevel)))
+		ps.IdentationDone = true
+	}
+	for _, s := range str {
+		_, _ = ps.Out.Write([]byte(s))
+	}
+	return ps
+}
+
+func (ps *PrintState) WriteString(str string) *PrintState {
+	_, _ = ps.Out.Write([]byte(str))
+	return ps
+}
+
+type Node interface {
+	TokenType() token.Token
+	PrettyPrint(ps *PrintState) *PrintState
 }
 
 // Common to all nodes that have a token and avoids repeating the same TokenLiteral() methods.
 type Base struct {
-	token.Token
-}
-
-func (b Base) TokenLiteral() string {
-	return b.Literal
+	*token.Token
+	Node
 }
 
 func (b Base) String() string {
-	return b.Type.String() + " " + b.Literal
+	// TODO/wip: b.Node.PrettyPrint instead.
+	return b.PrettyPrint(NewPrintState()).String()
+}
+
+func (b Base) PrettyPrint(ps *PrintState) *PrintState {
+	log.Warnf("PrettyPrint not implemented for %T", b)
+	return ps.Print(b.Literal(), " ", b.Type().String())
 }
 
 type ReturnStatement struct {
 	Base
-	ReturnValue Expression
+	ReturnValue Node
 }
 
-func (rs ReturnStatement) String() string {
-	out := strings.Builder{}
-
-	out.WriteString(rs.TokenLiteral())
-	out.WriteString(" ")
-
+func (rs ReturnStatement) PrettyPrint(ps *PrintState) *PrintState {
+	ps.Print(rs.Literal())
 	if rs.ReturnValue != nil {
-		out.WriteString(rs.ReturnValue.String())
+		ps.Print(" ")
+		rs.ReturnValue.PrettyPrint(ps)
 	}
-
-	// out.WriteString(";")
-
-	return out.String()
+	return ps.Println()
 }
 
 type Program struct {
+	Base
 	Statements []Node
 }
 
-func (p Program) TokenLiteral() string {
-	return "PROGRAM"
+func (p Program) String() string {
+	return p.PrettyPrint(NewPrintState()).String()
 }
 
-func (p Program) String() string {
+func (p Program) PrettyPrint(ps *PrintState) *PrintState {
 	if len(p.Statements) == 0 {
-		return "<empty>"
+		ps.Print("<empty>")
+		return ps
 	}
-	// string buffer
-	buf := strings.Builder{}
-	for i, s := range p.Statements {
-		if i > 0 {
-			buf.WriteString("\n")
-		}
-		buf.WriteString(s.String())
+	for _, s := range p.Statements {
+		s.PrettyPrint(ps)
 	}
-	return buf.String()
+	return ps
 }
 
 type Identifier struct {
 	Base
-	Val string
 }
 
-func (i Identifier) Value() Expression {
-	return i
-}
-
-func (i Identifier) String() string {
-	return i.Literal
+func (i Identifier) PrettyPrint(out *PrintState) *PrintState {
+	out.Print(i.Literal())
+	return out
 }
 
 type Comment struct {
 	Base
-	Val string
-}
-
-func (c Comment) Value() Expression {
-	return c
 }
 
 func (c Comment) String() string {
-	return c.Literal
+	return c.PrettyPrint(NewPrintState()).String()
 }
 
-// TODO: probably refactor.
+// TODO: probably refactor/merge/flatten with Node
 
 type ExpressionStatement struct {
 	Base
-	Val Expression
+	Val Node
 }
 
-func (e ExpressionStatement) Value() Expression {
+func (e ExpressionStatement) Value() Node {
 	return e.Val
 }
 
 func (e ExpressionStatement) String() string {
-	return e.Val.String()
+	return e.Val.PrettyPrint(NewPrintState()).String()
 }
 
 type IntegerLiteral struct {
@@ -120,12 +140,8 @@ type IntegerLiteral struct {
 	Val int64
 }
 
-func (i IntegerLiteral) Value() Expression {
-	return i
-}
-
 func (i IntegerLiteral) String() string {
-	return i.Literal
+	return i.Literal()
 }
 
 type FloatLiteral struct {
@@ -133,12 +149,8 @@ type FloatLiteral struct {
 	Val float64
 }
 
-func (i FloatLiteral) Value() Expression {
-	return i
-}
-
 func (i FloatLiteral) String() string {
-	return i.Literal
+	return i.Literal()
 }
 
 type StringLiteral struct {
@@ -146,58 +158,46 @@ type StringLiteral struct {
 	// Val string // Literal is enough to store the string value.
 }
 
-func (s StringLiteral) Value() Expression {
-	return s
-}
-
 func (s StringLiteral) String() string {
-	return strconv.Quote(s.Literal)
+	return strconv.Quote(s.Literal())
 }
 
 type PrefixExpression struct {
 	Base
-	Operator string
-	Right    Expression
+	Right Node
 }
 
-func (p PrefixExpression) Value() Expression {
+func (p PrefixExpression) Value() Node {
 	return p.Right
 }
 
-func (p PrefixExpression) String() string {
-	var out strings.Builder
-
-	out.WriteString("(")
-	out.WriteString(p.Operator)
-	out.WriteString(p.Right.String())
-	out.WriteString(")")
-
-	return out.String()
+func (p PrefixExpression) PrettyPrint(out *PrintState) *PrintState {
+	out.Print("(")
+	out.Print(p.Literal())
+	p.Right.PrettyPrint(out)
+	out.Print(")")
+	return out
 }
 
 type InfixExpression struct {
 	Base
-	Left     Expression
-	Operator string // TODO switch to using the token instead of string rep (e.g token.LTEQ instead of "<=")
-	Right    Expression
+	Left  Node
+	Right Node
 }
 
-func (i InfixExpression) Value() Expression {
-	return i
-}
-
-func (i InfixExpression) String() string {
-	var out strings.Builder
-
-	// out.WriteString("(")
-	out.WriteString(i.Left.String())
-	out.WriteString(" ")
-	out.WriteString(i.Operator)
-	out.WriteString(" ")
-	out.WriteString(i.Right.String())
-	// out.WriteString(")")
-
-	return out.String()
+func (i InfixExpression) PrettyPrint(out *PrintState) *PrintState {
+	if out.ExpressionLevel > 0 {
+		out.Print("(")
+	}
+	out.ExpressionLevel++
+	i.Left.PrettyPrint(out)
+	out.Print(" ", i.Literal(), " ")
+	i.Left.PrettyPrint(out)
+	out.ExpressionLevel--
+	if out.ExpressionLevel > 0 {
+		out.Print(")")
+	}
+	return out
 }
 
 type Boolean struct {
@@ -205,39 +205,28 @@ type Boolean struct {
 	Val bool
 }
 
-func (b Boolean) Value() Expression {
-	return b
-}
-
 func (b Boolean) String() string {
-	return b.Literal
+	return b.Literal()
 }
 
 type IfExpression struct {
 	Base
-	Condition   Expression
+	Condition   Node
 	Consequence *BlockStatement
 	Alternative *BlockStatement
 }
 
-func (ie IfExpression) String() string {
-	out := strings.Builder{}
-
-	out.WriteString("if ")
-	out.WriteString(ie.Condition.String())
-	out.WriteString(" ")
-	out.WriteString(ie.Consequence.String())
+func (ie IfExpression) PrettyPrint(out *PrintState) *PrintState {
+	out.Print("if ")
+	ie.Condition.PrettyPrint(out)
+	out.Print(" ")
+	ie.Consequence.PrettyPrint(out)
 
 	if ie.Alternative != nil {
-		out.WriteString(" else ")
-		out.WriteString(ie.Alternative.String())
+		out.Print(" else ")
+		ie.Alternative.PrettyPrint(out)
 	}
-
-	return out.String()
-}
-
-func (ie IfExpression) Value() Expression {
-	return ie
+	return out
 }
 
 type BlockStatement struct {
@@ -247,7 +236,17 @@ type BlockStatement struct {
 
 // needed so dumping if and function bodies sort of look like the original.
 func (bs BlockStatement) String() string {
-	return "{\n" + bs.Program.String() + "\n}"
+	return bs.PrettyPrint(NewPrintState()).String()
+}
+
+func (bs BlockStatement) PrettyPrint(ps *PrintState) *PrintState {
+	ps.WriteString("{")
+	ps.IndentLevel++
+	bs.Program.PrettyPrint(ps)
+	ps.IndentLevel--
+	ps.Println("}")
+
+	return ps
 }
 
 // Could specialize the TokenLiteral but... we'll use program's.
@@ -257,154 +256,122 @@ func (bs BlockStatement) TokenLiteral() string {
 }
 */
 
-func WriteStrings[T fmt.Stringer](out *strings.Builder, list []T, sep string) {
+func PrintList(out *PrintState, list []Node, sep string) {
 	for i, p := range list {
 		if i > 0 {
-			out.WriteString(sep)
+			out.Print(sep)
 		}
-		out.WriteString(p.String())
+		p.PrettyPrint(out)
 	}
 }
 
 // Similar to CallExpression.
 type Builtin struct {
 	Base       // The 'len' or 'first' or... core builtin token
-	Parameters []Expression
+	Parameters []Node
 }
 
-func (b Builtin) Value() Expression {
-	return b
-}
-
-func (b Builtin) String() string {
-	out := strings.Builder{}
-	out.WriteString(b.Literal)
-	out.WriteString("(")
-	WriteStrings(&out, b.Parameters, ", ")
-	out.WriteString(")")
-	return out.String()
+func (b Builtin) PrettyPrint(out *PrintState) *PrintState {
+	out.Print(b.Literal())
+	PrintList(out, b.Parameters, ", ")
+	out.Print(")")
+	return out
 }
 
 type FunctionLiteral struct {
 	Base       // The 'func' token
-	Parameters []*Identifier
+	Parameters []Node
 	Body       *BlockStatement
 }
 
-func (fl FunctionLiteral) String() string {
-	out := strings.Builder{}
-	out.WriteString(fl.TokenLiteral())
-	out.WriteString("(")
-	WriteStrings(&out, fl.Parameters, ", ")
-	out.WriteString(") ")
-	out.WriteString(fl.Body.String())
-	return out.String()
-}
-
-func (fl FunctionLiteral) Value() Expression {
-	return fl
+func (fl FunctionLiteral) PrettyPrint(out *PrintState) *PrintState {
+	out.Print(fl.Literal())
+	out.Print("(")
+	PrintList(out, fl.Parameters, ", ")
+	out.Print(") ")
+	out.Print(fl.Body.String())
+	return out
 }
 
 type CallExpression struct {
-	Base                 // The '(' token
-	Function  Expression // Identifier or FunctionLiteral
-	Arguments []Expression
+	Base           // The '(' token
+	Function  Node // Identifier or FunctionLiteral
+	Arguments []Node
 }
 
-func (ce CallExpression) Value() Expression {
-	return ce
-}
-
-func (ce CallExpression) String() string {
-	out := strings.Builder{}
-	out.WriteString(ce.Function.String())
-	out.WriteString("(")
-	WriteStrings(&out, ce.Arguments, ", ")
-	out.WriteString(")")
-	return out.String()
+func (ce CallExpression) PrettyPrint(out *PrintState) *PrintState {
+	ce.Function.PrettyPrint(out)
+	out.Print("(")
+	PrintList(out, ce.Arguments, ", ")
+	out.Print(")")
+	return out
 }
 
 type ArrayLiteral struct {
 	Base     // The [ token
-	Elements []Expression
+	Elements []Node
 }
 
-func (al ArrayLiteral) Value() Expression {
-	return al
-}
+func (al ArrayLiteral) PrettyPrint(out *PrintState) *PrintState {
 
-func (al ArrayLiteral) String() string {
-	out := strings.Builder{}
+	out.Print("[")
+	PrintList(out, al.Elements, ", ")
+	out.Print("]")
 
-	out.WriteString("[")
-	WriteStrings(&out, al.Elements, ", ")
-	out.WriteString("]")
-
-	return out.String()
+	return out
 }
 
 type IndexExpression struct {
 	Base
-	Left  Expression
-	Index Expression
+	Left  Node
+	Index Node
 }
 
-func (ie IndexExpression) Value() Expression { return ie }
-func (ie IndexExpression) String() string {
-	out := strings.Builder{}
+func (ie IndexExpression) PrettyPrint(out *PrintState) *PrintState {
 
-	out.WriteString("(")
-	out.WriteString(ie.Left.String())
-	out.WriteString("[")
-	out.WriteString(ie.Index.String())
-	out.WriteString("])")
+	out.Print("(")
+	ie.Left.PrettyPrint(out)
+	out.Print("[")
+	ie.Index.PrettyPrint(out)
+	out.Print("])")
 
-	return out.String()
+	return out
 }
 
 type MapLiteral struct {
 	Base  // the '{' token
-	Pairs map[Expression]Expression
+	Pairs map[Node]Node
 }
 
-func (hl MapLiteral) Value() Expression {
-	return hl
-}
+func (hl MapLiteral) PrettyPrint(out *PrintState) *PrintState {
 
-func (hl MapLiteral) String() string {
-	out := strings.Builder{}
-
-	out.WriteString("{")
+	out.Print("{")
 	first := true
 	for key, value := range hl.Pairs {
 		if !first {
-			out.WriteString(", ")
+			out.Print(", ")
 		}
 		first = false
-		out.WriteString(key.String())
-		out.WriteString(":")
-		out.WriteString(value.String())
+		key.PrettyPrint(out)
+		out.Print(":")
+		value.PrettyPrint(out)
 	}
-	out.WriteString("}")
-	return out.String()
+	out.Print("}")
+	return out
 }
 
 type MacroLiteral struct {
 	Base
-	Parameters []*Identifier
+	Parameters []Node
 	Body       *BlockStatement
 }
 
-func (ml MacroLiteral) Value() Expression {
-	return ml
-}
+func (ml MacroLiteral) PrettyPrint(out *PrintState) *PrintState {
 
-func (ml MacroLiteral) String() string {
-	out := strings.Builder{}
-	out.WriteString(ml.TokenLiteral())
-	out.WriteString("(")
-	WriteStrings(&out, ml.Parameters, ", ")
-	out.WriteString(") ")
-	out.WriteString(ml.Body.String())
-	return out.String()
+	out.Print(ml.Literal())
+	out.Print("(")
+	PrintList(out, ml.Parameters, ", ")
+	out.Print(") ")
+	out.Print(ml.Body.String())
+	return out
 }
