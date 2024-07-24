@@ -15,7 +15,7 @@ func _() {
 	_ = x[NIL-4]
 	_ = x[ERROR-5]
 	_ = x[RETURN-6]
-	_ = x[FUNCTION-7]
+	_ = x[FUNC-7]
 	_ = x[STRING-8]
 	_ = x[ARRAY-9]
 	_ = x[MAP-10]
@@ -24,9 +24,9 @@ func _() {
 	_ = x[LAST-13]
 }
 
-const _Type_name = "UNKNOWNINTEGERFLOATBOOLEANNILERRORRETURNFUNCTIONSTRINGARRAYMAPQUOTEMACROLAST"
+const _Type_name = "UNKNOWNINTEGERFLOATBOOLEANNILERRORRETURNFUNCSTRINGARRAYMAPQUOTEMACROLAST"
 
-var _Type_index = [...]uint8{0, 7, 14, 19, 26, 29, 34, 40, 48, 54, 59, 62, 67, 72, 76}
+var _Type_index = [...]uint8{0, 7, 14, 19, 26, 29, 34, 40, 44, 50, 55, 58, 63, 68, 72}
 
 func (i Type) String() string {
 	if i >= Type(len(_Type_index)-1) {

@@ -24,7 +24,7 @@ const (
 	NIL
 	ERROR
 	RETURN
-	FUNCTION
+	FUNC
 	STRING
 	ARRAY
 	MAP
@@ -72,7 +72,7 @@ func Equals(left, right Object) Object {
 		return ArrayEquals(left.Elements, right.(Array).Elements)
 	case Map:
 		return MapEquals(left, right.(Map))
-	default: /*	ERROR RETURN FUNCTION */
+	default: /*	ERROR RETURN FUNC */
 		return FALSE
 	}
 }
@@ -169,7 +169,7 @@ func (rv ReturnValue) Type() Type      { return RETURN }
 func (rv ReturnValue) Inspect() string { return rv.Value.Inspect() }
 
 type Function struct {
-	Parameters []*ast.Identifier
+	Parameters []ast.Node // TODO: change back to []*Identifier here and elsewhere.
 	Body       *ast.BlockStatement
 	Env        *Environment
 }
@@ -185,13 +185,13 @@ func WriteStrings(out *strings.Builder, list []Object, before, sep, after string
 	out.WriteString(after)
 }
 
-func (f Function) Type() Type { return FUNCTION }
+func (f Function) Type() Type { return FUNC }
 func (f Function) Inspect() string {
 	out := strings.Builder{}
 
 	out.WriteString("func")
 	out.WriteString("(")
-	ast.WriteStrings(&out, f.Parameters, ", ")
+	ast.PrintList(&ast.PrintState{Out: &out}, f.Parameters, ", ")
 	out.WriteString(") ")
 	out.WriteString(f.Body.String())
 	return out.String()
@@ -247,7 +247,7 @@ func (mk MapKeys) Less(i, j int) bool {
 		return mk[i].(String).Value < mk[j].(String).Value
 	default:
 		log.Warnf("Unexpected type in map keys: %s", ti)
-		// UNKNOWN, NIL, ERROR, RETURN, FUNCTION, ARRAY, MAP, QUOTE, MACRO, LAST
+		// UNKNOWN, NIL, ERROR, RETURN, FUNC, ARRAY, MAP, QUOTE, MACRO, LAST
 	}
 	return false
 }
@@ -286,11 +286,15 @@ type Quote struct {
 
 func (q Quote) Type() Type { return QUOTE }
 func (q Quote) Inspect() string {
-	return "quote(" + q.Node.String() + ")"
+	out := strings.Builder{}
+	out.WriteString("quote(")
+	q.Node.PrettyPrint(&ast.PrintState{Out: &out})
+	out.WriteString(")")
+	return out.String()
 }
 
 type Macro struct {
-	Parameters []*ast.Identifier
+	Parameters []ast.Node
 	Body       *ast.BlockStatement
 	Env        *Environment
 }
@@ -299,7 +303,7 @@ func (m Macro) Type() Type { return MACRO }
 func (m Macro) Inspect() string {
 	out := strings.Builder{}
 	out.WriteString("macro(")
-	ast.WriteStrings(&out, m.Parameters, ", ")
+	ast.PrintList(&ast.PrintState{Out: &out}, m.Parameters, ", ")
 	out.WriteString(") {\n")
 	out.WriteString(m.Body.String())
 	out.WriteString("\n}")
