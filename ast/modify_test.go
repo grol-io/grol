@@ -8,11 +8,11 @@ import (
 )
 
 func TestModify(t *testing.T) {
-	one := func() Node { return &IntegerLiteral{Val: 1} }
-	two := func() Node { return &IntegerLiteral{Val: 2} }
+	one := func() Node { return IntegerLiteral{Val: 1} }
+	two := func() Node { return IntegerLiteral{Val: 2} }
 
 	turnOneIntoTwo := func(node Node) Node {
-		integer, ok := node.(*IntegerLiteral)
+		integer, ok := node.(IntegerLiteral)
 		if !ok {
 			return node
 		}
