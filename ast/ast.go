@@ -1,3 +1,6 @@
+// Abstract Syntax Tree for the GROL language.
+// Everything is Node. Has a TokenType() and can be PrettyPrint'ed back to source
+// that would parse to the same AST.
 package ast
 
 import (
@@ -13,7 +16,7 @@ type PrintState struct {
 	Out             io.Writer
 	IndentLevel     int
 	ExpressionLevel int
-	IdentationDone  bool // already put N number of tabs, reset on each new line
+	IndentationDone bool // already put N number of tabs, reset on each new line
 }
 
 func NewPrintState() *PrintState {
@@ -24,18 +27,19 @@ func (ps *PrintState) String() string {
 	return ps.Out.(*strings.Builder).String()
 }
 
-// Will print indented to current level. with a newline if arguments are passed.
+// Will print indented to current level. with a newline at the end.
+// Only a single indentation per line.
 func (ps *PrintState) Println(str ...string) *PrintState {
 	ps.Print(str...)
 	_, _ = ps.Out.Write([]byte{'\n'})
-	ps.IdentationDone = false
+	ps.IndentationDone = false
 	return ps
 }
 
 func (ps *PrintState) Print(str ...string) *PrintState {
-	if !ps.IdentationDone {
+	if !ps.IndentationDone {
 		_, _ = ps.Out.Write([]byte(strings.Repeat("\t", ps.IndentLevel)))
-		ps.IdentationDone = true
+		ps.IndentationDone = true
 	}
 	for _, s := range str {
 		_, _ = ps.Out.Write([]byte(s))
@@ -43,11 +47,9 @@ func (ps *PrintState) Print(str ...string) *PrintState {
 	return ps
 }
 
-func (ps *PrintState) WriteString(str string) *PrintState {
-	_, _ = ps.Out.Write([]byte(str))
-	return ps
-}
+// --- AST nodes
 
+// Everything in the tree is a Node.
 type Node interface {
 	TokenType() token.Token
 	PrettyPrint(ps *PrintState) *PrintState
@@ -56,7 +58,7 @@ type Node interface {
 // Common to all nodes that have a token and avoids repeating the same TokenLiteral() methods.
 type Base struct {
 	*token.Token
-	Node
+	Node // TBD on assignment to self/chaining.
 }
 
 func (b Base) String() string {
@@ -88,17 +90,23 @@ type Program struct {
 	Statements []Node
 }
 
+type BlockStatement = Program //  TODO rename both to Statetements later
+
 func (p Program) String() string {
 	return p.PrettyPrint(NewPrintState()).String()
 }
 
 func (p Program) PrettyPrint(ps *PrintState) *PrintState {
-	if len(p.Statements) == 0 {
-		ps.Print("<empty>")
-		return ps
+	if ps.IndentLevel > 0 {
+		ps.Println("{")
 	}
+	ps.IndentLevel++
 	for _, s := range p.Statements {
 		s.PrettyPrint(ps)
+	}
+	ps.IndentLevel--
+	if ps.IndentLevel > 0 {
+		ps.Println("}")
 	}
 	return ps
 }
@@ -120,21 +128,6 @@ func (c Comment) String() string {
 	return c.PrettyPrint(NewPrintState()).String()
 }
 
-// TODO: probably refactor/merge/flatten with Node
-
-type ExpressionStatement struct {
-	Base
-	Val Node
-}
-
-func (e ExpressionStatement) Value() Node {
-	return e.Val
-}
-
-func (e ExpressionStatement) String() string {
-	return e.Val.PrettyPrint(NewPrintState()).String()
-}
-
 type IntegerLiteral struct {
 	Base
 	Val int64
@@ -149,13 +142,9 @@ type FloatLiteral struct {
 	Val float64
 }
 
-func (i FloatLiteral) String() string {
-	return i.Literal()
-}
-
 type StringLiteral struct {
 	Base
-	// Val string // Literal is enough to store the string value.
+	// Val string // Base.Token.Literal is enough to store the string value.
 }
 
 func (s StringLiteral) String() string {
@@ -165,10 +154,6 @@ func (s StringLiteral) String() string {
 type PrefixExpression struct {
 	Base
 	Right Node
-}
-
-func (p PrefixExpression) Value() Node {
-	return p.Right
 }
 
 func (p PrefixExpression) PrettyPrint(out *PrintState) *PrintState {
@@ -228,33 +213,6 @@ func (ie IfExpression) PrettyPrint(out *PrintState) *PrintState {
 	}
 	return out
 }
-
-type BlockStatement struct {
-	// initially had: Base // holds {
-	Program
-}
-
-// needed so dumping if and function bodies sort of look like the original.
-func (bs BlockStatement) String() string {
-	return bs.PrettyPrint(NewPrintState()).String()
-}
-
-func (bs BlockStatement) PrettyPrint(ps *PrintState) *PrintState {
-	ps.WriteString("{")
-	ps.IndentLevel++
-	bs.Program.PrettyPrint(ps)
-	ps.IndentLevel--
-	ps.Println("}")
-
-	return ps
-}
-
-// Could specialize the TokenLiteral but... we'll use program's.
-/*
-func (bs BlockStatement) TokenLiteral() string {
-	return "PROGRAM"
-}
-*/
 
 func PrintList(out *PrintState, list []Node, sep string) {
 	for i, p := range list {

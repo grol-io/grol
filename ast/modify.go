@@ -10,8 +10,6 @@ func Modify(node Node, f func(Node) Node) Node {
 		for i, statement := range node.Statements {
 			node.Statements[i] = Modify(statement, f)
 		}
-	case *ExpressionStatement:
-		node.Val = Modify(node.Val, f)
 	case *InfixExpression:
 		le := Modify(node.Left, f)
 		node.Left = le
@@ -29,10 +27,6 @@ func Modify(node Node, f func(Node) Node) Node {
 		node.Consequence = Modify(node.Consequence, f).(*BlockStatement)
 		if node.Alternative != nil {
 			node.Alternative = Modify(node.Alternative, f).(*BlockStatement)
-		}
-	case *BlockStatement:
-		for i := range node.Statements {
-			node.Statements[i] = Modify(node.Statements[i], f)
 		}
 	case *ReturnStatement:
 		re := Modify(node.ReturnValue, f)

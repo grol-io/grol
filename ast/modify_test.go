@@ -36,12 +36,12 @@ func TestModify(t *testing.T) {
 		{
 			&Program{
 				Statements: []Node{
-					&ExpressionStatement{Val: one()},
+					&ReturnStatement{ReturnValue: one()},
 				},
 			},
 			&Program{
 				Statements: []Node{
-					&ExpressionStatement{Val: two()},
+					&ReturnStatement{ReturnValue: two()},
 				},
 			},
 		},
@@ -64,29 +64,21 @@ func TestModify(t *testing.T) {
 		{
 			&IfExpression{
 				Condition: one(),
-				Consequence: &BlockStatement{
-					Program: Program{Statements: []Node{
-						&ExpressionStatement{Val: one()},
-					}},
-				},
-				Alternative: &BlockStatement{
-					Program: Program{Statements: []Node{
-						&ExpressionStatement{Val: one()},
-					}},
-				},
+				Consequence: &BlockStatement{Statements: []Node{
+					one(),
+				}},
+				Alternative: &BlockStatement{Statements: []Node{
+					one(),
+				}},
 			},
 			&IfExpression{
 				Condition: two(),
-				Consequence: &BlockStatement{
-					Program: Program{Statements: []Node{
-						&ExpressionStatement{Val: two()},
-					}},
-				},
-				Alternative: &BlockStatement{
-					Program: Program{Statements: []Node{
-						&ExpressionStatement{Val: two()},
-					}},
-				},
+				Consequence: &BlockStatement{Statements: []Node{
+					two(),
+				}},
+				Alternative: &BlockStatement{Statements: []Node{
+					two(),
+				}},
 			},
 		},
 		{
@@ -95,20 +87,16 @@ func TestModify(t *testing.T) {
 		},
 		{
 			&FunctionLiteral{
-				Parameters: []Node{},
-				Body: &BlockStatement{
-					Program: Program{Statements: []Node{
-						&ExpressionStatement{Val: one()},
-					}},
-				},
+				Parameters: []Node{&Identifier{}},
+				Body: &BlockStatement{Statements: []Node{
+					one(),
+				}},
 			},
 			&FunctionLiteral{
-				Parameters: []Node{},
-				Body: &BlockStatement{
-					Program: Program{Statements: []Node{
-						&ExpressionStatement{Val: two()},
-					}},
-				},
+				Parameters: []Node{&Identifier{}},
+				Body: &BlockStatement{Statements: []Node{
+					two(),
+				}},
 			},
 		},
 		{
