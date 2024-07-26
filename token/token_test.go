@@ -1,6 +1,8 @@
 package token
 
-import "testing"
+import (
+	"testing"
+)
 
 func TestInterning(t *testing.T) {
 	Init()
@@ -18,6 +20,10 @@ func TestInterning(t *testing.T) {
 	}
 	if norm1 == norm2 {
 		t.Errorf("norm1 and norm2 should not be the same interned pointer")
+	}
+	expected := `IDENT:"myToken 1"`
+	if myToken1.DebugString() != expected {
+		t.Errorf("Unexpected DebugString: %s vs %s", myToken1.DebugString(), expected)
 	}
 }
 
@@ -80,6 +86,11 @@ func TestMultiCharTokens(t *testing.T) {
 		if tok3 != tok2 {
 			t.Errorf("ConstantTokenStr[%s] was not found", tt.input)
 		}
+		// kinda weak whitebox testing...
+		expected := tt.expected.String() + ":\"" + tt.input + "\""
+		if tok.DebugString() != expected {
+			t.Errorf("Unexpected DebugString: %s vs %s", tok.DebugString(), expected)
+		}
 	}
 }
 
@@ -104,7 +115,7 @@ func TestSingleCharTokens(t *testing.T) {
 		if tok.Literal() != string(tt.input) {
 			t.Errorf("ConstantTokenChar[%c] returned %v, expected '%c'", tt.input, tok.Literal(), tt.input)
 		}
-		tok2 := TokenByType(tt.expected)
+		tok2 := ByType(tt.expected)
 		if tok2 != tok {
 			t.Errorf("TokenByType[%v] returned %v, expected %v", tt.expected, tok2, tok)
 		}

@@ -1,5 +1,5 @@
 // Abstract Syntax Tree for the GROL language.
-// Everything is Node. Has a TokenType() and can be PrettyPrint'ed back to source
+// Everything is Node. Has a Token() and can be PrettyPrint'ed back to source
 // that would parse to the same AST.
 package ast
 
@@ -51,7 +51,7 @@ func (ps *PrintState) Print(str ...string) *PrintState {
 
 // Everything in the tree is a Node.
 type Node interface {
-	TokenType() token.Token
+	Value() *token.Token
 	PrettyPrint(ps *PrintState) *PrintState
 }
 
@@ -59,6 +59,10 @@ type Node interface {
 type Base struct {
 	*token.Token
 	Node // TBD on assignment to self/chaining.
+}
+
+func (b Base) Value() *token.Token {
+	return b.Token
 }
 
 func (b Base) String() string {
@@ -271,7 +275,6 @@ type ArrayLiteral struct {
 }
 
 func (al ArrayLiteral) PrettyPrint(out *PrintState) *PrintState {
-
 	out.Print("[")
 	PrintList(out, al.Elements, ", ")
 	out.Print("]")
@@ -286,7 +289,6 @@ type IndexExpression struct {
 }
 
 func (ie IndexExpression) PrettyPrint(out *PrintState) *PrintState {
-
 	out.Print("(")
 	ie.Left.PrettyPrint(out)
 	out.Print("[")
@@ -302,7 +304,6 @@ type MapLiteral struct {
 }
 
 func (hl MapLiteral) PrettyPrint(out *PrintState) *PrintState {
-
 	out.Print("{")
 	first := true
 	for key, value := range hl.Pairs {
@@ -325,7 +326,6 @@ type MacroLiteral struct {
 }
 
 func (ml MacroLiteral) PrettyPrint(out *PrintState) *PrintState {
-
 	out.Print(ml.Literal())
 	out.Print("(")
 	PrintList(out, ml.Parameters, ", ")

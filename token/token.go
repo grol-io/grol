@@ -6,6 +6,7 @@ package token
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 )
 
@@ -110,7 +111,7 @@ const (
 	RETURN
 	STRING
 	MACRO
-	// Macro magic
+	// Macro magic.
 	QUOTE
 	UNQUOTE
 	// Built-in functions.
@@ -236,10 +237,12 @@ func LookupIdent(ident string) *Token {
 	return InternToken(&Token{tokenType: IDENT, literal: ident})
 }
 
-// TokenByType is the cheapest lookup for all the tokens whose type
+// ByType is the cheapest lookup for all the tokens whose type
 // only have one possible instance/value
 // (ie all the tokens except for the first 4 value tokens).
-func TokenByType(t Type) *Token {
+// TODO: codegen all the token constants to avoid needing this function.
+// (even though that's better than string comparaisons).
+func ByType(t Type) *Token {
 	return tToT[t]
 }
 
@@ -257,4 +260,8 @@ func ConstantTokenChar(literal byte) *Token {
 
 func ConstantTokenStr(literal string) *Token {
 	return sTokens[literal]
+}
+
+func (t *Token) DebugString() string {
+	return t.Type().String() + ":" + strconv.Quote(t.Literal())
 }
