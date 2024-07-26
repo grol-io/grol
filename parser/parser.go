@@ -160,7 +160,11 @@ func (p *Parser) parseStatement() ast.Node {
 	case token.RETURN:
 		return p.parseReturnStatement()
 	default:
-		return p.parseExpressionStatement()
+		stmt := p.parseExpression(LOWEST)
+		if p.peekTokenIs(token.SEMICOLON) {
+			p.nextToken()
+		}
+		return stmt
 	}
 }
 
@@ -221,19 +225,6 @@ func (p *Parser) peekError(t token.Type) {
 	msg := fmt.Sprintf("expected next token to be %s, got %s (%q) instead",
 		t, p.peekToken.Type(), p.peekToken.Literal())
 	p.errors = append(p.errors, msg)
-}
-
-func (p *Parser) parseExpressionStatement() ast.Node {
-	stmt := &ast.ExpressionStatement{}
-	stmt.Token = p.curToken
-
-	stmt.Val = p.parseExpression(LOWEST)
-
-	if p.peekTokenIs(token.SEMICOLON) {
-		p.nextToken()
-	}
-
-	return stmt
 }
 
 func (p *Parser) noPrefixParseFnError(t token.Type) {
