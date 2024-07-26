@@ -110,6 +110,9 @@ const (
 	RETURN
 	STRING
 	MACRO
+	// Macro magic
+	QUOTE
+	UNQUOTE
 	// Built-in functions.
 	LEN
 	FIRST
@@ -133,6 +136,7 @@ var (
 	cTokens  map[byte]*Token
 	tToChar  map[Type]byte
 	sTokens  map[string]*Token
+	tToT     map[Type]*Token // for all token that are constant.
 )
 
 func init() {
@@ -141,7 +145,9 @@ func init() {
 
 func assoc(t Type, c byte) {
 	tToChar[t] = c
-	cTokens[c] = &Token{tokenType: t, literal: string(c)}
+	tok := &Token{tokenType: t, literal: string(c)}
+	cTokens[c] = tok
+	tToT[t] = tok
 }
 
 func assocS(t Type, s string) *Token {
@@ -151,6 +157,7 @@ func assocS(t Type, s string) *Token {
 		panic("duplicate token for " + s)
 	}
 	sTokens[s] = tok
+	tToT[t] = tok
 	return tok
 }
 
@@ -160,6 +167,7 @@ func Init() {
 	cTokens = make(map[byte]*Token)
 	tToChar = make(map[Type]byte)
 	sTokens = make(map[string]*Token)
+	tToT = make(map[Type]*Token)
 	for i := startIdentityTokens + 1; i < endIdentityTokens; i++ {
 		t := assocS(i, strings.ToLower(i.String()))
 		keywords[t.literal] = t
@@ -200,6 +208,13 @@ func Init() {
 			panic(fmt.Sprintf("unexpected literal for single character token for %q: %q vs %q",
 				i.String(), v.literal, string(b)))
 		}
+		tok, ok := tToT[i]
+		if !ok {
+			panic("missing single character token for " + i.String())
+		}
+		if tok.tokenType != i {
+			panic("mismatched single character token for " + i.String() + ":" + tok.tokenType.String())
+		}
 	}
 	// Multi character non identity tokens.
 	assocS(LTEQ, "<=")
@@ -219,6 +234,13 @@ func LookupIdent(ident string) *Token {
 		return t
 	}
 	return InternToken(&Token{tokenType: IDENT, literal: ident})
+}
+
+// TokenByType is the cheapest lookup for all the tokens whose type
+// only have one possible instance/value
+// (ie all the tokens except for the first 4 value tokens).
+func TokenByType(t Type) *Token {
+	return tToT[t]
 }
 
 func (t *Token) Literal() string {

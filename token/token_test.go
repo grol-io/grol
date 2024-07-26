@@ -104,6 +104,10 @@ func TestSingleCharTokens(t *testing.T) {
 		if tok.Literal() != string(tt.input) {
 			t.Errorf("ConstantTokenChar[%c] returned %v, expected '%c'", tt.input, tok.Literal(), tt.input)
 		}
+		tok2 := TokenByType(tt.expected)
+		if tok2 != tok {
+			t.Errorf("TokenByType[%v] returned %v, expected %v", tt.expected, tok2, tok)
+		}
 	}
 }
 
