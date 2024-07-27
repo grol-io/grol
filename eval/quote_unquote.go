@@ -20,15 +20,16 @@ func (s *State) evalUnquoteCalls(quoted ast.Node) ast.Node {
 			return node
 		}
 
-		call, ok := node.(*ast.CallExpression)
+		call, ok := node.(*ast.Builtin)
 		if !ok {
 			return node
 		}
 
-		if len(call.Arguments) != 1 {
+		if len(call.Parameters) != 1 {
+			log.Warnf("wrong number of arguments to unquote: %d", len(call.Parameters))
 			return node
 		}
-		unquoted := s.evalInternal(call.Arguments[0])
+		unquoted := s.evalInternal(call.Parameters[0])
 		return convertObjectToASTNode(unquoted)
 	})
 }
@@ -59,10 +60,9 @@ func convertObjectToASTNode(obj object.Object) ast.Node {
 }
 
 func isUnquoteCall(node ast.Node) bool {
-	callExpression, ok := node.(*ast.CallExpression)
+	b, ok := node.(*ast.Builtin)
 	if !ok {
 		return false
 	}
-
-	return callExpression.Function.Value() == unquoteToken
+	return b.Token == unquoteToken
 }
