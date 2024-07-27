@@ -193,7 +193,7 @@ func (f Function) Inspect() string {
 	out.WriteString("(")
 	ast.PrintList(&ast.PrintState{Out: &out}, f.Parameters, ", ")
 	out.WriteString(") ")
-	out.WriteString(f.Body.String())
+	f.Body.PrettyPrint(&ast.PrintState{Out: &out})
 	return out.String()
 }
 
@@ -305,7 +305,7 @@ func (m Macro) Inspect() string {
 	out.WriteString("macro(")
 	ast.PrintList(&ast.PrintState{Out: &out}, m.Parameters, ", ")
 	out.WriteString(") {\n")
-	out.WriteString(m.Body.String())
+	m.Body.PrettyPrint(&ast.PrintState{Out: &out})
 	out.WriteString("\n}")
 	return out.String()
 }

@@ -41,7 +41,7 @@ func (s *State) Eval(node any) object.Object {
 }
 
 var (
-	// see todo in token about publishing all of them.
+	// See todo in token about publishing all of them.
 	quoteToken   = token.ByType(token.QUOTE)
 	unquoteToken = token.ByType(token.UNQUOTE)
 )
@@ -90,11 +90,11 @@ func (s *State) evalInternal(node any) object.Object {
 	case *ast.Identifier:
 		return s.evalIdentifier(node)
 	case *ast.PrefixExpression:
-		log.LogVf("eval prefix %s", node.String())
+		log.LogVf("eval prefix %s", node.DebugString())
 		right := s.evalInternal(node.Right)
 		return s.evalPrefixExpression(node.Literal(), right)
 	case *ast.InfixExpression:
-		log.LogVf("eval infix %s", node.String())
+		log.LogVf("eval infix %s", node.DebugString())
 		right := s.Eval(node.Right) // need to unwrap "return"
 		if node.Literal() == "=" {
 			return s.evalAssignment(right, node)

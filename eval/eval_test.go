@@ -257,7 +257,7 @@ if (10 > 1) {
 		},
 		{
 			`{"name": "Monkey"}[func(x) { x }];`,
-			"FUNCTION not usable as map key",
+			"FUNC not usable as map key",
 		},
 	}
 

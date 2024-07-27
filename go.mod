@@ -10,6 +10,8 @@ require (
 	github.com/google/go-cmp v0.6.0 // only for tests
 )
 
+replace fortio.org/log => ../../fortio.org/log
+
 require (
 	fortio.org/struct2env v0.4.1 // indirect
 	github.com/kortschak/goroutine v1.1.2 // indirect

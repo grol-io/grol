@@ -19,6 +19,12 @@ type PrintState struct {
 	IndentationDone bool // already put N number of tabs, reset on each new line
 }
 
+func DebugString(n Node) string {
+	ps := NewPrintState()
+	n.PrettyPrint(ps)
+	return ps.String()
+}
+
 func NewPrintState() *PrintState {
 	return &PrintState{Out: &strings.Builder{}}
 }
@@ -58,21 +64,15 @@ type Node interface {
 // Common to all nodes that have a token and avoids repeating the same TokenLiteral() methods.
 type Base struct {
 	*token.Token
-	Node // TBD on assignment to self/chaining.
 }
 
 func (b Base) Value() *token.Token {
 	return b.Token
 }
 
-func (b Base) String() string {
-	// TODO/wip: b.Node.PrettyPrint instead.
-	return b.PrettyPrint(NewPrintState()).String()
-}
-
 func (b Base) PrettyPrint(ps *PrintState) *PrintState {
 	log.Warnf("PrettyPrint not implemented for %T", b)
-	return ps.Print(b.Literal(), " ", b.Type().String())
+	return ps.Print(b.Literal())
 }
 
 type ReturnStatement struct {
@@ -95,10 +95,6 @@ type Program struct {
 }
 
 type BlockStatement = Program //  TODO rename both to Statetements later
-
-func (p Program) String() string {
-	return p.PrettyPrint(NewPrintState()).String()
-}
 
 func (p Program) PrettyPrint(ps *PrintState) *PrintState {
 	if ps.IndentLevel > 0 {
@@ -128,17 +124,9 @@ type Comment struct {
 	Base
 }
 
-func (c Comment) String() string {
-	return c.PrettyPrint(NewPrintState()).String()
-}
-
 type IntegerLiteral struct {
 	Base
 	Val int64
-}
-
-func (i IntegerLiteral) String() string {
-	return i.Literal()
 }
 
 type FloatLiteral struct {
@@ -151,8 +139,9 @@ type StringLiteral struct {
 	// Val string // Base.Token.Literal is enough to store the string value.
 }
 
-func (s StringLiteral) String() string {
-	return strconv.Quote(s.Literal())
+func (s StringLiteral) PrettyPrint(ps *PrintState) *PrintState {
+	ps.Print(strconv.Quote(s.Literal()))
+	return ps
 }
 
 type PrefixExpression struct {
@@ -192,10 +181,6 @@ func (i InfixExpression) PrettyPrint(out *PrintState) *PrintState {
 type Boolean struct {
 	Base
 	Val bool
-}
-
-func (b Boolean) String() string {
-	return b.Literal()
 }
 
 type IfExpression struct {
@@ -251,7 +236,7 @@ func (fl FunctionLiteral) PrettyPrint(out *PrintState) *PrintState {
 	out.Print("(")
 	PrintList(out, fl.Parameters, ", ")
 	out.Print(") ")
-	out.Print(fl.Body.String())
+	fl.Body.PrettyPrint(out)
 	return out
 }
 
@@ -330,6 +315,6 @@ func (ml MacroLiteral) PrettyPrint(out *PrintState) *PrintState {
 	out.Print("(")
 	PrintList(out, ml.Parameters, ", ")
 	out.Print(") ")
-	out.Print(ml.Body.String())
+	ml.Body.PrettyPrint(out)
 	return out
 }

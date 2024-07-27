@@ -233,7 +233,7 @@ func (p *Parser) noPrefixParseFnError(t token.Type) {
 }
 
 func (p *Parser) parseExpression(precedence Priority) ast.Node {
-	log.Debugf("parseExpression: %s precedence %s", p.curToken, precedence)
+	log.Debugf("parseExpression: %s precedence %s", p.curToken.DebugString(), precedence)
 	prefix := p.prefixParseFns[p.curToken.Type()]
 	if prefix == nil {
 		p.noPrefixParseFnError(p.curToken.Type())

@@ -117,7 +117,7 @@ func EvalOne(s, macroState *eval.State, what string, out io.Writer, options Opti
 	}
 	if options.ShowParse {
 		fmt.Fprint(out, "== Parse ==> ")
-		fmt.Fprintln(out, program.String())
+		program.PrettyPrint(&ast.PrintState{Out: out})
 	}
 	macroState.DefineMacros(program)
 	numMacros := macroState.Len()
@@ -128,7 +128,7 @@ func EvalOne(s, macroState *eval.State, what string, out io.Writer, options Opti
 		_ = macroState.ExpandMacros(program)
 		if options.ShowParse {
 			fmt.Fprint(out, "== Macro ==> ")
-			fmt.Fprintln(out, program.String())
+			program.PrettyPrint(&ast.PrintState{Out: out})
 		}
 	} else {
 		log.LogVf("Skipping macro expansion as none are defined")
