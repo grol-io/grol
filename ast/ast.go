@@ -43,6 +43,9 @@ func (ps *PrintState) Println(str ...string) *PrintState {
 }
 
 func (ps *PrintState) Print(str ...string) *PrintState {
+	if len(str) == 0 {
+		return ps // So for instance Println() doesn't print \t\n.
+	}
 	if !ps.IndentationDone && ps.IndentLevel > 1 {
 		_, _ = ps.Out.Write([]byte(strings.Repeat("\t", ps.IndentLevel-1)))
 		ps.IndentationDone = true
@@ -86,27 +89,32 @@ func (rs ReturnStatement) PrettyPrint(ps *PrintState) *PrintState {
 		ps.Print(" ")
 		rs.ReturnValue.PrettyPrint(ps)
 	}
-	return ps.Println()
+	return ps
 }
 
-type Program struct {
+type Statements struct {
 	Base
 	Statements []Node
 }
 
-type BlockStatement = Program //  TODO rename both to Statetements later
-
-func (p Program) PrettyPrint(ps *PrintState) *PrintState {
+func (p Statements) PrettyPrint(ps *PrintState) *PrintState {
+	oldExpressionLevel := ps.ExpressionLevel
 	if ps.IndentLevel > 0 {
 		ps.Println("{")
 	}
 	ps.IndentLevel++
-	for _, s := range p.Statements {
+	ps.ExpressionLevel = 0
+	for i, s := range p.Statements {
+		if i > 0 {
+			ps.Println()
+		}
 		s.PrettyPrint(ps)
 	}
+	ps.Println()
 	ps.IndentLevel--
+	ps.ExpressionLevel = oldExpressionLevel
 	if ps.IndentLevel > 0 {
-		ps.Println("}")
+		ps.Print("}")
 	}
 	return ps
 }
@@ -122,6 +130,11 @@ func (i Identifier) PrettyPrint(out *PrintState) *PrintState {
 
 type Comment struct {
 	Base
+}
+
+func (c Comment) PrettyPrint(out *PrintState) *PrintState {
+	out.Print(c.Literal())
+	return out
 }
 
 type IntegerLiteral struct {
@@ -150,10 +163,16 @@ type PrefixExpression struct {
 }
 
 func (p PrefixExpression) PrettyPrint(out *PrintState) *PrintState {
-	out.Print("(")
+	if out.ExpressionLevel > 0 {
+		out.Print("(")
+	}
 	out.Print(p.Literal())
+	out.ExpressionLevel++ // comment out for !(-a) to normalize to !-a
 	p.Right.PrettyPrint(out)
-	out.Print(")")
+	out.ExpressionLevel--
+	if out.ExpressionLevel > 0 {
+		out.Print(")")
+	}
 	return out
 }
 
@@ -164,7 +183,7 @@ type InfixExpression struct {
 }
 
 func (i InfixExpression) PrettyPrint(out *PrintState) *PrintState {
-	if out.ExpressionLevel > 0 {
+	if out.ExpressionLevel > 0 { // TODO only add parens if precedence requires it.
 		out.Print("(")
 	}
 	out.ExpressionLevel++
@@ -186,8 +205,8 @@ type Boolean struct {
 type IfExpression struct {
 	Base
 	Condition   Node
-	Consequence *BlockStatement
-	Alternative *BlockStatement
+	Consequence *Statements
+	Alternative *Statements
 }
 
 func (ie IfExpression) PrettyPrint(out *PrintState) *PrintState {
@@ -220,6 +239,7 @@ type Builtin struct {
 
 func (b Builtin) PrettyPrint(out *PrintState) *PrintState {
 	out.Print(b.Literal())
+	out.Print("(")
 	PrintList(out, b.Parameters, ", ")
 	out.Print(")")
 	return out
@@ -228,7 +248,7 @@ func (b Builtin) PrettyPrint(out *PrintState) *PrintState {
 type FunctionLiteral struct {
 	Base       // The 'func' token
 	Parameters []Node
-	Body       *BlockStatement
+	Body       *Statements
 }
 
 func (fl FunctionLiteral) PrettyPrint(out *PrintState) *PrintState {
@@ -307,7 +327,7 @@ func (hl MapLiteral) PrettyPrint(out *PrintState) *PrintState {
 type MacroLiteral struct {
 	Base
 	Parameters []Node
-	Body       *BlockStatement
+	Body       *Statements
 }
 
 func (ml MacroLiteral) PrettyPrint(out *PrintState) *PrintState {

@@ -170,7 +170,7 @@ func (rv ReturnValue) Inspect() string { return rv.Value.Inspect() }
 
 type Function struct {
 	Parameters []ast.Node // TODO: change back to []*Identifier here and elsewhere.
-	Body       *ast.BlockStatement
+	Body       *ast.Statements
 	Env        *Environment
 }
 
@@ -295,7 +295,7 @@ func (q Quote) Inspect() string {
 
 type Macro struct {
 	Parameters []ast.Node
-	Body       *ast.BlockStatement
+	Body       *ast.Statements
 	Env        *Environment
 }
 

@@ -40,11 +40,8 @@ func (s *State) Eval(node any) object.Object {
 	return result
 }
 
-var (
-	// See todo in token about publishing all of them.
-	quoteToken   = token.ByType(token.QUOTE)
-	unquoteToken = token.ByType(token.UNQUOTE)
-)
+// See todo in token about publishing all of them.
+var unquoteToken = token.ByType(token.UNQUOTE)
 
 func (s *State) evalAssignment(right object.Object, node *ast.InfixExpression) object.Object {
 	// let free assignments.
@@ -78,7 +75,7 @@ func ArgCheck[T any](msg string, n int, vararg bool, args []T) *object.Error {
 func (s *State) evalInternal(node any) object.Object {
 	switch node := node.(type) {
 	// Statements
-	case *ast.Program:
+	case *ast.Statements:
 		if node == nil { // TODO: only here? this comes from empty else branches.
 			return object.NULL
 		}
@@ -126,12 +123,6 @@ func (s *State) evalInternal(node any) object.Object {
 		body := node.Body
 		return object.Function{Parameters: params, Env: s.env, Body: body}
 	case *ast.CallExpression:
-		if node.Function.Value() == quoteToken {
-			if oerr := ArgCheck(quoteToken.Literal(), 1, false, node.Arguments); oerr != nil {
-				return *oerr
-			}
-			return s.quote(node.Arguments[0])
-		}
 		f := s.evalInternal(node.Function)
 		args, oerr := s.evalExpressions(node.Arguments)
 		if oerr != nil {
@@ -184,13 +175,16 @@ func (s *State) evalBuiltin(node *ast.Builtin) object.Object {
 	if oerr := ArgCheck(node.Literal(), 1, varArg, node.Parameters); oerr != nil {
 		return *oerr
 	}
+	if t == token.QUOTE {
+		return s.quote(node.Parameters[0])
+	}
 	val := s.evalInternal(node.Parameters[0])
 	rt := val.Type()
 	if rt == object.ERROR {
 		return val
 	}
 	arr, _ := val.(object.Array)
-	switch node.Type() { //nolint:exhaustive // we have default, only 2 cases.
+	switch t { //nolint:exhaustive // we have default, only 2 cases.
 	case token.ERROR:
 		fallthrough
 	case token.PRINT:

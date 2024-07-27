@@ -34,12 +34,12 @@ func TestModify(t *testing.T) {
 			two(),
 		},
 		{
-			&Program{
+			&Statements{
 				Statements: []Node{
 					&ReturnStatement{ReturnValue: one()},
 				},
 			},
-			&Program{
+			&Statements{
 				Statements: []Node{
 					&ReturnStatement{ReturnValue: two()},
 				},
@@ -64,19 +64,19 @@ func TestModify(t *testing.T) {
 		{
 			&IfExpression{
 				Condition: one(),
-				Consequence: &BlockStatement{Statements: []Node{
+				Consequence: &Statements{Statements: []Node{
 					one(),
 				}},
-				Alternative: &BlockStatement{Statements: []Node{
+				Alternative: &Statements{Statements: []Node{
 					one(),
 				}},
 			},
 			&IfExpression{
 				Condition: two(),
-				Consequence: &BlockStatement{Statements: []Node{
+				Consequence: &Statements{Statements: []Node{
 					two(),
 				}},
-				Alternative: &BlockStatement{Statements: []Node{
+				Alternative: &Statements{Statements: []Node{
 					two(),
 				}},
 			},
@@ -88,13 +88,13 @@ func TestModify(t *testing.T) {
 		{
 			&FunctionLiteral{
 				Parameters: []Node{&Identifier{}},
-				Body: &BlockStatement{Statements: []Node{
+				Body: &Statements{Statements: []Node{
 					one(),
 				}},
 			},
 			&FunctionLiteral{
 				Parameters: []Node{&Identifier{}},
-				Body: &BlockStatement{Statements: []Node{
+				Body: &Statements{Statements: []Node{
 					two(),
 				}},
 			},

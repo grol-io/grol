@@ -6,7 +6,7 @@ import "fortio.org/log"
 func Modify(node Node, f func(Node) Node) Node {
 	// TODO: add err checks for _s.
 	switch node := node.(type) {
-	case *Program:
+	case *Statements:
 		for i, statement := range node.Statements {
 			node.Statements[i] = Modify(statement, f)
 		}
@@ -24,9 +24,9 @@ func Modify(node Node, f func(Node) Node) Node {
 	case *IfExpression:
 		ce := Modify(node.Condition, f)
 		node.Condition = ce
-		node.Consequence = Modify(node.Consequence, f).(*BlockStatement)
+		node.Consequence = Modify(node.Consequence, f).(*Statements)
 		if node.Alternative != nil {
-			node.Alternative = Modify(node.Alternative, f).(*BlockStatement)
+			node.Alternative = Modify(node.Alternative, f).(*Statements)
 		}
 	case *ReturnStatement:
 		re := Modify(node.ReturnValue, f)
@@ -35,7 +35,7 @@ func Modify(node Node, f func(Node) Node) Node {
 		for i := range node.Parameters {
 			node.Parameters[i] = Modify(node.Parameters[i], f).(*Identifier)
 		}
-		node.Body = Modify(node.Body, f).(*BlockStatement)
+		node.Body = Modify(node.Body, f).(*Statements)
 	case *ArrayLiteral:
 		for i := range node.Elements {
 			node.Elements[i] = Modify(node.Elements[i], f)

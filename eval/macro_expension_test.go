@@ -57,14 +57,14 @@ func TestDefineMacros(t *testing.T) {
 		t.Fatalf("parameter is not 'y'. got=%q", macro.Parameters[1])
 	}
 
-	expectedBody := "{\n(x + y)\n}"
+	expectedBody := "x + y\n" // or should have {}?
 	got := ast.DebugString(macro.Body)
 	if got != expectedBody {
 		t.Fatalf("body is not %q. got=%q", expectedBody, got)
 	}
 }
 
-func testParseProgram(t *testing.T, input string) *ast.Program {
+func testParseProgram(t *testing.T, input string) *ast.Statements {
 	l := lexer.New(input)
 	p := parser.New(l)
 	r := p.ParseProgram()

@@ -9,7 +9,7 @@ import (
 	"grol.io/grol/token"
 )
 
-func (s *State) DefineMacros(program *ast.Program) {
+func (s *State) DefineMacros(program *ast.Statements) {
 	for i := 0; i < len(program.Statements); /* not always incrementing */ {
 		statement := program.Statements[i]
 		if isMacroDefinition(statement) {

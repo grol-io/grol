@@ -98,7 +98,7 @@ func Test_IdentifierExpression(t *testing.T) {
 		t.Fatalf("program has not enough statements. got=%d",
 			len(program.Statements))
 	}
-	ident, ok := program.Statements[0].(ast.Identifier)
+	ident, ok := program.Statements[0].(*ast.Identifier)
 	if !ok {
 		t.Fatalf("program.Statements[0] is not ast.Identifier. got=%T",
 			program.Statements[0])
@@ -119,67 +119,71 @@ func Test_OperatorPrecedenceParsing(t *testing.T) {
 	}{
 		{
 			"1+2 + 3",
-			"((1 + 2) + 3)",
+			"(1 + 2) + 3",
 		},
 		{
 			"   1+2*3   ",
-			"(1 + (2 * 3))",
+			"1 + (2 * 3)",
 		},
 		{
 			"-a * b",
-			"((-a) * b)",
+			"(-a) * b",
 		},
 		{
 			"!-a",
-			"(!(-a))",
+			"!(-a)", // or maybe !-a - it's more compact but... less readable?
+		},
+		{
+			"--a",
+			"-(-a)",
 		},
 		{
 			"a + b + c",
-			"((a + b) + c)",
+			"(a + b) + c",
 		},
 		{
 			"a + b - c",
-			"((a + b) - c)",
+			"(a + b) - c",
 		},
 		{
 			"a * b * c",
-			"((a * b) * c)",
+			"(a * b) * c",
 		},
 		{
 			"a * b / c",
-			"((a * b) / c)",
+			"(a * b) / c",
 		},
 		{
 			"a + b / c",
-			"(a + (b / c))",
+			"a + (b / c)",
 		},
 		{
 			"a + b * c + d / e - f",
-			"(((a + (b * c)) + (d / e)) - f)",
+			"((a + (b * c)) + (d / e)) - f",
 		},
 		{
 			"3 + 4; -5 * 5",
-			"(3 + 4)\n((-5) * 5)", // fixed from the original in the book that was missing the newline
+			"3 + 4\n(-5) * 5", // fixed from the original in the book that was missing the newline
 		},
 		{
 			"5 > 4 == 3 < 4",
-			"((5 > 4) == (3 < 4))",
+			"(5 > 4) == (3 < 4)",
 		},
 		{
 			"5 < 4 != 3 > 4",
-			"((5 < 4) != (3 > 4))",
+			"(5 < 4) != (3 > 4)",
 		},
 		{
 			"3 + 4 * 5 == 3 * 1 + 4 * 5",
-			"((3 + (4 * 5)) == ((3 * 1) + (4 * 5)))",
+			"(3 + (4 * 5)) == ((3 * 1) + (4 * 5))",
 		},
 		{
 			"x = 41 * 6",
-			"(x = (41 * 6))",
+			"x = (41 * 6)",
 		},
 		{
 			"foo = func(a,b) {return a+b}",
-			"(foo = func(a, b) {\nreturn (a + b)\n})",
+			"foo = func(a, b) {\n\treturn a + b\n}",
 		},
 	}
 
@@ -190,6 +194,12 @@ func Test_OperatorPrecedenceParsing(t *testing.T) {
 		checkParserErrors(t, p)
 
 		actual := ast.DebugString(program)
+		last := actual[len(actual)-1]
+		if actual[len(actual)-1] != '\n' {
+			t.Errorf("expecting newline at end of program output, not found, got %q", last)
+		} else {
+			actual = actual[:len(actual)-1] // remove the last newline
+		}
 		if actual != tt.expected {
 			t.Errorf("expected=%q, got=%q", tt.expected, actual)
 		}

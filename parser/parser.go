@@ -86,6 +86,8 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.LOG, p.parseBuiltin)
 	p.registerPrefix(token.MACRO, p.parseMacroLiteral)
 	p.registerPrefix(token.ERROR, p.parseBuiltin)
+	p.registerPrefix(token.QUOTE, p.parseBuiltin)
+	p.registerPrefix(token.UNQUOTE, p.parseBuiltin)
 
 	p.infixParseFns = make(map[token.Type]infixParseFn)
 	p.registerInfix(token.PLUS, p.parseInfixExpression)
@@ -121,8 +123,8 @@ func (p *Parser) nextToken() {
 	p.peekToken = p.l.NextToken()
 }
 
-func (p *Parser) ParseProgram() *ast.Program {
-	program := &ast.Program{}
+func (p *Parser) ParseProgram() *ast.Statements {
+	program := &ast.Statements{}
 	program.Statements = []ast.Node{}
 
 	for p.curToken.Type() != token.EOF && p.curToken.Type() != token.EOL {
@@ -403,8 +405,8 @@ func (p *Parser) parseIfExpression() ast.Node {
 	return expression
 }
 
-func (p *Parser) parseBlockStatement() *ast.BlockStatement {
-	block := &ast.BlockStatement{}
+func (p *Parser) parseBlockStatement() *ast.Statements {
+	block := &ast.Statements{}
 	// block.Token = p.curToken
 	block.Statements = []ast.Node{}
 
