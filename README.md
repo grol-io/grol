@@ -3,7 +3,7 @@
 
 ## History
 
-Initially created by following along https://interpreterbook.com and making many changes/simplification/cleanups. And pretty much a complete rewrite in 0.25 with interning, kept the tests though.
+Initially created by following along https://interpreterbook.com and making many changes/simplification/cleanups. And pretty much a complete rewrite in 0.25 with interning, everything a node/expression (flatter ast), etc... (kept the tests though).
 
 There is also now a [discord bot](https://github.com/grol-io/grol-discord-bot#grol-discord-bot) as well as a `wasm` version that runs directly in your browser, try it on [grol.io](https://grol.io/)
 
