@@ -73,6 +73,7 @@
             if (output && output.result !== undefined) {
                 // Write the result to the output textarea
                 document.getElementById('output').value = output.result;
+                document.getElementById('input').value = output.formatted;
                 document.getElementById('errors').value = output.errors.join("\n");
             } else {
                 document.getElementById('errors').value = "Unexpected runtime error, see JS console";
@@ -85,6 +86,7 @@
         } finally {
             inst = await WebAssembly.instantiate(mod, go.importObject); // reset instance
         }
+        resizeTextarea(document.getElementById('input'));
         resizeTextarea(document.getElementById('output'));
         resizeTextarea(document.getElementById('errors'));
     }
@@ -102,21 +104,25 @@
     <label for="input">Edit the sample/Enter your GROL code here:</label>
     <textarea id="input" rows="12" cols="80">
 print("Outputting a smiley: 😀\n")
-fact=func(n) { // function
-log("called fact ", n) // log output
+// function example:
+fact=func(n) {
+// log output
+log("called fact ", n)
 if (n<=1) {
     return 1
 }
-n*fact(n-1) // recursion
+// recursion
+n*fact(n-1)
 }
-
-a=[fact(5), "abc", 76-3] // heterogeneous array
-m={"str key": a, 42: "str val"} // maps also can have any key,value types
+// heterogeneous array
+a=[fact(5), "abc", 76-3]
+// maps also can have any key,value types
+m={"str key": a, 42: "str val"}
 </textarea>
 </div>
 <div>
 
-    Hit enter or click <button onClick="run();" id="runButton" disabled>Run</button>
+    Hit enter or click <button onClick="run();" id="runButton" disabled>Run</button> (will also format the code)
 </div>
 <div>
     <label for="output">Result:</label>
