@@ -174,7 +174,7 @@ func (p *Parser) parseReturnStatement() ast.Node {
 
 	// hacky for empty expressions like plain `return`.
 	if p.peekTokenIs(token.SEMICOLON) || p.peekTokenIs(token.RBRACE) || p.peekTokenIs(token.EOF) || p.peekTokenIs(token.EOL) {
-		log.Debugf("parseExpression: %s returning nil", p.curToken)
+		log.Debugf("parseExpression: %s returning nil", p.curToken.DebugString())
 		// nil return value
 		return stmt
 	}
@@ -193,7 +193,7 @@ func (p *Parser) parseReturnStatement() ast.Node {
 func sameToken(msg string, actual *token.Token, expected token.Type) bool {
 	res := actual.Type() == expected
 	if res {
-		log.Debugf("%sTokenIs indeed: %s", msg, actual)
+		log.Debugf("%s: indeed: %s", msg, actual.DebugString())
 	} else {
 		log.LogVf("%sTokenIs not: %s - found %s/%s instead", msg, expected, actual.Type(), actual.Literal())
 	}
@@ -265,7 +265,7 @@ func (p *Parser) parseIntegerLiteral() ast.Node {
 
 	value, err := strconv.ParseInt(p.curToken.Literal(), 0, 64)
 	if err != nil {
-		msg := fmt.Sprintf("could not parse %q as integer", p.curToken.Literal)
+		msg := fmt.Sprintf("could not parse %q as integer", p.curToken.Literal())
 		p.errors = append(p.errors, msg)
 		return nil
 	}

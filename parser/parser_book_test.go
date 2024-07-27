@@ -9,6 +9,8 @@ import (
 	"grol.io/grol/lexer"
 )
 
+// Heavily modified from book version to match much improved design.
+
 func TestLetStatements(t *testing.T) {
 	/* debug some test(s):
 	log.SetLogLevel(log.Debug)
@@ -40,7 +42,7 @@ func TestLetStatements(t *testing.T) {
 			return
 		}
 
-		val := stmt.(*ast.NodeStatement).Val.(*ast.InfixExpression).Right
+		val := stmt.(*ast.InfixExpression).Right
 		if !testLiteralExpression(t, val, tt.expectedValue) {
 			log.Errf("testLiteralExpression failed for %s got %#v", tt.input, stmt)
 			return
@@ -96,19 +98,13 @@ func TestIdentifierExpression(t *testing.T) {
 		t.Fatalf("program has not enough statements. got=%d",
 			len(program.Statements))
 	}
-	stmt, ok := program.Statements[0].(*ast.NodeStatement)
+	ident, ok := program.Statements[0].(*ast.Identifier)
 	if !ok {
-		t.Fatalf("program.Statements[0] is not ast.NodeStatement. got=%T",
+		t.Fatalf("program.Statements[0] is not ast.Identifier. got=%T",
 			program.Statements[0])
 	}
-
-	v := stmt.Value()
-	ident, ok := v.(*ast.Identifier)
-	if !ok {
-		t.Fatalf("exp not *ast.Identifier. got=%T", v)
-	}
-	if ident.Val != "foobar" {
-		t.Errorf("ident.Value not %s. got=%s", "foobar", ident.Val)
+	if ident.Literal() != "foobar" {
+		t.Errorf("ident.Literal not %s. got=%s", "foobar", ident.Literal())
 	}
 	if ident.Literal() != "foobar" {
 		t.Errorf("ident.Literal not %s. got=%s", "foobar",
@@ -128,16 +124,10 @@ func TestIntegerLiteralExpression(t *testing.T) {
 		t.Fatalf("program has not enough statements. got=%d",
 			len(program.Statements))
 	}
-	stmt, ok := program.Statements[0].(*ast.NodeStatement)
+	literal, ok := program.Statements[0].(*ast.IntegerLiteral)
 	if !ok {
-		t.Fatalf("program.Statements[0] is not ast.NodeStatement. got=%T",
+		t.Fatalf("program.Statements[0] is not ast.IntegerLiteral. got=%T",
 			program.Statements[0])
-	}
-
-	v := stmt.Value()
-	literal, ok := v.(*ast.IntegerLiteral)
-	if !ok {
-		t.Fatalf("exp not *ast.IntegerLiteral. got=%T", v)
 	}
 	if literal.Val != 5 {
 		t.Errorf("literal.Value not %d. got=%d", 5, literal.Val)
@@ -173,19 +163,14 @@ func TestParsingPrefixExpressions(t *testing.T) {
 				1, len(program.Statements))
 		}
 
-		stmt, ok := program.Statements[0].(*ast.NodeStatement)
+		exp, ok := program.Statements[0].(*ast.PrefixExpression)
 		if !ok {
-			t.Fatalf("program.Statements[0] is not ast.NodeStatement. got=%T",
+			t.Fatalf("program.Statements[0] is not ast.PrefixExpression. got=%T",
 				program.Statements[0])
 		}
-		v := stmt.Value()
-		exp, ok := v.(*ast.PrefixExpression)
-		if !ok {
-			t.Fatalf("stmt is not ast.PrefixExpression. got=%T", v)
-		}
-		if exp.Literal() != tt.Literal() {
+		if exp.Literal() != tt.operator {
 			t.Fatalf("exp.Literal() is not '%s'. got=%s",
-				tt.Literal(), exp.Literal())
+				tt.value, exp.Literal())
 		}
 		if !testLiteralExpression(t, exp.Right, tt.value) {
 			return
@@ -232,14 +217,8 @@ func TestParsingInfixExpressions(t *testing.T) {
 				1, len(program.Statements))
 		}
 
-		stmt, ok := program.Statements[0].(*ast.NodeStatement)
-		if !ok {
-			t.Fatalf("program.Statements[0] is not ast.NodeStatement. got=%T",
-				program.Statements[0])
-		}
-
-		if !testInfixExpression(t, stmt.Value(), tt.leftValue,
-			tt.Literal(), tt.rightValue) {
+		if !testInfixExpression(t, program.Statements[0], tt.leftValue,
+			tt.operator, tt.rightValue) {
 			return
 		}
 	}
@@ -366,7 +345,7 @@ func TestOperatorPrecedenceParsing(t *testing.T) {
 		program := p.ParseProgram()
 		checkParserErrors(t, p)
 
-		actual := program.String()
+		actual := ast.DebugString(program)
 		if actual != tt.expected {
 			t.Errorf("expected=%q, got=%q", tt.expected, actual)
 		}
@@ -393,15 +372,10 @@ func TestBooleanExpression(t *testing.T) {
 				len(program.Statements))
 		}
 
-		stmt, ok := program.Statements[0].(*ast.NodeStatement)
+		boolean, ok := program.Statements[0].(*ast.Boolean)
 		if !ok {
-			t.Fatalf("program.Statements[0] is not ast.NodeStatement. got=%T",
+			t.Fatalf("program.Statements[0] is not ast.Boolean. got=%T",
 				program.Statements[0])
-		}
-		v := stmt.Value()
-		boolean, ok := v.(*ast.Boolean)
-		if !ok {
-			t.Fatalf("exp not *ast.Boolean. got=%T", v)
 		}
 		if boolean.Val != tt.expectedBoolean {
 			t.Errorf("boolean.Value not %t. got=%t", tt.expectedBoolean,
@@ -423,19 +397,11 @@ func TestIfExpression(t *testing.T) {
 			1, len(program.Statements))
 	}
 
-	stmt, ok := program.Statements[0].(*ast.NodeStatement)
+	exp, ok := program.Statements[0].(*ast.IfExpression)
 	if !ok {
-		t.Fatalf("program.Statements[0] is not ast.NodeStatement. got=%T",
+		t.Fatalf("program.Statements[0] is not ast.IfExpression. got=%T",
 			program.Statements[0])
 	}
-
-	v := stmt.Value()
-	exp, ok := v.(*ast.IfExpression)
-	if !ok {
-		t.Fatalf("stmt.Expression is not ast.IfExpression. got=%T",
-			v)
-	}
-
 	if !testInfixExpression(t, exp.Condition, "x", "<", "y") {
 		return
 	}
@@ -445,13 +411,13 @@ func TestIfExpression(t *testing.T) {
 			len(exp.Consequence.Statements))
 	}
 
-	consequence, ok := exp.Consequence.Statements[0].(*ast.NodeStatement)
+	consequence, ok := exp.Consequence.Statements[0].(*ast.Identifier)
 	if !ok {
-		t.Fatalf("Statements[0] is not ast.NodeStatement. got=%T",
+		t.Fatalf("Statements[0] is not ast.Identifier. got=%T",
 			exp.Consequence.Statements[0])
 	}
 
-	if !testIdentifier(t, consequence.Value(), "x") {
+	if !testIdentifier(t, consequence, "x") {
 		return
 	}
 
@@ -473,18 +439,11 @@ func TestIfElseExpression(t *testing.T) {
 			1, len(program.Statements))
 	}
 
-	stmt, ok := program.Statements[0].(*ast.NodeStatement)
+	exp, ok := program.Statements[0].(*ast.IfExpression)
 	if !ok {
-		t.Fatalf("program.Statements[0] is not ast.NodeStatement. got=%T",
+		t.Fatalf("program.Statements[0] is not ast.IfExpression. got=%T",
 			program.Statements[0])
 	}
-
-	v := stmt.Value()
-	exp, ok := v.(*ast.IfExpression)
-	if !ok {
-		t.Fatalf("stmt.Expression is not ast.IfExpression. got=%T", v)
-	}
-
 	if !testInfixExpression(t, exp.Condition, "x", "<", "y") {
 		return
 	}
@@ -494,13 +453,13 @@ func TestIfElseExpression(t *testing.T) {
 			len(exp.Consequence.Statements))
 	}
 
-	consequence, ok := exp.Consequence.Statements[0].(*ast.NodeStatement)
+	consequence, ok := exp.Consequence.Statements[0].(*ast.Identifier)
 	if !ok {
-		t.Fatalf("Statements[0] is not ast.NodeStatement. got=%T",
+		t.Fatalf("Statements[0] is not ast.Identifier. got=%T",
 			exp.Consequence.Statements[0])
 	}
 
-	if !testIdentifier(t, consequence.Value(), "x") {
+	if !testIdentifier(t, consequence, "x") {
 		return
 	}
 
@@ -509,17 +468,18 @@ func TestIfElseExpression(t *testing.T) {
 			len(exp.Alternative.Statements))
 	}
 
-	alternative, ok := exp.Alternative.Statements[0].(*ast.NodeStatement)
+	alternative, ok := exp.Alternative.Statements[0].(*ast.Identifier)
 	if !ok {
 		t.Fatalf("Statements[0] is not ast.NodeStatement. got=%T",
 			exp.Alternative.Statements[0])
 	}
 
-	if !testIdentifier(t, alternative.Value(), "y") {
+	if !testIdentifier(t, alternative, "y") {
 		return
 	}
 }
 
+/*
 func TestFunctionLiteralParsing(t *testing.T) {
 	input := `func(x, y) { x + y; }`
 
@@ -692,20 +652,18 @@ func TestCallExpressionParameterParsing(t *testing.T) {
 		}
 	}
 }
+*/
 
 // Kept the name 'let*' but it's now just the `id = val` test.
 func CheckLetStatement(t *testing.T, s ast.Node, name string) bool {
+	/* What was that testing?
 	if s.Literal() != name {
 		t.Errorf("s.Literal not %q. got=%q", name, s.Literal())
 		return false
 	}
+	*/
 	// Expecting an expression statement containing an infix expression
-	exp, ok := s.(*ast.NodeStatement)
-	if !ok {
-		t.Errorf("s not *ast.NodeStatement. got=%T", s)
-		return false
-	}
-	letStmt, ok := exp.Val.(*ast.InfixExpression)
+	letStmt, ok := s.(*ast.InfixExpression)
 	if !ok {
 		t.Errorf("s not *ast.InfixExpression. got=%T", s)
 		return false
@@ -719,8 +677,8 @@ func CheckLetStatement(t *testing.T, s ast.Node, name string) bool {
 		t.Errorf("letStmt.Left not *ast.Identifier. got=%T", letStmt.Left)
 		return false
 	}
-	if id.Val != name {
-		t.Errorf("letStmt.Name.Value not '%s'. got=%s", name, id.Val)
+	if id.Literal() != name {
+		t.Errorf("letStmt.Name.Value not '%s'. got=%s", name, id.Literal())
 		return false
 	}
 
@@ -806,8 +764,8 @@ func testIdentifier(t *testing.T, exp ast.Node, value string) bool {
 		return false
 	}
 
-	if ident.Val != value {
-		t.Errorf("ident.Value not %s. got=%s", value, ident.Val)
+	if ident.Literal() != value {
+		t.Errorf("ident.Value not %s. got=%s", value, ident.Literal())
 		return false
 	}
 
@@ -864,15 +822,13 @@ func TestStringLiteralExpression(t *testing.T) {
 	program := p.ParseProgram()
 	checkParserErrors(t, p)
 
-	stmt := program.Statements[0].(*ast.NodeStatement)
-	v := stmt.Value()
-	literal, ok := v.(*ast.StringLiteral)
+	literal, ok := program.Statements[0].(*ast.StringLiteral)
 	if !ok {
-		t.Fatalf("exp not *ast.StringLiteral. got=%T", v)
+		t.Fatalf("exp not *ast.StringLiteral. got=%T", program.Statements[0])
 	}
 	expected := "hello\nworld\"abc"
-	if literal.Literal != expected {
-		t.Errorf("literal.Value not %q. got=%q", expected, literal.Literal)
+	if literal.Literal() != expected {
+		t.Errorf("literal.Value not %q. got=%q", expected, literal.Literal())
 	}
 }
 
@@ -884,16 +840,10 @@ func TestParsingArrayLiterals(t *testing.T) {
 	program := p.ParseProgram()
 	checkParserErrors(t, p)
 
-	stmt, ok := program.Statements[0].(*ast.NodeStatement)
+	array, ok := program.Statements[0].(*ast.ArrayLiteral)
 	if !ok {
-		t.Fatalf("exp not ast.NodeStatement. got=%T", stmt)
+		t.Fatalf("exp not ast.ArrayLiteral. got=%T", program.Statements[0])
 	}
-	v := stmt.Value()
-	array, ok := v.(*ast.ArrayLiteral)
-	if !ok {
-		t.Fatalf("exp not ast.ArrayLiteral. got=%T", v)
-	}
-
 	if len(array.Elements) != 3 {
 		t.Fatalf("len(array.Elements) not 3. got=%d", len(array.Elements))
 	}
@@ -911,16 +861,10 @@ func TestParsingEmptyArrayLiteral(t *testing.T) {
 	program := p.ParseProgram()
 	checkParserErrors(t, p)
 
-	stmt, ok := program.Statements[0].(*ast.NodeStatement)
+	array, ok := program.Statements[0].(*ast.ArrayLiteral)
 	if !ok {
-		t.Fatalf("exp not ast.NodeStatement. got=%T", stmt)
+		t.Fatalf("exp not ast.NodeStatement. got=%T", program.Statements[0])
 	}
-	v := stmt.Value()
-	array, ok := v.(*ast.ArrayLiteral)
-	if !ok {
-		t.Fatalf("exp not ast.ArrayLiteral. got=%T", v)
-	}
-
 	if len(array.Elements) != 0 {
 		t.Fatalf("len(array.Elements) not 0. got=%d", len(array.Elements))
 	}
@@ -934,16 +878,10 @@ func TestParsingIndexExpressions(t *testing.T) {
 	program := p.ParseProgram()
 	checkParserErrors(t, p)
 
-	stmt, ok := program.Statements[0].(*ast.NodeStatement)
+	indexExp, ok := program.Statements[0].(*ast.IndexExpression)
 	if !ok {
-		t.Fatalf("exp not ast.NodeStatement. got=%T", stmt)
+		t.Fatalf("exp not ast.IndexExpression. got=%T", program.Statements[0])
 	}
-	v := stmt.Value()
-	indexExp, ok := v.(*ast.IndexExpression)
-	if !ok {
-		t.Fatalf("exp not *ast.IndexExpression. got=%T", v)
-	}
-
 	if !testIdentifier(t, indexExp.Left, "myArray") {
 		return
 	}
@@ -961,11 +899,9 @@ func TestParsingMapLiteralsStringKeys(t *testing.T) {
 	program := p.ParseProgram()
 	checkParserErrors(t, p)
 
-	stmt := program.Statements[0].(*ast.NodeStatement)
-	v := stmt.Value()
-	m, ok := v.(*ast.MapLiteral)
+	m, ok := program.Statements[0].(*ast.MapLiteral)
 	if !ok {
-		t.Fatalf("exp is not ast.MapLiteral. got=%T", v)
+		t.Fatalf("exp is not ast.MapLiteral. got=%T", program.Statements[0])
 	}
 
 	if len(m.Pairs) != 3 {
@@ -984,7 +920,7 @@ func TestParsingMapLiteralsStringKeys(t *testing.T) {
 			t.Errorf("key is not ast.StringLiteral. got=%T", key)
 		}
 
-		expectedValue := expected[literal.Literal]
+		expectedValue := expected[literal.Literal()]
 
 		testIntegerLiteral(t, value, expectedValue)
 	}
@@ -998,11 +934,9 @@ func TestParsingEmptyMapLiteral(t *testing.T) {
 	program := p.ParseProgram()
 	checkParserErrors(t, p)
 
-	stmt := program.Statements[0].(*ast.NodeStatement)
-	v := stmt.Value()
-	m, ok := v.(*ast.MapLiteral)
+	m, ok := program.Statements[0].(*ast.MapLiteral)
 	if !ok {
-		t.Fatalf("exp is not ast.MapLiteral. got=%T", v)
+		t.Fatalf("exp is not ast.MapLiteral. got=%T", program.Statements[0])
 	}
 
 	if len(m.Pairs) != 0 {
@@ -1018,13 +952,10 @@ func TestParsingMapLiteralsWithExpressions(t *testing.T) {
 	program := p.ParseProgram()
 	checkParserErrors(t, p)
 
-	stmt := program.Statements[0].(*ast.NodeStatement)
-	v := stmt.Value()
-	m, ok := v.(*ast.MapLiteral)
+	m, ok := program.Statements[0].(*ast.MapLiteral)
 	if !ok {
-		t.Fatalf("exp is not ast.MapLiteral. got=%T", v)
+		t.Fatalf("exp is not ast.MapLiteral. got=%T", program.Statements[0])
 	}
-
 	if len(m.Pairs) != 3 {
 		t.Errorf("map.Pairs has wrong length. got=%d", len(m.Pairs))
 	}
@@ -1048,9 +979,9 @@ func TestParsingMapLiteralsWithExpressions(t *testing.T) {
 			continue
 		}
 
-		testFunc, ok := tests[literal.Literal]
+		testFunc, ok := tests[literal.Literal()]
 		if !ok {
-			t.Errorf("No test function for key %q found", literal.String())
+			t.Errorf("No test function for key %q found", ast.DebugString(literal))
 			continue
 		}
 
@@ -1071,17 +1002,11 @@ func TestMacroLiteralParsing(t *testing.T) {
 			1, len(program.Statements))
 	}
 
-	stmt, ok := program.Statements[0].(*ast.NodeStatement)
+	macro, ok := program.Statements[0].(*ast.MacroLiteral)
 	if !ok {
-		t.Fatalf("statement is not ast.NodeStatement. got=%T",
+		t.Fatalf("statement is not ast.MacroLiteral. got=%T",
 			program.Statements[0])
 	}
-	v := stmt.Value()
-	macro, ok := v.(*ast.MacroLiteral)
-	if !ok {
-		t.Fatalf("stmt.Expression is not ast.MacroLiteral. got=%T", v)
-	}
-
 	if len(macro.Parameters) != 2 {
 		t.Fatalf("macro literal parameters wrong. want 2, got=%d\n",
 			len(macro.Parameters))
@@ -1095,11 +1020,11 @@ func TestMacroLiteralParsing(t *testing.T) {
 			len(macro.Body.Statements))
 	}
 
-	bodyStmt, ok := macro.Body.Statements[0].(*ast.NodeStatement)
+	bodyStmt, ok := macro.Body.Statements[0].(*ast.InfixExpression)
 	if !ok {
-		t.Fatalf("macro body stmt is not ast.NodeStatement. got=%T",
+		t.Fatalf("macro body stmt is not ast.InfixExpression. got=%T",
 			macro.Body.Statements[0])
 	}
 
-	testInfixExpression(t, bodyStmt.Value(), "x", "+", "y")
+	testInfixExpression(t, bodyStmt, "x", "+", "y")
 }

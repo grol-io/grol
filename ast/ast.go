@@ -71,7 +71,7 @@ func (b Base) Value() *token.Token {
 }
 
 func (b Base) PrettyPrint(ps *PrintState) *PrintState {
-	log.Warnf("PrettyPrint not implemented for %T", b)
+	log.Infof("PrettyPrint not implemented for %T", b)
 	return ps.Print(b.Literal())
 }
 
@@ -170,7 +170,7 @@ func (i InfixExpression) PrettyPrint(out *PrintState) *PrintState {
 	out.ExpressionLevel++
 	i.Left.PrettyPrint(out)
 	out.Print(" ", i.Literal(), " ")
-	i.Left.PrettyPrint(out)
+	i.Right.PrettyPrint(out)
 	out.ExpressionLevel--
 	if out.ExpressionLevel > 0 {
 		out.Print(")")
