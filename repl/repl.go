@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"fortio.org/log"
+	"grol.io/grol/ast"
 	"grol.io/grol/eval"
 	"grol.io/grol/lexer"
 	"grol.io/grol/object"
@@ -110,7 +111,8 @@ func EvalOne(s, macroState *eval.State, what string, out io.Writer, options Opti
 		return true, nil
 	}
 	if options.FormatOnly {
-		fmt.Fprintln(out, program.String())
+		ps := ast.PrintState{Out: out}
+		program.PrettyPrint(&ps)
 		return false, nil
 	}
 	if options.ShowParse {
