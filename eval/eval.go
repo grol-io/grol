@@ -124,6 +124,9 @@ func (s *State) evalInternal(node any) object.Object {
 		return object.Function{Parameters: params, Env: s.env, Body: body}
 	case *ast.CallExpression:
 		f := s.evalInternal(node.Function)
+		if f.Type() == object.ERROR {
+			return f
+		}
 		args, oerr := s.evalExpressions(node.Arguments)
 		if oerr != nil {
 			return *oerr
@@ -285,7 +288,7 @@ func evalArrayIndexExpression(array, index object.Object) object.Object {
 func (s *State) applyFunction(fn object.Object, args []object.Object) object.Object {
 	function, ok := fn.(object.Function)
 	if !ok {
-		return object.Error{Value: "<not a function: " + fn.Type().String() + ">"}
+		return object.Error{Value: "<not a function: " + fn.Type().String() + ":" + fn.Inspect() + ">"}
 	}
 	nenv, oerr := extendFunctionEnv(function, args)
 	if oerr != nil {
