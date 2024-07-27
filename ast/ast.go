@@ -306,19 +306,18 @@ func (ie IndexExpression) PrettyPrint(out *PrintState) *PrintState {
 type MapLiteral struct {
 	Base  // the '{' token
 	Pairs map[Node]Node
+	Order []Node // for pretty printing in same order as input
 }
 
 func (hl MapLiteral) PrettyPrint(out *PrintState) *PrintState {
 	out.Print("{")
-	first := true
-	for key, value := range hl.Pairs {
-		if !first {
+	for i, key := range hl.Order {
+		if i > 0 {
 			out.Print(", ")
 		}
-		first = false
 		key.PrettyPrint(out)
 		out.Print(":")
-		value.PrettyPrint(out)
+		hl.Pairs[key].PrettyPrint(out)
 	}
 	out.Print("}")
 	return out

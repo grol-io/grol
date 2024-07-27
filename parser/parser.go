@@ -553,6 +553,7 @@ func (p *Parser) parseMapLiteral() ast.Node {
 		value := p.parseExpression(LOWEST)
 
 		mapRes.Pairs[key] = value
+		mapRes.Order = append(mapRes.Order, key)
 
 		if !p.peekTokenIs(token.RBRACE) && !p.expectPeek(token.COMMA) {
 			return nil

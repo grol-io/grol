@@ -45,7 +45,7 @@ func Modify(node Node, f func(Node) Node) Node {
 		for key, val := range node.Pairs {
 			newKey := Modify(key, f)
 			newVal := Modify(val, f)
-			newPairs[newKey] = newVal
+			newPairs[newKey] = newVal // TODO: bug, change Order too.
 		}
 		node.Pairs = newPairs
 	default:

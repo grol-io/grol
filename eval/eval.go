@@ -160,7 +160,8 @@ func hashable(o object.Object) *object.Error {
 func (s *State) evalMapLiteral(node *ast.MapLiteral) object.Object {
 	result := object.NewMap()
 
-	for keyNode, valueNode := range node.Pairs {
+	for _, keyNode := range node.Order {
+		valueNode := node.Pairs[keyNode]
 		key := s.evalInternal(keyNode)
 		value := s.evalInternal(valueNode)
 		if oerr := hashable(key); oerr != nil {
