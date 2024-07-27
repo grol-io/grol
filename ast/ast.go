@@ -71,7 +71,7 @@ func (b Base) Value() *token.Token {
 }
 
 func (b Base) PrettyPrint(ps *PrintState) *PrintState {
-	log.Infof("PrettyPrint not implemented for %T", b)
+	log.LogVf("PrettyPrint not implemented for %T", b) // TODO
 	return ps.Print(b.Literal())
 }
 

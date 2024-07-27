@@ -249,7 +249,7 @@ func (s *State) evalBuiltin(node *ast.Builtin) object.Object {
 			return object.Integer{Value: 0}
 		}
 	default:
-		return object.Error{Value: fmt.Sprintf("builtin %s yet implemented", node.Type)}
+		return object.Error{Value: fmt.Sprintf("builtin %s yet implemented", node.Type())}
 	}
 	return object.Error{Value: node.Literal() + ": not supported on " + rt.String()}
 }

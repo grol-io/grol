@@ -3,6 +3,7 @@ package eval_test
 import (
 	"testing"
 
+	"grol.io/grol/ast"
 	"grol.io/grol/eval"
 	"grol.io/grol/lexer"
 	"grol.io/grol/object"
@@ -311,14 +312,14 @@ func TestFunctionObject(t *testing.T) {
 			fn.Parameters)
 	}
 
-	if fn.Parameters[0].String() != "x" {
+	if ast.DebugString(fn.Parameters[0]) != "x" {
 		t.Fatalf("parameter is not 'x'. got=%q", fn.Parameters[0])
 	}
 
 	expectedBody := "{\n(x + 2)\n}"
-
-	if fn.Body.String() != expectedBody {
-		t.Fatalf("body is not %q. got=%q", expectedBody, fn.Body.String())
+	got := ast.DebugString(fn.Body)
+	if got != expectedBody {
+		t.Fatalf("body is not %q. got=%q", expectedBody, got)
 	}
 }
 
@@ -616,9 +617,9 @@ func TestQuote(t *testing.T) {
 			t.Fatalf("quote.Node is nil")
 		}
 
-		if quote.Node.String() != tt.expected {
-			t.Errorf("not equal. got=%q, want=%q",
-				quote.Node.String(), tt.expected)
+		got := ast.DebugString(quote.Node)
+		if got != tt.expected {
+			t.Errorf("not equal. got=%q, want=%q", got, tt.expected)
 		}
 	}
 }
@@ -684,9 +685,9 @@ func TestQuoteUnquote(t *testing.T) {
 			t.Fatalf("quote.Node is nil")
 		}
 
-		if quote.Node.String() != tt.expected {
-			t.Errorf("not equal. got=%q, want=%q",
-				quote.Node.String(), tt.expected)
+		got := ast.DebugString(quote.Node)
+		if got != tt.expected {
+			t.Errorf("not equal. got=%q, want=%q", got, tt.expected)
 		}
 	}
 }
