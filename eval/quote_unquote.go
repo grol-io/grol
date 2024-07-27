@@ -20,15 +20,16 @@ func (s *State) evalUnquoteCalls(quoted ast.Node) ast.Node {
 			return node
 		}
 
-		call, ok := node.(*ast.CallExpression)
+		call, ok := node.(*ast.Builtin)
 		if !ok {
 			return node
 		}
 
-		if len(call.Arguments) != 1 {
+		if len(call.Parameters) != 1 {
+			log.Warnf("wrong number of arguments to unquote: %d", len(call.Parameters))
 			return node
 		}
-		unquoted := s.evalInternal(call.Arguments[0])
+		unquoted := s.evalInternal(call.Parameters[0])
 		return convertObjectToASTNode(unquoted)
 	})
 }
@@ -38,19 +39,16 @@ func convertObjectToASTNode(obj object.Object) ast.Node {
 	// TODD: more types
 	switch obj := obj.(type) {
 	case object.Integer:
-		t := token.Token{
-			Type:    token.INT,
-			Literal: strconv.FormatInt(obj.Value, 10),
-		}
+		t := token.Intern(token.INT, strconv.FormatInt(obj.Value, 10))
 		r := ast.IntegerLiteral{Val: obj.Value}
 		r.Token = t
 		return r
 	case object.Boolean:
-		var t token.Token
+		var t *token.Token
 		if obj.Value {
-			t = token.Token{Type: token.TRUE, Literal: "true"}
+			t = token.TRUET
 		} else {
-			t = token.Token{Type: token.FALSE, Literal: "false"}
+			t = token.FALSET
 		}
 		return ast.Boolean{Base: ast.Base{Token: t}, Val: obj.Value}
 	case object.Quote:
@@ -62,10 +60,9 @@ func convertObjectToASTNode(obj object.Object) ast.Node {
 }
 
 func isUnquoteCall(node ast.Node) bool {
-	callExpression, ok := node.(*ast.CallExpression)
+	b, ok := node.(*ast.Builtin)
 	if !ok {
 		return false
 	}
-
-	return callExpression.Function.TokenLiteral() == "unquote"
+	return b.Token == unquoteToken
 }

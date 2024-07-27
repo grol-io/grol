@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"fortio.org/log"
+	"grol.io/grol/ast"
 	"grol.io/grol/eval"
 	"grol.io/grol/lexer"
 	"grol.io/grol/object"
@@ -32,10 +33,11 @@ func logParserErrors(p *parser.Parser) bool {
 }
 
 type Options struct {
-	ShowParse bool
-	ShowEval  bool
-	All       bool
-	NoColor   bool // color controlled by log package, unless this is set to true.
+	ShowParse  bool
+	ShowEval   bool
+	All        bool
+	NoColor    bool // color controlled by log package, unless this is set to true.
+	FormatOnly bool
 }
 
 func EvalAll(s, macroState *eval.State, in io.Reader, out io.Writer, options Options) {
@@ -49,7 +51,9 @@ func EvalAll(s, macroState *eval.State, in io.Reader, out io.Writer, options Opt
 
 // EvalString can be used from playground etc for single eval.
 // returns the eval errors and an array of errors if any.
-func EvalString(what string) (res string, errs []string) {
+// also returns the normalized/reformatted input if no parsing errors
+// occurred.
+func EvalString(what string) (res string, errs []string, formatted string) {
 	defer func() {
 		if r := recover(); r != nil {
 			errs = append(errs, fmt.Sprintf("panic: %v", r))
@@ -60,7 +64,7 @@ func EvalString(what string) (res string, errs []string) {
 	out := &strings.Builder{}
 	s.Out = out
 	s.NoLog = true
-	_, errs = EvalOne(s, macroState, what, out, Options{All: true, ShowEval: true, NoColor: true})
+	_, errs, formatted = EvalOne(s, macroState, what, out, Options{All: true, ShowEval: true, NoColor: true})
 	res = out.String()
 	return
 }
@@ -80,7 +84,7 @@ func Interactive(in io.Reader, out io.Writer, options Options) {
 		}
 		l := prev + scanner.Text()
 		// errors are already logged and this is the only case that can get contNeeded (EOL instead of EOF mode)
-		contNeeded, _ := EvalOne(s, macroState, l, out, options)
+		contNeeded, _, _ := EvalOne(s, macroState, l, out, options)
 		if contNeeded {
 			prev = l + "\n"
 			prompt = CONTINUATION
@@ -93,7 +97,7 @@ func Interactive(in io.Reader, out io.Writer, options Options) {
 
 // Returns true in line mode if more should be fed to the parser.
 // TODO: this one size fits 3 different calls (file, interactive, bot) is getting spaghetti.
-func EvalOne(s, macroState *eval.State, what string, out io.Writer, options Options) (bool, []string) {
+func EvalOne(s, macroState *eval.State, what string, out io.Writer, options Options) (bool, []string, string) {
 	var l *lexer.Lexer
 	if options.All {
 		l = lexer.New(what)
@@ -103,14 +107,19 @@ func EvalOne(s, macroState *eval.State, what string, out io.Writer, options Opti
 	p := parser.New(l)
 	program := p.ParseProgram()
 	if logParserErrors(p) {
-		return false, p.Errors()
+		return false, p.Errors(), what
 	}
 	if p.ContinuationNeeded() {
-		return true, nil
+		return true, nil, what
+	}
+	formatted := program.PrettyPrint(ast.NewPrintState()).String()
+	if options.FormatOnly {
+		_, _ = out.Write([]byte(formatted))
+		return false, nil, formatted
 	}
 	if options.ShowParse {
 		fmt.Fprint(out, "== Parse ==> ")
-		fmt.Fprintln(out, program.String())
+		program.PrettyPrint(&ast.PrintState{Out: out})
 	}
 	macroState.DefineMacros(program)
 	numMacros := macroState.Len()
@@ -121,7 +130,7 @@ func EvalOne(s, macroState *eval.State, what string, out io.Writer, options Opti
 		_ = macroState.ExpandMacros(program)
 		if options.ShowParse {
 			fmt.Fprint(out, "== Macro ==> ")
-			fmt.Fprintln(out, program.String())
+			program.PrettyPrint(&ast.PrintState{Out: out})
 		}
 	} else {
 		log.LogVf("Skipping macro expansion as none are defined")
@@ -131,7 +140,7 @@ func EvalOne(s, macroState *eval.State, what string, out io.Writer, options Opti
 	}
 	obj := s.Eval(program)
 	if !options.ShowEval {
-		return false, nil
+		return false, nil, formatted
 	}
 	var errs []string
 	if obj.Type() == object.ERROR {
@@ -148,5 +157,5 @@ func EvalOne(s, macroState *eval.State, what string, out io.Writer, options Opti
 	if !options.NoColor {
 		fmt.Fprint(out, log.Colors.Reset)
 	}
-	return false, errs
+	return false, errs, formatted
 }

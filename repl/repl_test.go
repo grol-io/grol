@@ -24,7 +24,7 @@ called fact 3
 called fact 2
 called fact 1
 Factorial of 5 is 120` + " \n120\n" // there is an extra space before \n that vscode wants to remove
-	if got, errs := repl.EvalString(s); got != expected || len(errs) > 0 {
+	if got, errs, _ := repl.EvalString(s); got != expected || len(errs) > 0 {
 		t.Errorf("EvalString() got %v\n---\n%s\n---want---\n%s\n---", errs, got, expected)
 	}
 }
@@ -39,27 +39,47 @@ fact=func(n) { // function
 }
 fact(50.)`
 	expected := "30414093201713376000000000000000000000000000000000000000000000000\n"
-	if got, errs := repl.EvalString(s); got != expected || len(errs) > 0 {
+	got, errs, formatted := repl.EvalString(s)
+	if got != expected || len(errs) > 0 {
 		t.Errorf("EvalString() got %v\n---\n%s\n---want---\n%s\n---", errs, got, expected)
+	}
+	// This tests that expression nesting is reset in function call list (ie formatted to `fact(n-1)` instead of `fact((n-1))`)
+	expected = `fact = func(n) {
+	// function
+	if n <= 1 {
+		return 1
+	}
+	n * fact(n - 1)
+}
+fact(50.)
+`
+	if formatted != expected {
+		t.Errorf("EvalString() formatted\n---\n%s\n---want---\n%s\n---", formatted, expected)
 	}
 }
 
 func TestEvalStringParsingError(t *testing.T) {
-	s := `.`
+	s := `	  .`
 	expected := ""
-	res, errs := repl.EvalString(s)
+	res, errs, formatted := repl.EvalString(s)
 	if len(errs) == 0 {
 		t.Errorf("EvalString() got no errors (res %q), expected some", res)
 	}
 	if res != expected {
 		t.Errorf("EvalString() got (%v) %q vs %q", errs, res, expected)
 	}
+	if formatted != s {
+		t.Errorf("EvalString() reformatted %q vs %q", formatted, s)
+	}
 }
 
 func TestEvalStringEvalError(t *testing.T) {
-	s := `y`
+	s := `	 y
+
+
+	`
 	expected := "<err: <identifier not found: y>>"
-	res, errs := repl.EvalString(s)
+	res, errs, formatted := repl.EvalString(s)
 	if len(errs) == 0 {
 		t.Fatalf("EvalString() got no errors (res %q), expected some", res)
 	}
@@ -69,5 +89,8 @@ func TestEvalStringEvalError(t *testing.T) {
 	expected += "\n" // in output, there is a newline at the end.
 	if res != expected {
 		t.Errorf("EvalString() result %v\n---\n%s\n---want---\n%s\n---", errs, res, expected)
+	}
+	if formatted != "y\n" {
+		t.Errorf("EvalString() formatted %q expected just \"y\"", formatted)
 	}
 }

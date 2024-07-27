@@ -1,52 +1,55 @@
 package ast
 
+import "fortio.org/log"
+
 // Note, this is somewhat similar to eval.go's eval... both are "apply"ing.
 func Modify(node Node, f func(Node) Node) Node {
 	// TODO: add err checks for _s.
 	switch node := node.(type) {
-	case *Program:
+	case *Statements:
 		for i, statement := range node.Statements {
 			node.Statements[i] = Modify(statement, f)
 		}
-	case *ExpressionStatement:
-		node.Val, _ = Modify(node.Val, f).(Expression)
 	case *InfixExpression:
-		node.Left, _ = Modify(node.Left, f).(Expression)
-		node.Right, _ = Modify(node.Right, f).(Expression)
+		le := Modify(node.Left, f)
+		node.Left = le
+		re := Modify(node.Right, f)
+		node.Right = re
 	case *PrefixExpression:
-		node.Right, _ = Modify(node.Right, f).(Expression)
+		pe := Modify(node.Right, f)
+		node.Right = pe
 	case *IndexExpression:
-		node.Left, _ = Modify(node.Left, f).(Expression)
-		node.Index, _ = Modify(node.Index, f).(Expression)
+		node.Left = Modify(node.Left, f)
+		node.Index = Modify(node.Index, f)
 	case *IfExpression:
-		node.Condition, _ = Modify(node.Condition, f).(Expression)
-		node.Consequence, _ = Modify(node.Consequence, f).(*BlockStatement)
+		ce := Modify(node.Condition, f)
+		node.Condition = ce
+		node.Consequence = Modify(node.Consequence, f).(*Statements)
 		if node.Alternative != nil {
-			node.Alternative, _ = Modify(node.Alternative, f).(*BlockStatement)
-		}
-	case *BlockStatement:
-		for i := range node.Statements {
-			node.Statements[i] = Modify(node.Statements[i], f)
+			node.Alternative = Modify(node.Alternative, f).(*Statements)
 		}
 	case *ReturnStatement:
-		node.ReturnValue, _ = Modify(node.ReturnValue, f).(Expression)
+		re := Modify(node.ReturnValue, f)
+		node.ReturnValue = re
 	case *FunctionLiteral:
 		for i := range node.Parameters {
-			node.Parameters[i], _ = Modify(node.Parameters[i], f).(*Identifier)
+			node.Parameters[i] = Modify(node.Parameters[i], f).(*Identifier)
 		}
-		node.Body, _ = Modify(node.Body, f).(*BlockStatement)
+		node.Body = Modify(node.Body, f).(*Statements)
 	case *ArrayLiteral:
 		for i := range node.Elements {
-			node.Elements[i], _ = Modify(node.Elements[i], f).(Expression)
+			node.Elements[i] = Modify(node.Elements[i], f)
 		}
 	case *MapLiteral:
-		newPairs := make(map[Expression]Expression)
+		newPairs := make(map[Node]Node)
 		for key, val := range node.Pairs {
-			newKey, _ := Modify(key, f).(Expression)
-			newVal, _ := Modify(val, f).(Expression)
-			newPairs[newKey] = newVal
+			newKey := Modify(key, f)
+			newVal := Modify(val, f)
+			newPairs[newKey] = newVal // TODO: bug, change Order too.
 		}
 		node.Pairs = newPairs
+	default:
+		log.LogVf("default for node type %T", node)
 	}
 	return f(node)
 }

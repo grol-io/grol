@@ -1,24 +1,71 @@
+// There are 2 types of Token, constant ones (with no "value") and the ones with attached
+// value that is variable (e.g. IDENT, INT, FLOAT, STRING, COMMENT).
+// We'd use the upcoming unique https://tip.golang.org/doc/go1.23#new-unique-package
+// but we want this to run on 1.22 and earlier.
 package token
 
-import "fortio.org/log"
+import (
+	"fmt"
+	"strconv"
+	"strings"
+)
+
+// 'noCopy' Stolen from
+// https://cs.opensource.google/go/go/+/master:src/sync/atomic/type.go;l=224-235?q=noCopy&ss=go%2Fgo
+type noCopy struct{}
+
+func (*noCopy) Lock()   {}
+func (*noCopy) Unlock() {}
 
 type Type uint8
 
 type Token struct {
-	Type    Type
-	Literal string
+	// Allows go vet to flag accidental copies of this type,
+	// though with an error about lock value which can be confusing
+	_         noCopy
+	tokenType Type
+	literal   string
+}
+
+// Single threaded (famous last words), no need for sync.Map.
+var interning map[Token]*Token
+
+// Lookup a unique pointer to a token of same values, if it exists,
+// otherwise store the passed in one for future lookups.
+func InternToken(t *Token) *Token {
+	ptr, ok := interning[*t]
+	if ok {
+		return ptr
+	}
+	interning[*t] = t
+	return t
+}
+
+func Intern(t Type, literal string) *Token {
+	return InternToken(&Token{tokenType: t, literal: literal})
+}
+
+func ResetInterning() {
+	interning = make(map[Token]*Token)
 }
 
 const (
 	ILLEGAL Type = iota
 	EOL
 
-	// Identifiers + literals.
+	startValueTokens
+
+	// Identifiers + literals. with attached value.
 	IDENT // add, foobar, x, y, ...
 	INT   // 1343456
 	FLOAT // 1. 1e3
+	LINECOMMENT
 
-	// Operators.
+	endValueTokens
+
+	startSingleCharTokens
+
+	// Single character operators.
 	ASSIGN
 	PLUS
 	MINUS
@@ -26,16 +73,8 @@ const (
 	ASTERISK
 	SLASH
 	PERCENT
-
 	LT
 	GT
-	// or equal variants.
-	LTEQ
-	GTEQ
-
-	EQ
-	NOTEQ
-
 	// Delimiters.
 	COMMA
 	SEMICOLON
@@ -48,12 +87,23 @@ const (
 	RBRACKET
 	COLON
 
-	LINECOMMENT
-	STARTCOMMENT
-	ENDCOMMENT
+	endSingleCharTokens
+
+	// 2 char/string constant token range.
+	startMultiCharTokens
+
+	// LT, GT or equal variants.
+	LTEQ
+	GTEQ
+	EQ
+	NOTEQ
+
+	endMultiCharTokens
+
+	startIdentityTokens // Tokens whose literal is the lowercase of the Type.String()
 
 	// Keywords.
-	FUNCTION
+	FUNC
 	TRUE
 	FALSE
 	IF
@@ -61,6 +111,9 @@ const (
 	RETURN
 	STRING
 	MACRO
+	// Macro magic.
+	QUOTE
+	UNQUOTE
 	// Built-in functions.
 	LEN
 	FIRST
@@ -68,34 +121,151 @@ const (
 	PRINT
 	LOG
 	ERROR
+
+	endIdentityTokens
+
 	EOF
 )
+
+var (
+	EOLT   = &Token{tokenType: EOL}
+	EOFT   = &Token{tokenType: EOF}
+	TRUET  *Token
+	FALSET *Token
+)
+
+var (
+	keywords map[string]*Token
+	cTokens  map[byte]*Token
+	tToChar  map[Type]byte
+	sTokens  map[string]*Token
+	tToT     map[Type]*Token // for all token that are constant.
+)
+
+func init() {
+	Init()
+}
+
+func assoc(t Type, c byte) {
+	tToChar[t] = c
+	tok := &Token{tokenType: t, literal: string(c)}
+	cTokens[c] = tok
+	tToT[t] = tok
+}
+
+func assocS(t Type, s string) *Token {
+	tok := &Token{tokenType: t, literal: s}
+	old := InternToken(tok)
+	if old != tok {
+		panic("duplicate token for " + s)
+	}
+	sTokens[s] = tok
+	tToT[t] = tok
+	return tok
+}
+
+func Init() {
+	ResetInterning()
+	keywords = make(map[string]*Token)
+	cTokens = make(map[byte]*Token)
+	tToChar = make(map[Type]byte)
+	sTokens = make(map[string]*Token)
+	tToT = make(map[Type]*Token)
+	for i := startIdentityTokens + 1; i < endIdentityTokens; i++ {
+		t := assocS(i, strings.ToLower(i.String()))
+		keywords[t.literal] = t
+	}
+	TRUET = tToT[TRUE]
+	FALSET = tToT[FALSE]
+	// Single character tokens:
+	assoc(ASSIGN, '=')
+	assoc(PLUS, '+')
+	assoc(MINUS, '-')
+	assoc(BANG, '!')
+	assoc(ASTERISK, '*')
+	assoc(SLASH, '/')
+	assoc(PERCENT, '%')
+	assoc(LT, '<')
+	assoc(GT, '>')
+	assoc(COMMA, ',')
+	assoc(SEMICOLON, ';')
+	assoc(LPAREN, '(')
+	assoc(RPAREN, ')')
+	assoc(LBRACE, '{')
+	assoc(RBRACE, '}')
+	assoc(LBRACKET, '[')
+	assoc(RBRACKET, ']')
+	assoc(COLON, ':')
+	// Verify we have all of them.
+	for i := startSingleCharTokens + 1; i < endSingleCharTokens; i++ {
+		b, ok := tToChar[i]
+		if !ok {
+			panic("missing single character token char lookup for " + i.String())
+		}
+		v, ok := cTokens[b]
+		if !ok {
+			panic("missing single character token for " + i.String())
+		}
+		if v.tokenType != i {
+			panic("mismatched single character token for " + i.String() + ":" + v.tokenType.String())
+		}
+		if v.literal != string(b) {
+			panic(fmt.Sprintf("unexpected literal for single character token for %q: %q vs %q",
+				i.String(), v.literal, string(b)))
+		}
+		tok, ok := tToT[i]
+		if !ok {
+			panic("missing single character token for " + i.String())
+		}
+		if tok.tokenType != i {
+			panic("mismatched single character token for " + i.String() + ":" + tok.tokenType.String())
+		}
+	}
+	// Multi character non identity tokens.
+	assocS(LTEQ, "<=")
+	assocS(GTEQ, ">=")
+	assocS(EQ, "==")
+	assocS(NOTEQ, "!=")
+	// Special alias for := to be same as ASSIGN.
+	sTokens[":="] = cTokens['=']
+}
 
 //go:generate stringer -type=Type
 var _ = EOF.String() // force compile error if go generate is missing.
 
-var keywords = map[string]Type{
-	"func":   FUNCTION,
-	"true":   TRUE,
-	"false":  FALSE,
-	"if":     IF,
-	"else":   ELSE,
-	"return": RETURN,
-	"macro":  MACRO,
-	// built-in functions.
-	"len":   LEN,
-	"first": FIRST,
-	"rest":  REST,
-	"print": PRINT,
-	"log":   LOG,
-	"error": ERROR,
+func LookupIdent(ident string) *Token {
+	// constant/identity ones:
+	if t, ok := keywords[ident]; ok {
+		return t
+	}
+	return InternToken(&Token{tokenType: IDENT, literal: ident})
 }
 
-func LookupIdent(ident string) Type {
-	if tok, ok := keywords[ident]; ok {
-		// Ensures compile error if go generate is missing
-		log.Debugf("LookupIdent(%s) found %s", ident, tok.String())
-		return tok
-	}
-	return IDENT
+// ByType is the cheapest lookup for all the tokens whose type
+// only have one possible instance/value
+// (ie all the tokens except for the first 4 value tokens).
+// TODO: codegen all the token constants to avoid needing this function.
+// (even though that's better than string comparaisons).
+func ByType(t Type) *Token {
+	return tToT[t]
+}
+
+func (t *Token) Literal() string {
+	return t.literal
+}
+
+func (t *Token) Type() Type {
+	return t.tokenType
+}
+
+func ConstantTokenChar(literal byte) *Token {
+	return cTokens[literal]
+}
+
+func ConstantTokenStr(literal string) *Token {
+	return sTokens[literal]
+}
+
+func (t *Token) DebugString() string {
+	return t.Type().String() + ":" + strconv.Quote(t.Literal())
 }

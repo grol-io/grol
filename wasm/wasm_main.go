@@ -9,6 +9,7 @@ package main
 
 import (
 	"runtime"
+	"strings"
 	"syscall/js"
 
 	"fortio.org/cli"
@@ -22,15 +23,16 @@ func jsEval(this js.Value, args []js.Value) interface{} {
 		return "ERROR: number of arguments doesn't match"
 	}
 	input := args[0].String()
-	res, errs := repl.EvalString(input)
+	res, errs, formatted := repl.EvalString(input)
 	result := make(map[string]any)
-	result["result"] = res
+	result["result"] = strings.TrimSuffix(res, "\n")
 	// transfer errors to []any (!)
 	anyErrs := make([]any, len(errs))
 	for i, v := range errs {
 		anyErrs[i] = v
 	}
 	result["errors"] = anyErrs
+	result["formatted"] = strings.TrimSuffix(formatted, "\n")
 	return result
 }
 

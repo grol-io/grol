@@ -3,6 +3,7 @@ package eval_test
 import (
 	"testing"
 
+	"grol.io/grol/ast"
 	"grol.io/grol/eval"
 	"grol.io/grol/lexer"
 	"grol.io/grol/object"
@@ -14,6 +15,7 @@ func TestEvalIntegerExpression(t *testing.T) {
 		input    string
 		expected int64
 	}{
+		{"(3)\n(4)", 4}, // expression on new line should be... new.
 		{"5 // is 5", 5},
 		{"10", 10},
 		{"-5", -5},
@@ -53,7 +55,7 @@ func testEval(t *testing.T, input string) object.Object {
 	p := parser.New(l)
 	program := p.ParseProgram()
 	if len(p.Errors()) > 0 {
-		t.Fatalf("parser has %d error(s): %v", len(p.Errors()), p.Errors())
+		t.Fatalf("parser has %d error(s) for %q: %v", len(p.Errors()), input, p.Errors())
 	}
 	s := eval.NewState() // each test starts anew.
 	return s.Eval(program)
@@ -257,7 +259,7 @@ if (10 > 1) {
 		},
 		{
 			`{"name": "Monkey"}[func(x) { x }];`,
-			"FUNCTION not usable as map key",
+			"FUNC not usable as map key",
 		},
 	}
 
@@ -311,14 +313,13 @@ func TestFunctionObject(t *testing.T) {
 			fn.Parameters)
 	}
 
-	if fn.Parameters[0].String() != "x" {
+	if ast.DebugString(fn.Parameters[0]) != "x" {
 		t.Fatalf("parameter is not 'x'. got=%q", fn.Parameters[0])
 	}
-
-	expectedBody := "{\n(x + 2)\n}"
-
-	if fn.Body.String() != expectedBody {
-		t.Fatalf("body is not %q. got=%q", expectedBody, fn.Body.String())
+	expectedBody := "x + 2\n"
+	got := ast.DebugString(fn.Body)
+	if got != expectedBody {
+		t.Fatalf("body is not %q. got=%q", expectedBody, got)
 	}
 }
 
@@ -592,7 +593,7 @@ func TestQuote(t *testing.T) {
 		},
 		{
 			`quote(5 + 8)`,
-			`(5 + 8)`,
+			`5 + 8`,
 		},
 		{
 			`quote(foobar)`,
@@ -600,7 +601,7 @@ func TestQuote(t *testing.T) {
 		},
 		{
 			`quote(foobar + barfoo)`,
-			`(foobar + barfoo)`,
+			`foobar + barfoo`,
 		},
 	}
 
@@ -616,9 +617,9 @@ func TestQuote(t *testing.T) {
 			t.Fatalf("quote.Node is nil")
 		}
 
-		if quote.Node.String() != tt.expected {
-			t.Errorf("not equal. got=%q, want=%q",
-				quote.Node.String(), tt.expected)
+		got := ast.DebugString(quote.Node)
+		if got != tt.expected {
+			t.Errorf("not equal. got=%q, want=%q", got, tt.expected)
 		}
 	}
 }
@@ -638,11 +639,11 @@ func TestQuoteUnquote(t *testing.T) {
 		},
 		{
 			`quote(8 + unquote(4 + 4))`,
-			`(8 + 8)`,
+			`8 + 8`,
 		},
 		{
 			`quote(unquote(4 + 4) + 8)`,
-			`(8 + 8)`,
+			`8 + 8`,
 		},
 		{
 			`foobar = 8;
@@ -664,12 +665,12 @@ func TestQuoteUnquote(t *testing.T) {
 		},
 		{
 			`quote(unquote(quote(4 + 4)))`,
-			`(4 + 4)`,
+			`4 + 4`,
 		},
 		{
 			`quotedInfixExpression = quote(4 + 4);
             quote(unquote(4 + 4) + unquote(quotedInfixExpression))`,
-			`(8 + (4 + 4))`,
+			`8 + (4 + 4)`,
 		},
 	}
 	for _, tt := range tests {
@@ -684,9 +685,9 @@ func TestQuoteUnquote(t *testing.T) {
 			t.Fatalf("quote.Node is nil")
 		}
 
-		if quote.Node.String() != tt.expected {
-			t.Errorf("not equal. got=%q, want=%q",
-				quote.Node.String(), tt.expected)
+		got := ast.DebugString(quote.Node)
+		if got != tt.expected {
+			t.Errorf("not equal. got=%q, want=%q", got, tt.expected)
 		}
 	}
 }

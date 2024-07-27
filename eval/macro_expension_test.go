@@ -50,21 +50,21 @@ func TestDefineMacros(t *testing.T) {
 			len(macro.Parameters))
 	}
 
-	if macro.Parameters[0].String() != "x" {
+	if macro.Parameters[0].Value().Literal() != "x" {
 		t.Fatalf("parameter is not 'x'. got=%q", macro.Parameters[0])
 	}
-	if macro.Parameters[1].String() != "y" {
+	if macro.Parameters[1].Value().Literal() != "y" {
 		t.Fatalf("parameter is not 'y'. got=%q", macro.Parameters[1])
 	}
 
-	expectedBody := "{\n(x + y)\n}"
-
-	if macro.Body.String() != expectedBody {
-		t.Fatalf("body is not %q. got=%q", expectedBody, macro.Body.String())
+	expectedBody := "x + y\n" // or should have {}?
+	got := ast.DebugString(macro.Body)
+	if got != expectedBody {
+		t.Fatalf("body is not %q. got=%q", expectedBody, got)
 	}
 }
 
-func testParseProgram(t *testing.T, input string) *ast.Program {
+func testParseProgram(t *testing.T, input string) *ast.Statements {
 	l := lexer.New(input)
 	p := parser.New(l)
 	r := p.ParseProgram()
@@ -128,9 +128,12 @@ func TestExpandMacros(t *testing.T) {
 		state.DefineMacros(program)
 		expanded := state.ExpandMacros(program)
 
-		if expanded.String() != expected.String() {
+		expandedStr := ast.DebugString(expanded)
+		expectedStr := ast.DebugString(expected)
+
+		if expandedStr != expectedStr {
 			t.Errorf("not equal. want=%q, got=%q",
-				expected.String(), expanded.String())
+				expectedStr, expandedStr)
 		}
 	}
 }

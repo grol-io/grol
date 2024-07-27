@@ -1,14 +1,15 @@
 package ast
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 )
 
 func TestModify(t *testing.T) {
-	one := func() Expression { return IntegerLiteral{Val: 1} }
-	two := func() Expression { return IntegerLiteral{Val: 2} }
+	one := func() Node { return IntegerLiteral{Val: 1} }
+	two := func() Node { return IntegerLiteral{Val: 2} }
 
 	turnOneIntoTwo := func(node Node) Node {
 		integer, ok := node.(IntegerLiteral)
@@ -33,28 +34,28 @@ func TestModify(t *testing.T) {
 			two(),
 		},
 		{
-			&Program{
+			&Statements{
 				Statements: []Node{
-					&ExpressionStatement{Val: one()},
+					&ReturnStatement{ReturnValue: one()},
 				},
 			},
-			&Program{
+			&Statements{
 				Statements: []Node{
-					&ExpressionStatement{Val: two()},
+					&ReturnStatement{ReturnValue: two()},
 				},
 			},
 		},
 		{
-			&InfixExpression{Left: one(), Operator: "+", Right: two()},
-			&InfixExpression{Left: two(), Operator: "+", Right: two()},
+			&InfixExpression{Left: one(), Right: two()},
+			&InfixExpression{Left: two(), Right: two()},
 		},
 		{
-			&InfixExpression{Left: two(), Operator: "+", Right: one()},
-			&InfixExpression{Left: two(), Operator: "+", Right: two()},
+			&InfixExpression{Left: two(), Right: one()},
+			&InfixExpression{Left: two(), Right: two()},
 		},
 		{
-			&PrefixExpression{Operator: "-", Right: one()},
-			&PrefixExpression{Operator: "-", Right: two()},
+			&PrefixExpression{Right: one()},
+			&PrefixExpression{Right: two()},
 		},
 		{
 			&IndexExpression{Left: one(), Index: one()},
@@ -63,29 +64,21 @@ func TestModify(t *testing.T) {
 		{
 			&IfExpression{
 				Condition: one(),
-				Consequence: &BlockStatement{
-					Program: Program{Statements: []Node{
-						&ExpressionStatement{Val: one()},
-					}},
-				},
-				Alternative: &BlockStatement{
-					Program: Program{Statements: []Node{
-						&ExpressionStatement{Val: one()},
-					}},
-				},
+				Consequence: &Statements{Statements: []Node{
+					one(),
+				}},
+				Alternative: &Statements{Statements: []Node{
+					one(),
+				}},
 			},
 			&IfExpression{
 				Condition: two(),
-				Consequence: &BlockStatement{
-					Program: Program{Statements: []Node{
-						&ExpressionStatement{Val: two()},
-					}},
-				},
-				Alternative: &BlockStatement{
-					Program: Program{Statements: []Node{
-						&ExpressionStatement{Val: two()},
-					}},
-				},
+				Consequence: &Statements{Statements: []Node{
+					two(),
+				}},
+				Alternative: &Statements{Statements: []Node{
+					two(),
+				}},
 			},
 		},
 		{
@@ -94,32 +87,28 @@ func TestModify(t *testing.T) {
 		},
 		{
 			&FunctionLiteral{
-				Parameters: []*Identifier{},
-				Body: &BlockStatement{
-					Program: Program{Statements: []Node{
-						&ExpressionStatement{Val: one()},
-					}},
-				},
+				Parameters: []Node{&Identifier{}},
+				Body: &Statements{Statements: []Node{
+					one(),
+				}},
 			},
 			&FunctionLiteral{
-				Parameters: []*Identifier{},
-				Body: &BlockStatement{
-					Program: Program{Statements: []Node{
-						&ExpressionStatement{Val: two()},
-					}},
-				},
+				Parameters: []Node{&Identifier{}},
+				Body: &Statements{Statements: []Node{
+					two(),
+				}},
 			},
 		},
 		{
-			&ArrayLiteral{Elements: []Expression{one(), one()}},
-			&ArrayLiteral{Elements: []Expression{two(), two()}},
+			&ArrayLiteral{Elements: []Node{one(), one()}},
+			&ArrayLiteral{Elements: []Node{two(), two()}},
 		},
 		{
-			&MapLiteral{Pairs: map[Expression]Expression{
+			&MapLiteral{Pairs: map[Node]Node{
 				one(): one(),
 				one(): one(),
 			}},
-			&MapLiteral{Pairs: map[Expression]Expression{
+			&MapLiteral{Pairs: map[Node]Node{
 				two(): two(),
 				two(): two(),
 			}},
@@ -127,6 +116,9 @@ func TestModify(t *testing.T) {
 	}
 	for _, tt := range tests {
 		modified := Modify(tt.input, turnOneIntoTwo)
+		if !reflect.DeepEqual(modified, tt.expected) {
+			t.Errorf("not equal.\n%#v\n-vs-\n%#v", modified, tt.expected)
+		}
 		if !cmp.Equal(modified, tt.expected) {
 			t.Errorf("not equal. %v", cmp.Diff(modified, tt.expected))
 		}

@@ -40,18 +40,21 @@ func (s *State) Eval(node any) object.Object {
 	return result
 }
 
+// See todo in token about publishing all of them.
+var unquoteToken = token.ByType(token.UNQUOTE)
+
 func (s *State) evalAssignment(right object.Object, node *ast.InfixExpression) object.Object {
 	// let free assignments.
 	id, ok := node.Left.(*ast.Identifier)
 	if !ok {
-		return object.Error{Value: "<assignment to non identifier: " + node.Left.String() + ">"}
+		return object.Error{Value: "<assignment to non identifier: " + node.Left.Value().DebugString() + ">"}
 	}
 	if rt := right.Type(); rt == object.ERROR {
 		log.Warnf("can't assign %q: %v", right.Inspect(), right)
 		return right
 	}
-	log.LogVf("eval assign %#v to %#v", right, id.Val)
-	s.env.Set(id.Val, right)
+	log.LogVf("eval assign %#v to %#v", right, id.Value())
+	s.env.Set(id.Literal(), right)
 	return right // maybe only if it's a literal?
 }
 
@@ -72,38 +75,29 @@ func ArgCheck[T any](msg string, n int, vararg bool, args []T) *object.Error {
 func (s *State) evalInternal(node any) object.Object {
 	switch node := node.(type) {
 	// Statements
-	case *ast.Program:
-		log.LogVf("eval program")
-		return s.evalStatements(node.Statements)
-
-	case *ast.ExpressionStatement:
-		log.LogVf("eval expr statement")
-		return s.evalInternal(node.Val)
-
-	case *ast.BlockStatement:
+	case *ast.Statements:
 		if node == nil { // TODO: only here? this comes from empty else branches.
 			return object.NULL
 		}
-		log.LogVf("eval block statement")
+		log.LogVf("eval program")
 		return s.evalStatements(node.Statements)
-
 	case *ast.IfExpression:
 		return s.evalIfExpression(node)
 		// Expressions
 	case *ast.Identifier:
 		return s.evalIdentifier(node)
 	case *ast.PrefixExpression:
-		log.LogVf("eval prefix %s", node.String())
+		log.LogVf("eval prefix %s", node.DebugString())
 		right := s.evalInternal(node.Right)
-		return s.evalPrefixExpression(node.Operator, right)
+		return s.evalPrefixExpression(node.Literal(), right)
 	case *ast.InfixExpression:
-		log.LogVf("eval infix %s", node.String())
+		log.LogVf("eval infix %s", node.DebugString())
 		right := s.Eval(node.Right) // need to unwrap "return"
-		if node.Operator == "=" {
+		if node.Literal() == "=" {
 			return s.evalAssignment(right, node)
 		}
 		left := s.Eval(node.Left)
-		return s.evalInfixExpression(node.Operator, left, right)
+		return s.evalInfixExpression(node.Literal(), left, right)
 
 	case *ast.IntegerLiteral:
 		return object.Integer{Value: node.Val}
@@ -114,7 +108,7 @@ func (s *State) evalInternal(node any) object.Object {
 		return object.NativeBoolToBooleanObject(node.Val)
 
 	case *ast.StringLiteral:
-		return object.String{Value: node.Literal}
+		return object.String{Value: node.Literal()}
 
 	case *ast.ReturnStatement:
 		if node.ReturnValue == nil {
@@ -129,13 +123,10 @@ func (s *State) evalInternal(node any) object.Object {
 		body := node.Body
 		return object.Function{Parameters: params, Env: s.env, Body: body}
 	case *ast.CallExpression:
-		if node.Function.TokenLiteral() == "quote" { // TODO use code instead of string
-			if oerr := ArgCheck("quote", 1, false, node.Arguments); oerr != nil {
-				return *oerr
-			}
-			return s.quote(node.Arguments[0])
-		}
 		f := s.evalInternal(node.Function)
+		if f.Type() == object.ERROR {
+			return f
+		}
 		args, oerr := s.evalExpressions(node.Arguments)
 		if oerr != nil {
 			return *oerr
@@ -160,7 +151,7 @@ func (s *State) evalInternal(node any) object.Object {
 func hashable(o object.Object) *object.Error {
 	t := o.Type()
 	// because it contains env which is a map.
-	if t == object.FUNCTION || t == object.ARRAY || t == object.MAP {
+	if t == object.FUNC || t == object.ARRAY || t == object.MAP {
 		return &object.Error{Value: o.Type().String() + " not usable as map key"}
 	}
 	return nil
@@ -169,7 +160,8 @@ func hashable(o object.Object) *object.Error {
 func (s *State) evalMapLiteral(node *ast.MapLiteral) object.Object {
 	result := object.NewMap()
 
-	for keyNode, valueNode := range node.Pairs {
+	for _, keyNode := range node.Order {
+		valueNode := node.Pairs[keyNode]
 		key := s.evalInternal(keyNode)
 		value := s.evalInternal(valueNode)
 		if oerr := hashable(key); oerr != nil {
@@ -182,9 +174,13 @@ func (s *State) evalMapLiteral(node *ast.MapLiteral) object.Object {
 
 func (s *State) evalBuiltin(node *ast.Builtin) object.Object {
 	// all take 1 arg exactly except print and log which take 1+.
-	varArg := node.Type == token.PRINT || node.Type == token.LOG || node.Type == token.ERROR
-	if oerr := ArgCheck(node.Literal, 1, varArg, node.Parameters); oerr != nil {
+	t := node.Type()
+	varArg := (t == token.PRINT || t == token.LOG || t == token.ERROR)
+	if oerr := ArgCheck(node.Literal(), 1, varArg, node.Parameters); oerr != nil {
 		return *oerr
+	}
+	if t == token.QUOTE {
+		return s.quote(node.Parameters[0])
 	}
 	val := s.evalInternal(node.Parameters[0])
 	rt := val.Type()
@@ -192,7 +188,7 @@ func (s *State) evalBuiltin(node *ast.Builtin) object.Object {
 		return val
 	}
 	arr, _ := val.(object.Array)
-	switch node.Type { //nolint:exhaustive // we have default, only 2 cases.
+	switch t { //nolint:exhaustive // we have default, only 2 cases.
 	case token.ERROR:
 		fallthrough
 	case token.PRINT:
@@ -210,10 +206,10 @@ func (s *State) evalBuiltin(node *ast.Builtin) object.Object {
 				buf.WriteString(r.Inspect())
 			}
 		}
-		if node.Type == token.ERROR {
+		if node.Type() == token.ERROR {
 			return object.Error{Value: buf.String()}
 		}
-		doLog := node.Type != token.PRINT
+		doLog := node.Type() != token.PRINT
 		if s.NoLog && doLog {
 			doLog = false
 			buf.WriteRune('\n') // log() has a implicit newline when using log.Xxx, print() doesn't.
@@ -251,9 +247,9 @@ func (s *State) evalBuiltin(node *ast.Builtin) object.Object {
 			return object.Integer{Value: 0}
 		}
 	default:
-		return object.Error{Value: fmt.Sprintf("builtin %s yet implemented", node.Type)}
+		return object.Error{Value: fmt.Sprintf("builtin %s yet implemented", node.Type())}
 	}
-	return object.Error{Value: node.Literal + ": not supported on " + rt.String()}
+	return object.Error{Value: node.Literal() + ": not supported on " + rt.String()}
 }
 
 func evalIndexExpression(left, index object.Object) object.Object {
@@ -293,7 +289,7 @@ func evalArrayIndexExpression(array, index object.Object) object.Object {
 func (s *State) applyFunction(fn object.Object, args []object.Object) object.Object {
 	function, ok := fn.(object.Function)
 	if !ok {
-		return object.Error{Value: "<not a function: " + fn.Type().String() + ">"}
+		return object.Error{Value: "<not a function: " + fn.Type().String() + ":" + fn.Inspect() + ">"}
 	}
 	nenv, oerr := extendFunctionEnv(function, args)
 	if oerr != nil {
@@ -316,14 +312,14 @@ func extendFunctionEnv(fn object.Function, args []object.Object) (*object.Enviro
 			len(args), n)}
 	}
 	for paramIdx, param := range fn.Parameters {
-		env.Set(param.Val, args[paramIdx])
+		env.Set(param.Value().Literal(), args[paramIdx])
 	}
 
 	return env, nil
 }
 
 // TODO: isn't this same as statements?
-func (s *State) evalExpressions(exps []ast.Expression) ([]object.Object, *object.Error) {
+func (s *State) evalExpressions(exps []ast.Node) ([]object.Object, *object.Error) {
 	result := make([]object.Object, 0, len(exps))
 	for _, e := range exps {
 		evaluated := s.evalInternal(e)
@@ -337,9 +333,9 @@ func (s *State) evalExpressions(exps []ast.Expression) ([]object.Object, *object
 }
 
 func (s *State) evalIdentifier(node *ast.Identifier) object.Object {
-	val, ok := s.env.Get(node.Val)
+	val, ok := s.env.Get(node.Literal())
 	if !ok {
-		return object.Error{Value: "<identifier not found: " + node.Val + ">"}
+		return object.Error{Value: "<identifier not found: " + node.Literal() + ">"}
 	}
 	return val
 }
@@ -348,10 +344,10 @@ func (s *State) evalIfExpression(ie *ast.IfExpression) object.Object {
 	condition := s.evalInternal(ie.Condition)
 	switch condition {
 	case object.TRUE:
-		log.LogVf("if %s is object.TRUE, picking true branch", ie.Condition.String())
+		log.LogVf("if %s is object.TRUE, picking true branch", ie.Condition.Value().DebugString())
 		return s.evalInternal(ie.Consequence)
 	case object.FALSE:
-		log.LogVf("if %s is object.FALSE, picking else branch", ie.Condition.String())
+		log.LogVf("if %s is object.FALSE, picking else branch", ie.Condition.Value().DebugString())
 		return s.evalInternal(ie.Alternative)
 	default:
 		return object.Error{Value: "<condition is not a boolean: " + condition.Inspect() + ">"}
@@ -359,11 +355,7 @@ func (s *State) evalIfExpression(ie *ast.IfExpression) object.Object {
 }
 
 func isComment(node ast.Node) bool {
-	v, ok := node.(*ast.ExpressionStatement) // TODO: which nodes aren't an expressionstatement?
-	if !ok {
-		return false
-	}
-	_, ok = v.Val.(*ast.Comment)
+	_, ok := node.(*ast.Comment)
 	return ok
 }
 
@@ -371,7 +363,7 @@ func (s *State) evalStatements(stmts []ast.Node) object.Object {
 	var result object.Object
 	result = object.NULL // no crash when empty program.
 	for _, statement := range stmts {
-		log.LogVf("eval statement %T %s", statement, statement.String())
+		log.LogVf("eval statement %T %s", statement, statement.Value().DebugString())
 		if isComment(statement) {
 			log.Debugf("skipping comment")
 			continue

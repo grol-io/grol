@@ -19,19 +19,21 @@ func main() {
 func Main() int {
 	commandFlag := flag.String("c", "", "command/inline script to run instead of interactive mode")
 	showParse := flag.Bool("parse", false, "show parse tree")
+	format := flag.Bool("format", false, "don't execute, just parse and re format the input")
 	showEval := flag.Bool("eval", true, "show eval results")
 	sharedState := flag.Bool("shared-state", false, "All files share same interpreter state (default is new state for each)")
-	cli.ArgsHelp = "*.gr files to interpret or no arg for stdin repl..."
+	cli.ArgsHelp = "*.gr files to interpret or `-` for stdin without prompt or no arguments for stdin repl..."
 	cli.MaxArgs = -1
 	cli.Main()
 	log.Printf("grol %s - welcome!", cli.LongVersion)
 	options := repl.Options{
-		ShowParse: *showParse,
-		ShowEval:  *showEval,
+		ShowParse:  *showParse,
+		ShowEval:   *showEval,
+		FormatOnly: *format,
 	}
 	nArgs := len(flag.Args())
 	if *commandFlag != "" {
-		res, errs := repl.EvalString(*commandFlag)
+		res, errs, _ := repl.EvalString(*commandFlag)
 		if len(errs) > 0 {
 			log.Errf("Errors: %v", errs)
 		}
@@ -46,13 +48,7 @@ func Main() int {
 	s := eval.NewState()
 	macroState := eval.NewState()
 	for _, file := range flag.Args() {
-		f, err := os.Open(file)
-		if err != nil {
-			log.Fatalf("%v", err)
-		}
-		log.Infof("Running %s", file)
-		repl.EvalAll(s, macroState, f, os.Stdout, options)
-		f.Close()
+		processOneFile(file, s, macroState, options)
 		if !*sharedState {
 			s = eval.NewState()
 			macroState = eval.NewState()
@@ -60,4 +56,19 @@ func Main() int {
 	}
 	log.Infof("All done")
 	return 0
+}
+
+func processOneFile(file string, s, macroState *eval.State, options repl.Options) {
+	if file == "-" {
+		log.Infof("Running on stdin")
+		repl.EvalAll(s, macroState, os.Stdin, os.Stdout, options)
+		return
+	}
+	f, err := os.Open(file)
+	if err != nil {
+		log.Fatalf("%v", err)
+	}
+	log.Infof("Running %s", file)
+	repl.EvalAll(s, macroState, f, os.Stdout, options)
+	f.Close()
 }
