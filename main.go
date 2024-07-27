@@ -33,7 +33,7 @@ func Main() int {
 	}
 	nArgs := len(flag.Args())
 	if *commandFlag != "" {
-		res, errs := repl.EvalString(*commandFlag)
+		res, errs, _ := repl.EvalString(*commandFlag)
 		if len(errs) > 0 {
 			log.Errf("Errors: %v", errs)
 		}

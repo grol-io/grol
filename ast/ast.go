@@ -269,7 +269,10 @@ type CallExpression struct {
 func (ce CallExpression) PrettyPrint(out *PrintState) *PrintState {
 	ce.Function.PrettyPrint(out)
 	out.Print("(")
+	oldExpressionLevel := out.ExpressionLevel
+	out.ExpressionLevel = 0
 	PrintList(out, ce.Arguments, ", ")
+	out.ExpressionLevel = oldExpressionLevel
 	out.Print(")")
 	return out
 }
