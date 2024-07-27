@@ -128,8 +128,10 @@ const (
 )
 
 var (
-	EOLT = &Token{tokenType: EOL}
-	EOFT = &Token{tokenType: EOF}
+	EOLT   = &Token{tokenType: EOL}
+	EOFT   = &Token{tokenType: EOF}
+	TRUET  *Token
+	FALSET *Token
 )
 
 var (
@@ -173,6 +175,8 @@ func Init() {
 		t := assocS(i, strings.ToLower(i.String()))
 		keywords[t.literal] = t
 	}
+	TRUET = tToT[TRUE]
+	FALSET = tToT[FALSE]
 	// Single character tokens:
 	assoc(ASSIGN, '=')
 	assoc(PLUS, '+')

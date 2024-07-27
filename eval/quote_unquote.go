@@ -38,19 +38,16 @@ func convertObjectToASTNode(obj object.Object) ast.Node {
 	// TODD: more types
 	switch obj := obj.(type) {
 	case object.Integer:
-		t := token.Token{
-			Type:    token.INT,
-			Literal: strconv.FormatInt(obj.Value, 10),
-		}
+		t := token.Intern(token.INT, strconv.FormatInt(obj.Value, 10))
 		r := ast.IntegerLiteral{Val: obj.Value}
 		r.Token = t
 		return r
 	case object.Boolean:
-		var t token.Token
+		var t *token.Token
 		if obj.Value {
-			t = token.Token{Type: token.TRUE, Literal: "true"}
+			t = token.TRUET
 		} else {
-			t = token.Token{Type: token.FALSE, Literal: "false"}
+			t = token.FALSET
 		}
 		return ast.Boolean{Base: ast.Base{Token: t}, Val: obj.Value}
 	case object.Quote:
@@ -67,5 +64,5 @@ func isUnquoteCall(node ast.Node) bool {
 		return false
 	}
 
-	return callExpression.Function.TokenLiteral() == "unquote"
+	return callExpression.Function.Value() == unquoteToken
 }

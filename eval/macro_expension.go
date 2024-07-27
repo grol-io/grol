@@ -22,12 +22,8 @@ func (s *State) DefineMacros(program *ast.Program) {
 }
 
 func isAssign(node ast.Node) (*ast.InfixExpression, bool) {
-	es, ok := node.(*ast.ExpressionStatement)
-	if !ok {
-		return nil, false
-	}
-	exp, ok := es.Val.(*ast.InfixExpression)
-	if ok && exp.Operator == "=" {
+	exp, ok := node.(*ast.InfixExpression)
+	if ok && exp.Token == token.ByType(token.ASSIGN) {
 		return exp, true
 	}
 	return nil, false
@@ -44,9 +40,9 @@ func isMacroDefinition(node ast.Node) bool {
 
 func (s *State) addMacro(stmt ast.Node) {
 	// TODO ok checks
-	assign, _ := stmt.(*ast.ExpressionStatement).Value().(*ast.InfixExpression)
+	assign, _ := stmt.(*ast.InfixExpression)
 	macroLiteral, _ := assign.Right.(*ast.MacroLiteral)
-	name := assign.Left.(*ast.Identifier).Val
+	name := assign.Left.(*ast.Identifier).Literal()
 
 	macro := &object.Macro{
 		Parameters: macroLiteral.Parameters,
@@ -63,7 +59,7 @@ func (s *State) isMacroCall(exp *ast.CallExpression) (*object.Macro, bool) {
 		return nil, false
 	}
 
-	obj, ok := s.env.Get(identifier.Val)
+	obj, ok := s.env.Get(identifier.Literal())
 	if !ok {
 		return nil, false
 	}
@@ -98,11 +94,10 @@ func (s *State) ExpandMacros(program ast.Node) ast.Node {
 			estr := fmt.Sprintf("macro should return Quote. got=%T (%+v)", evaluated, evaluated)
 			log.Critf("%s", estr)
 			res := ast.Builtin{}
-			res.Type = token.ERROR
-			res.Literal = "error"
+			res.Token = token.ByType(token.ERROR)
 			msg := ast.StringLiteral{}
-			msg.Literal = estr
-			res.Parameters = []ast.Expression{&msg}
+			msg.Token = token.Intern(token.STRING, estr)
+			res.Parameters = []ast.Node{&msg}
 			return &res
 		}
 		return quote.Node
@@ -123,7 +118,7 @@ func extendMacroEnv(macro *object.Macro, args []object.Quote) *State {
 	extended := object.NewEnclosedEnvironment(macro.Env)
 
 	for paramIdx, param := range macro.Parameters {
-		extended.Set(param.Val, args[paramIdx])
+		extended.Set(param.Value().Literal(), args[paramIdx])
 	}
 
 	return &State{env: extended}
