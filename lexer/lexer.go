@@ -7,9 +7,10 @@ import (
 )
 
 type Lexer struct {
-	input    string
-	pos      int
-	lineMode bool
+	input         string
+	pos           int
+	lineMode      bool
+	hadWhitespace bool
 }
 
 // Mode with input expected the be complete (multiline/file).
@@ -75,9 +76,15 @@ func isWhiteSpace(ch byte) bool {
 	return ch == ' ' || ch == '\t' || ch == '\n' || ch == '\r'
 }
 
+func (l *Lexer) HadWhitespace() bool {
+	return l.hadWhitespace
+}
+
 func (l *Lexer) skipWhitespace() {
+	l.hadWhitespace = false
 	// while whitespace, read next char
 	for isWhiteSpace(l.peekChar()) {
+		l.hadWhitespace = true
 		l.pos++
 	}
 }

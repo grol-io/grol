@@ -243,8 +243,15 @@ func (p *Parser) parseExpression(precedence Priority) ast.Node {
 	}
 	leftExp := prefix()
 	for !p.peekTokenIs(token.SEMICOLON) && precedence < p.peekPrecedence() {
-		infix := p.infixParseFns[p.peekToken.Type()]
+		t := p.peekToken.Type()
+		infix := p.infixParseFns[t]
 		if infix == nil {
+			return leftExp
+		}
+		// Avoid that 3\n(4) tries to call 3 as a function with 4 param.
+		// force calls() to not have whitespace between the function and the (.
+		if t == token.LPAREN && p.l.HadWhitespace() {
+			log.LogVf("parseExpression: call expression with whitespace")
 			return leftExp
 		}
 
