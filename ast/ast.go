@@ -43,8 +43,8 @@ func (ps *PrintState) Println(str ...string) *PrintState {
 }
 
 func (ps *PrintState) Print(str ...string) *PrintState {
-	if !ps.IndentationDone {
-		_, _ = ps.Out.Write([]byte(strings.Repeat("\t", ps.IndentLevel)))
+	if !ps.IndentationDone && ps.IndentLevel > 1 {
+		_, _ = ps.Out.Write([]byte(strings.Repeat("\t", ps.IndentLevel-1)))
 		ps.IndentationDone = true
 	}
 	for _, s := range str {

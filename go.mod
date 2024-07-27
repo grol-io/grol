@@ -4,13 +4,13 @@ go 1.22.5
 
 require (
 	fortio.org/cli v1.7.0
-	fortio.org/log v1.15.0
+	fortio.org/log v1.16.0
 	fortio.org/testscript v0.3.1 // only for tests
 	fortio.org/version v1.0.4
 	github.com/google/go-cmp v0.6.0 // only for tests
 )
 
-replace fortio.org/log => ../../fortio.org/log
+// replace fortio.org/log => ../../fortio.org/log
 
 require (
 	fortio.org/struct2env v0.4.1 // indirect
