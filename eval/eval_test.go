@@ -15,6 +15,7 @@ func TestEvalIntegerExpression(t *testing.T) {
 		input    string
 		expected int64
 	}{
+		{"(3)\n(4)", 4}, // expression on new line should be... new.
 		{"5 // is 5", 5},
 		{"10", 10},
 		{"-5", -5},
@@ -54,7 +55,7 @@ func testEval(t *testing.T, input string) object.Object {
 	p := parser.New(l)
 	program := p.ParseProgram()
 	if len(p.Errors()) > 0 {
-		t.Fatalf("parser has %d error(s): %v", len(p.Errors()), p.Errors())
+		t.Fatalf("parser has %d error(s) for %q: %v", len(p.Errors()), input, p.Errors())
 	}
 	s := eval.NewState() // each test starts anew.
 	return s.Eval(program)
