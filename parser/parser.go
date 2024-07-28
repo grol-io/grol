@@ -158,16 +158,14 @@ func (p *Parser) parseComment() ast.Node {
 }
 
 func (p *Parser) parseStatement() ast.Node {
-	switch p.curToken.Type() { //nolint:exhaustive // we're not done yet TODO: remove.
-	case token.RETURN:
+	if p.curToken.Type() == token.RETURN {
 		return p.parseReturnStatement()
-	default:
-		stmt := p.parseExpression(LOWEST)
-		if p.peekTokenIs(token.SEMICOLON) {
-			p.nextToken()
-		}
-		return stmt
 	}
+	stmt := p.parseExpression(LOWEST)
+	if p.peekTokenIs(token.SEMICOLON) {
+		p.nextToken()
+	}
+	return stmt
 }
 
 func (p *Parser) parseReturnStatement() ast.Node {
