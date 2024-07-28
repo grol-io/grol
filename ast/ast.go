@@ -176,6 +176,23 @@ func (p PrefixExpression) PrettyPrint(out *PrintState) *PrintState {
 	return out
 }
 
+type PostfixExpression struct {
+	Base
+	Prev *token.Token
+}
+
+func (p PostfixExpression) PrettyPrint(out *PrintState) *PrintState {
+	if out.ExpressionLevel > 0 {
+		out.Print("(")
+	}
+	out.Print(p.Prev.Literal())
+	out.Print(p.Literal())
+	if out.ExpressionLevel > 0 {
+		out.Print(")")
+	}
+	return out
+}
+
 type InfixExpression struct {
 	Base
 	Left  Node
@@ -186,11 +203,16 @@ func (i InfixExpression) PrettyPrint(out *PrintState) *PrintState {
 	if out.ExpressionLevel > 0 { // TODO only add parens if precedence requires it.
 		out.Print("(")
 	}
-	out.ExpressionLevel++
+	isAssign := (i.Token.Type() == token.ASSIGN)
+	if !isAssign {
+		out.ExpressionLevel++
+	}
 	i.Left.PrettyPrint(out)
 	out.Print(" ", i.Literal(), " ")
 	i.Right.PrettyPrint(out)
-	out.ExpressionLevel--
+	if !isAssign {
+		out.ExpressionLevel--
+	}
 	if out.ExpressionLevel > 0 {
 		out.Print(")")
 	}

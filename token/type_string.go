@@ -41,31 +41,33 @@ func _() {
 	_ = x[GTEQ-30]
 	_ = x[EQ-31]
 	_ = x[NOTEQ-32]
-	_ = x[endMultiCharTokens-33]
-	_ = x[startIdentityTokens-34]
-	_ = x[FUNC-35]
-	_ = x[TRUE-36]
-	_ = x[FALSE-37]
-	_ = x[IF-38]
-	_ = x[ELSE-39]
-	_ = x[RETURN-40]
-	_ = x[STRING-41]
-	_ = x[MACRO-42]
-	_ = x[QUOTE-43]
-	_ = x[UNQUOTE-44]
-	_ = x[LEN-45]
-	_ = x[FIRST-46]
-	_ = x[REST-47]
-	_ = x[PRINT-48]
-	_ = x[LOG-49]
-	_ = x[ERROR-50]
-	_ = x[endIdentityTokens-51]
-	_ = x[EOF-52]
+	_ = x[INCR-33]
+	_ = x[DECR-34]
+	_ = x[endMultiCharTokens-35]
+	_ = x[startIdentityTokens-36]
+	_ = x[FUNC-37]
+	_ = x[TRUE-38]
+	_ = x[FALSE-39]
+	_ = x[IF-40]
+	_ = x[ELSE-41]
+	_ = x[RETURN-42]
+	_ = x[STRING-43]
+	_ = x[MACRO-44]
+	_ = x[QUOTE-45]
+	_ = x[UNQUOTE-46]
+	_ = x[LEN-47]
+	_ = x[FIRST-48]
+	_ = x[REST-49]
+	_ = x[PRINT-50]
+	_ = x[LOG-51]
+	_ = x[ERROR-52]
+	_ = x[endIdentityTokens-53]
+	_ = x[EOF-54]
 }
 
-const _Type_name = "ILLEGALEOLstartValueTokensIDENTINTFLOATLINECOMMENTendValueTokensstartSingleCharTokensASSIGNPLUSMINUSBANGASTERISKSLASHPERCENTLTGTCOMMASEMICOLONLPARENRPARENLBRACERBRACELBRACKETRBRACKETCOLONendSingleCharTokensstartMultiCharTokensLTEQGTEQEQNOTEQendMultiCharTokensstartIdentityTokensFUNCTRUEFALSEIFELSERETURNSTRINGMACROQUOTEUNQUOTELENFIRSTRESTPRINTLOGERRORendIdentityTokensEOF"
+const _Type_name = "ILLEGALEOLstartValueTokensIDENTINTFLOATLINECOMMENTendValueTokensstartSingleCharTokensASSIGNPLUSMINUSBANGASTERISKSLASHPERCENTLTGTCOMMASEMICOLONLPARENRPARENLBRACERBRACELBRACKETRBRACKETCOLONendSingleCharTokensstartMultiCharTokensLTEQGTEQEQNOTEQINCRDECRendMultiCharTokensstartIdentityTokensFUNCTRUEFALSEIFELSERETURNSTRINGMACROQUOTEUNQUOTELENFIRSTRESTPRINTLOGERRORendIdentityTokensEOF"
 
-var _Type_index = [...]uint16{0, 7, 10, 26, 31, 34, 39, 50, 64, 85, 91, 95, 100, 104, 112, 117, 124, 126, 128, 133, 142, 148, 154, 160, 166, 174, 182, 187, 206, 226, 230, 234, 236, 241, 259, 278, 282, 286, 291, 293, 297, 303, 309, 314, 319, 326, 329, 334, 338, 343, 346, 351, 368, 371}
+var _Type_index = [...]uint16{0, 7, 10, 26, 31, 34, 39, 50, 64, 85, 91, 95, 100, 104, 112, 117, 124, 126, 128, 133, 142, 148, 154, 160, 166, 174, 182, 187, 206, 226, 230, 234, 236, 241, 245, 249, 267, 286, 290, 294, 299, 301, 305, 311, 317, 322, 327, 334, 337, 342, 346, 351, 354, 359, 376, 379}
 
 func (i Type) String() string {
 	if i >= Type(len(_Type_index)-1) {

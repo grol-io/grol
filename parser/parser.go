@@ -29,21 +29,24 @@ const (
 var _ = CALL.String() // force compile error if go generate is missing.
 
 type (
-	prefixParseFn func() ast.Node
-	infixParseFn  func(ast.Node) ast.Node
+	prefixParseFn  func() ast.Node
+	infixParseFn   func(ast.Node) ast.Node
+	postfixParseFn prefixParseFn
 )
 
 type Parser struct {
 	l *lexer.Lexer
 
+	prevToken *token.Token
 	curToken  *token.Token
 	peekToken *token.Token
 
 	errors             []string
 	continuationNeeded bool
 
-	prefixParseFns map[token.Type]prefixParseFn
-	infixParseFns  map[token.Type]infixParseFn
+	prefixParseFns  map[token.Type]prefixParseFn
+	infixParseFns   map[token.Type]infixParseFn
+	postfixParseFns map[token.Type]postfixParseFn
 }
 
 func (p *Parser) ContinuationNeeded() bool {
@@ -56,6 +59,10 @@ func (p *Parser) registerPrefix(t token.Type, fn prefixParseFn) {
 
 func (p *Parser) registerInfix(t token.Type, fn infixParseFn) {
 	p.infixParseFns[t] = fn
+}
+
+func (p *Parser) registerPostfix(t token.Type, fn postfixParseFn) {
+	p.postfixParseFns[t] = fn
 }
 
 func New(l *lexer.Lexer) *Parser {
@@ -103,9 +110,12 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerInfix(token.GTEQ, p.parseInfixExpression)
 	p.registerInfix(token.LPAREN, p.parseCallExpression)
 	p.registerInfix(token.LBRACKET, p.parseIndexExpression)
-
 	// no let:
 	p.registerInfix(token.ASSIGN, p.parseInfixExpression)
+
+	p.postfixParseFns = make(map[token.Type]postfixParseFn)
+	p.registerPostfix(token.INCR, p.parsePostfixExpression)
+	p.registerPostfix(token.DECR, p.parsePostfixExpression)
 
 	// Read two tokens, so curToken and peekToken are both set
 	p.nextToken()
@@ -119,6 +129,7 @@ func (p *Parser) Errors() []string {
 }
 
 func (p *Parser) nextToken() {
+	p.prevToken = p.curToken
 	p.curToken = p.peekToken
 	p.peekToken = p.l.NextToken()
 }
@@ -261,6 +272,12 @@ func (p *Parser) parseExpression(precedence Priority) ast.Node {
 }
 
 func (p *Parser) parseIdentifier() ast.Node {
+	postfix := p.postfixParseFns[p.peekToken.Type()]
+	if postfix != nil {
+		log.LogVf("parseIdentifier: next is a postfix for %s: %s", p.curToken.DebugString(), p.peekToken.DebugString())
+		p.nextToken()
+		return postfix()
+	}
 	i := &ast.Identifier{}
 	i.Token = p.curToken
 	return i
@@ -321,6 +338,13 @@ func (p *Parser) parsePrefixExpression() ast.Node {
 
 	expression.Right = p.parseExpression(PREFIX)
 
+	return expression
+}
+
+func (p *Parser) parsePostfixExpression() ast.Node {
+	expression := &ast.PostfixExpression{}
+	expression.Token = p.curToken
+	expression.Prev = p.prevToken
 	return expression
 }
 

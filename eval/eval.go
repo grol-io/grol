@@ -69,6 +69,33 @@ func ArgCheck[T any](msg string, n int, vararg bool, args []T) *object.Error {
 	return nil
 }
 
+func (s *State) evalPostfixExpression(node *ast.PostfixExpression) object.Object {
+	log.LogVf("eval postfix %s", node.DebugString())
+	id := node.Prev.Literal()
+	val, ok := s.env.Get(id)
+	if !ok {
+		return object.Error{Value: "<identifier not found: " + id + ">"}
+	}
+	var toAdd int64
+	switch node.Type() { //nolint:exhaustive // we have default.
+	case token.INCR:
+		toAdd = 1
+	case token.DECR:
+		toAdd = -1
+	default:
+		return object.Error{Value: "unknown postfix operator: " + node.Type().String()}
+	}
+	switch val := val.(type) {
+	case object.Integer:
+		s.env.Set(id, object.Integer{Value: val.Value + toAdd})
+	case object.Float:
+		s.env.Set(id, object.Float{Value: val.Value + float64(toAdd)})
+	default:
+		return object.Error{Value: "can't increment/decrement " + val.Type().String()}
+	}
+	return val
+}
+
 // Doesn't unwrap return - return bubbles up.
 func (s *State) evalInternal(node any) object.Object {
 	switch node := node.(type) {
@@ -88,13 +115,17 @@ func (s *State) evalInternal(node any) object.Object {
 		log.LogVf("eval prefix %s", node.DebugString())
 		right := s.evalInternal(node.Right)
 		return s.evalPrefixExpression(node.Type(), right)
+	case *ast.PostfixExpression:
+		return s.evalPostfixExpression(node)
 	case *ast.InfixExpression:
 		log.LogVf("eval infix %s", node.DebugString())
-		right := s.Eval(node.Right) // need to unwrap "return"
-		if node.Literal() == "=" {
-			return s.evalAssignment(right, node)
+		// Eval and not evalInternal because we need to unwrap "return".
+		if node.Token.Type() == token.ASSIGN {
+			return s.evalAssignment(s.Eval(node.Right), node)
 		}
+		// Humans expect left to right evaluations.
 		left := s.Eval(node.Left)
+		right := s.Eval(node.Right)
 		return s.evalInfixExpression(node.Type(), left, right)
 
 	case *ast.IntegerLiteral:
