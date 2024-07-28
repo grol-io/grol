@@ -709,6 +709,7 @@ func TestEvalFloatExpression(t *testing.T) {
 		{".3", 0.3},
 		{"0.5*3", 1.5},
 		{"0.5*6", 3},
+		{`a=3.1; a--; a`, 2.1},
 	}
 
 	for i, tt := range tests {

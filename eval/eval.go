@@ -76,13 +76,22 @@ func (s *State) evalPostfixExpression(node *ast.PostfixExpression) object.Object
 	if !ok {
 		return object.Error{Value: "<identifier not found: " + id + ">"}
 	}
+	var toAdd int64
 	switch node.Type() { //nolint:exhaustive // we have default.
 	case token.INCR:
-		s.env.Set(id, object.Integer{Value: val.(object.Integer).Value + 1})
+		toAdd = 1
 	case token.DECR:
-		s.env.Set(id, object.Integer{Value: val.(object.Integer).Value - 1})
+		toAdd = -1
 	default:
 		return object.Error{Value: "unknown postfix operator: " + node.Type().String()}
+	}
+	switch val := val.(type) {
+	case object.Integer:
+		s.env.Set(id, object.Integer{Value: val.Value + toAdd})
+	case object.Float:
+		s.env.Set(id, object.Float{Value: val.Value + float64(toAdd)})
+	default:
+		return object.Error{Value: "can't increment/decrement " + val.Type().String()}
 	}
 	return val
 }
