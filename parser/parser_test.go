@@ -183,7 +183,7 @@ func Test_OperatorPrecedenceParsing(t *testing.T) {
 		},
 		{
 			"x = 41 * 6",
-			"x = (41 * 6)",
+			"x = 41 * 6", // = doesn't trigger expression level so it's more natural to read.
 		},
 		{
 			"foo = func(a,b) {return a+b}",

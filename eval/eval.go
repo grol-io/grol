@@ -119,11 +119,13 @@ func (s *State) evalInternal(node any) object.Object {
 		return s.evalPostfixExpression(node)
 	case *ast.InfixExpression:
 		log.LogVf("eval infix %s", node.DebugString())
-		right := s.Eval(node.Right) // need to unwrap "return"
+		// Eval and not evalInternal because we need to unwrap "return".
 		if node.Literal() == "=" {
+			right := s.Eval(node.Right)
 			return s.evalAssignment(right, node)
 		}
 		left := s.Eval(node.Left)
+		right := s.Eval(node.Right)
 		return s.evalInfixExpression(node.Type(), left, right)
 
 	case *ast.IntegerLiteral:
