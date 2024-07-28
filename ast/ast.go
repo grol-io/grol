@@ -8,7 +8,6 @@ import (
 	"strconv"
 	"strings"
 
-	"fortio.org/log"
 	"grol.io/grol/token"
 )
 
@@ -75,7 +74,7 @@ func (b Base) Value() *token.Token {
 
 func (b Base) PrettyPrint(ps *PrintState) *PrintState {
 	// In theory should only be called for literals.
-	log.LogVf("PrettyPrint on base called for %#v", b.Value())
+	// log.Debugf("PrettyPrint on base called for %T", b.Value())
 	return ps.Print(b.Literal())
 }
 

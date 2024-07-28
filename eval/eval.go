@@ -306,7 +306,6 @@ func extendFunctionEnv(name string, fn object.Function, args []object.Object) (*
 	env := object.NewEnclosedEnvironment(fn.Env)
 	n := len(fn.Parameters)
 	if len(args) != n {
-		// Would be nice to put the function name here (but we don't have it that deep)
 		return nil, &object.Error{Value: fmt.Sprintf("<wrong number of arguments for %s. got=%d, want=%d>",
 			name, len(args), n)}
 	}
