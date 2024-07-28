@@ -169,7 +169,7 @@ func (rv ReturnValue) Type() Type      { return RETURN }
 func (rv ReturnValue) Inspect() string { return rv.Value.Inspect() }
 
 type Function struct {
-	Parameters []ast.Node // TODO: change back to []*Identifier here and elsewhere.
+	Parameters []ast.Node
 	Body       *ast.Statements
 	Env        *Environment
 }
