@@ -21,7 +21,6 @@ const (
 	SUM         // +
 	PRODUCT     // *
 	PREFIX      // -X or !X
-	POSTFIX     // X++, X--
 	CALL        // myFunction(X)
 	INDEX       // array[index]
 )
@@ -364,8 +363,6 @@ var precedences = map[token.Type]Priority{
 	token.PERCENT:  PRODUCT,
 	token.LPAREN:   CALL,
 	token.LBRACKET: INDEX,
-	token.INCR:     POSTFIX,
-	token.DECR:     POSTFIX,
 }
 
 func (p *Parser) peekPrecedence() Priority {
