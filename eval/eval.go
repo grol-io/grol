@@ -69,6 +69,24 @@ func ArgCheck[T any](msg string, n int, vararg bool, args []T) *object.Error {
 	return nil
 }
 
+func (s *State) evalPostfixExpression(node *ast.PostfixExpression) object.Object {
+	log.LogVf("eval postfix %s", node.DebugString())
+	id := node.Prev.Literal()
+	val, ok := s.env.Get(id)
+	if !ok {
+		return object.Error{Value: "<identifier not found: " + id + ">"}
+	}
+	switch node.Type() { //nolint:exhaustive // we have default.
+	case token.INCR:
+		s.env.Set(id, object.Integer{Value: val.(object.Integer).Value + 1})
+	case token.DECR:
+		s.env.Set(id, object.Integer{Value: val.(object.Integer).Value - 1})
+	default:
+		return object.Error{Value: "unknown postfix operator: " + node.Type().String()}
+	}
+	return val
+}
+
 // Doesn't unwrap return - return bubbles up.
 func (s *State) evalInternal(node any) object.Object {
 	switch node := node.(type) {
@@ -88,6 +106,8 @@ func (s *State) evalInternal(node any) object.Object {
 		log.LogVf("eval prefix %s", node.DebugString())
 		right := s.evalInternal(node.Right)
 		return s.evalPrefixExpression(node.Type(), right)
+	case *ast.PostfixExpression:
+		return s.evalPostfixExpression(node)
 	case *ast.InfixExpression:
 		log.LogVf("eval infix %s", node.DebugString())
 		right := s.Eval(node.Right) // need to unwrap "return"

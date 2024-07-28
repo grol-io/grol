@@ -178,16 +178,14 @@ func (p PrefixExpression) PrettyPrint(out *PrintState) *PrintState {
 
 type PostfixExpression struct {
 	Base
-	Left Node
+	Prev *token.Token
 }
 
 func (p PostfixExpression) PrettyPrint(out *PrintState) *PrintState {
 	if out.ExpressionLevel > 0 {
 		out.Print("(")
 	}
-	out.ExpressionLevel++ // comment out for !(-a) to normalize to !-a
-	p.Left.PrettyPrint(out)
-	out.ExpressionLevel--
+	out.Print(p.Prev.Literal())
 	out.Print(p.Literal())
 	if out.ExpressionLevel > 0 {
 		out.Print(")")

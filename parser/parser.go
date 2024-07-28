@@ -38,6 +38,7 @@ type (
 type Parser struct {
 	l *lexer.Lexer
 
+	prevToken *token.Token
 	curToken  *token.Token
 	peekToken *token.Token
 
@@ -129,6 +130,7 @@ func (p *Parser) Errors() []string {
 }
 
 func (p *Parser) nextToken() {
+	p.prevToken = p.curToken
 	p.curToken = p.peekToken
 	p.peekToken = p.l.NextToken()
 }
@@ -244,6 +246,10 @@ func (p *Parser) noPrefixParseFnError(t token.Type) {
 
 func (p *Parser) parseExpression(precedence Priority) ast.Node {
 	log.Debugf("parseExpression: %s precedence %s", p.curToken.DebugString(), precedence)
+	postfix := p.postfixParseFns[p.curToken.Type()]
+	if postfix != nil {
+		return (postfix())
+	}
 	prefix := p.prefixParseFns[p.curToken.Type()]
 	if prefix == nil {
 		p.noPrefixParseFnError(p.curToken.Type())
@@ -337,10 +343,9 @@ func (p *Parser) parsePrefixExpression() ast.Node {
 func (p *Parser) parsePostfixExpression() ast.Node {
 	expression := &ast.PostfixExpression{}
 	expression.Token = p.curToken
+	expression.Prev = p.prevToken
 
 	p.nextToken()
-
-	expression.Left = p.parseExpression(POSTFIX)
 
 	return expression
 }
@@ -360,6 +365,8 @@ var precedences = map[token.Type]Priority{
 	token.PERCENT:  PRODUCT,
 	token.LPAREN:   CALL,
 	token.LBRACKET: INDEX,
+	token.INCR:     POSTFIX,
+	token.DECR:     POSTFIX,
 }
 
 func (p *Parser) peekPrecedence() Priority {
