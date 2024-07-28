@@ -120,10 +120,10 @@ func (s *State) evalInternal(node any) object.Object {
 	case *ast.InfixExpression:
 		log.LogVf("eval infix %s", node.DebugString())
 		// Eval and not evalInternal because we need to unwrap "return".
-		if node.Literal() == "=" {
-			right := s.Eval(node.Right)
-			return s.evalAssignment(right, node)
+		if node.Token.Type() == token.ASSIGN {
+			return s.evalAssignment(s.Eval(node.Right), node)
 		}
+		// Humans expect left to right evaluations.
 		left := s.Eval(node.Left)
 		right := s.Eval(node.Right)
 		return s.evalInfixExpression(node.Type(), left, right)
