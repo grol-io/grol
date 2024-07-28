@@ -74,7 +74,8 @@ func (b Base) Value() *token.Token {
 }
 
 func (b Base) PrettyPrint(ps *PrintState) *PrintState {
-	log.LogVf("PrettyPrint not implemented for %T", b.Value()) // TODO
+	// In theory should only be called for literals.
+	log.LogVf("PrettyPrint on base called for %#v", b.Value())
 	return ps.Print(b.Literal())
 }
 

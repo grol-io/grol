@@ -210,8 +210,8 @@ func TestErrorHandling(t *testing.T) {
 		expectedMessage string
 	}{
 		{
-			"f=func(x,y) {x+y}; f(1)",
-			"<wrong number of arguments. got=1, want=2>",
+			"myfunc=func(x,y) {x+y}; myfunc(1)",
+			"<wrong number of arguments for myfunc. got=1, want=2>",
 		},
 		{
 			"5 + true;",
@@ -255,7 +255,7 @@ if (10 > 1) {
 		},
 		{
 			`"Hello" - "World"`,
-			"<unknown operator: STRING - STRING>",
+			"<unknown operator: STRING MINUS STRING>",
 		},
 		{
 			`{"name": "Monkey"}[func(x) { x }];`,

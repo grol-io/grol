@@ -28,8 +28,6 @@ func (s *State) Len() int {
 	return s.env.Len()
 }
 
-// TODO: don't call the .String() if log level isn't verbose.
-
 // Does unwrap (so stop bubbling up) return values.
 func (s *State) Eval(node any) object.Object {
 	result := s.evalInternal(node)
@@ -89,7 +87,7 @@ func (s *State) evalInternal(node any) object.Object {
 	case *ast.PrefixExpression:
 		log.LogVf("eval prefix %s", node.DebugString())
 		right := s.evalInternal(node.Right)
-		return s.evalPrefixExpression(node.Literal(), right)
+		return s.evalPrefixExpression(node.Type(), right)
 	case *ast.InfixExpression:
 		log.LogVf("eval infix %s", node.DebugString())
 		right := s.Eval(node.Right) // need to unwrap "return"
@@ -97,7 +95,7 @@ func (s *State) evalInternal(node any) object.Object {
 			return s.evalAssignment(right, node)
 		}
 		left := s.Eval(node.Left)
-		return s.evalInfixExpression(node.Literal(), left, right)
+		return s.evalInfixExpression(node.Type(), left, right)
 
 	case *ast.IntegerLiteral:
 		return object.Integer{Value: node.Val}
@@ -124,6 +122,7 @@ func (s *State) evalInternal(node any) object.Object {
 		return object.Function{Parameters: params, Env: s.env, Body: body}
 	case *ast.CallExpression:
 		f := s.evalInternal(node.Function)
+		name := node.Function.Value().Literal()
 		if f.Type() == object.ERROR {
 			return f
 		}
@@ -131,7 +130,7 @@ func (s *State) evalInternal(node any) object.Object {
 		if oerr != nil {
 			return *oerr
 		}
-		return s.applyFunction(f, args)
+		return s.applyFunction(name, f, args)
 	case *ast.ArrayLiteral:
 		elements, oerr := s.evalExpressions(node.Elements)
 		if oerr != nil {
@@ -286,12 +285,12 @@ func evalArrayIndexExpression(array, index object.Object) object.Object {
 	return arrayObject.Elements[idx]
 }
 
-func (s *State) applyFunction(fn object.Object, args []object.Object) object.Object {
+func (s *State) applyFunction(name string, fn object.Object, args []object.Object) object.Object {
 	function, ok := fn.(object.Function)
 	if !ok {
 		return object.Error{Value: "<not a function: " + fn.Type().String() + ":" + fn.Inspect() + ">"}
 	}
-	nenv, oerr := extendFunctionEnv(function, args)
+	nenv, oerr := extendFunctionEnv(name, function, args)
 	if oerr != nil {
 		return *oerr
 	}
@@ -303,13 +302,13 @@ func (s *State) applyFunction(fn object.Object, args []object.Object) object.Obj
 	return res
 }
 
-func extendFunctionEnv(fn object.Function, args []object.Object) (*object.Environment, *object.Error) {
+func extendFunctionEnv(name string, fn object.Function, args []object.Object) (*object.Environment, *object.Error) {
 	env := object.NewEnclosedEnvironment(fn.Env)
 	n := len(fn.Parameters)
 	if len(args) != n {
-		// TODO: would be nice with the function name.
-		return nil, &object.Error{Value: fmt.Sprintf("<wrong number of arguments. got=%d, want=%d>",
-			len(args), n)}
+		// Would be nice to put the function name here (but we don't have it that deep)
+		return nil, &object.Error{Value: fmt.Sprintf("<wrong number of arguments for %s. got=%d, want=%d>",
+			name, len(args), n)}
 	}
 	for paramIdx, param := range fn.Parameters {
 		env.Set(param.Value().Literal(), args[paramIdx])
@@ -318,7 +317,6 @@ func extendFunctionEnv(fn object.Function, args []object.Object) (*object.Enviro
 	return env, nil
 }
 
-// TODO: isn't this same as statements?
 func (s *State) evalExpressions(exps []ast.Node) ([]object.Object, *object.Error) {
 	result := make([]object.Object, 0, len(exps))
 	for _, e := range exps {
@@ -376,14 +374,14 @@ func (s *State) evalStatements(stmts []ast.Node) object.Object {
 	return result
 }
 
-func (s *State) evalPrefixExpression(operator string, right object.Object) object.Object {
-	switch operator {
-	case "!":
+func (s *State) evalPrefixExpression(operator token.Type, right object.Object) object.Object {
+	switch operator { //nolint:exhaustive // we have default.
+	case token.BANG:
 		return s.evalBangOperatorExpression(right)
-	case "-":
+	case token.MINUS:
 		return s.evalMinusPrefixOperatorExpression(right)
 	default:
-		return object.Error{Value: "unknown operator: " + operator}
+		return object.Error{Value: "unknown operator: " + operator.String()}
 	}
 }
 
@@ -409,7 +407,7 @@ func (s *State) evalMinusPrefixOperatorExpression(right object.Object) object.Ob
 	return object.Integer{Value: -value}
 }
 
-func (s *State) evalInfixExpression(operator string, left, right object.Object) object.Object {
+func (s *State) evalInfixExpression(operator token.Type, left, right object.Object) object.Object {
 	switch {
 	// can't use generics :/ see other comment.
 	case left.Type() == object.INTEGER && right.Type() == object.INTEGER:
@@ -422,26 +420,26 @@ func (s *State) evalInfixExpression(operator string, left, right object.Object) 
 		return evalArrayInfixExpression(operator, left, right)
 	case left.Type() == object.MAP && right.Type() == object.MAP:
 		return evalMapInfixExpression(operator, left, right)
-	case operator == "==":
+	case operator == token.EQ:
 		// should be left.Value() and right.Value() as currently this relies
 		// on bool interning and ptr equality.
 		return object.NativeBoolToBooleanObject(left == right)
-	case operator == "!=":
+	case operator == token.NOTEQ:
 		return object.NativeBoolToBooleanObject(left != right)
 	default:
 		return object.Error{Value: "<operation on non integers left=" + left.Inspect() + " right=" + right.Inspect() + ">"}
 	}
 }
 
-func evalStringInfixExpression(operator string, left, right object.Object) object.Object {
+func evalStringInfixExpression(operator token.Type, left, right object.Object) object.Object {
 	leftVal := left.(object.String).Value
 	rightVal := right.(object.String).Value
-	switch operator {
-	case "==":
+	switch operator { //nolint:exhaustive // we have default.
+	case token.EQ:
 		return object.NativeBoolToBooleanObject(leftVal == rightVal)
-	case "!=":
+	case token.NOTEQ:
 		return object.NativeBoolToBooleanObject(leftVal != rightVal)
-	case "+":
+	case token.PLUS:
 		return object.String{Value: leftVal + rightVal}
 	default:
 		return object.Error{Value: fmt.Sprintf("<unknown operator: %s %s %s>",
@@ -449,16 +447,16 @@ func evalStringInfixExpression(operator string, left, right object.Object) objec
 	}
 }
 
-func evalArrayInfixExpression(operator string, left, right object.Object) object.Object {
+func evalArrayInfixExpression(operator token.Type, left, right object.Object) object.Object {
 	leftVal := left.(object.Array).Elements
-	switch operator {
-	case "==":
+	switch operator { //nolint:exhaustive // we have default.
+	case token.EQ:
 		if right.Type() != object.ARRAY {
 			return object.FALSE
 		}
 		rightVal := right.(object.Array).Elements
 		return object.ArrayEquals(leftVal, rightVal)
-	case "!=":
+	case token.NOTEQ:
 		if right.Type() != object.ARRAY {
 			return object.TRUE
 		}
@@ -467,7 +465,7 @@ func evalArrayInfixExpression(operator string, left, right object.Object) object
 			return object.TRUE
 		}
 		return object.FALSE
-	case "+": // concat / append
+	case token.PLUS: // concat / append
 		if right.Type() != object.ARRAY {
 			return object.Array{Elements: append(leftVal, right)}
 		}
@@ -478,18 +476,18 @@ func evalArrayInfixExpression(operator string, left, right object.Object) object
 	}
 }
 
-func evalMapInfixExpression(operator string, left, right object.Object) object.Object {
+func evalMapInfixExpression(operator token.Type, left, right object.Object) object.Object {
 	leftMap := left.(object.Map)
 	rightMap := right.(object.Map)
-	switch operator {
-	case "==":
+	switch operator { //nolint:exhaustive // we have default.
+	case token.EQ:
 		return object.MapEquals(leftMap, rightMap)
-	case "!=":
+	case token.NOTEQ:
 		if object.MapEquals(leftMap, rightMap) == object.FALSE {
 			return object.TRUE
 		}
 		return object.FALSE
-	case "+": // concat / append
+	case token.PLUS: // concat / append
 		res := object.NewMap()
 		for k, v := range leftMap {
 			res[k] = v
@@ -508,35 +506,35 @@ func evalMapInfixExpression(operator string, left, right object.Object) object.O
 // can't use fields directly in generic code,
 // https://github.com/golang/go/issues/48522
 // would need getters/setters which is not very go idiomatic.
-func evalIntegerInfixExpression(operator string, left, right object.Object) object.Object {
+func evalIntegerInfixExpression(operator token.Type, left, right object.Object) object.Object {
 	leftVal := left.(object.Integer).Value
 	rightVal := right.(object.Integer).Value
 
-	switch operator { // TODO use the token instead of strings
-	case "+":
+	switch operator { //nolint:exhaustive // we have default.
+	case token.PLUS:
 		return object.Integer{Value: leftVal + rightVal}
-	case "-":
+	case token.MINUS:
 		return object.Integer{Value: leftVal - rightVal}
-	case "*":
+	case token.ASTERISK:
 		return object.Integer{Value: leftVal * rightVal}
-	case "/":
+	case token.SLASH:
 		return object.Integer{Value: leftVal / rightVal}
-	case "%":
+	case token.PERCENT:
 		return object.Integer{Value: leftVal % rightVal}
-	case "<":
+	case token.LT:
 		return object.NativeBoolToBooleanObject(leftVal < rightVal)
-	case "<=":
+	case token.LTEQ:
 		return object.NativeBoolToBooleanObject(leftVal <= rightVal)
-	case ">":
+	case token.GT:
 		return object.NativeBoolToBooleanObject(leftVal > rightVal)
-	case ">=":
+	case token.GTEQ:
 		return object.NativeBoolToBooleanObject(leftVal >= rightVal)
-	case "==":
+	case token.EQ:
 		return object.NativeBoolToBooleanObject(leftVal == rightVal)
-	case "!=":
+	case token.NOTEQ:
 		return object.NativeBoolToBooleanObject(leftVal != rightVal)
 	default:
-		return object.Error{Value: "unknown operator: " + operator}
+		return object.Error{Value: "unknown operator: " + operator.String()}
 	}
 }
 
@@ -552,7 +550,7 @@ func getFloatValue(o object.Object) (float64, *object.Error) {
 }
 
 // So we copy-pasta instead :-(.
-func evalFloatInfixExpression(operator string, left, right object.Object) object.Object {
+func evalFloatInfixExpression(operator token.Type, left, right object.Object) object.Object {
 	leftVal, oerr := getFloatValue(left)
 	if oerr != nil {
 		return *oerr
@@ -561,30 +559,30 @@ func evalFloatInfixExpression(operator string, left, right object.Object) object
 	if oerr != nil {
 		return *oerr
 	}
-	switch operator { // TODO use the token instead of strings
-	case "+":
+	switch operator { //nolint:exhaustive // we have default.
+	case token.PLUS:
 		return object.Float{Value: leftVal + rightVal}
-	case "-":
+	case token.MINUS:
 		return object.Float{Value: leftVal - rightVal}
-	case "*":
+	case token.ASTERISK:
 		return object.Float{Value: leftVal * rightVal}
-	case "/":
+	case token.SLASH:
 		return object.Float{Value: leftVal / rightVal}
-	case "%":
+	case token.PERCENT:
 		return object.Float{Value: math.Mod(leftVal, rightVal)}
-	case "<":
+	case token.LT:
 		return object.NativeBoolToBooleanObject(leftVal < rightVal)
-	case "<=":
+	case token.LTEQ:
 		return object.NativeBoolToBooleanObject(leftVal <= rightVal)
-	case ">":
+	case token.GT:
 		return object.NativeBoolToBooleanObject(leftVal > rightVal)
-	case ">=":
+	case token.GTEQ:
 		return object.NativeBoolToBooleanObject(leftVal >= rightVal)
-	case "==":
+	case token.EQ:
 		return object.NativeBoolToBooleanObject(leftVal == rightVal)
-	case "!=":
+	case token.NOTEQ:
 		return object.NativeBoolToBooleanObject(leftVal != rightVal)
 	default:
-		return object.Error{Value: "unknown operator: " + operator}
+		return object.Error{Value: "unknown operator: " + operator.String()}
 	}
 }
