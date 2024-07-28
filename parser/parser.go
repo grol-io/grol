@@ -246,10 +246,6 @@ func (p *Parser) noPrefixParseFnError(t token.Type) {
 
 func (p *Parser) parseExpression(precedence Priority) ast.Node {
 	log.Debugf("parseExpression: %s precedence %s", p.curToken.DebugString(), precedence)
-	postfix := p.postfixParseFns[p.curToken.Type()]
-	if postfix != nil {
-		return (postfix())
-	}
 	prefix := p.prefixParseFns[p.curToken.Type()]
 	if prefix == nil {
 		p.noPrefixParseFnError(p.curToken.Type())
@@ -277,6 +273,12 @@ func (p *Parser) parseExpression(precedence Priority) ast.Node {
 }
 
 func (p *Parser) parseIdentifier() ast.Node {
+	postfix := p.postfixParseFns[p.peekToken.Type()]
+	if postfix != nil {
+		log.LogVf("parseIdentifier: next is a postfix for %s: %s", p.curToken.DebugString(), p.peekToken.DebugString())
+		p.nextToken()
+		return postfix()
+	}
 	i := &ast.Identifier{}
 	i.Token = p.curToken
 	return i
@@ -344,9 +346,6 @@ func (p *Parser) parsePostfixExpression() ast.Node {
 	expression := &ast.PostfixExpression{}
 	expression.Token = p.curToken
 	expression.Prev = p.prevToken
-
-	p.nextToken()
-
 	return expression
 }
 

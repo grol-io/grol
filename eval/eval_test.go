@@ -39,6 +39,11 @@ func TestEvalIntegerExpression(t *testing.T) {
 		{"20 % -5", 0},
 		{"-21 % 5", -1},
 		{`fact = func(n) {if (n<2) {return 1} n*fact(n-1)}; fact(5)`, 120},
+		{`a=2; b=3; r=a+5*b++`, 17},
+		{`a=2; b=3; r=a+5*b++;b`, 4},
+		{`a=2; b=3; r=a+5*(b++)+b;`, 20}, // because that + b is evaluated before the deeper b++ - not well defined behavior.
+		{`a=2; b=3; r=b+5*(b++)+a;`, 21}, // because that solo b is evaluated last, after the b++ - not well defined behavior.
+		{`a=2; b=3; r=b+5*b+++a;`, 21},   // parantheses are not technically needed here though... this is rather un readable.
 	}
 
 	for i, tt := range tests {
