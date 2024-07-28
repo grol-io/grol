@@ -21,6 +21,7 @@ const (
 	SUM         // +
 	PRODUCT     // *
 	PREFIX      // -X or !X
+	POSTFIX     // X++, X--
 	CALL        // myFunction(X)
 	INDEX       // array[index]
 )
@@ -29,8 +30,9 @@ const (
 var _ = CALL.String() // force compile error if go generate is missing.
 
 type (
-	prefixParseFn func() ast.Node
-	infixParseFn  func(ast.Node) ast.Node
+	prefixParseFn  func() ast.Node
+	infixParseFn   func(ast.Node) ast.Node
+	postfixParseFn prefixParseFn
 )
 
 type Parser struct {
@@ -42,8 +44,9 @@ type Parser struct {
 	errors             []string
 	continuationNeeded bool
 
-	prefixParseFns map[token.Type]prefixParseFn
-	infixParseFns  map[token.Type]infixParseFn
+	prefixParseFns  map[token.Type]prefixParseFn
+	infixParseFns   map[token.Type]infixParseFn
+	postfixParseFns map[token.Type]postfixParseFn
 }
 
 func (p *Parser) ContinuationNeeded() bool {
@@ -56,6 +59,10 @@ func (p *Parser) registerPrefix(t token.Type, fn prefixParseFn) {
 
 func (p *Parser) registerInfix(t token.Type, fn infixParseFn) {
 	p.infixParseFns[t] = fn
+}
+
+func (p *Parser) registerPostfix(t token.Type, fn postfixParseFn) {
+	p.postfixParseFns[t] = fn
 }
 
 func New(l *lexer.Lexer) *Parser {
@@ -103,9 +110,12 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerInfix(token.GTEQ, p.parseInfixExpression)
 	p.registerInfix(token.LPAREN, p.parseCallExpression)
 	p.registerInfix(token.LBRACKET, p.parseIndexExpression)
-
 	// no let:
 	p.registerInfix(token.ASSIGN, p.parseInfixExpression)
+
+	p.postfixParseFns = make(map[token.Type]postfixParseFn)
+	p.registerPostfix(token.INCR, p.parsePostfixExpression)
+	p.registerPostfix(token.DECR, p.parsePostfixExpression)
 
 	// Read two tokens, so curToken and peekToken are both set
 	p.nextToken()
@@ -320,6 +330,17 @@ func (p *Parser) parsePrefixExpression() ast.Node {
 	p.nextToken()
 
 	expression.Right = p.parseExpression(PREFIX)
+
+	return expression
+}
+
+func (p *Parser) parsePostfixExpression() ast.Node {
+	expression := &ast.PostfixExpression{}
+	expression.Token = p.curToken
+
+	p.nextToken()
+
+	expression.Left = p.parseExpression(POSTFIX)
 
 	return expression
 }

@@ -35,8 +35,14 @@ func (l *Lexer) NextToken() *token.Token {
 			return token.ConstantTokenStr(literal)
 		}
 		return token.ConstantTokenChar(ch)
-
-	case '%', '*', '+', ';', ',', '{', '}', '(', ')', '[', ']', '-':
+	case '+', '-':
+		if l.peekChar() == ch {
+			nextChar := l.readChar()
+			literal := string(ch) + string(nextChar) // TODO: consider making a ContantTokenChar2 instead of making a string
+			return token.ConstantTokenStr(literal)   // increment/decrement
+		}
+		return token.ConstantTokenChar(ch)
+	case '%', '*', ';', ',', '{', '}', '(', ')', '[', ']':
 		// TODO maybe reorder so it's a continuous range for pure single character tokens
 		return token.ConstantTokenChar(ch)
 	case '/':

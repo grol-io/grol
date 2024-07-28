@@ -97,6 +97,8 @@ const (
 	GTEQ
 	EQ
 	NOTEQ
+	INCR
+	DECR
 
 	endMultiCharTokens
 
@@ -226,6 +228,8 @@ func Init() {
 	assocS(GTEQ, ">=")
 	assocS(EQ, "==")
 	assocS(NOTEQ, "!=")
+	assocS(INCR, "++")
+	assocS(DECR, "--")
 	// Special alias for := to be same as ASSIGN.
 	sTokens[":="] = cTokens['=']
 }

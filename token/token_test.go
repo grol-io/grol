@@ -75,6 +75,8 @@ func TestMultiCharTokens(t *testing.T) {
 		{"!=", NOTEQ},
 		{">=", GTEQ},
 		{"<=", LTEQ},
+		{"++", INCR},
+		{"--", DECR},
 	}
 	for _, tt := range tests {
 		tok := &Token{tokenType: tt.expected, literal: tt.input}

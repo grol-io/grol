@@ -176,6 +176,25 @@ func (p PrefixExpression) PrettyPrint(out *PrintState) *PrintState {
 	return out
 }
 
+type PostfixExpression struct {
+	Base
+	Left Node
+}
+
+func (p PostfixExpression) PrettyPrint(out *PrintState) *PrintState {
+	if out.ExpressionLevel > 0 {
+		out.Print("(")
+	}
+	out.ExpressionLevel++ // comment out for !(-a) to normalize to !-a
+	p.Left.PrettyPrint(out)
+	out.ExpressionLevel--
+	out.Print(p.Literal())
+	if out.ExpressionLevel > 0 {
+		out.Print(")")
+	}
+	return out
+}
+
 type InfixExpression struct {
 	Base
 	Left  Node

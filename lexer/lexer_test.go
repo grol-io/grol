@@ -37,6 +37,8 @@ return // nil return
 macro(x, y) { x + y }
 a3:=5
 4>=3.1
+i++
+j--
 @
 `
 
@@ -151,6 +153,10 @@ a3:=5
 		{token.INT, "4"},
 		{token.GTEQ, ">="},
 		{token.FLOAT, "3.1"},
+		{token.IDENT, "i"},
+		{token.INCR, "++"},
+		{token.IDENT, "j"},
+		{token.DECR, "--"},
 		{token.ILLEGAL, "@"},
 		{token.EOF, ""},
 	}

@@ -18,7 +18,7 @@ foobar = 838383;
 	p := parser.New(l)
 
 	program := p.ParseProgram()
-	checkParserErrors(t, p)
+	checkParserErrors(t, input, p)
 	if program == nil {
 		t.Fatalf("ParseProgram() returned nil")
 	}
@@ -43,13 +43,13 @@ foobar = 838383;
 	}
 }
 
-func checkParserErrors(t *testing.T, p *parser.Parser) {
+func checkParserErrors(t *testing.T, input string, p *parser.Parser) {
 	errors := p.Errors()
 	if len(errors) == 0 {
 		return
 	}
 
-	t.Errorf("parser has %d error(s)", len(errors))
+	t.Errorf("parser has %d error(s) for %q", len(errors), input)
 	for _, msg := range errors {
 		t.Errorf("parser error: %s", msg)
 	}
@@ -66,7 +66,7 @@ return 993322;
 	p := parser.New(l)
 
 	program := p.ParseProgram()
-	checkParserErrors(t, p)
+	checkParserErrors(t, input, p)
 
 	if len(program.Statements) != 3 {
 		t.Fatalf("program.Statements does not contain 3 statements. got=%d",
@@ -92,7 +92,7 @@ func Test_IdentifierExpression(t *testing.T) {
 	l := lexer.New(input)
 	p := parser.New(l)
 	program := p.ParseProgram()
-	checkParserErrors(t, p)
+	checkParserErrors(t, input, p)
 
 	if len(program.Statements) != 1 {
 		t.Fatalf("program has not enough statements. got=%d",
@@ -134,8 +134,12 @@ func Test_OperatorPrecedenceParsing(t *testing.T) {
 			"!(-a)", // or maybe !-a - it's more compact but... less readable?
 		},
 		{
-			"--a",
 			"-(-a)",
+			"-(-a)",
+		},
+		{
+			"a--",
+			"a--",
 		},
 		{
 			"a + b + c",
@@ -191,7 +195,7 @@ func Test_OperatorPrecedenceParsing(t *testing.T) {
 		l := lexer.New(tt.input)
 		p := parser.New(l)
 		program := p.ParseProgram()
-		checkParserErrors(t, p)
+		checkParserErrors(t, tt.input, p)
 
 		actual := ast.DebugString(program)
 		last := actual[len(actual)-1]
