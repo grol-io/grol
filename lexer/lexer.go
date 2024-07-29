@@ -7,7 +7,7 @@ import (
 )
 
 type Lexer struct {
-	input         string
+	input         []byte
 	pos           int
 	lineMode      bool
 	hadWhitespace bool
@@ -15,11 +15,15 @@ type Lexer struct {
 
 // Mode with input expected the be complete (multiline/file).
 func New(input string) *Lexer {
-	return &Lexer{input: input}
+	return NewBytes([]byte(input))
 }
 
 func NewLineMode(input string) *Lexer {
-	return &Lexer{input: input, lineMode: true}
+	return &Lexer{input: []byte(input), lineMode: true}
+}
+
+func NewBytes(input []byte) *Lexer {
+	return &Lexer{input: input}
 }
 
 func (l *Lexer) NextToken() *token.Token {
@@ -138,7 +142,7 @@ func (l *Lexer) readIdentifier() string {
 	for isAlphaNum(l.peekChar()) {
 		l.pos++
 	}
-	return l.input[pos:l.pos]
+	return string(l.input[pos:l.pos])
 }
 
 func notEOL(ch byte) bool {
@@ -150,7 +154,7 @@ func (l *Lexer) readLineComment() string {
 	for notEOL(l.peekChar()) {
 		l.pos++
 	}
-	return l.input[pos:l.pos]
+	return string(l.input[pos:l.pos])
 }
 
 func (l *Lexer) readNumber(ch byte) (token.Type, string) {
@@ -170,7 +174,7 @@ func (l *Lexer) readNumber(ch byte) (token.Type, string) {
 			l.pos++
 		}
 	}
-	return t, l.input[pos:l.pos]
+	return t, string(l.input[pos:l.pos])
 }
 
 func isLetter(ch byte) bool {

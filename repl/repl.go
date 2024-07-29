@@ -109,8 +109,8 @@ func New() *Grol {
 	return g
 }
 
-func (g *Grol) Parse(what string) error {
-	l := lexer.New(what)
+func (g *Grol) Parse(inp []byte) error {
+	l := lexer.NewBytes(inp)
 	p := parser.New(l)
 	g.program = p.ParseProgram()
 	if len(p.Errors()) > 0 {

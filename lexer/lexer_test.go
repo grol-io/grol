@@ -179,7 +179,7 @@ j--
 }
 
 func TestNextTokenEOLMode(t *testing.T) {
-	input := `if .5 {`
+	input := `if .5 { x ( `
 	l := NewLineMode(input)
 	tests := []struct {
 		expectedType    token.Type
@@ -188,6 +188,8 @@ func TestNextTokenEOLMode(t *testing.T) {
 		{token.IF, "if"},
 		{token.FLOAT, ".5"},
 		{token.LBRACE, "{"},
+		{token.IDENT, "x"},
+		{token.LPAREN, "("},
 		{token.EOL, ""},
 	}
 	for i, tt := range tests {
@@ -201,6 +203,15 @@ func TestNextTokenEOLMode(t *testing.T) {
 		if tok.Literal() != tt.expectedLiteral {
 			t.Fatalf("tests[%d] - literal wrong. expected=%q, got=%v",
 				i, tt.expectedLiteral, tok)
+		}
+		if i == 0 {
+			if l.HadWhitespace() {
+				t.Errorf("tests[%d] - didn't expected on first", i)
+			}
+		} else {
+			if !l.HadWhitespace() {
+				t.Errorf("tests[%d] - expected whitespace", i)
+			}
 		}
 	}
 }
