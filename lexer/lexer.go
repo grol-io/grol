@@ -11,6 +11,7 @@ type Lexer struct {
 	pos           int
 	lineMode      bool
 	hadWhitespace bool
+	hadNewline    bool
 }
 
 // Mode with input expected the be complete (multiline/file).
@@ -88,10 +89,22 @@ func (l *Lexer) HadWhitespace() bool {
 	return l.hadWhitespace
 }
 
+func (l *Lexer) HadNewline() bool {
+	return l.hadNewline
+}
+
 func (l *Lexer) skipWhitespace() {
 	l.hadWhitespace = false
+	l.hadNewline = false
 	// while whitespace, read next char
-	for isWhiteSpace(l.peekChar()) {
+	for {
+		ch := l.peekChar()
+		if !isWhiteSpace(ch) {
+			break
+		}
+		if ch == '\n' {
+			l.hadNewline = true
+		}
 		l.hadWhitespace = true
 		l.pos++
 	}
