@@ -7,7 +7,7 @@ import (
 )
 
 type Lexer struct {
-	input         string
+	input         []byte
 	pos           int
 	lineMode      bool
 	hadWhitespace bool
@@ -15,11 +15,16 @@ type Lexer struct {
 
 // Mode with input expected the be complete (multiline/file).
 func New(input string) *Lexer {
-	return &Lexer{input: input}
+	return NewBytes([]byte(input))
 }
 
 func NewLineMode(input string) *Lexer {
-	return &Lexer{input: input, lineMode: true}
+	return &Lexer{input: []byte(input), lineMode: true}
+}
+
+// Bytes based full input mode.
+func NewBytes(input []byte) *Lexer {
+	return &Lexer{input: input}
 }
 
 func (l *Lexer) NextToken() *token.Token {
@@ -29,17 +34,15 @@ func (l *Lexer) NextToken() *token.Token {
 	case '=', '!', ':':
 		if l.peekChar() == '=' {
 			nextChar := l.readChar()
-			literal := string(ch) + string(nextChar)
 			// := is aliased directly to ASSIGN (with = as literal), a bit hacky but
 			// so we normalize := like it didn't exist.
-			return token.ConstantTokenStr(literal)
+			return token.ConstantTokenChar2(ch, nextChar)
 		}
 		return token.ConstantTokenChar(ch)
 	case '+', '-':
 		if l.peekChar() == ch {
 			nextChar := l.readChar()
-			literal := string(ch) + string(nextChar) // TODO: consider making a ContantTokenChar2 instead of making a string
-			return token.ConstantTokenStr(literal)   // increment/decrement
+			return token.ConstantTokenChar2(ch, nextChar) // increment/decrement
 		}
 		return token.ConstantTokenChar(ch)
 	case '%', '*', ';', ',', '{', '}', '(', ')', '[', ']':
@@ -53,8 +56,7 @@ func (l *Lexer) NextToken() *token.Token {
 	case '<', '>':
 		if l.peekChar() == '=' {
 			nextChar := l.readChar()
-			literal := string(ch) + string(nextChar)
-			return token.ConstantTokenStr(literal)
+			return token.ConstantTokenChar2(ch, nextChar)
 		}
 		return token.ConstantTokenChar(ch)
 	case '"':
@@ -138,7 +140,7 @@ func (l *Lexer) readIdentifier() string {
 	for isAlphaNum(l.peekChar()) {
 		l.pos++
 	}
-	return l.input[pos:l.pos]
+	return string(l.input[pos:l.pos])
 }
 
 func notEOL(ch byte) bool {
@@ -150,7 +152,7 @@ func (l *Lexer) readLineComment() string {
 	for notEOL(l.peekChar()) {
 		l.pos++
 	}
-	return l.input[pos:l.pos]
+	return string(l.input[pos:l.pos])
 }
 
 func (l *Lexer) readNumber(ch byte) (token.Type, string) {
@@ -170,7 +172,7 @@ func (l *Lexer) readNumber(ch byte) (token.Type, string) {
 			l.pos++
 		}
 	}
-	return t, l.input[pos:l.pos]
+	return t, string(l.input[pos:l.pos])
 }
 
 func isLetter(ch byte) bool {

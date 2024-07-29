@@ -139,8 +139,8 @@ var (
 var (
 	keywords map[string]*Token
 	cTokens  map[byte]*Token
+	c2Tokens map[[2]byte]*Token
 	tToChar  map[Type]byte
-	sTokens  map[string]*Token
 	tToT     map[Type]*Token // for all token that are constant.
 )
 
@@ -161,17 +161,29 @@ func assocS(t Type, s string) *Token {
 	if old != tok {
 		panic("duplicate token for " + s)
 	}
-	sTokens[s] = tok
 	tToT[t] = tok
 	return tok
+}
+
+func assocC2(t Type, str string) {
+	if len(str) != 2 {
+		panic("assocC2: expected 2 char string")
+	}
+	tok := &Token{tokenType: t, literal: str}
+	old := InternToken(tok)
+	if old != tok {
+		panic("duplicate token for " + str)
+	}
+	tToT[t] = tok
+	c2Tokens[[2]byte{str[0], str[1]}] = tok
 }
 
 func Init() {
 	ResetInterning()
 	keywords = make(map[string]*Token)
 	cTokens = make(map[byte]*Token)
+	c2Tokens = make(map[[2]byte]*Token)
 	tToChar = make(map[Type]byte)
-	sTokens = make(map[string]*Token)
 	tToT = make(map[Type]*Token)
 	for i := startIdentityTokens + 1; i < endIdentityTokens; i++ {
 		t := assocS(i, strings.ToLower(i.String()))
@@ -224,14 +236,14 @@ func Init() {
 		}
 	}
 	// Multi character non identity tokens.
-	assocS(LTEQ, "<=")
-	assocS(GTEQ, ">=")
-	assocS(EQ, "==")
-	assocS(NOTEQ, "!=")
-	assocS(INCR, "++")
-	assocS(DECR, "--")
+	assocC2(LTEQ, "<=")
+	assocC2(GTEQ, ">=")
+	assocC2(EQ, "==")
+	assocC2(NOTEQ, "!=")
+	assocC2(INCR, "++")
+	assocC2(DECR, "--")
 	// Special alias for := to be same as ASSIGN.
-	sTokens[":="] = cTokens['=']
+	c2Tokens[[2]byte{':', '='}] = cTokens['=']
 }
 
 //go:generate stringer -type=Type
@@ -266,8 +278,8 @@ func ConstantTokenChar(literal byte) *Token {
 	return cTokens[literal]
 }
 
-func ConstantTokenStr(literal string) *Token {
-	return sTokens[literal]
+func ConstantTokenChar2(c1, c2 byte) *Token {
+	return c2Tokens[[2]byte{c1, c2}]
 }
 
 func (t *Token) DebugString() string {

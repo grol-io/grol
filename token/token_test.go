@@ -84,7 +84,7 @@ func TestMultiCharTokens(t *testing.T) {
 		if tok == tok2 {
 			t.Errorf("Intern[%s] was unexpectedly created", tt.input)
 		}
-		tok3 := ConstantTokenStr(tt.input)
+		tok3 := ConstantTokenChar2(tt.input[0], tt.input[1])
 		if tok3 != tok2 {
 			t.Errorf("ConstantTokenStr[%s] was not found", tt.input)
 		}
@@ -127,7 +127,7 @@ func TestSingleCharTokens(t *testing.T) {
 func TestColonEqualAlias(t *testing.T) {
 	Init()
 	// Test := alias
-	tok := ConstantTokenStr(":=")
+	tok := ConstantTokenChar2(':', '=')
 	if tok == nil {
 		t.Fatalf("ConstantTokenStr[:=] was not found")
 	}
