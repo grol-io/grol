@@ -220,12 +220,16 @@ func TestFormat(t *testing.T) {
 			"a = (1 + 2) * 3",
 		},
 		{
-			"// a comment",
-			"// a comment",
+			"    //    a comment   ", // Should trim right whitespaces (but not ones between // and the comment)
+			"//    a comment",
 		},
 		{
 			"   a = 1+2    // interesting comment about a\nb = 23",
 			"a = 1 + 2 // interesting comment about a\nb = 23",
+		},
+		{
+			"  a = 1+2    // interesting comment about a\n// and one for below:\nb=23",
+			"a = 1 + 2 // interesting comment about a\n// and one for below:\nb = 23",
 		},
 	}
 	for _, tt := range tests {

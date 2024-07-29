@@ -152,7 +152,7 @@ func (l *Lexer) readLineComment() string {
 	for notEOL(l.peekChar()) {
 		l.pos++
 	}
-	return string(l.input[pos:l.pos])
+	return strings.TrimSpace(string(l.input[pos:l.pos]))
 }
 
 func (l *Lexer) readNumber(ch byte) (token.Type, string) {
