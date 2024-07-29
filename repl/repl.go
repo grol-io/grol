@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"fortio.org/log"
+	"grol.io/grol/ast"
 	"grol.io/grol/eval"
 	"grol.io/grol/lexer"
 	"grol.io/grol/object"
@@ -96,7 +97,7 @@ type Grol struct {
 	State     *eval.State
 	Macros    *eval.State
 	PrintEval bool
-	program   *ast.Statements
+	program   *ast.Program
 }
 
 // Initialize with new empty state.
@@ -105,8 +106,8 @@ func New() *Grol {
 	return g
 }
 
-func (g *Grol) Parse(what string) error {
-	l := lexer.New(what)
+func (g *Grol) Parse(what []byte) error {
+	l := lexer.New(string(what))
 	p := parser.New(l)
 	g.program = p.ParseProgram()
 	if len(p.Errors()) > 0 {
