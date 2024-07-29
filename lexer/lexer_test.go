@@ -179,7 +179,8 @@ j--
 }
 
 func TestNextTokenEOLMode(t *testing.T) {
-	input := `if .5 { x ( `
+	input := `if .5 { x (
+`
 	l := NewLineMode(input)
 	tests := []struct {
 		expectedType    token.Type
@@ -211,6 +212,15 @@ func TestNextTokenEOLMode(t *testing.T) {
 		} else {
 			if !l.HadWhitespace() {
 				t.Errorf("tests[%d] - expected whitespace", i)
+			}
+		}
+		if i == len(tests)-1 {
+			if !l.HadNewline() {
+				t.Errorf("last test (%d) - expected newline", i)
+			}
+		} else {
+			if l.HadNewline() {
+				t.Errorf("tests[%d] - didn't expect newline", i)
 			}
 		}
 	}

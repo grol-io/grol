@@ -102,22 +102,18 @@
 
 <div>
     <label for="input">Edit the sample/Enter your GROL code here:</label>
-    <textarea id="input" rows="16" cols="80">
+    <textarea id="input" rows="12" cols="80">
 print("Outputting a smiley: 😀\n")
-// function example:
-fact=func(n) {
-  // log output
-  log("called fact ", n)
-  // parenthesis are optional
+fact=func(n) {    // function example
+  log("called fact ", n)  // log output
+// parenthesis are optional:
   if (n<=1) {
     return 1
   }
-  // recursion
-  n*fact(n-1)
+  n*fact(n-1) // recursion
 }
-// heterogeneous array
-a=[fact(5), "abc", 76-3]
-// maps also can have any key,value types
+a=[fact(5), "abc", 76-3] // heterogeneous array
+// maps also can have any key,value types:
 m={"str key": a, 42: "str val"}</textarea>
 </div>
 <div>

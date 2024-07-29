@@ -97,16 +97,30 @@ type Statements struct {
 	Statements []Node
 }
 
+func sameLine(node Node) bool {
+	switch n := node.(type) { //nolint:exahustive // we may add more later
+	case *Comment:
+		return n.SameLine
+	default:
+		return false
+	}
+}
+
 func (p Statements) PrettyPrint(ps *PrintState) *PrintState {
 	oldExpressionLevel := ps.ExpressionLevel
 	if ps.IndentLevel > 0 {
-		ps.Println("{")
+		ps.Print("{") // first statement might be a comment on same line.
 	}
 	ps.IndentLevel++
 	ps.ExpressionLevel = 0
 	for i, s := range p.Statements {
-		if i > 0 {
-			ps.Println()
+		if i > 0 || ps.IndentLevel > 1 {
+			if sameLine(s) {
+				_, _ = ps.Out.Write([]byte{' '})
+				ps.IndentationDone = true
+			} else {
+				ps.Println()
+			}
 		}
 		s.PrettyPrint(ps)
 	}
@@ -130,6 +144,7 @@ func (i Identifier) PrettyPrint(out *PrintState) *PrintState {
 
 type Comment struct {
 	Base
+	SameLine bool
 }
 
 func (c Comment) PrettyPrint(out *PrintState) *PrintState {
