@@ -209,3 +209,39 @@ func Test_OperatorPrecedenceParsing(t *testing.T) {
 		}
 	}
 }
+
+func TestFormat(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		{
+			"a=((1+2)*3)",
+			"a = (1 + 2) * 3",
+		},
+		{
+			"// a comment",
+			"// a comment",
+		},
+		{
+			"   a = 1+2    // interesting comment about a\nb = 23",
+			"a = 1 + 2 // interesting comment about a\nb = 23",
+		},
+	}
+	for _, tt := range tests {
+		l := lexer.New(tt.input)
+		p := parser.New(l)
+		program := p.ParseProgram()
+		checkParserErrors(t, tt.input, p)
+		actual := program.PrettyPrint(ast.NewPrintState()).String()
+		last := actual[len(actual)-1]
+		if actual[len(actual)-1] != '\n' {
+			t.Errorf("expecting newline at end of program output, not found, got %q", last)
+		} else {
+			actual = actual[:len(actual)-1] // remove the last newline
+		}
+		if actual != tt.expected {
+			t.Errorf("---expected---\n%s\n---actual---\n%s\n---", tt.expected, actual)
+		}
+	}
+}
