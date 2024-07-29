@@ -231,6 +231,12 @@ func TestFormat(t *testing.T) {
 			"  a = 1+2    // interesting comment about a\n// and one for below:\nb=23",
 			"a = 1 + 2 // interesting comment about a\n// and one for below:\nb = 23",
 		},
+		{
+			`fact=func(n) {    // function example
+log("called fact ", n)  // log output
+}`,
+			"fact = func(n) { // function example\n\tlog(\"called fact \", n) // log output\n}",
+		},
 	}
 	for _, tt := range tests {
 		l := lexer.New(tt.input)

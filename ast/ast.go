@@ -109,14 +109,15 @@ func sameLine(node Node) bool {
 func (p Statements) PrettyPrint(ps *PrintState) *PrintState {
 	oldExpressionLevel := ps.ExpressionLevel
 	if ps.IndentLevel > 0 {
-		ps.Println("{")
+		ps.Print("{") // first statement might be a comment on same line.
 	}
 	ps.IndentLevel++
 	ps.ExpressionLevel = 0
 	for i, s := range p.Statements {
-		if i > 0 {
+		if i > 0 || ps.IndentLevel > 1 {
 			if sameLine(s) {
-				ps.Print(" ")
+				_, _ = ps.Out.Write([]byte{' '})
+				ps.IndentationDone = true
 			} else {
 				ps.Println()
 			}

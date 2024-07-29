@@ -31,7 +31,7 @@ Factorial of 5 is 120` + " \n120\n" // there is an extra space before \n that vs
 
 func TestEvalString50(t *testing.T) {
 	s := `
-fact=func(n) { // function
+fact=func(n) {        // function
     if (n<=1) {
         return 1
     }
@@ -44,8 +44,8 @@ fact(50.)`
 		t.Errorf("EvalString() got %v\n---\n%s\n---want---\n%s\n---", errs, got, expected)
 	}
 	// This tests that expression nesting is reset in function call list (ie formatted to `fact(n-1)` instead of `fact((n-1))`)
-	expected = `fact = func(n) {
-	// function
+	// and indirectly the handling of comments on same line as first statement in block.
+	expected = `fact = func(n) { // function
 	if n <= 1 {
 		return 1
 	}
