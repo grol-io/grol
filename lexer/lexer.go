@@ -22,6 +22,7 @@ func NewLineMode(input string) *Lexer {
 	return &Lexer{input: []byte(input), lineMode: true}
 }
 
+// Bytes based full input mode.
 func NewBytes(input []byte) *Lexer {
 	return &Lexer{input: input}
 }
@@ -33,17 +34,15 @@ func (l *Lexer) NextToken() *token.Token {
 	case '=', '!', ':':
 		if l.peekChar() == '=' {
 			nextChar := l.readChar()
-			literal := string(ch) + string(nextChar)
 			// := is aliased directly to ASSIGN (with = as literal), a bit hacky but
 			// so we normalize := like it didn't exist.
-			return token.ConstantTokenStr(literal)
+			return token.ConstantTokenChar2(ch, nextChar)
 		}
 		return token.ConstantTokenChar(ch)
 	case '+', '-':
 		if l.peekChar() == ch {
 			nextChar := l.readChar()
-			literal := string(ch) + string(nextChar) // TODO: consider making a ContantTokenChar2 instead of making a string
-			return token.ConstantTokenStr(literal)   // increment/decrement
+			return token.ConstantTokenChar2(ch, nextChar) // increment/decrement
 		}
 		return token.ConstantTokenChar(ch)
 	case '%', '*', ';', ',', '{', '}', '(', ')', '[', ']':
@@ -57,8 +56,7 @@ func (l *Lexer) NextToken() *token.Token {
 	case '<', '>':
 		if l.peekChar() == '=' {
 			nextChar := l.readChar()
-			literal := string(ch) + string(nextChar)
-			return token.ConstantTokenStr(literal)
+			return token.ConstantTokenChar2(ch, nextChar)
 		}
 		return token.ConstantTokenChar(ch)
 	case '"':

@@ -41,7 +41,6 @@ i++
 j--
 @
 `
-
 	tests := []struct {
 		expectedType    token.Type
 		expectedLiteral string
@@ -164,6 +163,7 @@ j--
 	l := New(input)
 
 	for i, tt := range tests {
+		t.Logf("test %d: %v", i, tt)
 		tok := l.NextToken()
 
 		if tok.Type() != tt.expectedType {
