@@ -95,6 +95,54 @@ func Interactive(in io.Reader, out io.Writer, options Options) {
 	}
 }
 
+// Alternate API for benchmarking and simplicity.
+type Grol struct {
+	State     *eval.State
+	Macros    *eval.State
+	PrintEval bool
+	program   *ast.Statements
+}
+
+// Initialize with new empty state.
+func New() *Grol {
+	g := &Grol{State: eval.NewState(), Macros: eval.NewState()}
+	return g
+}
+
+func (g *Grol) Parse(what string) error {
+	l := lexer.New(what)
+	p := parser.New(l)
+	g.program = p.ParseProgram()
+	if len(p.Errors()) > 0 {
+		return fmt.Errorf("parse errors: %v", p.Errors())
+	}
+	if g.Macros == nil {
+		return nil
+	}
+	g.Macros.DefineMacros(g.program)
+	numMacros := g.Macros.Len()
+	if numMacros == 0 {
+		return nil
+	}
+	log.LogVf("Expanding, %d macros defined", numMacros)
+	// This actually modifies the original program, not sure... that's good but that's why
+	// expanded return value doesn't need to be used.
+	_ = g.Macros.ExpandMacros(g.program)
+	return nil
+}
+
+func (g *Grol) Run(out io.Writer) error {
+	g.State.Out = out
+	res := g.State.Eval(g.program)
+	if res.Type() == object.ERROR {
+		return fmt.Errorf("eval error: %v", res.Inspect())
+	}
+	if g.PrintEval {
+		fmt.Fprint(out, res.Inspect())
+	}
+	return nil
+}
+
 // Returns true in line mode if more should be fed to the parser.
 // TODO: this one size fits 3 different calls (file, interactive, bot) is getting spaghetti.
 func EvalOne(s, macroState *eval.State, what string, out io.Writer, options Options) (bool, []string, string) {
