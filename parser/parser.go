@@ -41,6 +41,8 @@ type Parser struct {
 	curToken  *token.Token
 	peekToken *token.Token
 
+	prevNewline bool
+
 	errors             []string
 	continuationNeeded bool
 
@@ -129,6 +131,7 @@ func (p *Parser) Errors() []string {
 }
 
 func (p *Parser) nextToken() {
+	p.prevNewline = p.l.HadNewline()
 	p.prevToken = p.curToken
 	p.curToken = p.peekToken
 	p.peekToken = p.l.NextToken()
@@ -165,6 +168,7 @@ func (p *Parser) parseStringLiteral() ast.Node {
 func (p *Parser) parseComment() ast.Node {
 	r := &ast.Comment{}
 	r.Token = p.curToken
+	r.SameLine = !p.prevNewline
 	return r
 }
 
