@@ -100,7 +100,16 @@ type Statements struct {
 func sameLine(node Node) bool {
 	switch n := node.(type) { //nolint:exahustive // we may add more later
 	case *Comment:
-		return n.SameLine
+		return n.SameLineAsPrevious
+	default:
+		return false
+	}
+}
+
+func skipNextNewLine(node Node) bool {
+	switch n := node.(type) { //nolint:exahustive // we may add more later
+	case *Comment:
+		return n.SameLineAsNext
 	default:
 		return false
 	}
@@ -113,9 +122,10 @@ func (p Statements) PrettyPrint(ps *PrintState) *PrintState {
 	}
 	ps.IndentLevel++
 	ps.ExpressionLevel = 0
+	var prev Node
 	for i, s := range p.Statements {
 		if i > 0 || ps.IndentLevel > 1 {
-			if sameLine(s) {
+			if sameLine(s) || skipNextNewLine(prev) {
 				_, _ = ps.Out.Write([]byte{' '})
 				ps.IndentationDone = true
 			} else {
@@ -123,6 +133,7 @@ func (p Statements) PrettyPrint(ps *PrintState) *PrintState {
 			}
 		}
 		s.PrettyPrint(ps)
+		prev = s
 	}
 	ps.Println()
 	ps.IndentLevel--
@@ -144,7 +155,8 @@ func (i Identifier) PrettyPrint(out *PrintState) *PrintState {
 
 type Comment struct {
 	Base
-	SameLine bool
+	SameLineAsPrevious bool
+	SameLineAsNext     bool
 }
 
 func (c Comment) PrettyPrint(out *PrintState) *PrintState {

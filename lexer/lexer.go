@@ -53,6 +53,9 @@ func (l *Lexer) NextToken() *token.Token {
 		if l.peekChar() == '/' {
 			return token.Intern(token.LINECOMMENT, l.readLineComment())
 		}
+		if l.peekChar() == '*' {
+			return token.Intern(token.BLOCKCOMMENT, l.readBlockComment())
+		}
 		return token.ConstantTokenChar(ch)
 	case '<', '>':
 		if l.peekChar() == '=' {
@@ -166,6 +169,33 @@ func (l *Lexer) readLineComment() string {
 		l.pos++
 	}
 	return strings.TrimSpace(string(l.input[pos:l.pos]))
+}
+
+func (l *Lexer) endBlockComment(ch byte) bool {
+	return ch == '*' && l.peekChar() == '/'
+}
+
+func (l *Lexer) readBlockComment() string {
+	pos1 := l.pos - 1
+	l.pos++
+	ch := l.readChar()
+	for ch != 0 && !l.endBlockComment(ch) {
+		ch = l.readChar()
+	}
+	var pos2 int
+	if ch == 0 {
+		l.pos--
+		pos2 = l.pos
+	} else {
+		l.pos++
+		pos2 = l.pos
+		/*
+			if l.peekChar() == '\n' { // Add trailing newline to block comment so pretty print with no newline following block comment works.
+				pos2 = l.pos + 1
+			}
+		*/
+	}
+	return string(l.input[pos1:pos2])
 }
 
 func (l *Lexer) readNumber(ch byte) (token.Type, string) {

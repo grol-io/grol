@@ -3,6 +3,7 @@ package parser
 import (
 	"fmt"
 	"strconv"
+	"strings"
 
 	"fortio.org/log"
 	"grol.io/grol/ast"
@@ -91,6 +92,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.LBRACKET, p.parseArrayLiteral)
 	p.registerPrefix(token.LBRACE, p.parseMapLiteral)
 	p.registerPrefix(token.LINECOMMENT, p.parseComment)
+	p.registerPrefix(token.BLOCKCOMMENT, p.parseComment)
 	p.registerPrefix(token.PRINT, p.parseBuiltin)
 	p.registerPrefix(token.LOG, p.parseBuiltin)
 	p.registerPrefix(token.MACRO, p.parseMacroLiteral)
@@ -166,9 +168,19 @@ func (p *Parser) parseStringLiteral() ast.Node {
 }
 
 func (p *Parser) parseComment() ast.Node {
+	isBlockComment := (p.curToken.Type() == token.BLOCKCOMMENT)
+	if isBlockComment {
+		// Check for completeness of block comment.
+		if !strings.HasSuffix(p.curToken.Literal(), "*/") {
+			// p.errors = append(p.errors, "block comment not closed")
+			p.continuationNeeded = true
+			return nil
+		}
+	}
 	r := &ast.Comment{}
 	r.Token = p.curToken
-	r.SameLine = !p.prevNewline
+	r.SameLineAsPrevious = !p.prevNewline
+	r.SameLineAsNext = isBlockComment
 	return r
 }
 
