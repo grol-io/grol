@@ -189,11 +189,9 @@ func (l *Lexer) readBlockComment() string {
 	} else {
 		l.pos++
 		pos2 = l.pos
-		/*
-			if l.peekChar() == '\n' { // Add trailing newline to block comment so pretty print with no newline following block comment works.
-				pos2 = l.pos + 1
-			}
-		*/
+		if l.peekChar() == '\n' { // Add trailing newline to block comment so pretty print with no newline following block comment works.
+			pos2 = l.pos + 1 // leave it in the stream as separator.
+		}
 	}
 	return string(l.input[pos1:pos2])
 }

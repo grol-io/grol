@@ -171,8 +171,12 @@ func (p *Parser) parseComment() ast.Node {
 	isBlockComment := (p.curToken.Type() == token.BLOCKCOMMENT)
 	if isBlockComment {
 		// Check for completeness of block comment.
-		if !strings.HasSuffix(p.curToken.Literal(), "*/") {
-			// p.errors = append(p.errors, "block comment not closed")
+		lit := p.curToken.Literal()
+		if lit[len(lit)-1] == '\n' { // we sometimes add a newline so it prints back.
+			lit = lit[:len(lit)-1]
+		}
+		if !strings.HasSuffix(lit, "*/") {
+			log.LogVf("parseComment: block comment not closed: %s", p.curToken.DebugString())
 			p.continuationNeeded = true
 			return nil
 		}

@@ -159,8 +159,8 @@ j--
 		{token.INCR, "++"},
 		{token.IDENT, "j"},
 		{token.DECR, "--"},
-		{token.BLOCKCOMMENT, "/*/*/"},
-		{token.BLOCKCOMMENT, "/* This is a\n   multiline comment */"},
+		{token.BLOCKCOMMENT, "/*/*/\n"},
+		{token.BLOCKCOMMENT, "/* This is a\n   multiline comment */\n"},
 		{token.ILLEGAL, "@"},
 		{token.EOF, ""},
 	}
