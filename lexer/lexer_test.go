@@ -159,8 +159,8 @@ j--
 		{token.INCR, "++"},
 		{token.IDENT, "j"},
 		{token.DECR, "--"},
-		{token.BLOCKCOMMENT, "/*/*/\n"},
-		{token.BLOCKCOMMENT, "/* This is a\n   multiline comment */\n"},
+		{token.BLOCKCOMMENT, "/*/*/"},
+		{token.BLOCKCOMMENT, "/* This is a\n   multiline comment */"},
 		{token.ILLEGAL, "@"},
 		{token.EOF, ""},
 	}
@@ -217,6 +217,15 @@ func TestNextTokenEOLMode(t *testing.T) {
 		} else {
 			if !l.HadWhitespace() {
 				t.Errorf("tests[%d] - expected whitespace", i)
+			}
+		}
+		if i == len(tests)-2 {
+			if !l.NextNewLine() {
+				t.Errorf("tests[%d] - expected next newline to be true", i)
+			}
+		} else {
+			if l.NextNewLine() {
+				t.Errorf("tests[%d] - didn't expect next newline to be true", i)
 			}
 		}
 		if i == len(tests)-1 {

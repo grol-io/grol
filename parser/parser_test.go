@@ -216,6 +216,16 @@ func TestFormat(t *testing.T) {
 		expected string
 	}{
 		{
+			`/* a comment */
+			a=1`,
+			"/* a comment */\na = 1",
+		},
+		{
+			`a=1
+	/* bc */ b=2`,
+			"a = 1\n/* bc */ b = 2",
+		},
+		{
 			"a=((1+2)*3)",
 			"a = (1 + 2) * 3",
 		},

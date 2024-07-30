@@ -11,7 +11,8 @@ type Lexer struct {
 	pos           int
 	lineMode      bool
 	hadWhitespace bool
-	hadNewline    bool
+	hadNewline    bool // newline was seen before current token
+	nextNewLine   bool // newline after the next token
 }
 
 // Mode with input expected the be complete (multiline/file).
@@ -31,18 +32,19 @@ func NewBytes(input []byte) *Lexer {
 func (l *Lexer) NextToken() *token.Token {
 	l.skipWhitespace()
 	ch := l.readChar()
+	nextChar := l.peekChar()
 	switch ch { // Maybe benchmark and do our own lookup table?
 	case '=', '!', ':':
-		if l.peekChar() == '=' {
-			nextChar := l.readChar()
+		if nextChar == '=' {
+			l.pos++
 			// := is aliased directly to ASSIGN (with = as literal), a bit hacky but
 			// so we normalize := like it didn't exist.
 			return token.ConstantTokenChar2(ch, nextChar)
 		}
 		return token.ConstantTokenChar(ch)
 	case '+', '-':
-		if l.peekChar() == ch {
-			nextChar := l.readChar()
+		if nextChar == ch {
+			l.pos++
 			return token.ConstantTokenChar2(ch, nextChar) // increment/decrement
 		}
 		return token.ConstantTokenChar(ch)
@@ -50,16 +52,16 @@ func (l *Lexer) NextToken() *token.Token {
 		// TODO maybe reorder so it's a continuous range for pure single character tokens
 		return token.ConstantTokenChar(ch)
 	case '/':
-		if l.peekChar() == '/' {
+		if nextChar == '/' {
 			return token.Intern(token.LINECOMMENT, l.readLineComment())
 		}
-		if l.peekChar() == '*' {
+		if nextChar == '*' {
 			return token.Intern(token.BLOCKCOMMENT, l.readBlockComment())
 		}
 		return token.ConstantTokenChar(ch)
 	case '<', '>':
-		if l.peekChar() == '=' {
-			nextChar := l.readChar()
+		if nextChar == '=' {
+			l.pos++
 			return token.ConstantTokenChar2(ch, nextChar)
 		}
 		return token.ConstantTokenChar(ch)
@@ -94,6 +96,10 @@ func (l *Lexer) HadWhitespace() bool {
 
 func (l *Lexer) HadNewline() bool {
 	return l.hadNewline
+}
+
+func (l *Lexer) NextNewLine() bool {
+	return l.nextNewLine
 }
 
 func (l *Lexer) skipWhitespace() {
@@ -142,13 +148,18 @@ scanLoop:
 }
 
 func (l *Lexer) peekChar() byte {
+	l.nextNewLine = false
 	if l.pos < 0 {
 		panic("Lexer position is negative")
 	}
 	if l.pos >= len(l.input) {
 		return 0
 	}
-	return l.input[l.pos]
+	ch := l.input[l.pos]
+	if ch == '\n' {
+		l.nextNewLine = true
+	}
+	return ch
 }
 
 func (l *Lexer) readIdentifier() string {
@@ -182,18 +193,12 @@ func (l *Lexer) readBlockComment() string {
 	for ch != 0 && !l.endBlockComment(ch) {
 		ch = l.readChar()
 	}
-	var pos2 int
 	if ch == 0 {
 		l.pos--
-		pos2 = l.pos
 	} else {
 		l.pos++
-		pos2 = l.pos
-		if l.peekChar() == '\n' { // Add trailing newline to block comment so pretty print with no newline following block comment works.
-			pos2 = l.pos + 1 // leave it in the stream as separator.
-		}
 	}
-	return string(l.input[pos1:pos2])
+	return string(l.input[pos1:l.pos])
 }
 
 func (l *Lexer) readNumber(ch byte) (token.Type, string) {

@@ -43,6 +43,7 @@ type Parser struct {
 	peekToken *token.Token
 
 	prevNewline bool
+	nextNewline bool
 
 	errors             []string
 	continuationNeeded bool
@@ -134,6 +135,7 @@ func (p *Parser) Errors() []string {
 
 func (p *Parser) nextToken() {
 	p.prevNewline = p.l.HadNewline()
+	p.nextNewline = p.l.NextNewLine()
 	p.prevToken = p.curToken
 	p.curToken = p.peekToken
 	p.peekToken = p.l.NextToken()
@@ -168,23 +170,22 @@ func (p *Parser) parseStringLiteral() ast.Node {
 }
 
 func (p *Parser) parseComment() ast.Node {
+	r := &ast.Comment{}
+	r.Token = p.curToken
+	r.SameLineAsPrevious = !p.prevNewline
+	r.SameLineAsNext = !p.nextNewline
 	isBlockComment := (p.curToken.Type() == token.BLOCKCOMMENT)
 	if isBlockComment {
-		// Check for completeness of block comment.
-		lit := p.curToken.Literal()
-		if lit[len(lit)-1] == '\n' { // we sometimes add a newline so it prints back.
-			lit = lit[:len(lit)-1]
-		}
-		if !strings.HasSuffix(lit, "*/") {
+		if !strings.HasSuffix(p.curToken.Literal(), "*/") {
 			log.LogVf("parseComment: block comment not closed: %s", p.curToken.DebugString())
 			p.continuationNeeded = true
 			return nil
 		}
+	} else {
+		if r.SameLineAsNext && !p.peekTokenIs(token.EOF) && !p.peekTokenIs(token.EOL) {
+			panic("parseComment for line comment: same line as next and not EOL/EOF")
+		}
 	}
-	r := &ast.Comment{}
-	r.Token = p.curToken
-	r.SameLineAsPrevious = !p.prevNewline
-	r.SameLineAsNext = isBlockComment
 	return r
 }
 
