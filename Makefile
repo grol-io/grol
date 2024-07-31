@@ -31,7 +31,7 @@ tinygo: Makefile *.go */*.go $(GEN)
 
 parser-test:
 	LOGGER_LOG_FILE_AND_LINE=false LOGGER_IGNORE_CLI_MODE=true LOGGER_LEVEL=debug go test \
-		-run '^TestFormat$$' ./parser | logc
+		-v -run '^TestFormat$$' ./parser | logc
 
 TINYGO_STACKS:=-stack-size=40mb
 

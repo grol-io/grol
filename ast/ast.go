@@ -128,18 +128,13 @@ func (p Statements) PrettyPrint(ps *PrintState) *PrintState {
 		log.Debugf("PrettyPrint statement %T %s i %d\tcurSameLine=%v,\tcurHadNewline=%v,\tprevHadNewline=%v",
 			s, s.Value().Literal(), i, keepSameLineAsPrevious(s), needNewLineAfter(s), needNewLineAfter(prev))
 		if i > 0 || ps.IndentLevel > 1 {
-			switch {
-			case keepSameLineAsPrevious(s):
-				log.Debugf("=> PrettyPrint adding just a space - keepSameLineAsPrevious true")
-				_, _ = ps.Out.Write([]byte{' '})
-				ps.IndentationDone = true
-			case needNewLineAfter(prev):
-				log.Debugf("=> PrettyPrint adding newline as previous had newline that got consumed")
-				ps.Println()
-			default:
+			if keepSameLineAsPrevious(s) || !needNewLineAfter(prev) {
 				log.Debugf("=> PrettyPrint adding just a space")
 				_, _ = ps.Out.Write([]byte{' '})
 				ps.IndentationDone = true
+			} else {
+				log.Debugf("=> PrettyPrint adding newline")
+				ps.Println()
 			}
 		}
 		s.PrettyPrint(ps)
