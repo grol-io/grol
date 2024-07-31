@@ -220,6 +220,15 @@ func TestFormat(t *testing.T) {
 			a=1 /* inline */ 2`,
 			"/* line1 */\na = 1 /* inline */ 2",
 		},
+		{ // variant of above at indent level > 0
+			`
+			func () {
+				/* line1 */
+				a=1 /* inline */ 2
+			}
+			`,
+			"func () {\n\t/* line1 */\t\n\ta = 1 /* inline */ 2\n}",
+		},
 		{
 			`a=1
 	/* bc */ b=2`,

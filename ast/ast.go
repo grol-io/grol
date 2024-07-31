@@ -98,7 +98,7 @@ type Statements struct {
 	Statements []Node
 }
 
-func sameLine(node Node) bool {
+func keepSameLineAsPrevious(node Node) bool {
 	switch n := node.(type) { //nolint:exahustive // we may add more later
 	case *Comment:
 		return n.SameLineAsPrevious
@@ -107,7 +107,7 @@ func sameLine(node Node) bool {
 	}
 }
 
-func skipNextNewLine(node Node) bool {
+func hadNewLineAfter(node Node) bool {
 	switch n := node.(type) { //nolint:exahustive // we may add more later
 	case *Comment:
 		return n.SameLineAsNext
@@ -125,13 +125,19 @@ func (p Statements) PrettyPrint(ps *PrintState) *PrintState {
 	ps.ExpressionLevel = 0
 	var prev Node
 	for i, s := range p.Statements {
-		log.Debugf("PrettyPrint statement %T %s i %d  cur same line %v cur had newline %v, prev had newline %v",
-			s, s.Value().Literal(), i, sameLine(s), skipNextNewLine(s), skipNextNewLine(prev))
+		log.Debugf("PrettyPrint statement %T %s i %d\tcurSameLine=%v,\tcurHadNewline=%v,\tprevHadNewline=%v",
+			s, s.Value().Literal(), i, keepSameLineAsPrevious(s), hadNewLineAfter(s), hadNewLineAfter(prev))
 		if i > 0 || ps.IndentLevel > 1 {
-			if sameLine(s) || skipNextNewLine(prev) {
+			switch {
+			case hadNewLineAfter(prev):
+				log.Debugf("=> PrettyPrint adding newline (previous had newline)")
+				ps.Println()
+			case keepSameLineAsPrevious(s):
 				_, _ = ps.Out.Write([]byte{' '})
 				ps.IndentationDone = true
-			} else {
+				log.Debugf("=> PrettyPrint adding just a space")
+			default:
+				log.Debugf("=> PrettyPrint adding newline (default)")
 				ps.Println()
 			}
 		}

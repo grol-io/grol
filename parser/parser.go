@@ -175,6 +175,7 @@ func (p *Parser) parseComment() ast.Node {
 	r.SameLineAsPrevious = !p.prevNewline
 	r.SameLineAsNext = !p.nextNewline
 	isBlockComment := (p.curToken.Type() == token.BLOCKCOMMENT)
+	log.Debugf("parseComment: %#v", r)
 	if isBlockComment {
 		if !strings.HasSuffix(p.curToken.Literal(), "*/") {
 			log.LogVf("parseComment: block comment not closed: %s", p.curToken.DebugString())
