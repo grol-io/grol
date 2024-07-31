@@ -12,7 +12,6 @@ type Lexer struct {
 	lineMode      bool
 	hadWhitespace bool
 	hadNewline    bool // newline was seen before current token
-	nextNewLine   bool // newline after the next token
 }
 
 // Mode with input expected the be complete (multiline/file).
@@ -98,10 +97,6 @@ func (l *Lexer) HadNewline() bool {
 	return l.hadNewline
 }
 
-func (l *Lexer) NextNewLine() bool {
-	return l.nextNewLine
-}
-
 func (l *Lexer) skipWhitespace() {
 	l.hadWhitespace = false
 	l.hadNewline = false
@@ -148,18 +143,13 @@ scanLoop:
 }
 
 func (l *Lexer) peekChar() byte {
-	l.nextNewLine = false
 	if l.pos < 0 {
 		panic("Lexer position is negative")
 	}
 	if l.pos >= len(l.input) {
 		return 0
 	}
-	ch := l.input[l.pos]
-	if ch == '\n' {
-		l.nextNewLine = true
-	}
-	return ch
+	return l.input[l.pos]
 }
 
 func (l *Lexer) readIdentifier() string {

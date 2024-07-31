@@ -107,12 +107,12 @@ func keepSameLineAsPrevious(node Node) bool {
 	}
 }
 
-func hadNewLineAfter(node Node) bool {
+func needNewLineAfter(node Node) bool {
 	switch n := node.(type) { //nolint:exahustive // we may add more later
 	case *Comment:
-		return n.SameLineAsNext
+		return !n.SameLineAsNext
 	default:
-		return false
+		return true
 	}
 }
 
@@ -126,19 +126,20 @@ func (p Statements) PrettyPrint(ps *PrintState) *PrintState {
 	var prev Node
 	for i, s := range p.Statements {
 		log.Debugf("PrettyPrint statement %T %s i %d\tcurSameLine=%v,\tcurHadNewline=%v,\tprevHadNewline=%v",
-			s, s.Value().Literal(), i, keepSameLineAsPrevious(s), hadNewLineAfter(s), hadNewLineAfter(prev))
+			s, s.Value().Literal(), i, keepSameLineAsPrevious(s), needNewLineAfter(s), needNewLineAfter(prev))
 		if i > 0 || ps.IndentLevel > 1 {
 			switch {
-			case hadNewLineAfter(prev):
-				log.Debugf("=> PrettyPrint adding newline (previous had newline)")
-				ps.Println()
 			case keepSameLineAsPrevious(s):
+				log.Debugf("=> PrettyPrint adding just a space - keepSameLineAsPrevious true")
 				_, _ = ps.Out.Write([]byte{' '})
 				ps.IndentationDone = true
-				log.Debugf("=> PrettyPrint adding just a space")
-			default:
-				log.Debugf("=> PrettyPrint adding newline (default)")
+			case needNewLineAfter(prev):
+				log.Debugf("=> PrettyPrint adding newline as previous had newline that got consumed")
 				ps.Println()
+			default:
+				log.Debugf("=> PrettyPrint adding just a space")
+				_, _ = ps.Out.Write([]byte{' '})
+				ps.IndentationDone = true
 			}
 		}
 		s.PrettyPrint(ps)

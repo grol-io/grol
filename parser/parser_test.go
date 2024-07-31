@@ -216,6 +216,10 @@ func TestFormat(t *testing.T) {
 		expected string
 	}{
 		{
+			`a = 1 /* inline */ b = 2`,
+			`a = 1 /* inline */ b = 2`,
+		},
+		{
 			`/* line1 */
 			a=1 /* inline */ 2`,
 			"/* line1 */\na = 1 /* inline */ 2",
@@ -227,7 +231,7 @@ func TestFormat(t *testing.T) {
 				a=1 /* inline */ 2
 			}
 			`,
-			"func () {\n\t/* line1 */\t\n\ta = 1 /* inline */ 2\n}",
+			"func() {\n\t/* line1 */\n\ta = 1 /* inline */ 2\n}",
 		},
 		{
 			`a=1
@@ -262,6 +266,9 @@ log("called fact ", n)  // log output
 		p := parser.New(l)
 		program := p.ParseProgram()
 		checkParserErrors(t, tt.input, p)
+		if p.ContinuationNeeded() {
+			t.Errorf("[%d] expecting no continuation needed, got true", i)
+		}
 		actual := program.PrettyPrint(ast.NewPrintState()).String()
 		last := actual[len(actual)-1]
 		if actual[len(actual)-1] != '\n' {
@@ -273,9 +280,30 @@ log("called fact ", n)  // log output
 			t.Errorf("test [%d] failing for\n---input---\n%s\n---expected---\n%s\n---actual---\n%s\n---",
 				i, tt.input, tt.expected, actual)
 		}
+	}
+}
 
-		if i >= 0 { // TODO REMOVE before merge
-			break
+func TestIncompleteBlockComment(t *testing.T) {
+	tests := []struct {
+		input    string
+		complete bool
+	}{
+		{
+			"a = 42 /* start of block\n\n",
+			false,
+		},
+	}
+	for i, tt := range tests {
+		l := lexer.NewLineMode(tt.input)
+		p := parser.New(l)
+		_ = p.ParseProgram()
+		if tt.complete {
+			checkParserErrors(t, tt.input, p)
+			if p.ContinuationNeeded() {
+				t.Errorf("[%d] expecting no continuation needed, got true", i)
+			}
+		} else if !p.ContinuationNeeded() {
+			t.Errorf("[%d] expecting continuation needed, got false", i)
 		}
 	}
 }

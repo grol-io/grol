@@ -134,11 +134,11 @@ func (p *Parser) Errors() []string {
 }
 
 func (p *Parser) nextToken() {
-	p.prevNewline = p.l.HadNewline()
-	p.nextNewline = p.l.NextNewLine()
 	p.prevToken = p.curToken
 	p.curToken = p.peekToken
 	p.peekToken = p.l.NextToken()
+	p.prevNewline = p.nextNewline
+	p.nextNewline = p.l.HadNewline()
 }
 
 func (p *Parser) ParseProgram() *ast.Statements {
