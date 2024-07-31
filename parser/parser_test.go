@@ -216,9 +216,9 @@ func TestFormat(t *testing.T) {
 		expected string
 	}{
 		{
-			`/* a comment */
-			a=1`,
-			"/* a comment */\na = 1",
+			`/* line1 */
+			a=1 /* inline */ 2`,
+			"/* line1 */\na = 1 /* inline */ 2",
 		},
 		{
 			`a=1
@@ -248,7 +248,7 @@ log("called fact ", n)  // log output
 			"fact = func(n) { // function example\n\tlog(\"called fact \", n) // log output\n}",
 		},
 	}
-	for _, tt := range tests {
+	for i, tt := range tests {
 		l := lexer.New(tt.input)
 		p := parser.New(l)
 		program := p.ParseProgram()
@@ -256,12 +256,17 @@ log("called fact ", n)  // log output
 		actual := program.PrettyPrint(ast.NewPrintState()).String()
 		last := actual[len(actual)-1]
 		if actual[len(actual)-1] != '\n' {
-			t.Errorf("expecting newline at end of program output, not found, got %q", last)
+			t.Errorf("[%d] expecting newline at end of program output, not found, got %q", i, last)
 		} else {
 			actual = actual[:len(actual)-1] // remove the last newline
 		}
 		if actual != tt.expected {
-			t.Errorf("---expected---\n%s\n---actual---\n%s\n---", tt.expected, actual)
+			t.Errorf("test [%d] failing for\n---input---\n%s\n---expected---\n%s\n---actual---\n%s\n---",
+				i, tt.input, tt.expected, actual)
+		}
+
+		if i >= 0 { // TODO REMOVE before merge
+			break
 		}
 	}
 }

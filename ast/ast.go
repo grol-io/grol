@@ -125,8 +125,8 @@ func (p Statements) PrettyPrint(ps *PrintState) *PrintState {
 	ps.ExpressionLevel = 0
 	var prev Node
 	for i, s := range p.Statements {
-		log.Debugf("PrettyPrint statement %T %s i %d  same line %v next line %v",
-			s, s.Value().Literal(), i, sameLine(s), skipNextNewLine(prev))
+		log.Debugf("PrettyPrint statement %T %s i %d  cur same line %v cur had newline %v, prev had newline %v",
+			s, s.Value().Literal(), i, sameLine(s), skipNextNewLine(s), skipNextNewLine(prev))
 		if i > 0 || ps.IndentLevel > 1 {
 			if sameLine(s) || skipNextNewLine(prev) {
 				_, _ = ps.Out.Write([]byte{' '})
