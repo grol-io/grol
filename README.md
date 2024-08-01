@@ -38,6 +38,7 @@ $ fact = func(n) {if (n<=1) {return 1} n*self(n-1)} // could be n*fact(n-1) too
 	}
 	n * self(n - 1)
 }
+== Eval  ==> func(n){if n<=1{return 1}n*self(n-1)}
 $ n=fact(6)
 == Parse ==> n = fact(6)
 == Eval  ==> 720
