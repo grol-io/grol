@@ -62,7 +62,11 @@ func Main() int {
 
 func processOneFile(file string, s, macroState *eval.State, options repl.Options) {
 	if file == "-" {
-		log.Infof("Running on stdin")
+		if options.FormatOnly {
+			log.Infof("Formatting stdin")
+		} else {
+			log.Infof("Running on stdin")
+		}
 		repl.EvalAll(s, macroState, os.Stdin, os.Stdout, options)
 		return
 	}
@@ -70,7 +74,11 @@ func processOneFile(file string, s, macroState *eval.State, options repl.Options
 	if err != nil {
 		log.Fatalf("%v", err)
 	}
-	log.Infof("Running %s", file)
+	verb := "Running"
+	if options.FormatOnly {
+		verb = "Formatting"
+	}
+	log.Infof("%s %s", verb, file)
 	repl.EvalAll(s, macroState, f, os.Stdout, options)
 	f.Close()
 }
