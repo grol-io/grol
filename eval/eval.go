@@ -345,7 +345,9 @@ func extendFunctionEnv(name string, fn object.Function, args []object.Object) (*
 	for paramIdx, param := range fn.Parameters {
 		env.Set(param.Value().Literal(), args[paramIdx])
 	}
-	env.Set("self", fn) // for recursion in anonymous functions.
+	// for recursion in anonymous functions.
+	// TODO: consider not having to keep setting this in the function's env and treating as a keyword.
+	env.Set("self", fn)
 	return env, nil
 }
 
