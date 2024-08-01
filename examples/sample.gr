@@ -18,7 +18,7 @@ fact=func(n) { // function
     if (n<=1) {
         return 1
     }
-    /* recursion: */ n*fact(n-1) // also last evaluated expression is returned (ie return at the end is optional)
+    /* recursion: */ n*self(n-1) // also last evaluated expression is returned (ie return at the end is optional)
 }
 
 a=[fact(5), "abc", 76-3] // array can contain different types
