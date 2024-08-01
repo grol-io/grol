@@ -29,16 +29,23 @@ Or get one of the [binary releases](https://github.com/grol-io/grol/releases)
 ## What it does
 Sample:
 ```go
-gorepl -parse
-$ fact = func(n) {if (n<=1) {return 1} n*fact(n-1)}
+$ grol -parse
+10:53:12.675 grol 0.29.0 go1.22.5 arm64 darwin - welcome!
+$ fact = func(n) {if (n<=1) {return 1} n*self(n-1)} // could be n*fact(n-1) too
+== Parse ==> fact = func(n) {
+	if n <= 1 {
+		return 1
+	}
+	n * self(n - 1)
+}
 $ n=fact(6)
-== Parse ==> (n = fact(6))
+== Parse ==> n = fact(6)
 == Eval  ==> 720
 $ m=fact(7)
-== Parse ==> (m = fact(7))
+== Parse ==> m = fact(7)
 == Eval  ==> 5040
 $ m/n
-== Parse ==> (m / n)
+== Parse ==> m / n
 == Eval  ==> 7
 ```
 
