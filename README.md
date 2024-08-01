@@ -46,13 +46,13 @@ $ m/n
 
 Functional int, float, string and boolean expressions
 
-Functions, lambdas, closures
+Functions, lambdas, closures (including recursion in anonymous functions, using `self()`)
 
-Arrays, maps,
+Arrays, maps
 
 print, log
 
-macros and more all the time
+macros and more all the time (like canonical reformat using `grol -format` and wasm/online version etc)
 
 See also [sample.gr](examples/sample.gr) and others in that folder, that you can run with
 ```
