@@ -19,10 +19,15 @@ import (
 )
 
 func jsEval(this js.Value, args []js.Value) interface{} {
-	if len(args) != 1 {
-		return "ERROR: number of arguments doesn't match"
+	if len(args) != 1 && len(args) != 2 {
+		return "ERROR: number of arguments doesn't match should be string or string, bool for compact mode"
 	}
 	input := args[0].String()
+	compact := false
+	if len(args) == 2 {
+		compact = args[1].Bool()
+	}
+	repl.CompactEvalString = compact
 	res, errs, formatted := repl.EvalString(input)
 	result := make(map[string]any)
 	result["result"] = strings.TrimSuffix(res, "\n")

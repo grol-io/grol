@@ -50,6 +50,10 @@ func EvalAll(s, macroState *eval.State, in io.Reader, out io.Writer, options Opt
 	EvalOne(s, macroState, what, out, options)
 }
 
+// Kinda ugly (global) but helpful to not change the signature of EvalString for now and
+// yet allow the caller to set this (ie. the discord bot).
+var CompactEvalString bool
+
 // EvalString can be used from playground etc for single eval.
 // returns the eval errors and an array of errors if any.
 // also returns the normalized/reformatted input if no parsing errors
@@ -65,7 +69,8 @@ func EvalString(what string) (res string, errs []string, formatted string) {
 	out := &strings.Builder{}
 	s.Out = out
 	s.NoLog = true
-	_, errs, formatted = EvalOne(s, macroState, what, out, Options{All: true, ShowEval: true, NoColor: true})
+	_, errs, formatted = EvalOne(s, macroState, what, out,
+		Options{All: true, ShowEval: true, NoColor: true, Compact: CompactEvalString})
 	res = out.String()
 	return
 }
