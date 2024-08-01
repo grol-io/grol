@@ -66,8 +66,9 @@
             console.log('In run')
             go.run(inst);
             var input = document.getElementById('input').value
+            var compact = document.getElementById('compact').checked
             // Call the grol function with the input
-            var output = grol(input);
+            var output = grol(input, compact);
             console.log('Eval done:');
             console.log(output);
             if (output && output.result !== undefined) {
@@ -117,8 +118,7 @@ a=[fact(5), "abc", 76-3] // heterogeneous array
 m={"str key": a, 42: "str val"}</textarea>
 </div>
 <div>
-
-    Hit enter or click <button onClick="run();" id="runButton" disabled>Run</button> (will also format the code)
+Hit enter or click <button onClick="run();" id="runButton" disabled>Run</button> (will also format the code, also try <input type="checkbox" id="compact">compact)
 </div>
 <div>
     <label for="output">Result:</label>
