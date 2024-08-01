@@ -214,15 +214,18 @@ func TestFormat(t *testing.T) {
 	tests := []struct {
 		input    string
 		expected string
+		compact  string
 	}{
 		{
 			`a = 1 /* inline */ b = 2`,
 			`a = 1 /* inline */ b = 2`,
+			`a=1 b=2`,
 		},
 		{
 			`/* line1 */
 			a=1 /* inline */ 2`,
 			"/* line1 */\na = 1 /* inline */ 2",
+			"a=1 2",
 		},
 		{ // variant of above at indent level > 0
 			`
@@ -232,33 +235,48 @@ func TestFormat(t *testing.T) {
 			}
 			`,
 			"func() {\n\t/* line1 */\n\ta = 1 /* inline */ 2\n}",
+			"func(){a=1 2}",
 		},
 		{
 			`a=1
 	/* bc */ b=2`,
 			"a = 1\n/* bc */ b = 2",
+			"a=1 b=2",
 		},
 		{
 			"a=((1+2)*3)",
 			"a = (1 + 2) * 3",
+			"a=(1+2)*3",
 		},
 		{
 			"    //    a comment   ", // Should trim right whitespaces (but not ones between // and the comment)
 			"//    a comment",
+			"",
 		},
 		{
 			"   a = 1+2    // interesting comment about a\nb = 23",
 			"a = 1 + 2 // interesting comment about a\nb = 23",
+			"a=1+2 b=23",
 		},
 		{
 			"  a = 1+2    // interesting comment about a\n// and one for below:\nb=23",
 			"a = 1 + 2 // interesting comment about a\n// and one for below:\nb = 23",
+			"a=1+2 b=23",
 		},
 		{
 			`fact=func(n) {    // function example
 log("called fact ", n)  // log output
 }`,
 			"fact = func(n) { // function example\n\tlog(\"called fact \", n) // log output\n}",
+			"fact=func(n){log(\"called fact \",n)}",
+		},
+		{
+			`m = {1: "a", "b": 2} c = 3; d=[4,5,6] e = "f"`,
+			`m = {1:"a", "b":2}
+c = 3
+d = [4, 5, 6]
+e = "f"`,
+			`m={1:"a","b":2}c=3 d=[4,5,6]e="f"`,
 		},
 	}
 	for i, tt := range tests {
@@ -277,8 +295,15 @@ log("called fact ", n)  // log output
 			actual = actual[:len(actual)-1] // remove the last newline
 		}
 		if actual != tt.expected {
-			t.Errorf("test [%d] failing for\n---input---\n%s\n---expected---\n%s\n---actual---\n%s\n---",
+			t.Errorf("test [%d] failing for long form\n---input---\n%s\n---expected---\n%s\n---actual---\n%s\n---",
 				i, tt.input, tt.expected, actual)
+		}
+		ps := ast.NewPrintState()
+		ps.Compact = true
+		compact := program.PrettyPrint(ps).String()
+		if compact != tt.compact {
+			t.Errorf("test [%d] failing for compact\n---input---\n%s\n---expected---\n%s\n---actual---\n%s\n---",
+				i, tt.input, tt.compact, compact)
 		}
 	}
 }
