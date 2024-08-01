@@ -192,7 +192,7 @@ func (f Function) Inspect() string {
 	out.WriteString("func")
 	out.WriteString("(")
 	ps := &ast.PrintState{Out: &out, Compact: true}
-	ast.PrintList(ps, f.Parameters, ", ")
+	ps.ComaList(f.Parameters)
 	out.WriteString("){")
 	f.Body.PrettyPrint(ps)
 	out.WriteString("}")
@@ -305,9 +305,10 @@ func (m Macro) Type() Type { return MACRO }
 func (m Macro) Inspect() string {
 	out := strings.Builder{}
 	out.WriteString("macro(")
-	ast.PrintList(&ast.PrintState{Out: &out}, m.Parameters, ", ")
-	out.WriteString("){\n")
-	m.Body.PrettyPrint(&ast.PrintState{Out: &out})
-	out.WriteString("\n}")
+	ps := &ast.PrintState{Out: &out, Compact: true}
+	ps.ComaList(m.Parameters)
+	out.WriteString("){")
+	m.Body.PrettyPrint(ps)
+	out.WriteString("}")
 	return out.String()
 }
