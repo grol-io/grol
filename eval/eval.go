@@ -174,6 +174,8 @@ func (s *State) evalInternal(node any) object.Object {
 		left := s.evalInternal(node.Left)
 		index := s.evalInternal(node.Index)
 		return evalIndexExpression(left, index)
+	case *ast.Comment:
+		return object.NULL
 	}
 	return object.Error{Value: fmt.Sprintf("unknown node type: %T", node)}
 }
