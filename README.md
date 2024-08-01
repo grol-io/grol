@@ -143,7 +143,7 @@ See [Open Issues](https://grol.io/grol/issues) for what's left to do
 ### CLI Usage
 
 ```
-grol 0.25.0 usage:
+grol 0.29.0 usage:
 	grol [flags] *.gr files to interpret or `-` for stdin without prompt
   or no arguments for stdin repl...
 or 1 of the special arguments
@@ -151,6 +151,8 @@ or 1 of the special arguments
 flags:
   -c string
     	command/inline script to run instead of interactive mode
+  -compact
+    	When printing code, use no indentation and most compact form
   -eval
     	show eval results (default true)
   -format

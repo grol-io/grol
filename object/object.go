@@ -191,9 +191,11 @@ func (f Function) Inspect() string {
 
 	out.WriteString("func")
 	out.WriteString("(")
-	ast.PrintList(&ast.PrintState{Out: &out}, f.Parameters, ", ")
-	out.WriteString(") ")
-	f.Body.PrettyPrint(&ast.PrintState{Out: &out})
+	ps := &ast.PrintState{Out: &out, Compact: true}
+	ps.ComaList(f.Parameters)
+	out.WriteString("){")
+	f.Body.PrettyPrint(ps)
+	out.WriteString("}")
 	return out.String()
 }
 
@@ -204,7 +206,7 @@ type Array struct {
 func (ao Array) Type() Type { return ARRAY }
 func (ao Array) Inspect() string {
 	out := strings.Builder{}
-	WriteStrings(&out, ao.Elements, "[", ", ", "]")
+	WriteStrings(&out, ao.Elements, "[", ",", "]")
 	return out.String()
 }
 
@@ -269,7 +271,7 @@ func (m Map) Inspect() string {
 	sort.Sort(keys)
 	for i, k := range keys {
 		if i != 0 {
-			out.WriteString(", ")
+			out.WriteString(",")
 		}
 		v := m[k]
 		out.WriteString(k.Inspect())
@@ -303,9 +305,10 @@ func (m Macro) Type() Type { return MACRO }
 func (m Macro) Inspect() string {
 	out := strings.Builder{}
 	out.WriteString("macro(")
-	ast.PrintList(&ast.PrintState{Out: &out}, m.Parameters, ", ")
-	out.WriteString(") {\n")
-	m.Body.PrettyPrint(&ast.PrintState{Out: &out})
-	out.WriteString("\n}")
+	ps := &ast.PrintState{Out: &out, Compact: true}
+	ps.ComaList(m.Parameters)
+	out.WriteString("){")
+	m.Body.PrettyPrint(ps)
+	out.WriteString("}")
 	return out.String()
 }
