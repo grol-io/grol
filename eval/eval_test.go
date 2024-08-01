@@ -20,7 +20,10 @@ func TestEvalIntegerExpression(t *testing.T) {
 		{"10", 10},
 		{"-5", -5},
 		{"-10", -10},
-		{"5 + 5 + 5 + 5 - 10", 10},
+		{"5 + 5 + 5 + 5 - 10 /* some block comment */", 10},
+		/* These don't work, we need to make comment a identity operator or prune them entirely from the AST. */
+		// {"5 + /* block comment in middle of expression */ 2", 7},
+		// {" - /* inline of prefix */ 5", -5},
 		{"2 * 2 * 2 * 2 * 2", 32},
 		{"-50 + 100 + -50", 0},
 		{"5 * 2 + 10", 20},

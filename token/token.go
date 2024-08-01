@@ -60,6 +60,7 @@ const (
 	INT   // 1343456
 	FLOAT // 1. 1e3
 	LINECOMMENT
+	BLOCKCOMMENT
 
 	endValueTokens
 

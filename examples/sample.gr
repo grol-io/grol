@@ -1,7 +1,8 @@
-// Sample file that our gorepl can interpret
-// <--- comments
-// See also the other *.gr files
-
+/*
+   Sample file that our gorepl can interpret
+   This is a block commen
+   See also the other *.gr files
+*/
 unless = macro(cond, iffalse, iftrue) {
     quote(if (!(unquote(cond))) {
         unquote(iffalse)
@@ -17,7 +18,7 @@ fact=func(n) { // function
     if (n<=1) {
         return 1
     }
-    n*fact(n-1) // recursion, also last evaluated expression is returned (ie return at the end is optional)
+    /* recursion: */ n*fact(n-1) // also last evaluated expression is returned (ie return at the end is optional)
 }
 
 a=[fact(5), "abc", 76-3] // array can contain different types

@@ -174,6 +174,8 @@ func (s *State) evalInternal(node any) object.Object {
 		left := s.evalInternal(node.Left)
 		index := s.evalInternal(node.Index)
 		return evalIndexExpression(left, index)
+	case *ast.Comment:
+		return object.NULL
 	}
 	return object.Error{Value: fmt.Sprintf("unknown node type: %T", node)}
 }
@@ -406,6 +408,9 @@ func (s *State) evalStatements(stmts []ast.Node) object.Object {
 
 func (s *State) evalPrefixExpression(operator token.Type, right object.Object) object.Object {
 	switch operator { //nolint:exhaustive // we have default.
+	case token.BLOCKCOMMENT:
+		// /* comment */ treated as identity operator. TODO: implement in parser.
+		return right
 	case token.BANG:
 		return s.evalBangOperatorExpression(right)
 	case token.MINUS:

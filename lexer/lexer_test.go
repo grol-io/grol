@@ -39,6 +39,9 @@ a3:=5
 4>=3.1
 i++
 j--
+/*/*/
+/* This is a
+   multiline comment */
 @
 `
 	tests := []struct {
@@ -156,6 +159,8 @@ j--
 		{token.INCR, "++"},
 		{token.IDENT, "j"},
 		{token.DECR, "--"},
+		{token.BLOCKCOMMENT, "/*/*/"},
+		{token.BLOCKCOMMENT, "/* This is a\n   multiline comment */"},
 		{token.ILLEGAL, "@"},
 		{token.EOF, ""},
 	}
@@ -172,15 +177,14 @@ j--
 		}
 
 		if tok.Literal() != tt.expectedLiteral {
-			t.Fatalf("tests[%d] - literal wrong. expected=%q, got=%v",
-				i, tt.expectedLiteral, tok)
+			t.Fatalf("tests[%d] - literal wrong. expected=%q, got=%q",
+				i, tt.expectedLiteral, tok.Literal())
 		}
 	}
 }
 
 func TestNextTokenEOLMode(t *testing.T) {
-	input := `if .5 { x (
-`
+	input := "if .5 { x (  \n  "
 	l := NewLineMode(input)
 	tests := []struct {
 		expectedType    token.Type
@@ -222,6 +226,31 @@ func TestNextTokenEOLMode(t *testing.T) {
 			if l.HadNewline() {
 				t.Errorf("tests[%d] - didn't expect newline", i)
 			}
+		}
+	}
+}
+
+func TestNextTokenCommentEOLMode(t *testing.T) {
+	input := `/* incomplete`
+	l := NewLineMode(input)
+	tests := []struct {
+		expectedType    token.Type
+		expectedLiteral string
+	}{
+		{token.BLOCKCOMMENT, "/* incomplete"},
+		{token.EOL, ""},
+	}
+	for i, tt := range tests {
+		tok := l.NextToken()
+
+		if tok.Type() != tt.expectedType {
+			t.Fatalf("tests[%d] - tokentype wrong. expected=%q and %q, got=%v",
+				i, tt.expectedType, tt.expectedLiteral, tok)
+		}
+
+		if tok.Literal() != tt.expectedLiteral {
+			t.Fatalf("tests[%d] - literal wrong. expected=%q, got=%q",
+				i, tt.expectedLiteral, tok.Literal())
 		}
 	}
 }

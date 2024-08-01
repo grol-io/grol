@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	"fortio.org/log"
 	"grol.io/grol/token"
 )
 
@@ -97,12 +98,21 @@ type Statements struct {
 	Statements []Node
 }
 
-func sameLine(node Node) bool {
+func keepSameLineAsPrevious(node Node) bool {
 	switch n := node.(type) { //nolint:exahustive // we may add more later
 	case *Comment:
-		return n.SameLine
+		return n.SameLineAsPrevious
 	default:
 		return false
+	}
+}
+
+func needNewLineAfter(node Node) bool {
+	switch n := node.(type) { //nolint:exahustive // we may add more later
+	case *Comment:
+		return !n.SameLineAsNext
+	default:
+		return true
 	}
 }
 
@@ -113,16 +123,22 @@ func (p Statements) PrettyPrint(ps *PrintState) *PrintState {
 	}
 	ps.IndentLevel++
 	ps.ExpressionLevel = 0
+	var prev Node
 	for i, s := range p.Statements {
+		log.Debugf("PrettyPrint statement %T %s i %d\tcurSameLine=%v,\tcurHadNewline=%v,\tprevHadNewline=%v",
+			s, s.Value().Literal(), i, keepSameLineAsPrevious(s), needNewLineAfter(s), needNewLineAfter(prev))
 		if i > 0 || ps.IndentLevel > 1 {
-			if sameLine(s) {
+			if keepSameLineAsPrevious(s) || !needNewLineAfter(prev) {
+				log.Debugf("=> PrettyPrint adding just a space")
 				_, _ = ps.Out.Write([]byte{' '})
 				ps.IndentationDone = true
 			} else {
+				log.Debugf("=> PrettyPrint adding newline")
 				ps.Println()
 			}
 		}
 		s.PrettyPrint(ps)
+		prev = s
 	}
 	ps.Println()
 	ps.IndentLevel--
@@ -144,7 +160,8 @@ func (i Identifier) PrettyPrint(out *PrintState) *PrintState {
 
 type Comment struct {
 	Base
-	SameLine bool
+	SameLineAsPrevious bool
+	SameLineAsNext     bool
 }
 
 func (c Comment) PrettyPrint(out *PrintState) *PrintState {

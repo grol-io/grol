@@ -11,7 +11,7 @@ type Lexer struct {
 	pos           int
 	lineMode      bool
 	hadWhitespace bool
-	hadNewline    bool
+	hadNewline    bool // newline was seen before current token
 }
 
 // Mode with input expected the be complete (multiline/file).
@@ -31,18 +31,19 @@ func NewBytes(input []byte) *Lexer {
 func (l *Lexer) NextToken() *token.Token {
 	l.skipWhitespace()
 	ch := l.readChar()
+	nextChar := l.peekChar()
 	switch ch { // Maybe benchmark and do our own lookup table?
 	case '=', '!', ':':
-		if l.peekChar() == '=' {
-			nextChar := l.readChar()
+		if nextChar == '=' {
+			l.pos++
 			// := is aliased directly to ASSIGN (with = as literal), a bit hacky but
 			// so we normalize := like it didn't exist.
 			return token.ConstantTokenChar2(ch, nextChar)
 		}
 		return token.ConstantTokenChar(ch)
 	case '+', '-':
-		if l.peekChar() == ch {
-			nextChar := l.readChar()
+		if nextChar == ch {
+			l.pos++
 			return token.ConstantTokenChar2(ch, nextChar) // increment/decrement
 		}
 		return token.ConstantTokenChar(ch)
@@ -50,13 +51,16 @@ func (l *Lexer) NextToken() *token.Token {
 		// TODO maybe reorder so it's a continuous range for pure single character tokens
 		return token.ConstantTokenChar(ch)
 	case '/':
-		if l.peekChar() == '/' {
+		if nextChar == '/' {
 			return token.Intern(token.LINECOMMENT, l.readLineComment())
+		}
+		if nextChar == '*' {
+			return token.Intern(token.BLOCKCOMMENT, l.readBlockComment())
 		}
 		return token.ConstantTokenChar(ch)
 	case '<', '>':
-		if l.peekChar() == '=' {
-			nextChar := l.readChar()
+		if nextChar == '=' {
+			l.pos++
 			return token.ConstantTokenChar2(ch, nextChar)
 		}
 		return token.ConstantTokenChar(ch)
@@ -166,6 +170,25 @@ func (l *Lexer) readLineComment() string {
 		l.pos++
 	}
 	return strings.TrimSpace(string(l.input[pos:l.pos]))
+}
+
+func (l *Lexer) endBlockComment(ch byte) bool {
+	return ch == '*' && l.peekChar() == '/'
+}
+
+func (l *Lexer) readBlockComment() string {
+	pos1 := l.pos - 1
+	l.pos++
+	ch := l.readChar()
+	for ch != 0 && !l.endBlockComment(ch) {
+		ch = l.readChar()
+	}
+	if ch == 0 {
+		l.pos--
+	} else {
+		l.pos++
+	}
+	return string(l.input[pos1:l.pos])
 }
 
 func (l *Lexer) readNumber(ch byte) (token.Type, string) {

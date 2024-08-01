@@ -29,6 +29,10 @@ tinygo: Makefile *.go */*.go $(GEN)
 	strip grol.tiny
 	ls -lh grol.tiny
 
+parser-test:
+	LOGGER_LOG_FILE_AND_LINE=false LOGGER_IGNORE_CLI_MODE=true LOGGER_LEVEL=debug go test \
+		-v -run '^TestFormat$$' ./parser | logc
+
 TINYGO_STACKS:=-stack-size=40mb
 
 wasm: Makefile *.go */*.go $(GEN) wasm/wasm_exec.js wasm/wasm_exec.html wasm/grol_wasm.html

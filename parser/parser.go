@@ -3,6 +3,7 @@ package parser
 import (
 	"fmt"
 	"strconv"
+	"strings"
 
 	"fortio.org/log"
 	"grol.io/grol/ast"
@@ -42,6 +43,7 @@ type Parser struct {
 	peekToken *token.Token
 
 	prevNewline bool
+	nextNewline bool
 
 	errors             []string
 	continuationNeeded bool
@@ -91,6 +93,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.LBRACKET, p.parseArrayLiteral)
 	p.registerPrefix(token.LBRACE, p.parseMapLiteral)
 	p.registerPrefix(token.LINECOMMENT, p.parseComment)
+	p.registerPrefix(token.BLOCKCOMMENT, p.parseComment)
 	p.registerPrefix(token.PRINT, p.parseBuiltin)
 	p.registerPrefix(token.LOG, p.parseBuiltin)
 	p.registerPrefix(token.MACRO, p.parseMacroLiteral)
@@ -131,10 +134,11 @@ func (p *Parser) Errors() []string {
 }
 
 func (p *Parser) nextToken() {
-	p.prevNewline = p.l.HadNewline()
 	p.prevToken = p.curToken
 	p.curToken = p.peekToken
 	p.peekToken = p.l.NextToken()
+	p.prevNewline = p.nextNewline
+	p.nextNewline = p.l.HadNewline()
 }
 
 func (p *Parser) ParseProgram() *ast.Statements {
@@ -168,7 +172,21 @@ func (p *Parser) parseStringLiteral() ast.Node {
 func (p *Parser) parseComment() ast.Node {
 	r := &ast.Comment{}
 	r.Token = p.curToken
-	r.SameLine = !p.prevNewline
+	r.SameLineAsPrevious = !p.prevNewline
+	r.SameLineAsNext = !p.nextNewline
+	isBlockComment := (p.curToken.Type() == token.BLOCKCOMMENT)
+	log.Debugf("parseComment: %#v", r)
+	if isBlockComment {
+		if !strings.HasSuffix(p.curToken.Literal(), "*/") {
+			log.LogVf("parseComment: block comment not closed: %s", p.curToken.DebugString())
+			p.continuationNeeded = true
+			return nil
+		}
+	} else {
+		if r.SameLineAsNext && !p.peekTokenIs(token.EOF) && !p.peekTokenIs(token.EOL) {
+			panic("parseComment for line comment: same line as next and not EOL/EOF")
+		}
+	}
 	return r
 }
 

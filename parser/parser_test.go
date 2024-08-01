@@ -216,6 +216,29 @@ func TestFormat(t *testing.T) {
 		expected string
 	}{
 		{
+			`a = 1 /* inline */ b = 2`,
+			`a = 1 /* inline */ b = 2`,
+		},
+		{
+			`/* line1 */
+			a=1 /* inline */ 2`,
+			"/* line1 */\na = 1 /* inline */ 2",
+		},
+		{ // variant of above at indent level > 0
+			`
+			func () {
+				/* line1 */
+				a=1 /* inline */ 2
+			}
+			`,
+			"func() {\n\t/* line1 */\n\ta = 1 /* inline */ 2\n}",
+		},
+		{
+			`a=1
+	/* bc */ b=2`,
+			"a = 1\n/* bc */ b = 2",
+		},
+		{
 			"a=((1+2)*3)",
 			"a = (1 + 2) * 3",
 		},
@@ -238,20 +261,49 @@ log("called fact ", n)  // log output
 			"fact = func(n) { // function example\n\tlog(\"called fact \", n) // log output\n}",
 		},
 	}
-	for _, tt := range tests {
+	for i, tt := range tests {
 		l := lexer.New(tt.input)
 		p := parser.New(l)
 		program := p.ParseProgram()
 		checkParserErrors(t, tt.input, p)
+		if p.ContinuationNeeded() {
+			t.Errorf("[%d] expecting no continuation needed, got true", i)
+		}
 		actual := program.PrettyPrint(ast.NewPrintState()).String()
 		last := actual[len(actual)-1]
 		if actual[len(actual)-1] != '\n' {
-			t.Errorf("expecting newline at end of program output, not found, got %q", last)
+			t.Errorf("[%d] expecting newline at end of program output, not found, got %q", i, last)
 		} else {
 			actual = actual[:len(actual)-1] // remove the last newline
 		}
 		if actual != tt.expected {
-			t.Errorf("---expected---\n%s\n---actual---\n%s\n---", tt.expected, actual)
+			t.Errorf("test [%d] failing for\n---input---\n%s\n---expected---\n%s\n---actual---\n%s\n---",
+				i, tt.input, tt.expected, actual)
+		}
+	}
+}
+
+func TestIncompleteBlockComment(t *testing.T) {
+	tests := []struct {
+		input    string
+		complete bool
+	}{
+		{
+			"a = 42 /* start of block\n\n",
+			false,
+		},
+	}
+	for i, tt := range tests {
+		l := lexer.NewLineMode(tt.input)
+		p := parser.New(l)
+		_ = p.ParseProgram()
+		if tt.complete {
+			checkParserErrors(t, tt.input, p)
+			if p.ContinuationNeeded() {
+				t.Errorf("[%d] expecting no continuation needed, got true", i)
+			}
+		} else if !p.ContinuationNeeded() {
+			t.Errorf("[%d] expecting continuation needed, got false", i)
 		}
 	}
 }
