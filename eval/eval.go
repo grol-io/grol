@@ -406,6 +406,9 @@ func (s *State) evalStatements(stmts []ast.Node) object.Object {
 
 func (s *State) evalPrefixExpression(operator token.Type, right object.Object) object.Object {
 	switch operator { //nolint:exhaustive // we have default.
+	case token.BLOCKCOMMENT:
+		// /* comment */ treated as identity operator. TODO: implement in parser.
+		return right
 	case token.BANG:
 		return s.evalBangOperatorExpression(right)
 	case token.MINUS:
