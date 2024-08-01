@@ -1,0 +1,11 @@
+/*
+ Anonymous function recursion
+ Define and immediately call factorial
+ (IIFE: Immediately Invoked Function Expression)
+ */
+ func(n) {
+	if n <= 1 {
+		return 1
+	}
+	n * self(n - 1)
+}(5) // will return 120
