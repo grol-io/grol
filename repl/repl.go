@@ -38,6 +38,7 @@ type Options struct {
 	All        bool
 	NoColor    bool // color controlled by log package, unless this is set to true.
 	FormatOnly bool
+	Compact    bool
 }
 
 func EvalAll(s, macroState *eval.State, in io.Reader, out io.Writer, options Options) {
@@ -160,14 +161,18 @@ func EvalOne(s, macroState *eval.State, what string, out io.Writer, options Opti
 	if p.ContinuationNeeded() {
 		return true, nil, what
 	}
-	formatted := program.PrettyPrint(ast.NewPrintState()).String()
+	printer := ast.NewPrintState()
+	printer.Compact = options.Compact
+	formatted := program.PrettyPrint(printer).String()
 	if options.FormatOnly {
 		_, _ = out.Write([]byte(formatted))
 		return false, nil, formatted
 	}
 	if options.ShowParse {
-		fmt.Fprint(out, "== Parse ==> ")
-		program.PrettyPrint(&ast.PrintState{Out: out})
+		fmt.Fprint(out, "== Parse ==> ", formatted)
+		if options.Compact {
+			fmt.Fprintln(out)
+		}
 	}
 	macroState.DefineMacros(program)
 	numMacros := macroState.Len()

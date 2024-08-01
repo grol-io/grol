@@ -17,6 +17,9 @@ type PrintState struct {
 	IndentLevel     int
 	ExpressionLevel int
 	IndentationDone bool // already put N number of tabs, reset on each new line
+	Compact         bool // don't indent at all (compact mode), no newlines, fewer spaces, no comments
+	prev            Node
+	last            string
 }
 
 func DebugString(n Node) string {
@@ -37,7 +40,9 @@ func (ps *PrintState) String() string {
 // Only a single indentation per line.
 func (ps *PrintState) Println(str ...string) *PrintState {
 	ps.Print(str...)
-	_, _ = ps.Out.Write([]byte{'\n'})
+	if !ps.Compact {
+		_, _ = ps.Out.Write([]byte{'\n'})
+	}
 	ps.IndentationDone = false
 	return ps
 }
@@ -46,12 +51,13 @@ func (ps *PrintState) Print(str ...string) *PrintState {
 	if len(str) == 0 {
 		return ps // So for instance Println() doesn't print \t\n.
 	}
-	if !ps.IndentationDone && ps.IndentLevel > 1 {
+	if !ps.Compact && !ps.IndentationDone && ps.IndentLevel > 1 {
 		_, _ = ps.Out.Write([]byte(strings.Repeat("\t", ps.IndentLevel-1)))
 		ps.IndentationDone = true
 	}
 	for _, s := range str {
 		_, _ = ps.Out.Write([]byte(s))
+		ps.last = s
 	}
 	return ps
 }
@@ -116,6 +122,40 @@ func needNewLineAfter(node Node) bool {
 	}
 }
 
+func isComment(node Node) bool {
+	_, ok := node.(*Comment)
+	return ok
+}
+
+// Compact mode: Skip comments and decide if we need a space separator or not.
+func prettyPrintCompact(ps *PrintState, s Node, i int) bool {
+	if isComment(s) {
+		return true
+	}
+	_, prevIsExpr := ps.prev.(*InfixExpression)
+	// _, curIsID := s.(*Identifier)
+	if prevIsExpr && ps.last != "}" && ps.last != "]" {
+		if i > 0 {
+			_, _ = ps.Out.Write([]byte{' '})
+		}
+	}
+	return false
+}
+
+// Normal/long form print: Decide if using new line or space as separator.
+func prettyPrintLongForm(ps *PrintState, s Node, i int) {
+	if i > 0 || ps.IndentLevel > 1 {
+		if keepSameLineAsPrevious(s) || !needNewLineAfter(ps.prev) {
+			log.Debugf("=> PrettyPrint adding just a space")
+			_, _ = ps.Out.Write([]byte{' '})
+			ps.IndentationDone = true
+		} else {
+			log.Debugf("=> PrettyPrint adding newline")
+			ps.Println()
+		}
+	}
+}
+
 func (p Statements) PrettyPrint(ps *PrintState) *PrintState {
 	oldExpressionLevel := ps.ExpressionLevel
 	if ps.IndentLevel > 0 {
@@ -123,22 +163,18 @@ func (p Statements) PrettyPrint(ps *PrintState) *PrintState {
 	}
 	ps.IndentLevel++
 	ps.ExpressionLevel = 0
-	var prev Node
-	for i, s := range p.Statements {
-		log.Debugf("PrettyPrint statement %T %s i %d\tcurSameLine=%v,\tcurHadNewline=%v,\tprevHadNewline=%v",
-			s, s.Value().Literal(), i, keepSameLineAsPrevious(s), needNewLineAfter(s), needNewLineAfter(prev))
-		if i > 0 || ps.IndentLevel > 1 {
-			if keepSameLineAsPrevious(s) || !needNewLineAfter(prev) {
-				log.Debugf("=> PrettyPrint adding just a space")
-				_, _ = ps.Out.Write([]byte{' '})
-				ps.IndentationDone = true
-			} else {
-				log.Debugf("=> PrettyPrint adding newline")
-				ps.Println()
+	var i int
+	for _, s := range p.Statements {
+		if ps.Compact {
+			if prettyPrintCompact(ps, s, i) {
+				continue // skip comments entirely.
 			}
+		} else {
+			prettyPrintLongForm(ps, s, i)
 		}
 		s.PrettyPrint(ps)
-		prev = s
+		ps.prev = s
+		i++
 	}
 	ps.Println()
 	ps.IndentLevel--
@@ -240,7 +276,11 @@ func (i InfixExpression) PrettyPrint(out *PrintState) *PrintState {
 		out.ExpressionLevel++
 	}
 	i.Left.PrettyPrint(out)
-	out.Print(" ", i.Literal(), " ")
+	if out.Compact {
+		out.Print(i.Literal())
+	} else {
+		out.Print(" ", i.Literal(), " ")
+	}
 	i.Right.PrettyPrint(out)
 	if !isAssign {
 		out.ExpressionLevel--
@@ -266,11 +306,17 @@ type IfExpression struct {
 func (ie IfExpression) PrettyPrint(out *PrintState) *PrintState {
 	out.Print("if ")
 	ie.Condition.PrettyPrint(out)
-	out.Print(" ")
+	if !out.Compact {
+		out.Print(" ")
+	}
 	ie.Consequence.PrettyPrint(out)
 
 	if ie.Alternative != nil {
-		out.Print(" else ")
+		if out.Compact {
+			out.Print("else")
+		} else {
+			out.Print(" else ")
+		}
 		ie.Alternative.PrettyPrint(out)
 	}
 	return out
@@ -294,7 +340,7 @@ type Builtin struct {
 func (b Builtin) PrettyPrint(out *PrintState) *PrintState {
 	out.Print(b.Literal())
 	out.Print("(")
-	PrintList(out, b.Parameters, ", ")
+	out.ComaList(b.Parameters)
 	out.Print(")")
 	return out
 }
@@ -308,8 +354,12 @@ type FunctionLiteral struct {
 func (fl FunctionLiteral) PrettyPrint(out *PrintState) *PrintState {
 	out.Print(fl.Literal())
 	out.Print("(")
-	PrintList(out, fl.Parameters, ", ")
-	out.Print(") ")
+	out.ComaList(fl.Parameters)
+	if out.Compact {
+		out.Print(")")
+	} else {
+		out.Print(") ")
+	}
 	fl.Body.PrettyPrint(out)
 	return out
 }
@@ -325,7 +375,7 @@ func (ce CallExpression) PrettyPrint(out *PrintState) *PrintState {
 	out.Print("(")
 	oldExpressionLevel := out.ExpressionLevel
 	out.ExpressionLevel = 0
-	PrintList(out, ce.Arguments, ", ")
+	out.ComaList(ce.Arguments)
 	out.ExpressionLevel = oldExpressionLevel
 	out.Print(")")
 	return out
@@ -338,9 +388,8 @@ type ArrayLiteral struct {
 
 func (al ArrayLiteral) PrettyPrint(out *PrintState) *PrintState {
 	out.Print("[")
-	PrintList(out, al.Elements, ", ")
+	out.ComaList(al.Elements)
 	out.Print("]")
-
 	return out
 }
 
@@ -356,7 +405,6 @@ func (ie IndexExpression) PrettyPrint(out *PrintState) *PrintState {
 	out.Print("[")
 	ie.Index.PrettyPrint(out)
 	out.Print("])")
-
 	return out
 }
 
@@ -368,9 +416,13 @@ type MapLiteral struct {
 
 func (hl MapLiteral) PrettyPrint(out *PrintState) *PrintState {
 	out.Print("{")
+	sep := ", "
+	if out.Compact {
+		sep = ","
+	}
 	for i, key := range hl.Order {
 		if i > 0 {
-			out.Print(", ")
+			out.Print(sep)
 		}
 		key.PrettyPrint(out)
 		out.Print(":")
@@ -389,8 +441,20 @@ type MacroLiteral struct {
 func (ml MacroLiteral) PrettyPrint(out *PrintState) *PrintState {
 	out.Print(ml.Literal())
 	out.Print("(")
-	PrintList(out, ml.Parameters, ", ")
-	out.Print(") ")
+	out.ComaList(ml.Parameters)
+	if out.Compact {
+		out.Print(")")
+	} else {
+		out.Print(") ")
+	}
 	ml.Body.PrettyPrint(out)
 	return out
+}
+
+func (ps *PrintState) ComaList(list []Node) {
+	sep := ", "
+	if ps.Compact {
+		sep = ","
+	}
+	PrintList(ps, list, sep)
 }

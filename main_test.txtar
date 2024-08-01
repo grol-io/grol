@@ -88,6 +88,6 @@ first(m["key"]) // get the value from key from map, which is an array, and the f
 
 -- sample_test_stdout.gr --
 macro test: greater
-m is: {73:29, "key":[120, "abc", 73]} .
+m is: {73:29,"key":[120,"abc",73]} .
 Outputting a smiley: 😀
 120

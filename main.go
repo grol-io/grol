@@ -20,6 +20,7 @@ func Main() int {
 	commandFlag := flag.String("c", "", "command/inline script to run instead of interactive mode")
 	showParse := flag.Bool("parse", false, "show parse tree")
 	format := flag.Bool("format", false, "don't execute, just parse and re format the input")
+	compact := flag.Bool("compact", false, "When printing code, use no indentation and most compact form")
 	showEval := flag.Bool("eval", true, "show eval results")
 	sharedState := flag.Bool("shared-state", false, "All files share same interpreter state (default is new state for each)")
 	cli.ArgsHelp = "*.gr files to interpret or `-` for stdin without prompt or no arguments for stdin repl..."
@@ -30,6 +31,7 @@ func Main() int {
 		ShowParse:  *showParse,
 		ShowEval:   *showEval,
 		FormatOnly: *format,
+		Compact:    *compact,
 	}
 	nArgs := len(flag.Args())
 	if *commandFlag != "" {
