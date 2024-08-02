@@ -358,12 +358,17 @@ func (b Builtin) PrettyPrint(out *PrintState) *PrintState {
 
 type FunctionLiteral struct {
 	Base       // The 'func' token
+	Name       *Identifier
 	Parameters []Node
 	Body       *Statements
 }
 
 func (fl FunctionLiteral) PrettyPrint(out *PrintState) *PrintState {
 	out.Print(fl.Literal())
+	if fl.Name != nil {
+		out.Print(" ")
+		out.Print(fl.Name.Literal())
+	}
 	out.Print("(")
 	out.ComaList(fl.Parameters)
 	if out.Compact {

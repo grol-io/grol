@@ -289,6 +289,11 @@ e = "f"`,
 }`,
 			`if i>3{10}else if i>2{20}else{30}`,
 		},
+		{
+			`func fact(n) {if (n<=1) {return 1} n*fact(n-1)}`,
+			"func fact(n) {\n\tif n <= 1 {\n\t\treturn 1\n\t}\n\tn * fact(n - 1)\n}",
+			"func fact(n){if n<=1{return 1}n*fact(n-1)}",
+		},
 	}
 	for i, tt := range tests {
 		l := lexer.New(tt.input)

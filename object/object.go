@@ -179,6 +179,7 @@ func (rv ReturnValue) Inspect() string { return rv.Value.Inspect() }
 
 type Function struct {
 	Parameters []ast.Node
+	Name       *ast.Identifier
 	CacheKey   string
 	Body       *ast.Statements
 	Env        *Environment
@@ -198,6 +199,8 @@ func WriteStrings(out *strings.Builder, list []Object, before, sep, after string
 func (f Function) Type() Type { return FUNC }
 
 // Must be called after the function is fully initialized.
+// Whether a function result should be cached doesn't depend on the Name,
+// so it's not part of the cache key.
 func (f *Function) SetCacheKey() string {
 	out := strings.Builder{}
 	out.WriteString("func")
@@ -212,10 +215,19 @@ func (f *Function) SetCacheKey() string {
 }
 
 func (f Function) Inspect() string {
-	if f.CacheKey == "" {
-		panic("CacheKey not set")
+	if f.Name == nil {
+		return f.CacheKey
 	}
-	return f.CacheKey
+	out := strings.Builder{}
+	out.WriteString("func ")
+	out.WriteString(f.Name.Literal())
+	out.WriteString("(")
+	ps := &ast.PrintState{Out: &out, Compact: true}
+	ps.ComaList(f.Parameters)
+	out.WriteString("){")
+	f.Body.PrettyPrint(ps)
+	out.WriteString("}")
+	return out.String()
 }
 
 type Array struct {

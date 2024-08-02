@@ -485,7 +485,13 @@ func (p *Parser) parseBlockStatement() *ast.Statements {
 func (p *Parser) parseFunctionLiteral() ast.Node {
 	lit := &ast.FunctionLiteral{}
 	lit.Token = p.curToken
-
+	// Optional name/identifier
+	if p.peekTokenIs(token.IDENT) {
+		p.nextToken()
+		name := &ast.Identifier{}
+		name.Token = p.curToken
+		lit.Name = name
+	}
 	if !p.expectPeek(token.LPAREN) {
 		return nil
 	}
