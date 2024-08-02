@@ -122,19 +122,17 @@ Hit enter or click <button onClick="run();" id="runButton" disabled>Run</button>
 <button id="addParamButton">Share</button>
 <script>
     document.getElementById('addParamButton').addEventListener('click', () => {
+        const paramValue = document.getElementById('input').value
+        const url = new URL(window.location)
         function customEscape(str) {
             return str.replace(/\+/g, '%2B')
               .replace(/ /g, '+')
               .replace(/\n/g, '%0A')
-              .replace(/</g, '%3C');
+              .replace(/</g, '%3C')
         }
-        const paramValue = document.getElementById('input').value;
-        const encodedValue = customEscape(paramValue);
-
-        const url = new URL(window.location);
-
-        const newUrl = `${url.origin}${url.pathname}?c=${encodedValue}`;
-        window.history.pushState({}, '', newUrl);
+        const encodedValue = customEscape(paramValue)
+        const newUrl = `${url.origin}${url.pathname}?c=${encodedValue}`
+        window.history.pushState({}, '', newUrl)
     });
 </script>
 
