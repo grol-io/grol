@@ -58,8 +58,8 @@ stdout '^1\n3$'
 !grol -c 'm=macro(){};m()'
 stdout '^<err: macro should return Quote. got=object.Null \({}\)>\n$'
 
-# quiet mode and fast fibbonaci
-grol -quiet -c 'fib=func(x){if x<=1 {x} else {fib(x-1)+fib(x-2)}}; fib(92)'
+# quiet mode and fast fibbonaci (log won't show)
+grol -quiet -c 'fib=func(x){log("fib",x);if x<=1 {x} else {fib(x-1)+fib(x-2)}}; fib(92)'
 stdout '^7540113804746346429\n$'
 !stdout '\n\n'
 !stderr .
@@ -91,8 +91,8 @@ a=[fact(5), "abc", 76-3] // array can contain different types
 
 m={"key": a, 73: 29} // so do maps
 
-print("m is:", m, ".\n") // stdout print
-print("Outputting a smiley: 😀\n")
+println("m is:", m) // stdout print
+println("Outputting a smiley: 😀")
 
 first(m["key"]) // get the value from key from map, which is an array, and the first element of the array is our factorial 5
 // could also have been m["key"][0]
@@ -112,7 +112,7 @@ fib = func(x) {
 fib(50)
 -- sample_test_stdout --
 macro test: greater
-m is: {73:29,"key":[120,"abc",73]} .
+m is: {73:29,"key":[120,"abc",73]}
 Outputting a smiley: 😀
 120
 -- fib50_stdout --

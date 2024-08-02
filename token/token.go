@@ -122,6 +122,7 @@ const (
 	FIRST
 	REST
 	PRINT
+	PRINTLN
 	LOG
 	ERROR
 
