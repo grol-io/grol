@@ -79,7 +79,7 @@ func TestMultiCharTokens(t *testing.T) {
 		{"--", DECR},
 	}
 	for _, tt := range tests {
-		tok := &Token{tokenType: tt.expected, literal: tt.input}
+		tok := &Token{tokenType: tt.expected, literal: tt.input, charCode: tToCode[tt.expected]}
 		tok2 := InternToken(tok)
 		if tok == tok2 {
 			t.Errorf("Intern[%s] was unexpectedly created", tt.input)
@@ -136,5 +136,15 @@ func TestColonEqualAlias(t *testing.T) {
 	}
 	if tok.Literal() != "=" {
 		t.Errorf("ConstantTokenStr[:=] returned %v, expected '='", tok.Literal())
+	}
+}
+
+func TestNumTokens(t *testing.T) {
+	Init()
+	n := NumTokens()
+	// 49 tokens in total so far
+	expected := int(EOF) - 8 + 1 // 8 markers to subtract + 1 for ILLEGAL==0.
+	if n != expected {
+		t.Errorf("NumTokens() returned %d, expected %d", n, expected)
 	}
 }
