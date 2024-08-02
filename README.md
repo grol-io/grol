@@ -62,6 +62,8 @@ print, log
 
 macros and more all the time (like canonical reformat using `grol -format` and wasm/online version etc)
 
+automatic memoization
+
 See also [sample.gr](examples/sample.gr) and others in that folder, that you can run with
 ```
 gorepl examples/*.gr
