@@ -17,10 +17,11 @@ type State struct {
 	env   *object.Environment
 	Out   io.Writer
 	NoLog bool // turn log() into print() (for EvalString)
+	cache Cache
 }
 
 func NewState() *State {
-	return &State{env: object.NewEnvironment(), Out: os.Stdout}
+	return &State{env: object.NewEnvironment(), Out: os.Stdout, cache: NewCache()}
 }
 
 // Forward to env to count the number of bindings. Used mostly to know if there are any macros.
@@ -150,7 +151,9 @@ func (s *State) evalInternal(node any) object.Object {
 	case *ast.FunctionLiteral:
 		params := node.Parameters
 		body := node.Body
-		return object.Function{Parameters: params, Env: s.env, Body: body}
+		fn := object.Function{Parameters: params, Env: s.env, Body: body}
+		fn.SetCacheKey() // sets cache key
+		return fn
 	case *ast.CallExpression:
 		f := s.evalInternal(node.Function)
 		name := node.Function.Value().Literal()
@@ -323,6 +326,10 @@ func (s *State) applyFunction(name string, fn object.Object, args []object.Objec
 	if !ok {
 		return object.Error{Value: "<not a function: " + fn.Type().String() + ":" + fn.Inspect() + ">"}
 	}
+	if v, ok := s.cache.Get(function.CacheKey, args); ok {
+		log.Debugf("Cache hit for %s %v", function.CacheKey, args)
+		return v
+	}
 	nenv, oerr := extendFunctionEnv(name, function, args)
 	if oerr != nil {
 		return *oerr
@@ -332,6 +339,8 @@ func (s *State) applyFunction(name string, fn object.Object, args []object.Objec
 	res := s.Eval(function.Body) // Need to have the return value unwrapped. Fixes bug #46
 	// restore the previous env/state.
 	s.env = curState
+	s.cache.Set(function.CacheKey, args, res)
+	log.Debugf("Cache miss for %s %v", function.CacheKey, args)
 	return res
 }
 
