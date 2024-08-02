@@ -214,6 +214,10 @@ func (s *State) evalMapLiteral(node *ast.MapLiteral) object.Object {
 }
 
 func (s *State) evalPrintLogError(node *ast.Builtin) object.Object {
+	doLog := (node.Type() == token.LOG)
+	if doLog && (log.GetLogLevel() >= log.Error) {
+		return object.NULL
+	}
 	buf := strings.Builder{}
 	for i, v := range node.Parameters {
 		if i > 0 {
@@ -229,7 +233,6 @@ func (s *State) evalPrintLogError(node *ast.Builtin) object.Object {
 	if node.Type() == token.ERROR {
 		return object.Error{Value: buf.String()}
 	}
-	doLog := node.Type() == token.LOG
 	if (s.NoLog && doLog) || node.Type() == token.PRINTLN {
 		buf.WriteRune('\n') // log() has a implicit newline when using log.Xxx, print() doesn't, println() does.
 	}
