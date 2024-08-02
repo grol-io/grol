@@ -189,7 +189,7 @@ func WriteStrings(out *strings.Builder, list []Object, before, sep, after string
 func (f Function) Type() Type { return FUNC }
 
 // Must be called after the function is fully initialized.
-func (f Function) SetCacheKey() string {
+func (f *Function) SetCacheKey() string {
 	out := strings.Builder{}
 	out.WriteString("func")
 	out.WriteString("(")
@@ -203,7 +203,7 @@ func (f Function) SetCacheKey() string {
 }
 
 func (f Function) Inspect() string {
-	if f.CacheKey != "" {
+	if f.CacheKey == "" {
 		panic("CacheKey not set")
 	}
 	return f.CacheKey
