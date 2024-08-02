@@ -29,6 +29,43 @@ Factorial of 5 is 120` + " \n120\n" // there is an extra space before \n that vs
 	}
 }
 
+func TestEvalMemoPrint(t *testing.T) {
+	s := `
+fact=func(n) {
+	log("logger fact", n) // should be actual executions of the function only
+    print("print fact", n, ".\n") // should get recorded
+    if (n<=1) {
+        return 1
+    }
+    n*self(n-1)
+}
+fact(3)
+print("---\n")
+result = fact(5)
+print("Factorial of 5 is", result, ".\n") // print to stdout
+result`
+	expected := `logger fact 3
+print fact 3 .
+logger fact 2
+print fact 2 .
+logger fact 1
+print fact 1 .
+---
+logger fact 5
+print fact 5 .
+logger fact 4
+print fact 4 .
+print fact 3 .
+print fact 2 .
+print fact 1 .
+Factorial of 5 is 120 .
+120
+`
+	if got, errs, _ := repl.EvalString(s); got != expected || len(errs) > 0 {
+		t.Errorf("EvalString() got %v\n---\n%s\n---want---\n%s\n---", errs, got, expected)
+	}
+}
+
 func TestEvalString50(t *testing.T) {
 	s := `
 fact=func(n) {        // function
