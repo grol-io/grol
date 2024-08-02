@@ -40,7 +40,8 @@ fact=func(n) {
     n*self(n-1)
 }
 fact(3)
-print("---\n")
+print("---")
+println()
 result = fact(5)
 println("Factorial of 5 is", result) // print to stdout
 result`

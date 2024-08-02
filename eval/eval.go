@@ -264,13 +264,17 @@ func (s *State) evalBuiltin(node *ast.Builtin) object.Object {
 	if t == token.QUOTE {
 		return s.quote(node.Parameters[0])
 	}
-	val := s.evalInternal(node.Parameters[0])
-	rt := val.Type()
-	if rt == object.ERROR {
-		return val
+	var val object.Object
+	var rt object.Type
+	if min > 0 {
+		val = s.evalInternal(node.Parameters[0])
+		rt = val.Type()
+		if rt == object.ERROR {
+			return val
+		}
 	}
 	arr, _ := val.(object.Array)
-	switch t { //nolint:exhaustive // we have default, only 2 cases.
+	switch t { //nolint:exhaustive // we have defaults and covering all the builtins.
 	case token.ERROR:
 		fallthrough
 	case token.PRINT:
