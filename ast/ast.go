@@ -303,7 +303,7 @@ type IfExpression struct {
 	Alternative *Statements
 }
 
-func (ie IfExpression) handlElse(out *PrintState) {
+func (ie IfExpression) printElse(out *PrintState) {
 	if out.Compact {
 		out.Print("else")
 	} else {
@@ -328,7 +328,7 @@ func (ie IfExpression) PrettyPrint(out *PrintState) *PrintState {
 	}
 	ie.Consequence.PrettyPrint(out)
 	if ie.Alternative != nil {
-		ie.handlElse(out)
+		ie.printElse(out)
 	}
 	return out
 }
