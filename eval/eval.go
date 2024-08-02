@@ -24,6 +24,10 @@ func NewState() *State {
 	return &State{env: object.NewEnvironment(), Out: os.Stdout, cache: NewCache()}
 }
 
+func (s *State) ResetCache() {
+	s.cache = NewCache()
+}
+
 // Forward to env to count the number of bindings. Used mostly to know if there are any macros.
 func (s *State) Len() int {
 	return s.env.Len()
