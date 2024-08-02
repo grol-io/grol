@@ -7,4 +7,6 @@ fib = func(x) {
 	}
 	fib(x-1) + fib(x-2)
 }
-fib(50)
+r = fib(50)
+log("fib(50) =", r)
+r
