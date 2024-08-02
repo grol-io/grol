@@ -119,6 +119,16 @@ m={"str key": a, 42: "str val"}</textarea>
 </div>
 <div>
 Hit enter or click <button onClick="run();" id="runButton" disabled>Run</button> (will also format the code, also try <input type="checkbox" id="compact">compact)
+<button id="addParamButton">Share</button>
+<script>
+    document.getElementById('addParamButton').addEventListener('click', () => {
+        const paramValue = document.getElementById('input').value
+        const url = new URL(window.location)
+        url.searchParams.set('c', paramValue)
+        window.history.pushState({}, '', url)
+    });
+</script>
+
 </div>
 <div>
     <label for="output">Result:</label>
@@ -129,3 +139,11 @@ Hit enter or click <button onClick="run();" id="runButton" disabled>Run</button>
     <textarea id="errors" rows="1" cols="80" class="error-textarea"></textarea>
 </div>
 <div id="version">GROL</div>
+<script>
+    const urlParams = new URLSearchParams(window.location.search)
+    const paramValue = urlParams.get('c')
+    console.log('paramValue', paramValue)
+    if (paramValue) {
+        document.getElementById('input').value = decodeURIComponent(paramValue)
+    }
+</script>

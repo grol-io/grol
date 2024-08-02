@@ -31,10 +31,17 @@ stdout '<err: <identifier not found: foo>>'
 # sample_test.gr
 grol sample_test.gr
 !stderr 'Errors'
-cmp stdout sample_test_stdout.gr
+cmp stdout sample_test_stdout
 stderr 'I] Running sample_test.gr'
 stderr 'called fact 5'
 stderr 'called fact 1'
+stderr 'I] All done'
+
+# fib_50.gr
+grol fib_50.gr
+!stderr 'Errors'
+cmp stdout fib50_stdout
+stderr 'I] Running fib_50.gr'
 stderr 'I] All done'
 
 # Bug repro, return aborts the whole program
@@ -86,8 +93,21 @@ first(m["key"]) // get the value from key from map, which is an array, and the f
 
 // ^^^ gorepl sample.gr should output 120
 
--- sample_test_stdout.gr --
+-- fib_50.gr --
+fib = func(x) {
+	if (x == 0) {
+		return 0
+	}
+	if (x == 1) {
+		return 1
+	}
+	fib(x - 1) + fib(x - 2)
+}
+fib(50)
+-- sample_test_stdout --
 macro test: greater
 m is: {73:29,"key":[120,"abc",73]} .
 Outputting a smiley: 😀
 120
+-- fib50_stdout --
+12586269025

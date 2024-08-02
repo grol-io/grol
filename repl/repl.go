@@ -68,6 +68,7 @@ func EvalString(what string) (res string, errs []string, formatted string) {
 	macroState := eval.NewState()
 	out := &strings.Builder{}
 	s.Out = out
+	s.LogOut = out
 	s.NoLog = true
 	_, errs, formatted = EvalOne(s, macroState, what, out,
 		Options{All: true, ShowEval: true, NoColor: true, Compact: CompactEvalString})

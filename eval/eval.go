@@ -1,6 +1,7 @@
 package eval
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"math"
@@ -14,13 +15,19 @@ import (
 )
 
 type State struct {
-	env   *object.Environment
-	Out   io.Writer
-	NoLog bool // turn log() into print() (for EvalString)
+	env    *object.Environment
+	Out    io.Writer
+	LogOut io.Writer
+	NoLog  bool // turn log() into print() (for EvalString)
+	cache  Cache
 }
 
 func NewState() *State {
-	return &State{env: object.NewEnvironment(), Out: os.Stdout}
+	return &State{env: object.NewEnvironment(), Out: os.Stdout, LogOut: os.Stdout, cache: NewCache()}
+}
+
+func (s *State) ResetCache() {
+	s.cache = NewCache()
 }
 
 // Forward to env to count the number of bindings. Used mostly to know if there are any macros.
@@ -150,7 +157,9 @@ func (s *State) evalInternal(node any) object.Object {
 	case *ast.FunctionLiteral:
 		params := node.Parameters
 		body := node.Body
-		return object.Function{Parameters: params, Env: s.env, Body: body}
+		fn := object.Function{Parameters: params, Env: s.env, Body: body}
+		fn.SetCacheKey() // sets cache key
+		return fn
 	case *ast.CallExpression:
 		f := s.evalInternal(node.Function)
 		name := node.Function.Value().Literal()
@@ -243,14 +252,17 @@ func (s *State) evalBuiltin(node *ast.Builtin) object.Object {
 		}
 		doLog := node.Type() != token.PRINT
 		if s.NoLog && doLog {
-			doLog = false
 			buf.WriteRune('\n') // log() has a implicit newline when using log.Xxx, print() doesn't.
 		}
-		if doLog {
+		if doLog && !s.NoLog {
 			// Consider passing the arguments to log instead of making a string concatenation.
 			log.Printf("%s", buf.String())
 		} else {
-			_, err := s.Out.Write([]byte(buf.String()))
+			where := s.Out
+			if doLog {
+				where = s.LogOut
+			}
+			_, err := where.Write([]byte(buf.String()))
 			if err != nil {
 				log.Warnf("print: %v", err)
 			}
@@ -323,15 +335,28 @@ func (s *State) applyFunction(name string, fn object.Object, args []object.Objec
 	if !ok {
 		return object.Error{Value: "<not a function: " + fn.Type().String() + ":" + fn.Inspect() + ">"}
 	}
+	if v, output, ok := s.cache.Get(function.CacheKey, args); ok {
+		log.Debugf("Cache hit for %s %v", function.CacheKey, args)
+		_, _ = s.Out.Write(output)
+		return v
+	}
 	nenv, oerr := extendFunctionEnv(name, function, args)
 	if oerr != nil {
 		return *oerr
 	}
 	curState := s.env
 	s.env = nenv
+	oldOut := s.Out
+	buf := bytes.Buffer{}
+	s.Out = &buf
 	res := s.Eval(function.Body) // Need to have the return value unwrapped. Fixes bug #46
 	// restore the previous env/state.
 	s.env = curState
+	s.Out = oldOut
+	output := buf.Bytes()
+	_, _ = s.Out.Write(output)
+	s.cache.Set(function.CacheKey, args, res, output)
+	log.Debugf("Cache miss for %s %v", function.CacheKey, args)
 	return res
 }
 
