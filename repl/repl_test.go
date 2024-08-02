@@ -45,15 +45,15 @@ result = fact(5)
 print("Factorial of 5 is", result, ".\n") // print to stdout
 result`
 	expected := `logger fact 3
-print fact 3 .
 logger fact 2
-print fact 2 .
 logger fact 1
+print fact 3 .
+print fact 2 .
 print fact 1 .
 ---
 logger fact 5
-print fact 5 .
 logger fact 4
+print fact 5 .
 print fact 4 .
 print fact 3 .
 print fact 2 .

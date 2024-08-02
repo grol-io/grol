@@ -11,29 +11,34 @@ type CacheKey struct {
 	Args [MaxArgs]object.Object
 }
 
-type Cache map[CacheKey]object.Object
+type CacheValue struct {
+	Result object.Object
+	Output []byte
+}
+
+type Cache map[CacheKey]CacheValue
 
 func NewCache() Cache {
 	return make(Cache)
 }
 
-func (c Cache) Get(fn string, args []object.Object) (object.Object, bool) {
+func (c Cache) Get(fn string, args []object.Object) (object.Object, []byte, bool) {
 	if len(args) > MaxArgs {
-		return nil, false
+		return nil, nil, false
 	}
 	key := CacheKey{Fn: fn}
 	for i, v := range args {
 		// Can't hash functions, arrays, maps arguments (yet).
 		if !object.Hashable(v) {
-			return nil, false
+			return nil, nil, false
 		}
 		key.Args[i] = v
 	}
 	result, ok := c[key]
-	return result, ok
+	return result.Result, result.Output, ok
 }
 
-func (c Cache) Set(fn string, args []object.Object, result object.Object) {
+func (c Cache) Set(fn string, args []object.Object, result object.Object, output []byte) {
 	if len(args) > MaxArgs {
 		return
 	}
@@ -45,5 +50,5 @@ func (c Cache) Set(fn string, args []object.Object, result object.Object) {
 		}
 		key.Args[i] = v
 	}
-	c[key] = result
+	c[key] = CacheValue{Result: result, Output: output}
 }
