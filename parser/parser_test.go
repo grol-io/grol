@@ -278,6 +278,17 @@ d = [4, 5, 6]
 e = "f"`,
 			`m={1:"a","b":2}c=3 d=[4,5,6]e="f"`,
 		},
+		{
+			`if (i>3) {10} else if (i>2) {20} else {30}`,
+			`if i > 3 {
+	10
+} else if i > 2 {
+	20
+} else {
+	30
+}`,
+			`if i>3{10}else if i>2{20}else{30}`,
+		},
 	}
 	for i, tt := range tests {
 		l := lexer.New(tt.input)
@@ -297,6 +308,8 @@ e = "f"`,
 		if actual != tt.expected {
 			t.Errorf("test [%d] failing for long form\n---input---\n%s\n---expected---\n%s\n---actual---\n%s\n---",
 				i, tt.input, tt.expected, actual)
+			// sometime differences are tabs or newline so print escaped versions too:
+			t.Errorf("test [%d] failing for long form expected %q got %q", i, tt.expected, actual)
 		}
 		ps := ast.NewPrintState()
 		ps.Compact = true
