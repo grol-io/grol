@@ -444,6 +444,12 @@ func (p *Parser) parseIfExpression() ast.Node {
 	if p.peekTokenIs(token.ELSE) {
 		p.nextToken()
 
+		if p.peekTokenIs(token.IF) {
+			p.nextToken()
+			expression.Alternative = &ast.Statements{Statements: []ast.Node{p.parseIfExpression()}}
+			return expression
+		}
+
 		if !p.expectPeek(token.LBRACE) {
 			return nil
 		}

@@ -303,6 +303,23 @@ type IfExpression struct {
 	Alternative *Statements
 }
 
+func (ie IfExpression) handlElse(out *PrintState) {
+	if out.Compact {
+		out.Print("else")
+	} else {
+		out.Print(" else ")
+	}
+	if len(ie.Alternative.Statements) == 1 && ie.Alternative.Statements[0].Value().Type() == token.IF {
+		// else if
+		if out.Compact {
+			out.Print(" ")
+		}
+		ie.Alternative.Statements[0].PrettyPrint(out)
+		return
+	}
+	ie.Alternative.PrettyPrint(out)
+}
+
 func (ie IfExpression) PrettyPrint(out *PrintState) *PrintState {
 	out.Print("if ")
 	ie.Condition.PrettyPrint(out)
@@ -310,14 +327,8 @@ func (ie IfExpression) PrettyPrint(out *PrintState) *PrintState {
 		out.Print(" ")
 	}
 	ie.Consequence.PrettyPrint(out)
-
 	if ie.Alternative != nil {
-		if out.Compact {
-			out.Print("else")
-		} else {
-			out.Print(" else ")
-		}
-		ie.Alternative.PrettyPrint(out)
+		ie.handlElse(out)
 	}
 	return out
 }
