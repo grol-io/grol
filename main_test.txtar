@@ -58,6 +58,12 @@ stdout '^1\n3$'
 !grol -c 'm=macro(){};m()'
 stdout '^<err: macro should return Quote. got=object.Null \({}\)>\n$'
 
+# quiet mode and fast fibbonaci
+grol -quiet -c 'fib=func(x){if x<=1 {x} else {fib(x-1)+fib(x-2)}}; fib(92)'
+stdout '^7540113804746346429\n$'
+!stdout '\n\n'
+!stderr .
+
 -- sample_test.gr --
 // Sample file that our gorepl can interpret
 // <--- comments
