@@ -18,7 +18,7 @@ type State struct {
 	env    *object.Environment
 	Out    io.Writer
 	LogOut io.Writer
-	NoLog  bool // turn log() into print() (for EvalString)
+	NoLog  bool // turn log() into println() (for EvalString)
 	cache  Cache
 }
 
@@ -213,11 +213,52 @@ func (s *State) evalMapLiteral(node *ast.MapLiteral) object.Object {
 	return result
 }
 
+func (s *State) evalPrintLogError(node *ast.Builtin) object.Object {
+	buf := strings.Builder{}
+	for i, v := range node.Parameters {
+		if i > 0 {
+			buf.WriteString(" ")
+		}
+		r := s.evalInternal(v)
+		if isString := r.Type() == object.STRING; isString {
+			buf.WriteString(r.(object.String).Value)
+		} else {
+			buf.WriteString(r.Inspect())
+		}
+	}
+	if node.Type() == token.ERROR {
+		return object.Error{Value: buf.String()}
+	}
+	doLog := node.Type() == token.LOG
+	if (s.NoLog && doLog) || node.Type() == token.PRINTLN {
+		buf.WriteRune('\n') // log() has a implicit newline when using log.Xxx, print() doesn't, println() does.
+	}
+	if doLog && !s.NoLog {
+		// Consider passing the arguments to log instead of making a string concatenation.
+		log.Printf("%s", buf.String())
+	} else {
+		where := s.Out
+		if doLog {
+			where = s.LogOut
+		}
+		_, err := where.Write([]byte(buf.String()))
+		if err != nil {
+			log.Warnf("print: %v", err)
+		}
+	}
+	return object.NULL
+}
+
 func (s *State) evalBuiltin(node *ast.Builtin) object.Object {
 	// all take 1 arg exactly except print and log which take 1+.
 	t := node.Type()
+	min := 1
 	varArg := (t == token.PRINT || t == token.LOG || t == token.ERROR)
-	if oerr := ArgCheck(node.Literal(), 1, varArg, node.Parameters); oerr != nil {
+	if t == token.PRINTLN {
+		min = 0
+		varArg = true
+	}
+	if oerr := ArgCheck(node.Literal(), min, varArg, node.Parameters); oerr != nil {
 		return *oerr
 	}
 	if t == token.QUOTE {
@@ -234,40 +275,10 @@ func (s *State) evalBuiltin(node *ast.Builtin) object.Object {
 		fallthrough
 	case token.PRINT:
 		fallthrough
+	case token.PRINTLN:
+		fallthrough
 	case token.LOG:
-		buf := strings.Builder{}
-		for i, v := range node.Parameters {
-			if i > 0 {
-				buf.WriteString(" ")
-			}
-			r := s.evalInternal(v)
-			if isString := r.Type() == object.STRING; isString {
-				buf.WriteString(r.(object.String).Value)
-			} else {
-				buf.WriteString(r.Inspect())
-			}
-		}
-		if node.Type() == token.ERROR {
-			return object.Error{Value: buf.String()}
-		}
-		doLog := node.Type() != token.PRINT
-		if s.NoLog && doLog {
-			buf.WriteRune('\n') // log() has a implicit newline when using log.Xxx, print() doesn't.
-		}
-		if doLog && !s.NoLog {
-			// Consider passing the arguments to log instead of making a string concatenation.
-			log.Printf("%s", buf.String())
-		} else {
-			where := s.Out
-			if doLog {
-				where = s.LogOut
-			}
-			_, err := where.Write([]byte(buf.String()))
-			if err != nil {
-				log.Warnf("print: %v", err)
-			}
-		}
-		return object.NULL
+		return s.evalPrintLogError(node)
 	case token.FIRST:
 		if rt != object.ARRAY {
 			break
