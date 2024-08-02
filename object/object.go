@@ -204,19 +204,19 @@ func (f Function) Type() Type { return FUNC }
 func (f *Function) SetCacheKey() string {
 	out := strings.Builder{}
 	out.WriteString("func")
-	f.printFunc(&out)
-	f.CacheKey = out.String()
+	f.CacheKey = f.finishFuncOutput(&out)
 	return f.CacheKey
 }
 
-// Common part of Inspect and SetCacheKey. Prints the rest of the function.
-func (f *Function) printFunc(out *strings.Builder) {
+// Common part of Inspect and SetCacheKey. Outputs the rest of the function.
+func (f *Function) finishFuncOutput(out *strings.Builder) string {
 	out.WriteString("(")
 	ps := &ast.PrintState{Out: out, Compact: true}
 	ps.ComaList(f.Parameters)
 	out.WriteString("){")
 	f.Body.PrettyPrint(ps)
 	out.WriteString("}")
+	return out.String()
 }
 
 func (f Function) Inspect() string {
@@ -226,8 +226,7 @@ func (f Function) Inspect() string {
 	out := strings.Builder{}
 	out.WriteString("func ")
 	out.WriteString(f.Name.Literal())
-	f.printFunc(&out)
-	return out.String()
+	return f.finishFuncOutput(&out)
 }
 
 type Array struct {
