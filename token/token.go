@@ -1,7 +1,7 @@
 // There are 2 types of Token, constant ones (with no "value") and the ones with attached
 // value that is variable (e.g. IDENT, INT, FLOAT, STRING, *COMMENT).
-// We might use the upcoming unique https://tip.golang.org/doc/go1.23#new-unique-package
-// but we want this to run on 1.22 and earlier and rolled our own not multi threaded.
+// We might have used the upcoming unique https://tip.golang.org/doc/go1.23#new-unique-package
+// but we want this to run on 1.22 and earlier and rolled our own, not multi threaded.
 package token
 
 import (
@@ -284,7 +284,7 @@ func Init() { //nolint:funlen // we need all this.
 	// Multi character non identity tokens.
 	assocC2(LTEQ, "<=", 'l')
 	assocC2(GTEQ, ">=", 'g')
-	assocC2(EQ, "==", '_')
+	assocC2(EQ, "==", 'q')
 	assocC2(NOTEQ, "!=", 'n')
 	assocC2(INCR, "++", 'i')
 	assocC2(DECR, "--", 'd')

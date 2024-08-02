@@ -121,6 +121,10 @@ func TestSingleCharTokens(t *testing.T) {
 		if tok2 != tok {
 			t.Errorf("TokenByType[%v] returned %v, expected %v", tt.expected, tok2, tok)
 		}
+		code := tok.Code()
+		if code != tt.input {
+			t.Errorf("Token.Code() returned %c, expected %c", code, tt.input)
+		}
 	}
 }
 
