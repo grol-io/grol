@@ -62,6 +62,9 @@ func TestLookup(t *testing.T) {
 	if tu != tu3 {
 		t.Errorf("Intern(IDENT, 'unknown') returned %v, expected the same as before", tu3)
 	}
+	if !tu3.HasContent() {
+		t.Errorf("HasContent() returned false for %#v", tu3)
+	}
 }
 
 func TestMultiCharTokens(t *testing.T) {
@@ -92,6 +95,9 @@ func TestMultiCharTokens(t *testing.T) {
 		expected := tt.expected.String() + ":\"" + tt.input + "\""
 		if tok.DebugString() != expected {
 			t.Errorf("Unexpected DebugString: %s vs %s", tok.DebugString(), expected)
+		}
+		if tok.HasContent() {
+			t.Errorf("HasContent() returned true for %s", tt.input)
 		}
 	}
 }
@@ -124,6 +130,9 @@ func TestSingleCharTokens(t *testing.T) {
 		code := tok.Code()
 		if code != tt.input {
 			t.Errorf("Token.Code() returned %c, expected %c", code, tt.input)
+		}
+		if tok.HasContent() {
+			t.Errorf("HasContent() returned true for %c", tt.input)
 		}
 	}
 }

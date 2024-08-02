@@ -21,6 +21,7 @@ func Main() int {
 	showParse := flag.Bool("parse", false, "show parse tree")
 	format := flag.Bool("format", false, "don't execute, just parse and re format the input")
 	compact := flag.Bool("compact", false, "When printing code, use no indentation and most compact form")
+	save := flag.Bool("save", false, "Emit the serialized AST")
 	showEval := flag.Bool("eval", true, "show eval results")
 	sharedState := flag.Bool("shared-state", false, "All files share same interpreter state (default is new state for each)")
 	cli.ArgsHelp = "*.gr files to interpret or `-` for stdin without prompt or no arguments for stdin repl..."
@@ -32,6 +33,7 @@ func Main() int {
 		ShowEval:   *showEval,
 		FormatOnly: *format,
 		Compact:    *compact,
+		Serialize:  *save,
 	}
 	nArgs := len(flag.Args())
 	if *commandFlag != "" {

@@ -344,8 +344,7 @@ func TestOperatorPrecedenceParsing(t *testing.T) {
 		p := New(l)
 		program := p.ParseProgram()
 		checkParserErrors(t, p)
-
-		actual := ast.DebugString(program)
+		actual := program.PrettyPrint(ast.NewPrintState()).String()
 		last := actual[len(actual)-1]
 		if actual[len(actual)-1] != '\n' {
 			t.Errorf("expecting newline at end of program output, not found, got %q", last)
@@ -630,7 +629,7 @@ func TestCallExpressionParameterParsing(t *testing.T) {
 		}
 
 		for i, arg := range tt.expectedArgs {
-			got := ast.DebugString(exp.Arguments[i])
+			got := exp.Arguments[i].PrettyPrint(ast.NewPrintState()).String()
 			if got != arg {
 				t.Errorf("argument %d wrong. want=%q, got=%q", i,
 					arg, got)

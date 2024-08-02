@@ -4,6 +4,7 @@
 package ast
 
 import (
+	"fmt"
 	"io"
 	"strconv"
 	"strings"
@@ -24,6 +25,7 @@ type PrintState struct {
 
 func DebugString(n Node) string {
 	ps := NewPrintState()
+	ps.Compact = true
 	n.PrettyPrint(ps)
 	return ps.String()
 }
@@ -68,6 +70,7 @@ func (ps *PrintState) Print(str ...string) *PrintState {
 type Node interface {
 	Value() *token.Token
 	PrettyPrint(ps *PrintState) *PrintState
+	Serialize(out io.Writer)
 }
 
 // Common to all nodes that have a token and avoids repeating the same TokenLiteral() methods.
@@ -77,6 +80,17 @@ type Base struct {
 
 func (b Base) Value() *token.Token {
 	return b.Token
+}
+
+func (b Base) Serialize(out io.Writer) {
+	if b.Token == nil {
+		panic(fmt.Sprintf("Serialize called on nil token in base %#v", b))
+	}
+	log.Debugf("Serializing %#v", b.Token)
+	_, _ = out.Write([]byte{b.Code()})
+	if b.HasContent() {
+		_, _ = out.Write([]byte(b.Literal()))
+	}
 }
 
 func (b Base) PrettyPrint(ps *PrintState) *PrintState {
@@ -97,6 +111,13 @@ func (rs ReturnStatement) PrettyPrint(ps *PrintState) *PrintState {
 		rs.ReturnValue.PrettyPrint(ps)
 	}
 	return ps
+}
+
+func (rs ReturnStatement) Serialize(out io.Writer) {
+	rs.Base.Serialize(out)
+	if rs.ReturnValue != nil {
+		rs.ReturnValue.Serialize(out)
+	}
 }
 
 type Statements struct {
@@ -185,24 +206,20 @@ func (p Statements) PrettyPrint(ps *PrintState) *PrintState {
 	return ps
 }
 
-type Identifier struct {
-	Base
+func (p Statements) Serialize(out io.Writer) {
+	for _, s := range p.Statements {
+		s.Serialize(out)
+	}
 }
 
-func (i Identifier) PrettyPrint(out *PrintState) *PrintState {
-	out.Print(i.Literal())
-	return out
+type Identifier struct {
+	Base
 }
 
 type Comment struct {
 	Base
 	SameLineAsPrevious bool
 	SameLineAsNext     bool
-}
-
-func (c Comment) PrettyPrint(out *PrintState) *PrintState {
-	out.Print(c.Literal())
-	return out
 }
 
 type IntegerLiteral struct {
@@ -242,6 +259,11 @@ func (p PrefixExpression) PrettyPrint(out *PrintState) *PrintState {
 		out.Print(")")
 	}
 	return out
+}
+
+func (p PrefixExpression) Serialize(out io.Writer) {
+	p.Base.Serialize(out)
+	p.Right.Serialize(out)
 }
 
 type PostfixExpression struct {
@@ -291,6 +313,12 @@ func (i InfixExpression) PrettyPrint(out *PrintState) *PrintState {
 	return out
 }
 
+func (i InfixExpression) Serialize(out io.Writer) {
+	i.Base.Serialize(out)
+	i.Left.Serialize(out)
+	i.Right.Serialize(out)
+}
+
 type Boolean struct {
 	Base
 	Val bool
@@ -333,6 +361,16 @@ func (ie IfExpression) PrettyPrint(out *PrintState) *PrintState {
 	return out
 }
 
+func (ie IfExpression) Serialize(out io.Writer) {
+	ie.Base.Serialize(out)
+	ie.Condition.Serialize(out)
+	ie.Consequence.Serialize(out)
+	if ie.Alternative != nil {
+		_, _ = out.Write([]byte{token.ELSET.Code()})
+		ie.Alternative.Serialize(out)
+	}
+}
+
 func PrintList(out *PrintState, list []Node, sep string) {
 	for i, p := range list {
 		if i > 0 {
@@ -354,6 +392,13 @@ func (b Builtin) PrettyPrint(out *PrintState) *PrintState {
 	out.ComaList(b.Parameters)
 	out.Print(")")
 	return out
+}
+
+func (b Builtin) Serialize(out io.Writer) {
+	b.Base.Serialize(out)
+	for _, p := range b.Parameters {
+		p.Serialize(out)
+	}
 }
 
 type FunctionLiteral struct {
@@ -380,6 +425,25 @@ func (fl FunctionLiteral) PrettyPrint(out *PrintState) *PrintState {
 	return out
 }
 
+var nullCode = []byte{token.NULLT.Code()}
+
+func writeNull(out io.Writer) {
+	_, _ = out.Write(nullCode)
+}
+
+func (fl FunctionLiteral) Serialize(out io.Writer) {
+	fl.Base.Serialize(out)
+	if fl.Name != nil {
+		fl.Name.Serialize(out)
+	} else {
+		writeNull(out)
+	}
+	for _, p := range fl.Parameters {
+		p.Serialize(out)
+	}
+	fl.Body.Serialize(out)
+}
+
 type CallExpression struct {
 	Base           // The '(' token
 	Function  Node // Identifier or FunctionLiteral
@@ -395,6 +459,14 @@ func (ce CallExpression) PrettyPrint(out *PrintState) *PrintState {
 	out.ExpressionLevel = oldExpressionLevel
 	out.Print(")")
 	return out
+}
+
+func (ce CallExpression) Serialize(out io.Writer) {
+	ce.Base.Serialize(out)
+	ce.Function.Serialize(out)
+	for _, p := range ce.Arguments {
+		p.Serialize(out)
+	}
 }
 
 type ArrayLiteral struct {

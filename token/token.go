@@ -25,6 +25,7 @@ type Token struct {
 	_         noCopy
 	tokenType Type
 	charCode  byte // 1 byte serialization printable code.
+	valued    bool // does literal contains the value (for IDENT, INT, FLOAT, STRING, *COMMENT) or is the code enough.
 	literal   string
 }
 
@@ -47,7 +48,7 @@ func Intern(t Type, literal string) *Token {
 	if code == 0 {
 		panic("no code for " + t.String())
 	}
-	return InternToken(&Token{tokenType: t, literal: literal, charCode: code})
+	return InternToken(&Token{tokenType: t, literal: literal, charCode: code, valued: true})
 }
 
 func ResetInterning() {
@@ -133,14 +134,17 @@ const (
 
 	endIdentityTokens
 
+	NULL // used for serializing absent fields like function name.
 	EOF
 )
 
 var (
 	EOLT   = &Token{tokenType: EOL}
 	EOFT   = &Token{tokenType: EOF}
+	NULLT  *Token
 	TRUET  *Token
 	FALSET *Token
+	ELSET  *Token
 )
 
 var (
@@ -156,6 +160,10 @@ var (
 
 func init() {
 	Init()
+}
+
+func assocValued(t Type, code byte) {
+	assocCodeAndToken(t, code)
 }
 
 func assocCodeAndToken(t Type, code byte) {
@@ -237,6 +245,7 @@ func Init() { //nolint:funlen // we need all this.
 	}
 	TRUET = tToT[TRUE]
 	FALSET = tToT[FALSE]
+	ELSET = tToT[ELSE]
 	// Single character tokens:
 	assoc(ASSIGN, '=')
 	assoc(PLUS, '+')
@@ -291,13 +300,15 @@ func Init() { //nolint:funlen // we need all this.
 	// Special alias for := to be same as ASSIGN.
 	c2Tokens[[2]byte{':', '='}] = cTokens['=']
 	// Valued tokens.:
-	assocCodeAndToken(IDENT, ' ')
-	assocCodeAndToken(INT, '0')
-	assocCodeAndToken(FLOAT, '.')
-	assocCodeAndToken(STRING, 's')
-	assocCodeAndToken(LINECOMMENT, 'c')
-	assocCodeAndToken(BLOCKCOMMENT, 'b')
+	assocValued(IDENT, ' ')
+	assocValued(INT, '0')
+	assocValued(FLOAT, '.')
+	assocValued(STRING, 's')
+	assocValued(LINECOMMENT, 'c')
+	assocValued(BLOCKCOMMENT, 'b')
 
+	assocCodeAndToken(NULL, 'Z') // absence of value
+	NULLT = &Token{tokenType: NULL, literal: "", charCode: tToCode[NULL], valued: false}
 	assocCodeAndToken(ILLEGAL, 1) // doesn't need to be printable.
 	assocCodeAndToken(EOL, 10)    // nl but not printed anyway
 	assocCodeAndToken(EOF, 'z')   // also not used/visible
@@ -311,7 +322,7 @@ func LookupIdent(ident string) *Token {
 	if t, ok := keywords[ident]; ok {
 		return t
 	}
-	return InternToken(&Token{tokenType: IDENT, literal: ident, charCode: ' '})
+	return InternToken(&Token{tokenType: IDENT, literal: ident, charCode: ' ', valued: true})
 }
 
 // ByType is the cheapest lookup for all the tokens whose type
@@ -345,6 +356,11 @@ func ConstantTokenChar2(c1, c2 byte) *Token {
 
 func (t *Token) DebugString() string {
 	return t.Type().String() + ":" + strconv.Quote(t.Literal())
+}
+
+// Is this one of the valued type, where the literal is content and not just the code.
+func (t *Token) HasContent() bool {
+	return t.valued
 }
 
 func NumTokens() int {

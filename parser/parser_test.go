@@ -197,7 +197,7 @@ func Test_OperatorPrecedenceParsing(t *testing.T) {
 		program := p.ParseProgram()
 		checkParserErrors(t, tt.input, p)
 
-		actual := ast.DebugString(program)
+		actual := program.PrettyPrint(ast.NewPrintState()).String()
 		last := actual[len(actual)-1]
 		if actual[len(actual)-1] != '\n' {
 			t.Errorf("expecting newline at end of program output, not found, got %q", last)
