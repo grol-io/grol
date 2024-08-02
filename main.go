@@ -26,7 +26,7 @@ func Main() int {
 	cli.ArgsHelp = "*.gr files to interpret or `-` for stdin without prompt or no arguments for stdin repl..."
 	cli.MaxArgs = -1
 	cli.Main()
-	log.Printf("grol %s - welcome!", cli.LongVersion)
+	log.Infof("grol %s - welcome!", cli.LongVersion)
 	options := repl.Options{
 		ShowParse:  *showParse,
 		ShowEval:   *showEval,
@@ -39,7 +39,7 @@ func Main() int {
 		if len(errs) > 0 {
 			log.Errf("Errors: %v", errs)
 		}
-		fmt.Println(res)
+		fmt.Print(res)
 		return len(errs)
 	}
 	if nArgs == 0 {
