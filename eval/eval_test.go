@@ -15,6 +15,7 @@ func TestEvalIntegerExpression(t *testing.T) {
 		input    string
 		expected int64
 	}{
+		{`f=func(x) {len(x)}; f([1,2,3])`, 3},
 		{"(3)\n(4)", 4}, // expression on new line should be... new.
 		{"5 // is 5", 5},
 		{"10", 10},
@@ -56,7 +57,6 @@ func(n) {
 }(5)
 `, 120},
 	}
-
 	for i, tt := range tests {
 		evaluated := testEval(t, tt.input)
 		r := testIntegerObject(t, evaluated, tt.expected)

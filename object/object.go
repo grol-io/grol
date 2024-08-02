@@ -48,6 +48,15 @@ type Number interface {
 }
 */
 
+func Hashable(o Object) bool {
+	switch o.Type() { //nolint:exhaustive // We have all the types that are hashable + default for the others.
+	case INTEGER, FLOAT, BOOLEAN, NIL, ERROR, RETURN, QUOTE, STRING:
+		return true
+	default:
+		return false
+	}
+}
+
 func NativeBoolToBooleanObject(input bool) Boolean {
 	if input {
 		return TRUE

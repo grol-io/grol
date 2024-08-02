@@ -23,8 +23,8 @@ func (c Cache) Get(fn string, args []object.Object) (object.Object, bool) {
 	}
 	key := CacheKey{Fn: fn}
 	for i, v := range args {
-		// Can't hash functions arguments (yet).
-		if _, ok := v.(object.Function); ok {
+		// Can't hash functions, arrays, maps arguments (yet).
+		if !object.Hashable(v) {
 			return nil, false
 		}
 		key.Args[i] = v
@@ -40,7 +40,7 @@ func (c Cache) Set(fn string, args []object.Object, result object.Object) {
 	key := CacheKey{Fn: fn}
 	for i, v := range args {
 		// Can't hash functions arguments (yet).
-		if _, ok := v.(object.Function); ok {
+		if !object.Hashable(v) {
 			return
 		}
 		key.Args[i] = v
