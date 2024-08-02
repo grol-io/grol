@@ -303,7 +303,7 @@ type IfExpression struct {
 	Alternative *Statements
 }
 
-func (ie IfExpression) handlElse(out *PrintState) {
+func (ie IfExpression) printElse(out *PrintState) {
 	if out.Compact {
 		out.Print("else")
 	} else {
@@ -328,7 +328,7 @@ func (ie IfExpression) PrettyPrint(out *PrintState) *PrintState {
 	}
 	ie.Consequence.PrettyPrint(out)
 	if ie.Alternative != nil {
-		ie.handlElse(out)
+		ie.printElse(out)
 	}
 	return out
 }
@@ -358,12 +358,17 @@ func (b Builtin) PrettyPrint(out *PrintState) *PrintState {
 
 type FunctionLiteral struct {
 	Base       // The 'func' token
+	Name       *Identifier
 	Parameters []Node
 	Body       *Statements
 }
 
 func (fl FunctionLiteral) PrettyPrint(out *PrintState) *PrintState {
 	out.Print(fl.Literal())
+	if fl.Name != nil {
+		out.Print(" ")
+		out.Print(fl.Name.Literal())
+	}
 	out.Print("(")
 	out.ComaList(fl.Parameters)
 	if out.Compact {

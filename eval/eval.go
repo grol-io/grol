@@ -157,8 +157,12 @@ func (s *State) evalInternal(node any) object.Object {
 	case *ast.FunctionLiteral:
 		params := node.Parameters
 		body := node.Body
-		fn := object.Function{Parameters: params, Env: s.env, Body: body}
+		name := node.Name
+		fn := object.Function{Parameters: params, Name: name, Env: s.env, Body: body}
 		fn.SetCacheKey() // sets cache key
+		if name != nil {
+			s.env.Set(name.Literal(), fn)
+		}
 		return fn
 	case *ast.CallExpression:
 		f := s.evalInternal(node.Function)

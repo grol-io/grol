@@ -16,6 +16,8 @@ func TestEvalIntegerExpression(t *testing.T) {
 		expected int64
 	}{
 		{`f=func(x) {len(x)}; f([1,2,3])`, 3},
+		// shorthand syntax for function declaration:
+		{`func f(x) {len(x)}; f([1,2,3])`, 3},
 		{"(3)\n(4)", 4}, // expression on new line should be... new.
 		{"5 // is 5", 5},
 		{"10", 10},
