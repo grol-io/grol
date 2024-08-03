@@ -15,11 +15,17 @@ func Init() {
 }
 
 func CreateCommand(cmd Extension) error {
+	if cmd.Name == "" {
+		return errors.New("empty command name")
+	}
 	if cmd.MaxArgs != -1 && cmd.MinArgs > cmd.MaxArgs {
 		return errors.New(cmd.Name + ": min args > max args")
 	}
 	if len(cmd.ArgTypes) < cmd.MinArgs {
 		return errors.New(cmd.Name + ": arg types < min args")
+	}
+	if _, ok := commands[cmd.Name]; ok {
+		return errors.New(cmd.Name + ": already defined")
 	}
 	commands[cmd.Name] = cmd
 	return nil

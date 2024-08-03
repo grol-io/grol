@@ -761,4 +761,7 @@ func TestExtension(t *testing.T) {
 	input := `pow(2,10)`
 	evaluated := testEval(t, input)
 	testFloatObject(t, evaluated, 1024)
+	input = `round(2.7)`
+	evaluated = testEval(t, input)
+	testFloatObject(t, evaluated, 3)
 }

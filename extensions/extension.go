@@ -2,6 +2,9 @@ package extensions
 
 import (
 	"math"
+	"reflect"
+	"runtime"
+	"strings"
 
 	"grol.io/grol/object"
 )
@@ -20,6 +23,37 @@ func Init() error {
 	return errInInit
 }
 
+type OneFloatInOutFunc func(float64) float64
+
+func FunctionName(f any) string {
+	val := reflect.ValueOf(f)
+	if val.Kind() != reflect.Func {
+		return ""
+	}
+	fullName := runtime.FuncForPC(val.Pointer()).Name()
+	return fullName
+}
+
+func ShortFunctionName(f any) string {
+	fullName := FunctionName(f)
+	if fullName == "" {
+		return ""
+	}
+	lastDot := strings.LastIndex(fullName, ".")
+	if lastDot == -1 {
+		return fullName
+	}
+	return fullName[lastDot+1:]
+}
+
+func MathFunctionName(f any) string {
+	s := strings.ToLower(ShortFunctionName(f))
+	if s == "log" {
+		return "ln"
+	}
+	return s
+}
+
 func initInternal() error {
 	cmd := object.Extension{
 		Name:     "pow",
@@ -32,64 +66,34 @@ func initInternal() error {
 	if err != nil {
 		return err
 	}
-	cmd = object.Extension{
-		Name:     "sin",
+	oneFloat := object.Extension{
 		MinArgs:  1,
 		MaxArgs:  1,
 		ArgTypes: []object.Type{object.FLOAT},
-		Callback: sin,
 	}
-	err = object.CreateCommand(cmd)
-	if err != nil {
-		return err
-	}
-	cmd.Name = "cos"
-	cmd.Callback = cos
-	err = object.CreateCommand(cmd)
-	if err != nil {
-		return err
-	}
-	cmd.Name = "tan"
-	cmd.Callback = tan
-	err = object.CreateCommand(cmd)
-	if err != nil {
-		return err
-	}
-	cmd.Name = "ln"
-	cmd.Callback = ln
-	err = object.CreateCommand(cmd)
-	if err != nil {
-		return err
-	}
-	cmd.Name = "sqrt"
-	cmd.Callback = sqrt
-	err = object.CreateCommand(cmd)
-	if err != nil {
-		return err
-	}
-	cmd.Name = "exp"
-	cmd.Callback = exp
-	err = object.CreateCommand(cmd)
-	if err != nil {
-		return err
-	}
-	cmd.Name = "asin"
-	cmd.Callback = asin
-	err = object.CreateCommand(cmd)
-	if err != nil {
-		return err
-	}
-	cmd.Name = "acos"
-	cmd.Callback = acos
-	err = object.CreateCommand(cmd)
-	if err != nil {
-		return err
-	}
-	cmd.Name = "atan"
-	cmd.Callback = atan
-	err = object.CreateCommand(cmd)
-	if err != nil {
-		return err
+	for _, function := range []OneFloatInOutFunc{
+		math.Sin,
+		math.Cos,
+		math.Tan,
+		math.Log, // renamed to ln in MathFunctionName
+		math.Sqrt,
+		math.Exp,
+		math.Asin,
+		math.Acos,
+		math.Atan,
+		math.Round,
+		math.Trunc,
+	} {
+		oneFloat.Callback = func(args []object.Object) object.Object {
+			// Arg len check already done through MinArgs=MaxArgs=1 and
+			// type through ArgTypes: []object.Type{object.FLOAT}.
+			return object.Float{Value: function(args[0].(object.Float).Value)}
+		}
+		oneFloat.Name = MathFunctionName(function)
+		err = object.CreateCommand(oneFloat)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -101,40 +105,4 @@ func pow(args []object.Object) object.Object {
 	exp := args[1].(object.Float).Value
 	result := math.Pow(base, exp)
 	return object.Float{Value: result}
-}
-
-func sin(args []object.Object) object.Object {
-	return object.Float{Value: math.Sin(args[0].(object.Float).Value)}
-}
-
-func cos(args []object.Object) object.Object {
-	return object.Float{Value: math.Cos(args[0].(object.Float).Value)}
-}
-
-func tan(args []object.Object) object.Object {
-	return object.Float{Value: math.Tan(args[0].(object.Float).Value)}
-}
-
-func ln(args []object.Object) object.Object {
-	return object.Float{Value: math.Log(args[0].(object.Float).Value)}
-}
-
-func sqrt(args []object.Object) object.Object {
-	return object.Float{Value: math.Sqrt(args[0].(object.Float).Value)}
-}
-
-func exp(args []object.Object) object.Object {
-	return object.Float{Value: math.Exp(args[0].(object.Float).Value)}
-}
-
-func asin(args []object.Object) object.Object {
-	return object.Float{Value: math.Asin(args[0].(object.Float).Value)}
-}
-
-func acos(args []object.Object) object.Object {
-	return object.Float{Value: math.Acos(args[0].(object.Float).Value)}
-}
-
-func atan(args []object.Object) object.Object {
-	return object.Float{Value: math.Atan(args[0].(object.Float).Value)}
 }

@@ -364,9 +364,10 @@ func (e *Extension) Usage(out *strings.Builder) {
 		t := strings.ToLower(e.ArgTypes[i-1].String())
 		out.WriteString(fmt.Sprintf("%s%s%d", coma, t, i))
 	}
-	if e.MaxArgs < 0 {
+	switch {
+	case e.MaxArgs < 0:
 		out.WriteString(", ...")
-	} else if e.MaxArgs > e.MinArgs {
+	case e.MaxArgs > e.MinArgs:
 		out.WriteString(fmt.Sprintf(", arg%d...arg%d", e.MinArgs+1, e.MaxArgs))
 	}
 }
