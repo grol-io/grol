@@ -9,6 +9,7 @@ import (
 	"fortio.org/cli"
 	"fortio.org/log"
 	"grol.io/grol/eval"
+	_ "grol.io/grol/extensions" // register extensions
 	"grol.io/grol/repl"
 )
 

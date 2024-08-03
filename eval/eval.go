@@ -15,15 +15,22 @@ import (
 )
 
 type State struct {
-	env    *object.Environment
-	Out    io.Writer
-	LogOut io.Writer
-	NoLog  bool // turn log() into println() (for EvalString)
-	cache  Cache
+	env        *object.Environment
+	Out        io.Writer
+	LogOut     io.Writer
+	NoLog      bool // turn log() into println() (for EvalString)
+	cache      Cache
+	extensions map[string]object.Extension
 }
 
 func NewState() *State {
-	return &State{env: object.NewEnvironment(), Out: os.Stdout, LogOut: os.Stdout, cache: NewCache()}
+	return &State{
+		env:        object.NewEnvironment(),
+		Out:        os.Stdout,
+		LogOut:     os.Stdout,
+		cache:      NewCache(),
+		extensions: object.Commands(),
+	}
 }
 
 func (s *State) ResetCache() {
@@ -104,7 +111,7 @@ func (s *State) evalPostfixExpression(node *ast.PostfixExpression) object.Object
 }
 
 // Doesn't unwrap return - return bubbles up.
-func (s *State) evalInternal(node any) object.Object {
+func (s *State) evalInternal(node any) object.Object { //nolint:funlen // we have a lot of cases.
 	switch node := node.(type) {
 	// Statements
 	case *ast.Statements:
@@ -166,7 +173,6 @@ func (s *State) evalInternal(node any) object.Object {
 		return fn
 	case *ast.CallExpression:
 		f := s.evalInternal(node.Function)
-		name := node.Function.Value().Literal()
 		if f.Type() == object.ERROR {
 			return f
 		}
@@ -174,6 +180,10 @@ func (s *State) evalInternal(node any) object.Object {
 		if oerr != nil {
 			return *oerr
 		}
+		if f.Type() == object.EXTENSION {
+			return s.applyExtension(f.(object.Extension), args)
+		}
+		name := node.Function.Value().Literal()
 		return s.applyFunction(name, f, args)
 	case *ast.ArrayLiteral:
 		elements, oerr := s.evalExpressions(node.Elements)
@@ -352,6 +362,32 @@ func evalArrayIndexExpression(array, index object.Object) object.Object {
 	return arrayObject.Elements[idx]
 }
 
+func (s *State) applyExtension(fn object.Extension, args []object.Object) object.Object {
+	l := len(args)
+	if l < fn.MinArgs {
+		return object.Error{Value: fmt.Sprintf("<wrong number of arguments got=%d, want %s>",
+			l, fn.Inspect())} // shows usage
+	}
+	if fn.MaxArgs != -1 && l > fn.MaxArgs {
+		return object.Error{Value: fmt.Sprintf("<wrong number of arguments got=%d, want %s>",
+			l, fn.Inspect())} // shows usage
+	}
+	for i, arg := range args {
+		if i >= len(fn.ArgTypes) {
+			break
+		}
+		if fn.ArgTypes[i] == object.FLOAT && arg.Type() == object.INTEGER {
+			args[i] = object.Float{Value: float64(arg.(object.Integer).Value)}
+			continue
+		}
+		if fn.ArgTypes[i] != arg.Type() {
+			return object.Error{Value: fmt.Sprintf("<wrong type of argument got=%s, want %s>",
+				arg.Type(), fn.Inspect())}
+		}
+	}
+	return fn.Callback(args)
+}
+
 func (s *State) applyFunction(name string, fn object.Object, args []object.Object) object.Object {
 	function, ok := fn.(object.Function)
 	if !ok {
@@ -412,7 +448,12 @@ func (s *State) evalExpressions(exps []ast.Node) ([]object.Object, *object.Error
 }
 
 func (s *State) evalIdentifier(node *ast.Identifier) object.Object {
+	// local var can shadow extensions.
 	val, ok := s.env.Get(node.Literal())
+	if ok {
+		return val
+	}
+	val, ok = s.extensions[node.Literal()]
 	if !ok {
 		return object.Error{Value: "<identifier not found: " + node.Literal() + ">"}
 	}

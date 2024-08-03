@@ -5,6 +5,7 @@ import (
 
 	"grol.io/grol/ast"
 	"grol.io/grol/eval"
+	_ "grol.io/grol/extensions"
 	"grol.io/grol/lexer"
 	"grol.io/grol/object"
 	"grol.io/grol/parser"
@@ -750,4 +751,10 @@ func testFloatObject(t *testing.T, obj object.Object, expected float64) bool {
 	}
 
 	return true
+}
+
+func TestExtension(t *testing.T) {
+	input := `pow(2,10)`
+	evaluated := testEval(t, input)
+	testFloatObject(t, evaluated, 1024)
 }

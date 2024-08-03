@@ -15,6 +15,7 @@ import (
 	"fortio.org/cli"
 	"fortio.org/log"
 	"fortio.org/version"
+	_ "grol.io/grol/extensions"
 	"grol.io/grol/repl"
 )
 

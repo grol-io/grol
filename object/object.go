@@ -1,6 +1,7 @@
 package object
 
 import (
+	"fmt"
 	"sort"
 	"strconv"
 	"strings"
@@ -30,6 +31,7 @@ const (
 	MAP
 	QUOTE
 	MACRO
+	EXTENSION
 	LAST
 )
 
@@ -340,5 +342,41 @@ func (m Macro) Inspect() string {
 	out.WriteString("){")
 	m.Body.PrettyPrint(ps)
 	out.WriteString("}")
+	return out.String()
+}
+
+type ExtFunction func(args []Object) Object
+
+type Extension struct {
+	Name     string
+	MinArgs  int
+	MaxArgs  int
+	ArgTypes []Type
+	Callback ExtFunction
+}
+
+func (e *Extension) Usage(out *strings.Builder) {
+	for i := 1; i <= e.MinArgs; i++ {
+		coma := ""
+		if i > 1 {
+			coma = ", "
+		}
+		t := strings.ToLower(e.ArgTypes[i-1].String())
+		out.WriteString(fmt.Sprintf("%s%s%d", coma, t, i))
+	}
+	if e.MaxArgs < 0 {
+		out.WriteString(", ...")
+	} else if e.MaxArgs > e.MinArgs {
+		out.WriteString(fmt.Sprintf(", arg%d...arg%d", e.MinArgs+1, e.MaxArgs))
+	}
+}
+
+func (e Extension) Type() Type { return EXTENSION }
+func (e Extension) Inspect() string {
+	out := strings.Builder{}
+	out.WriteString(e.Name)
+	out.WriteString("(")
+	e.Usage(&out)
+	out.WriteString(")")
 	return out.String()
 }
