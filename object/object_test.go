@@ -29,3 +29,27 @@ func TestStringMapKey(t *testing.T) {
 		t.Errorf("values aren't equal, unexpected")
 	}
 }
+
+func TestExtensionUsage(t *testing.T) {
+	cmd := object.Extension{
+		Name: "cmdname",
+		ArgTypes: []object.Type{
+			object.INTEGER,
+			object.FLOAT,
+			object.STRING,
+		},
+		MinArgs: 3,
+		MaxArgs: 6,
+	}
+	actual := cmd.Inspect()
+	expected := "cmdname(integer, float, string, arg4...arg6)"
+	if actual != expected {
+		t.Errorf("cmd.Inspect() test 3-6 args got %q, expected %q", actual, expected)
+	}
+	cmd.MaxArgs = -1
+	actual = cmd.Inspect()
+	expected = "cmdname(integer, float, string, ...)"
+	if actual != expected {
+		t.Errorf("cmd.Inspect() test unlimited args got %q, expected %q", actual, expected)
+	}
+}

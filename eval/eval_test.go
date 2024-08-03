@@ -758,8 +758,14 @@ func TestExtension(t *testing.T) {
 	if err != nil {
 		t.Fatalf("extensions.Init() failed: %v", err)
 	}
-	input := `pow(2,10)`
+	input := `pow`
 	evaluated := testEval(t, input)
+	expected := "pow(float, float)"
+	if evaluated.Inspect() != expected {
+		t.Errorf("object has wrong value. got=%s, want=%s", evaluated.Inspect(), expected)
+	}
+	input = `pow(2,10)`
+	evaluated = testEval(t, input)
 	testFloatObject(t, evaluated, 1024)
 	input = `round(2.7)`
 	evaluated = testEval(t, input)

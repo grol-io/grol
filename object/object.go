@@ -357,12 +357,11 @@ type Extension struct {
 
 func (e *Extension) Usage(out *strings.Builder) {
 	for i := 1; i <= e.MinArgs; i++ {
-		coma := ""
 		if i > 1 {
-			coma = ", "
+			out.WriteString(", ")
 		}
 		t := strings.ToLower(e.ArgTypes[i-1].String())
-		out.WriteString(fmt.Sprintf("%s%s%d", coma, t, i))
+		out.WriteString(t)
 	}
 	switch {
 	case e.MaxArgs < 0:
