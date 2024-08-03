@@ -1,3 +1,5 @@
+// Package mappings some go built in functions to grol functions.
+// Same mechanism can be used to map other go functions to grol functions and further extend the language.
 package extensions
 
 import (
