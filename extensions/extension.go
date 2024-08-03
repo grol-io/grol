@@ -67,6 +67,8 @@ func initInternal() error {
 		{math.Atan, "atan"},
 		{math.Round, "round"},
 		{math.Trunc, "trunc"},
+		{math.Floor, "floor"},
+		{math.Ceil, "ceil"},
 	} {
 		oneFloat.Callback = func(args []object.Object) object.Object {
 			// Arg len check already done through MinArgs=MaxArgs=1 and
@@ -79,6 +81,8 @@ func initInternal() error {
 			return err
 		}
 	}
+	object.AddIdentifier("PI", object.Float{Value: math.Pi})
+	object.AddIdentifier("E", object.Float{Value: math.E}) // using uppercase so "e" isn't taken/shadowed.
 	return nil
 }
 

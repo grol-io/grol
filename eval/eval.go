@@ -25,7 +25,7 @@ type State struct {
 
 func NewState() *State {
 	return &State{
-		env:        object.NewEnvironment(),
+		env:        object.NewRootEnvironment(),
 		Out:        os.Stdout,
 		LogOut:     os.Stdout,
 		cache:      NewCache(),

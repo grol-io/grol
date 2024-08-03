@@ -2,19 +2,26 @@ package object
 
 import (
 	"errors"
+	"maps"
 )
 
-var extraFunctions map[string]Extension
+var (
+	extraFunctions   map[string]Extension
+	extraIdentifiers map[string]Object
+	initDone         bool
+)
 
 // Init resets the table of extended functions to empty.
 // Optional, will be called on demand the first time through CreateFunction.
 func Init() {
 	extraFunctions = make(map[string]Extension)
+	extraIdentifiers = make(map[string]Object)
+	initDone = true
 }
 
 // CreateFunction adds a new function to the table of extended functions.
 func CreateFunction(cmd Extension) error {
-	if extraFunctions == nil {
+	if !initDone {
 		Init()
 	}
 	if cmd.Name == "" {
@@ -35,6 +42,24 @@ func CreateFunction(cmd Extension) error {
 
 func ExtraFunctions() map[string]Extension {
 	return extraFunctions
+}
+
+// Add values to top level environment, e.g "pi" -> 3.14159...
+// or "printf(){print(sprintf(%s, args...))}".
+func AddIdentifier(name string, value Object) {
+	if !initDone {
+		Init()
+	}
+	extraIdentifiers[name] = value
+}
+
+// This makes a copy of the extraIdentifiers map to serve as initial Environment without mutating the original.
+// use to setup the root environment for the interpreter state.
+func initialIdentifiersCopy() map[string]Object {
+	if !initDone {
+		Init()
+	}
+	return maps.Clone(extraIdentifiers)
 }
 
 func Unwrap(objs []Object) []any {
