@@ -116,7 +116,7 @@ func TestEvalStringEvalError(t *testing.T) {
 
 
 	`
-	expected := "<err: <identifier not found: y>>"
+	expected := "<err: identifier not found: y>"
 	res, errs, formatted := repl.EvalString(s)
 	if len(errs) == 0 {
 		t.Fatalf("EvalString() got no errors (res %q), expected some", res)

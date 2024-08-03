@@ -233,31 +233,31 @@ func TestErrorHandling(t *testing.T) {
 	}{
 		{
 			"myfunc=func(x,y) {x+y}; myfunc(1)",
-			"<wrong number of arguments for myfunc. got=1, want=2>",
+			"wrong number of arguments for myfunc. got=1, want=2",
 		},
 		{
 			"5 + true;",
-			"<operation on non integers left=5 right=true>",
+			"operation on non integers left=5 right=true",
 		},
 		{
 			"5 + true; 5;",
-			"<operation on non integers left=5 right=true>",
+			"operation on non integers left=5 right=true",
 		},
 		{
 			"-true",
-			"<minus of true>",
+			"minus of true",
 		},
 		{
 			"true + false;",
-			"<operation on non integers left=true right=false>",
+			"operation on non integers left=true right=false",
 		},
 		{
 			"5; true + false; 5",
-			"<operation on non integers left=true right=false>",
+			"operation on non integers left=true right=false",
 		},
 		{
 			"if (10 > 1) { true + false; }",
-			"<operation on non integers left=true right=false>",
+			"operation on non integers left=true right=false",
 		},
 		{
 			`
@@ -269,15 +269,15 @@ if (10 > 1) {
   return 1;
 }
 `,
-			"<operation on non integers left=true right=false>",
+			"operation on non integers left=true right=false",
 		},
 		{
 			"foobar",
-			"<identifier not found: foobar>",
+			"identifier not found: foobar",
 		},
 		{
 			`"Hello" - "World"`,
-			"<unknown operator: STRING MINUS STRING>",
+			"unknown operator: STRING MINUS STRING",
 		},
 		{
 			`{"name": "Monkey"}[func(x) { x }];`,

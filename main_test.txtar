@@ -26,7 +26,7 @@ stderr welcome
 !grol -c 'foo'
 stderr 'Errors'
 stderr 'identifier not found: foo'
-stdout '<err: <identifier not found: foo>>'
+stdout '<err: identifier not found: foo>'
 
 # sample_test.gr
 grol sample_test.gr
