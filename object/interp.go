@@ -6,15 +6,14 @@ import (
 
 var commands map[string]Extension
 
-func init() {
-	Init()
-}
-
 func Init() {
 	commands = make(map[string]Extension)
 }
 
 func CreateCommand(cmd Extension) error {
+	if commands == nil {
+		Init()
+	}
 	if cmd.Name == "" {
 		return errors.New("empty command name")
 	}
