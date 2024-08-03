@@ -2,9 +2,6 @@ package extensions
 
 import (
 	"math"
-	"reflect"
-	"runtime"
-	"strings"
 
 	"grol.io/grol/object"
 )
@@ -25,35 +22,6 @@ func Init() error {
 
 type OneFloatInOutFunc func(float64) float64
 
-func FunctionName(f any) string {
-	val := reflect.ValueOf(f)
-	if val.Kind() != reflect.Func {
-		return ""
-	}
-	fullName := runtime.FuncForPC(val.Pointer()).Name()
-	return fullName
-}
-
-func ShortFunctionName(f any) string {
-	fullName := FunctionName(f)
-	if fullName == "" {
-		return ""
-	}
-	lastDot := strings.LastIndex(fullName, ".")
-	if lastDot == -1 {
-		return fullName
-	}
-	return fullName[lastDot+1:]
-}
-
-func MathFunctionName(f any) string {
-	s := strings.ToLower(ShortFunctionName(f))
-	if s == "log" {
-		return "ln"
-	}
-	return s
-}
-
 func initInternal() error {
 	cmd := object.Extension{
 		Name:     "pow",
@@ -71,25 +39,28 @@ func initInternal() error {
 		MaxArgs:  1,
 		ArgTypes: []object.Type{object.FLOAT},
 	}
-	for _, function := range []OneFloatInOutFunc{
-		math.Sin,
-		math.Cos,
-		math.Tan,
-		math.Log, // renamed to ln in MathFunctionName
-		math.Sqrt,
-		math.Exp,
-		math.Asin,
-		math.Acos,
-		math.Atan,
-		math.Round,
-		math.Trunc,
+	for _, function := range []struct {
+		fn   OneFloatInOutFunc
+		name string
+	}{
+		{math.Sin, "sin"},
+		{math.Cos, "cos"},
+		{math.Tan, "tan"},
+		{math.Log, "ln"}, // proper name for natural logarithm and also doesn't conflict with logger builtin.
+		{math.Sqrt, "sqrt"},
+		{math.Exp, "exp"},
+		{math.Asin, "asin"},
+		{math.Acos, "acos"},
+		{math.Atan, "atan"},
+		{math.Round, "round"},
+		{math.Trunc, "trunc"},
 	} {
 		oneFloat.Callback = func(args []object.Object) object.Object {
 			// Arg len check already done through MinArgs=MaxArgs=1 and
 			// type through ArgTypes: []object.Type{object.FLOAT}.
-			return object.Float{Value: function(args[0].(object.Float).Value)}
+			return object.Float{Value: function.fn(args[0].(object.Float).Value)}
 		}
-		oneFloat.Name = MathFunctionName(function)
+		oneFloat.Name = function.name
 		err = object.CreateCommand(oneFloat)
 		if err != nil {
 			return err

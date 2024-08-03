@@ -57,7 +57,7 @@ func main() {
 	global.Set("grolVersion", js.ValueOf(grolVersion))
 	err := extensions.Init()
 	if err != nil {
-		log.Fatalf("Error initializing extensions: %v", err)
+		log.Critf("Error initializing extensions: %v", err)
 	}
 	<-done
 }
