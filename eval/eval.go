@@ -29,7 +29,7 @@ func NewState() *State {
 		Out:        os.Stdout,
 		LogOut:     os.Stdout,
 		cache:      NewCache(),
-		extensions: object.Commands(),
+		extensions: object.ExtraFunctions(),
 	}
 }
 

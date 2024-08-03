@@ -4,14 +4,17 @@ import (
 	"errors"
 )
 
-var commands map[string]Extension
+var extraFunctions map[string]Extension
 
+// Init resets the table of extended functions to empty.
+// Optional, will be called on demand the first time through CreateFunction.
 func Init() {
-	commands = make(map[string]Extension)
+	extraFunctions = make(map[string]Extension)
 }
 
-func CreateCommand(cmd Extension) error {
-	if commands == nil {
+// CreateFunction adds a new function to the table of extended functions.
+func CreateFunction(cmd Extension) error {
+	if extraFunctions == nil {
 		Init()
 	}
 	if cmd.Name == "" {
@@ -23,13 +26,13 @@ func CreateCommand(cmd Extension) error {
 	if len(cmd.ArgTypes) < cmd.MinArgs {
 		return errors.New(cmd.Name + ": arg types < min args")
 	}
-	if _, ok := commands[cmd.Name]; ok {
+	if _, ok := extraFunctions[cmd.Name]; ok {
 		return errors.New(cmd.Name + ": already defined")
 	}
-	commands[cmd.Name] = cmd
+	extraFunctions[cmd.Name] = cmd
 	return nil
 }
 
-func Commands() map[string]Extension {
-	return commands
+func ExtraFunctions() map[string]Extension {
+	return extraFunctions
 }

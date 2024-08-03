@@ -30,7 +30,7 @@ func initInternal() error {
 		ArgTypes: []object.Type{object.FLOAT, object.FLOAT},
 		Callback: pow,
 	}
-	err := object.CreateCommand(cmd)
+	err := object.CreateFunction(cmd)
 	if err != nil {
 		return err
 	}
@@ -61,7 +61,7 @@ func initInternal() error {
 			return object.Float{Value: function.fn(args[0].(object.Float).Value)}
 		}
 		oneFloat.Name = function.name
-		err = object.CreateCommand(oneFloat)
+		err = object.CreateFunction(oneFloat)
 		if err != nil {
 			return err
 		}
