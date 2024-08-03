@@ -124,8 +124,15 @@ Hit enter or click <button onClick="run();" id="runButton" disabled>Run</button>
     document.getElementById('addParamButton').addEventListener('click', () => {
         const paramValue = document.getElementById('input').value
         const url = new URL(window.location)
-        url.searchParams.set('c', paramValue)
-        window.history.pushState({}, '', url)
+        function customEscape(str) {
+            return str.replace(/\+/g, '%2B')
+              .replace(/ /g, '+')
+              .replace(/\n/g, '%0A')
+              .replace(/</g, '%3C')
+        }
+        const encodedValue = customEscape(paramValue)
+        const newUrl = `${url.origin}${url.pathname}?c=${encodedValue}`
+        window.history.pushState({}, '', newUrl)
     });
 </script>
 
