@@ -376,6 +376,7 @@ func (s *State) applyExtension(fn object.Extension, args []object.Object) object
 		if i >= len(fn.ArgTypes) {
 			break
 		}
+		// Auto promote integer to float if needed.
 		if fn.ArgTypes[i] == object.FLOAT && arg.Type() == object.INTEGER {
 			args[i] = object.Float{Value: float64(arg.(object.Integer).Value)}
 			continue
