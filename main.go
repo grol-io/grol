@@ -9,7 +9,7 @@ import (
 	"fortio.org/cli"
 	"fortio.org/log"
 	"grol.io/grol/eval"
-	_ "grol.io/grol/extensions" // register extensions
+	"grol.io/grol/extensions" // register extensions
 	"grol.io/grol/repl"
 )
 
@@ -34,7 +34,10 @@ func Main() int {
 		FormatOnly: *format,
 		Compact:    *compact,
 	}
-	nArgs := len(flag.Args())
+	err := extensions.Init()
+	if err != nil {
+		log.Fatalf("Error initializing extensions: %v", err)
+	}
 	if *commandFlag != "" {
 		res, errs, _ := repl.EvalString(*commandFlag)
 		if len(errs) > 0 {
@@ -43,7 +46,7 @@ func Main() int {
 		fmt.Print(res)
 		return len(errs)
 	}
-	if nArgs == 0 {
+	if len(flag.Args()) == 0 {
 		repl.Interactive(os.Stdin, os.Stdout, options)
 		return 0
 	}

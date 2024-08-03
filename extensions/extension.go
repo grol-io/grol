@@ -6,11 +6,21 @@ import (
 	"grol.io/grol/object"
 )
 
-func init() {
-	Init()
+var (
+	initDone  = false
+	errInInit error
+)
+
+func Init() error {
+	if initDone {
+		return errInInit
+	}
+	errInInit = initInternal()
+	initDone = true
+	return errInInit
 }
 
-func Init() {
+func initInternal() error {
 	cmd := object.Extension{
 		Name:     "pow",
 		MinArgs:  2,
@@ -20,7 +30,7 @@ func Init() {
 	}
 	err := object.CreateCommand(cmd)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	cmd = object.Extension{
 		Name:     "sin",
@@ -31,56 +41,57 @@ func Init() {
 	}
 	err = object.CreateCommand(cmd)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	cmd.Name = "cos"
 	cmd.Callback = cos
 	err = object.CreateCommand(cmd)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	cmd.Name = "tan"
 	cmd.Callback = tan
 	err = object.CreateCommand(cmd)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	cmd.Name = "ln"
 	cmd.Callback = ln
 	err = object.CreateCommand(cmd)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	cmd.Name = "sqrt"
 	cmd.Callback = sqrt
 	err = object.CreateCommand(cmd)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	cmd.Name = "exp"
 	cmd.Callback = exp
 	err = object.CreateCommand(cmd)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	cmd.Name = "asin"
 	cmd.Callback = asin
 	err = object.CreateCommand(cmd)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	cmd.Name = "acos"
 	cmd.Callback = acos
 	err = object.CreateCommand(cmd)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	cmd.Name = "atan"
 	cmd.Callback = atan
 	err = object.CreateCommand(cmd)
 	if err != nil {
-		panic(err)
+		return err
 	}
+	return nil
 }
 
 func pow(args []object.Object) object.Object {
