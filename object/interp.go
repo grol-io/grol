@@ -36,3 +36,11 @@ func CreateFunction(cmd Extension) error {
 func ExtraFunctions() map[string]Extension {
 	return extraFunctions
 }
+
+func Unwrap(objs []Object) []any {
+	res := make([]any, len(objs))
+	for i, o := range objs {
+		res[i] = o.Unwrap()
+	}
+	return res
+}

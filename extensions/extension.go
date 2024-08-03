@@ -3,6 +3,7 @@
 package extensions
 
 import (
+	"fmt"
 	"math"
 
 	"grol.io/grol/object"
@@ -33,6 +34,16 @@ func initInternal() error {
 		Callback: pow,
 	}
 	err := object.CreateFunction(cmd)
+	if err != nil {
+		return err
+	}
+	err = object.CreateFunction(object.Extension{
+		Name:     "sprintf",
+		MinArgs:  1,
+		MaxArgs:  -1,
+		ArgTypes: []object.Type{object.STRING},
+		Callback: sprintf,
+	})
 	if err != nil {
 		return err
 	}
@@ -78,4 +89,9 @@ func pow(args []object.Object) object.Object {
 	exp := args[1].(object.Float).Value
 	result := math.Pow(base, exp)
 	return object.Float{Value: result}
+}
+
+func sprintf(args []object.Object) object.Object {
+	res := fmt.Sprintf(args[0].(object.String).Value, object.Unwrap(args[1:])...)
+	return object.String{Value: res}
 }

@@ -770,4 +770,14 @@ func TestExtension(t *testing.T) {
 	input = `round(2.7)`
 	evaluated = testEval(t, input)
 	testFloatObject(t, evaluated, 3)
+	input = `sprintf("%d %s %g", 42, "ab\ncd", pow(2, 43))`
+	evaluated = testEval(t, input)
+	expected = "42 ab\ncd 8.796093022208e+12" // might be brittle the %g output of float64.
+	actual, ok := evaluated.(object.String)
+	if !ok {
+		t.Errorf("object is not string. got=%T (%+v)", evaluated, evaluated)
+	}
+	if actual.Value != expected {
+		t.Errorf("object has wrong value. got=%q, want=%q", actual, expected)
+	}
 }

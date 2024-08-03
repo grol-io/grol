@@ -15,6 +15,7 @@ type Type uint8
 type Object interface {
 	Type() Type
 	Inspect() string
+	Unwrap() any
 }
 
 const (
@@ -120,12 +121,20 @@ func (i Integer) Inspect() string {
 	return strconv.FormatInt(i.Value, 10)
 }
 
+func (i Integer) Unwrap() any {
+	return i.Value
+}
+
 func (i Integer) Type() Type {
 	return INTEGER
 }
 
 type Float struct {
 	Value float64
+}
+
+func (f Float) Unwrap() any {
+	return f.Value
 }
 
 func (f Float) Type() Type {
@@ -140,6 +149,10 @@ type Boolean struct {
 	Value bool
 }
 
+func (b Boolean) Unwrap() any {
+	return b.Value
+}
+
 func (b Boolean) Type() Type {
 	return BOOLEAN
 }
@@ -152,6 +165,10 @@ type String struct {
 	Value string
 }
 
+func (s String) Unwrap() any {
+	return s.Value
+}
+
 func (s String) Type() Type {
 	return STRING
 }
@@ -162,6 +179,7 @@ func (s String) Inspect() string {
 
 type Null struct{}
 
+func (n Null) Unwrap() any     { return nil }
 func (n Null) Type() Type      { return NIL }
 func (n Null) Inspect() string { return "nil" }
 
@@ -169,6 +187,8 @@ type Error struct {
 	Value string // message
 }
 
+func (e Error) Unwrap() any     { return e }
+func (e Error) Error() string   { return e.Value }
 func (e Error) Type() Type      { return ERROR }
 func (e Error) Inspect() string { return "<err: " + e.Value + ">" }
 
@@ -176,6 +196,7 @@ type ReturnValue struct {
 	Value Object
 }
 
+func (rv ReturnValue) Unwrap() any     { return rv.Value }
 func (rv ReturnValue) Type() Type      { return RETURN }
 func (rv ReturnValue) Inspect() string { return rv.Value.Inspect() }
 
@@ -198,7 +219,8 @@ func WriteStrings(out *strings.Builder, list []Object, before, sep, after string
 	out.WriteString(after)
 }
 
-func (f Function) Type() Type { return FUNC }
+func (f Function) Unwrap() any { return f }
+func (f Function) Type() Type  { return FUNC }
 
 // Must be called after the function is fully initialized.
 // Whether a function result should be cached doesn't depend on the Name,
@@ -235,7 +257,8 @@ type Array struct {
 	Elements []Object
 }
 
-func (ao Array) Type() Type { return ARRAY }
+func (ao Array) Unwrap() any { return Unwrap(ao.Elements) }
+func (ao Array) Type() Type  { return ARRAY }
 func (ao Array) Inspect() string {
 	out := strings.Builder{}
 	WriteStrings(&out, ao.Elements, "[", ",", "]")
@@ -290,6 +313,14 @@ func (mk MapKeys) Swap(i, j int) {
 	mk[i], mk[j] = mk[j], mk[i]
 }
 
+func (m Map) Unwrap() any {
+	res := make(map[any]any, len(m))
+	for k, v := range m {
+		res[k.Unwrap()] = v.Unwrap()
+	}
+	return res
+}
+
 func (m Map) Type() Type { return MAP }
 
 func (m Map) Inspect() string {
@@ -318,7 +349,8 @@ type Quote struct {
 	Node ast.Node
 }
 
-func (q Quote) Type() Type { return QUOTE }
+func (q Quote) Unwrap() any { return q.Node }
+func (q Quote) Type() Type  { return QUOTE }
 func (q Quote) Inspect() string {
 	out := strings.Builder{}
 	out.WriteString("quote(")
@@ -333,7 +365,8 @@ type Macro struct {
 	Env        *Environment
 }
 
-func (m Macro) Type() Type { return MACRO }
+func (m Macro) Unwrap() any { return m }
+func (m Macro) Type() Type  { return MACRO }
 func (m Macro) Inspect() string {
 	out := strings.Builder{}
 	out.WriteString("macro(")
@@ -374,7 +407,8 @@ func (e *Extension) Usage(out *strings.Builder) {
 	}
 }
 
-func (e Extension) Type() Type { return EXTENSION }
+func (e Extension) Unwrap() any { return e }
+func (e Extension) Type() Type  { return EXTENSION }
 func (e Extension) Inspect() string {
 	out := strings.Builder{}
 	out.WriteString(e.Name)
