@@ -64,6 +64,25 @@ stdout '^7540113804746346429\n$'
 !stdout '\n\n'
 !stderr .
 
+# variadic errors
+!grol -c 'func f(a,b,..){};f(1)'
+stderr 'wrong number of arguments for f. got=1, want at least=2'
+
+# variadic ok 1
+grol -quiet -c 'func f(a,b,..){println(a,b,..)};f(1,2)'
+stdout '1 2 \[]'
+!stderr .
+
+# variadic ok 2
+grol -quiet -c 'func f(a,b,..){println(a,b,..)};f(1,2,"ab",PI)'
+stdout '1 2 \["ab",3.141592653589793]'
+!stderr .
+
+# printf expands correctly
+grol -quiet -c 'printf("%d %s %.2f\n", 42, "ab\ncd", 1.5)'
+stdout '42 ab\ncd 1.50\n'
+!stderr .
+
 -- sample_test.gr --
 // Sample file that our gorepl can interpret
 // <--- comments

@@ -76,7 +76,8 @@ func New(l *lexer.Lexer) *Parser {
 	}
 
 	p.prefixParseFns = make(map[token.Type]prefixParseFn)
-	p.registerPrefix(token.IDENT, p.parseIdentifier) // arguable that ident/ints are prefixes - they are absence of operator?
+	p.registerPrefix(token.IDENT, p.parseIdentifier)  // arguable that ident/ints are prefixes - they are absence of operator?
+	p.registerPrefix(token.DOTDOT, p.parseIdentifier) // hack for now to treat .. as an identifier
 	p.registerPrefix(token.INT, p.parseIntegerLiteral)
 	p.registerPrefix(token.FLOAT, p.parseFloatLiteral)
 	p.registerPrefix(token.BANG, p.parsePrefixExpression)
@@ -496,7 +497,7 @@ func (p *Parser) parseFunctionLiteral() ast.Node {
 		return nil
 	}
 
-	lit.Parameters = p.parseFunctionParameters()
+	lit.Parameters, lit.Variadic = p.parseFunctionParameters()
 
 	if !p.expectPeek(token.LBRACE) {
 		return nil
@@ -521,20 +522,16 @@ func (p *Parser) parseBuiltin() ast.Node {
 	return bi
 }
 
-func (p *Parser) parseFunctionParameters() []ast.Node {
+func (p *Parser) parseFunctionParameters() ([]ast.Node, bool) {
 	identifiers := []ast.Node{}
-
 	if p.peekTokenIs(token.RPAREN) {
 		p.nextToken()
-		return identifiers
+		return identifiers, false
 	}
-
 	p.nextToken()
-
 	ident := &ast.Identifier{}
 	ident.Token = p.curToken
 	identifiers = append(identifiers, ident)
-
 	for p.peekTokenIs(token.COMMA) {
 		p.nextToken()
 		p.nextToken()
@@ -542,11 +539,10 @@ func (p *Parser) parseFunctionParameters() []ast.Node {
 		ident.Token = p.curToken
 		identifiers = append(identifiers, ident)
 	}
-
 	if !p.expectPeek(token.RPAREN) {
-		return nil
+		return nil, false
 	}
-	return identifiers
+	return identifiers, (p.prevToken.Type() == token.DOTDOT)
 }
 
 func (p *Parser) parseCallExpression(function ast.Node) ast.Node {
@@ -558,24 +554,20 @@ func (p *Parser) parseCallExpression(function ast.Node) ast.Node {
 
 func (p *Parser) parseExpressionList(end token.Type) []ast.Node {
 	args := []ast.Node{}
-
 	if p.peekTokenIs(end) {
 		p.nextToken()
 		return args
 	}
 	p.nextToken()
 	args = append(args, p.parseExpression(LOWEST))
-
 	for p.peekTokenIs(token.COMMA) {
 		p.nextToken()
 		p.nextToken()
 		args = append(args, p.parseExpression(LOWEST))
 	}
-
 	if !p.expectPeek(end) {
 		return nil
 	}
-
 	return args
 }
 
@@ -630,7 +622,7 @@ func (p *Parser) parseMacroLiteral() ast.Node {
 	if !p.expectPeek(token.LPAREN) {
 		return nil
 	}
-	lit.Parameters = p.parseFunctionParameters()
+	lit.Parameters, _ = p.parseFunctionParameters() // TODO variadic macros?
 	if !p.expectPeek(token.LBRACE) {
 		return nil
 	}

@@ -486,7 +486,7 @@ func TestIfElseExpression(t *testing.T) {
 }
 
 func TestFunctionLiteralParsing(t *testing.T) {
-	input := `func(x, y) { x + y; }`
+	input := `func(x, y, ..) { x + y; }`
 
 	l := lexer.New(input)
 	p := New(l)
@@ -503,7 +503,10 @@ func TestFunctionLiteralParsing(t *testing.T) {
 		t.Fatalf("program.Statements[0] is not ast.FunctionLiteral. got=%T",
 			program.Statements[0])
 	}
-	if len(function.Parameters) != 2 {
+	if !function.Variadic {
+		t.Errorf("function literal is not variadic. got=%t", function.Variadic)
+	}
+	if len(function.Parameters) != 3 {
 		t.Fatalf("function literal parameters wrong. want 2, got=%d\n",
 			len(function.Parameters))
 	}

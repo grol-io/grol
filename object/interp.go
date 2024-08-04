@@ -36,6 +36,7 @@ func CreateFunction(cmd Extension) error {
 	if _, ok := extraFunctions[cmd.Name]; ok {
 		return errors.New(cmd.Name + ": already defined")
 	}
+	cmd.Variadic = (cmd.MaxArgs == -1) || (cmd.MaxArgs > cmd.MinArgs)
 	extraFunctions[cmd.Name] = cmd
 	return nil
 }

@@ -10,7 +10,9 @@ import (
 
 	"fortio.org/log"
 	"grol.io/grol/ast"
+	"grol.io/grol/lexer"
 	"grol.io/grol/object"
+	"grol.io/grol/parser"
 	"grol.io/grol/token"
 )
 
@@ -111,7 +113,7 @@ func (s *State) evalPostfixExpression(node *ast.PostfixExpression) object.Object
 }
 
 // Doesn't unwrap return - return bubbles up.
-func (s *State) evalInternal(node any) object.Object { //nolint:funlen // we have a lot of cases.
+func (s *State) evalInternal(node any) object.Object {
 	switch node := node.(type) {
 	// Statements
 	case *ast.Statements:
@@ -162,10 +164,14 @@ func (s *State) evalInternal(node any) object.Object { //nolint:funlen // we hav
 	case *ast.Builtin:
 		return s.evalBuiltin(node)
 	case *ast.FunctionLiteral:
-		params := node.Parameters
-		body := node.Body
 		name := node.Name
-		fn := object.Function{Parameters: params, Name: name, Env: s.env, Body: body}
+		fn := object.Function{
+			Parameters: node.Parameters,
+			Name:       name,
+			Env:        s.env,
+			Body:       node.Body,
+			Variadic:   node.Variadic,
+		}
 		fn.SetCacheKey() // sets cache key
 		if name != nil {
 			s.env.Set(name.Literal(), fn)
@@ -364,6 +370,16 @@ func evalArrayIndexExpression(array, index object.Object) object.Object {
 
 func (s *State) applyExtension(fn object.Extension, args []object.Object) object.Object {
 	l := len(args)
+	log.Debugf("apply extension %s variadic %t : %d args %v", fn.Inspect(), fn.Variadic, l, args)
+	if fn.Variadic {
+		// In theory we should only do that if the last arg was ".." and not any array, but
+		// that could be a useful feature too.
+		if l > 0 && args[l-1].Type() == object.ARRAY {
+			args = append(args[:l-1], args[l-1].(object.Array).Elements...)
+			l = len(args)
+			log.Debugf("expending last arg now %d args %v", l, args)
+		}
+	}
 	if l < fn.MinArgs {
 		return object.Error{Value: fmt.Sprintf("wrong number of arguments got=%d, want %s",
 			l, fn.Inspect())} // shows usage
@@ -421,13 +437,32 @@ func (s *State) applyFunction(name string, fn object.Object, args []object.Objec
 
 func extendFunctionEnv(name string, fn object.Function, args []object.Object) (*object.Environment, *object.Error) {
 	env := object.NewEnclosedEnvironment(fn.Env)
-	n := len(fn.Parameters)
-	if len(args) != n {
-		return nil, &object.Error{Value: fmt.Sprintf("wrong number of arguments for %s. got=%d, want=%d",
-			name, len(args), n)}
+	params := fn.Parameters
+	atLeast := ""
+	extra := object.Array{}
+	if fn.Variadic {
+		n := len(params) - 1
+		params = params[:n]
+		// Expending the last argument expecting it to be "..", but any other array will do too.
+		if len(args) > 0 && args[len(args)-1].Type() == object.ARRAY {
+			args = append(args[:len(args)-1], args[len(args)-1].(object.Array).Elements...)
+		}
+		if len(args) >= n {
+			extra.Elements = args[n:]
+			args = args[:n]
+		}
+		atLeast = " at least"
 	}
-	for paramIdx, param := range fn.Parameters {
+	n := len(params)
+	if len(args) != n {
+		return nil, &object.Error{Value: fmt.Sprintf("wrong number of arguments for %s. got=%d, want%s=%d",
+			name, len(args), atLeast, n)}
+	}
+	for paramIdx, param := range params {
 		env.Set(param.Value().Literal(), args[paramIdx])
+	}
+	if fn.Variadic {
+		env.Set("..", extra)
 	}
 	// for recursion in anonymous functions.
 	// TODO: consider not having to keep setting this in the function's env and treating as a keyword.
@@ -525,12 +560,16 @@ func (s *State) evalBangOperatorExpression(right object.Object) object.Object {
 }
 
 func (s *State) evalMinusPrefixOperatorExpression(right object.Object) object.Object {
-	if right.Type() != object.INTEGER {
+	switch right.Type() { //nolint:exhaustive // we have default which is errors.
+	case object.INTEGER:
+		value := right.(object.Integer).Value
+		return object.Integer{Value: -value}
+	case object.FLOAT:
+		value := right.(object.Float).Value
+		return object.Float{Value: -value}
+	default:
 		return object.Error{Value: "minus of " + right.Inspect()}
 	}
-
-	value := right.(object.Integer).Value
-	return object.Integer{Value: -value}
 }
 
 func (s *State) evalInfixExpression(operator token.Type, left, right object.Object) object.Object {
@@ -711,4 +750,23 @@ func evalFloatInfixExpression(operator token.Type, left, right object.Object) ob
 	default:
 		return object.Error{Value: "unknown operator: " + operator.String()}
 	}
+}
+
+// AddEvalResult adds the result of an evaluation (for instance a function object)
+// to the base identifiers. Used to add grol defined functions to the base environment
+// (e.g abs(), log2(), etc). Eventually we may instead `include("lib.gr")` or some such.
+func AddEvalResult(name, code string) error {
+	l := lexer.New(code)
+	p := parser.New(l)
+	program := p.ParseProgram()
+	if len(p.Errors()) != 0 {
+		return fmt.Errorf("parsing error: %v", p.Errors())
+	}
+	st := NewState()
+	res := st.Eval(program)
+	if res.Type() == object.ERROR {
+		return fmt.Errorf("eval error: %v", res.Inspect())
+	}
+	object.AddIdentifier(name, res)
+	return nil
 }

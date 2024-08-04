@@ -31,7 +31,7 @@ if (5 < 10) {
 "foo\"bar"
 "foo\nbar\t\\"
 [1, 2];
-a2=3
+a2=.3
 {"foo": "bar"}
 return // nil return
 macro(x, y) { x + y }
@@ -42,6 +42,7 @@ j--
 /*/*/
 /* This is a
    multiline comment */
+..
 @
 `
 	tests := []struct {
@@ -130,7 +131,7 @@ j--
 		{token.SEMICOLON, ";"},
 		{token.IDENT, "a2"},
 		{token.ASSIGN, "="},
-		{token.INT, "3"},
+		{token.FLOAT, ".3"},
 		{token.LBRACE, "{"},
 		{token.STRING, "foo"},
 		{token.COLON, ":"},
@@ -161,6 +162,7 @@ j--
 		{token.DECR, "--"},
 		{token.BLOCKCOMMENT, "/*/*/"},
 		{token.BLOCKCOMMENT, "/* This is a\n   multiline comment */"},
+		{token.DOTDOT, ".."},
 		{token.ILLEGAL, "@"},
 		{token.EOF, ""},
 	}

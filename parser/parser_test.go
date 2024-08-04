@@ -217,6 +217,11 @@ func TestFormat(t *testing.T) {
 		compact  string
 	}{
 		{
+			`func fact(a, b, ..) {println(a, b,..)}`,
+			"func fact(a, b, ..) {\n\tprintln(a, b, ..)\n}",
+			"func fact(a,b,..){println(a,b,..)}",
+		},
+		{
 			`a = 1 /* inline */ b = 2`,
 			`a = 1 /* inline */ b = 2`,
 			`a=1 b=2`,

@@ -45,31 +45,32 @@ func _() {
 	_ = x[NOTEQ-34]
 	_ = x[INCR-35]
 	_ = x[DECR-36]
-	_ = x[endMultiCharTokens-37]
-	_ = x[startIdentityTokens-38]
-	_ = x[FUNC-39]
-	_ = x[TRUE-40]
-	_ = x[FALSE-41]
-	_ = x[IF-42]
-	_ = x[ELSE-43]
-	_ = x[RETURN-44]
-	_ = x[MACRO-45]
-	_ = x[QUOTE-46]
-	_ = x[UNQUOTE-47]
-	_ = x[LEN-48]
-	_ = x[FIRST-49]
-	_ = x[REST-50]
-	_ = x[PRINT-51]
-	_ = x[PRINTLN-52]
-	_ = x[LOG-53]
-	_ = x[ERROR-54]
-	_ = x[endIdentityTokens-55]
-	_ = x[EOF-56]
+	_ = x[DOTDOT-37]
+	_ = x[endMultiCharTokens-38]
+	_ = x[startIdentityTokens-39]
+	_ = x[FUNC-40]
+	_ = x[TRUE-41]
+	_ = x[FALSE-42]
+	_ = x[IF-43]
+	_ = x[ELSE-44]
+	_ = x[RETURN-45]
+	_ = x[MACRO-46]
+	_ = x[QUOTE-47]
+	_ = x[UNQUOTE-48]
+	_ = x[LEN-49]
+	_ = x[FIRST-50]
+	_ = x[REST-51]
+	_ = x[PRINT-52]
+	_ = x[PRINTLN-53]
+	_ = x[LOG-54]
+	_ = x[ERROR-55]
+	_ = x[endIdentityTokens-56]
+	_ = x[EOF-57]
 }
 
-const _Type_name = "ILLEGALEOLstartValueTokensIDENTINTFLOATSTRINGLINECOMMENTBLOCKCOMMENTendValueTokensstartSingleCharTokensASSIGNPLUSMINUSBANGASTERISKSLASHPERCENTLTGTCOMMASEMICOLONLPARENRPARENLBRACERBRACELBRACKETRBRACKETCOLONendSingleCharTokensstartMultiCharTokensLTEQGTEQEQNOTEQINCRDECRendMultiCharTokensstartIdentityTokensFUNCTRUEFALSEIFELSERETURNMACROQUOTEUNQUOTELENFIRSTRESTPRINTPRINTLNLOGERRORendIdentityTokensEOF"
+const _Type_name = "ILLEGALEOLstartValueTokensIDENTINTFLOATSTRINGLINECOMMENTBLOCKCOMMENTendValueTokensstartSingleCharTokensASSIGNPLUSMINUSBANGASTERISKSLASHPERCENTLTGTCOMMASEMICOLONLPARENRPARENLBRACERBRACELBRACKETRBRACKETCOLONendSingleCharTokensstartMultiCharTokensLTEQGTEQEQNOTEQINCRDECRDOTDOTendMultiCharTokensstartIdentityTokensFUNCTRUEFALSEIFELSERETURNMACROQUOTEUNQUOTELENFIRSTRESTPRINTPRINTLNLOGERRORendIdentityTokensEOF"
 
-var _Type_index = [...]uint16{0, 7, 10, 26, 31, 34, 39, 45, 56, 68, 82, 103, 109, 113, 118, 122, 130, 135, 142, 144, 146, 151, 160, 166, 172, 178, 184, 192, 200, 205, 224, 244, 248, 252, 254, 259, 263, 267, 285, 304, 308, 312, 317, 319, 323, 329, 334, 339, 346, 349, 354, 358, 363, 370, 373, 378, 395, 398}
+var _Type_index = [...]uint16{0, 7, 10, 26, 31, 34, 39, 45, 56, 68, 82, 103, 109, 113, 118, 122, 130, 135, 142, 144, 146, 151, 160, 166, 172, 178, 184, 192, 200, 205, 224, 244, 248, 252, 254, 259, 263, 267, 273, 291, 310, 314, 318, 323, 325, 329, 335, 340, 345, 352, 355, 360, 364, 369, 376, 379, 384, 401, 404}
 
 func (i Type) String() string {
 	if i >= Type(len(_Type_index)-1) {
