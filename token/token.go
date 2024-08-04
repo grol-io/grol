@@ -1,7 +1,7 @@
 // There are 2 types of Token, constant ones (with no "value") and the ones with attached
-// value that is variable (e.g. IDENT, INT, FLOAT, STRING, COMMENT).
-// We'd use the upcoming unique https://tip.golang.org/doc/go1.23#new-unique-package
-// but we want this to run on 1.22 and earlier.
+// value that is variable (e.g. IDENT, INT, FLOAT, STRING, *COMMENT).
+// We might have used the upcoming unique https://tip.golang.org/doc/go1.23#new-unique-package
+// but we want this to run on 1.22 and earlier and rolled our own, not multi threaded.
 package token
 
 import (
@@ -17,13 +17,15 @@ type noCopy struct{}
 func (*noCopy) Lock()   {}
 func (*noCopy) Unlock() {}
 
-type Type uint8
+type Type byte
 
 type Token struct {
 	// Allows go vet to flag accidental copies of this type,
 	// though with an error about lock value which can be confusing
 	_         noCopy
 	tokenType Type
+	charCode  byte // 1 byte serialization printable code.
+	valued    bool // does literal contains the value (for IDENT, INT, FLOAT, STRING, *COMMENT) or is the code enough.
 	literal   string
 }
 
@@ -42,7 +44,11 @@ func InternToken(t *Token) *Token {
 }
 
 func Intern(t Type, literal string) *Token {
-	return InternToken(&Token{tokenType: t, literal: literal})
+	code := tToCode[t]
+	if code == 0 {
+		panic("no code for " + t.String())
+	}
+	return InternToken(&Token{tokenType: t, literal: literal, charCode: code, valued: true})
 }
 
 func ResetInterning() {
@@ -56,9 +62,10 @@ const (
 	startValueTokens
 
 	// Identifiers + literals. with attached value.
-	IDENT // add, foobar, x, y, ...
-	INT   // 1343456
-	FLOAT // 1. 1e3
+	IDENT  // add, foobar, x, y, ...
+	INT    // 1343456
+	FLOAT  // .5, 3.14159,...
+	STRING // "foo bar"
 	LINECOMMENT
 	BLOCKCOMMENT
 
@@ -112,7 +119,6 @@ const (
 	IF
 	ELSE
 	RETURN
-	STRING
 	MACRO
 	// Macro magic.
 	QUOTE
@@ -128,71 +134,118 @@ const (
 
 	endIdentityTokens
 
+	NULL // used for serializing absent fields like function name.
 	EOF
 )
 
 var (
 	EOLT   = &Token{tokenType: EOL}
 	EOFT   = &Token{tokenType: EOF}
+	NULLT  *Token
 	TRUET  *Token
 	FALSET *Token
+	ELSET  *Token
 )
 
 var (
-	keywords map[string]*Token
-	cTokens  map[byte]*Token
-	c2Tokens map[[2]byte]*Token
-	tToChar  map[Type]byte
-	tToT     map[Type]*Token // for all token that are constant.
+	keywords    map[string]*Token
+	cTokens     [256]*Token // for all token that are single char.
+	tToCode     [256]byte   // iota code to char code.
+	codeToT     [256]Type   // char code to Type
+	c2Tokens    map[[2]byte]*Token
+	tToChar     map[Type]byte
+	tToT        map[Type]*Token // for all token that are constant.
+	tokensCount int
 )
 
 func init() {
 	Init()
 }
 
-func assoc(t Type, c byte) {
-	tToChar[t] = c
-	tok := &Token{tokenType: t, literal: string(c)}
-	cTokens[c] = tok
-	tToT[t] = tok
+func assocValued(t Type, code byte) {
+	assocCodeAndToken(t, code)
 }
 
-func assocS(t Type, s string) *Token {
-	tok := &Token{tokenType: t, literal: s}
+func assocCodeAndToken(t Type, code byte) {
+	if tToCode[t] != 0 {
+		panic("duplicate code for " + t.String() + " " + string(tToCode[t]) + " vs " + string(code))
+	}
+	tToCode[t] = code
+	if codeToT[code] != 0 {
+		panic("duplicate token for " + string(code) + " " + codeToT[code].String() + " vs " + t.String())
+	}
+	codeToT[code] = t
+	tokensCount++
+}
+
+func assoc(t Type, c byte) {
+	tToChar[t] = c
+	tok := &Token{tokenType: t, literal: string(c), charCode: c}
+	cTokens[c] = tok
+	tToT[t] = tok
+	assocCodeAndToken(t, c)
+}
+
+func assocS(t Type, s string, code byte) *Token {
+	tok := &Token{tokenType: t, literal: s, charCode: code}
 	old := InternToken(tok)
 	if old != tok {
 		panic("duplicate token for " + s)
 	}
 	tToT[t] = tok
+	assocCodeAndToken(t, code)
 	return tok
 }
 
-func assocC2(t Type, str string) {
+func assocC2(t Type, str string, code byte) {
 	if len(str) != 2 {
 		panic("assocC2: expected 2 char string")
 	}
-	tok := &Token{tokenType: t, literal: str}
+	tok := &Token{tokenType: t, literal: str, charCode: code}
 	old := InternToken(tok)
 	if old != tok {
 		panic("duplicate token for " + str)
 	}
 	tToT[t] = tok
 	c2Tokens[[2]byte{str[0], str[1]}] = tok
+	assocCodeAndToken(t, code)
 }
 
-func Init() {
+func Init() { //nolint:funlen // we need all this.
 	ResetInterning()
+	tokensCount = 0
 	keywords = make(map[string]*Token)
-	cTokens = make(map[byte]*Token)
+	clear(cTokens[:])
+	clear(tToCode[:])
+	clear(codeToT[:])
 	c2Tokens = make(map[[2]byte]*Token)
 	tToChar = make(map[Type]byte)
 	tToT = make(map[Type]*Token)
 	for i := startIdentityTokens + 1; i < endIdentityTokens; i++ {
-		t := assocS(i, strings.ToLower(i.String()))
+		str := i.String()
+		code := str[0] // will be dup for some, we're fixing this below.
+		switch i {     //nolint:exhaustive // we're only fixing the ones conflicting.
+		case TRUE:
+			code = 't'
+		case FALSE:
+			code = 'f'
+		case FIRST:
+			code = '1'
+		case REST:
+			code = '2'
+		case PRINTLN:
+			code = 'N'
+		case ERROR:
+			code = 'e'
+		case LOG:
+			code = 'p'
+		}
+		t := assocS(i, strings.ToLower(str), code)
 		keywords[t.literal] = t
 	}
 	TRUET = tToT[TRUE]
 	FALSET = tToT[FALSE]
+	ELSET = tToT[ELSE]
 	// Single character tokens:
 	assoc(ASSIGN, '=')
 	assoc(PLUS, '+')
@@ -218,8 +271,8 @@ func Init() {
 		if !ok {
 			panic("missing single character token char lookup for " + i.String())
 		}
-		v, ok := cTokens[b]
-		if !ok {
+		v := cTokens[b]
+		if v == nil {
 			panic("missing single character token for " + i.String())
 		}
 		if v.tokenType != i {
@@ -238,14 +291,27 @@ func Init() {
 		}
 	}
 	// Multi character non identity tokens.
-	assocC2(LTEQ, "<=")
-	assocC2(GTEQ, ">=")
-	assocC2(EQ, "==")
-	assocC2(NOTEQ, "!=")
-	assocC2(INCR, "++")
-	assocC2(DECR, "--")
+	assocC2(LTEQ, "<=", 'l')
+	assocC2(GTEQ, ">=", 'g')
+	assocC2(EQ, "==", 'q')
+	assocC2(NOTEQ, "!=", 'n')
+	assocC2(INCR, "++", 'i')
+	assocC2(DECR, "--", 'd')
 	// Special alias for := to be same as ASSIGN.
 	c2Tokens[[2]byte{':', '='}] = cTokens['=']
+	// Valued tokens.:
+	assocValued(IDENT, ' ')
+	assocValued(INT, '0')
+	assocValued(FLOAT, '.')
+	assocValued(STRING, 's')
+	assocValued(LINECOMMENT, 'c')
+	assocValued(BLOCKCOMMENT, 'b')
+
+	assocCodeAndToken(NULL, 'Z') // absence of value
+	NULLT = &Token{tokenType: NULL, literal: "", charCode: tToCode[NULL], valued: false}
+	assocCodeAndToken(ILLEGAL, 1) // doesn't need to be printable.
+	assocCodeAndToken(EOL, 10)    // nl but not printed anyway
+	assocCodeAndToken(EOF, 'z')   // also not used/visible
 }
 
 //go:generate stringer -type=Type
@@ -256,14 +322,14 @@ func LookupIdent(ident string) *Token {
 	if t, ok := keywords[ident]; ok {
 		return t
 	}
-	return InternToken(&Token{tokenType: IDENT, literal: ident})
+	return InternToken(&Token{tokenType: IDENT, literal: ident, charCode: ' ', valued: true})
 }
 
 // ByType is the cheapest lookup for all the tokens whose type
 // only have one possible instance/value
 // (ie all the tokens except for the first 4 value tokens).
 // TODO: codegen all the token constants to avoid needing this function.
-// (even though that's better than string comparaisons).
+// (even though that's better than string comparisons).
 func ByType(t Type) *Token {
 	return tToT[t]
 }
@@ -276,6 +342,10 @@ func (t *Token) Type() Type {
 	return t.tokenType
 }
 
+func (t *Token) Code() byte {
+	return t.charCode
+}
+
 func ConstantTokenChar(literal byte) *Token {
 	return cTokens[literal]
 }
@@ -286,4 +356,13 @@ func ConstantTokenChar2(c1, c2 byte) *Token {
 
 func (t *Token) DebugString() string {
 	return t.Type().String() + ":" + strconv.Quote(t.Literal())
+}
+
+// Is this one of the valued type, where the literal is content and not just the code.
+func (t *Token) HasContent() bool {
+	return t.valued
+}
+
+func NumTokens() int {
+	return tokensCount
 }

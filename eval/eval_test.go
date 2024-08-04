@@ -338,7 +338,7 @@ func TestFunctionObject(t *testing.T) {
 	if ast.DebugString(fn.Parameters[0]) != "x" {
 		t.Fatalf("parameter is not 'x'. got=%q", fn.Parameters[0])
 	}
-	expectedBody := "x + 2\n"
+	expectedBody := "x+2"
 	got := ast.DebugString(fn.Body)
 	if got != expectedBody {
 		t.Fatalf("body is not %q. got=%q", expectedBody, got)
@@ -615,7 +615,7 @@ func TestQuote(t *testing.T) {
 		},
 		{
 			`quote(5 + 8)`,
-			`5 + 8`,
+			`5+8`,
 		},
 		{
 			`quote(foobar)`,
@@ -623,7 +623,7 @@ func TestQuote(t *testing.T) {
 		},
 		{
 			`quote(foobar + barfoo)`,
-			`foobar + barfoo`,
+			`foobar+barfoo`,
 		},
 	}
 
@@ -707,7 +707,7 @@ func TestQuoteUnquote(t *testing.T) {
 			t.Fatalf("quote.Node is nil")
 		}
 
-		got := ast.DebugString(quote.Node)
+		got := quote.Node.PrettyPrint(ast.NewPrintState()).String()
 		if got != tt.expected {
 			t.Errorf("not equal. got=%q, want=%q", got, tt.expected)
 		}

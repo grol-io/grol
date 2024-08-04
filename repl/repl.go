@@ -39,6 +39,7 @@ type Options struct {
 	NoColor    bool // color controlled by log package, unless this is set to true.
 	FormatOnly bool
 	Compact    bool
+	Serialize  bool
 }
 
 func EvalAll(s, macroState *eval.State, in io.Reader, out io.Writer, options Options) {
@@ -166,6 +167,10 @@ func EvalOne(s, macroState *eval.State, what string, out io.Writer, options Opti
 	}
 	if p.ContinuationNeeded() {
 		return true, nil, what
+	}
+	if options.Serialize {
+		program.Serialize(out)
+		return false, nil, what
 	}
 	printer := ast.NewPrintState()
 	printer.Compact = options.Compact
