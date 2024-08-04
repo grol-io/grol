@@ -100,14 +100,19 @@ func (s *State) evalPostfixExpression(node *ast.PostfixExpression) object.Object
 	default:
 		return object.Error{Value: "unknown postfix operator: " + node.Type().String()}
 	}
+	var oerr object.Object
 	switch val := val.(type) {
 	case object.Integer:
-		return s.env.Set(id, object.Integer{Value: val.Value + toAdd})
+		oerr = s.env.Set(id, object.Integer{Value: val.Value + toAdd})
 	case object.Float:
-		return s.env.Set(id, object.Float{Value: val.Value + float64(toAdd)}) // So PI++ fails not silently.
+		oerr = s.env.Set(id, object.Float{Value: val.Value + float64(toAdd)}) // So PI++ fails not silently.
 	default:
 		return object.Error{Value: "can't increment/decrement " + val.Type().String()}
 	}
+	if oerr.Type() == object.ERROR {
+		return oerr
+	}
+	return val
 }
 
 // Doesn't unwrap return - return bubbles up.
