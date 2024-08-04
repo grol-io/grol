@@ -56,7 +56,7 @@ func (e *Environment) Set(name string, val Object) Object {
 	if Constant(name) {
 		old, ok := e.Get(name) // not ok
 		if ok {
-			log.Debugf("Attempt to change constant %s from %v to %v", name, old, val)
+			log.Infof("Attempt to change constant %s from %v to %v", name, old, val)
 			if !Hashable(old) || !Hashable(val) || old != val {
 				return Error{Value: fmt.Sprintf("attempt to change constant %s from %s to %s", name, old.Inspect(), val.Inspect())}
 			}
