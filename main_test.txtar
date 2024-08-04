@@ -78,6 +78,11 @@ grol -quiet -c 'func f(a,b,..){println(a,b,..)};f(1,2,"ab",PI)'
 stdout '1 2 \["ab",3.141592653589793]'
 !stderr .
 
+# printf expands correctly
+grol -quiet -c 'printf("%d %s %f", 42, "ab\ncd", 1.5)'
+stdout '42 ab\ncd 1.5'
+!stderr .
+
 -- sample_test.gr --
 // Sample file that our gorepl can interpret
 // <--- comments

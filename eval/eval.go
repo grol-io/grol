@@ -10,7 +10,9 @@ import (
 
 	"fortio.org/log"
 	"grol.io/grol/ast"
+	"grol.io/grol/lexer"
 	"grol.io/grol/object"
+	"grol.io/grol/parser"
 	"grol.io/grol/token"
 )
 
@@ -368,6 +370,16 @@ func evalArrayIndexExpression(array, index object.Object) object.Object {
 
 func (s *State) applyExtension(fn object.Extension, args []object.Object) object.Object {
 	l := len(args)
+	log.Debugf("apply extension %s variadic %t : %d args %v", fn.Inspect(), fn.Variadic, l, args)
+	if fn.Variadic {
+		// In theory we should only do that if the last arg was ".." and not any array, but
+		// that could be a useful feature too.
+		if l > 0 && args[l-1].Type() == object.ARRAY {
+			args = append(args[:l-1], args[l-1].(object.Array).Elements...)
+			l = len(args)
+			log.Debugf("expending last arg now %d args %v", l, args)
+		}
+	}
 	if l < fn.MinArgs {
 		return object.Error{Value: fmt.Sprintf("wrong number of arguments got=%d, want %s",
 			l, fn.Inspect())} // shows usage
@@ -431,6 +443,10 @@ func extendFunctionEnv(name string, fn object.Function, args []object.Object) (*
 	if fn.Variadic {
 		n := len(params) - 1
 		params = params[:n]
+		// Expending the last argument expecting it to be ".." but any other array will do too.
+		if len(args) > 0 && args[len(args)-1].Type() == object.ARRAY {
+			args = append(args[:len(args)-1], args[len(args)-1].(object.Array).Elements...)
+		}
 		if len(args) >= n {
 			extra.Elements = args[n:]
 			args = args[:n]
@@ -730,4 +746,21 @@ func evalFloatInfixExpression(operator token.Type, left, right object.Object) ob
 	default:
 		return object.Error{Value: "unknown operator: " + operator.String()}
 	}
+}
+
+// Adds a (grol) from go to the base identifiers.
+func AddEvalResult(name, code string) error {
+	l := lexer.New(code)
+	p := parser.New(l)
+	program := p.ParseProgram()
+	if len(p.Errors()) != 0 {
+		return fmt.Errorf("parsing error: %v", p.Errors())
+	}
+	st := NewState()
+	res := st.Eval(program)
+	if res.Type() == object.ERROR {
+		return fmt.Errorf("eval error: %v", res.Inspect())
+	}
+	object.AddIdentifier(name, res)
+	return nil
 }

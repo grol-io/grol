@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math"
 
+	"grol.io/grol/eval"
 	"grol.io/grol/object"
 )
 
@@ -44,6 +45,12 @@ func initInternal() error {
 		ArgTypes: []object.Type{object.STRING},
 		Callback: sprintf,
 	})
+	if err != nil {
+		return err
+	}
+	// for printf we could expose current eval "Out" but instead let's use new variadic support and define
+	// printf as print(snprintf(format,..))
+	err = eval.AddEvalResult("printf", "func(format, ..){print(sprintf(format, ..))}")
 	if err != nil {
 		return err
 	}

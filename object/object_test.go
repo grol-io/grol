@@ -42,13 +42,13 @@ func TestExtensionUsage(t *testing.T) {
 		MaxArgs: 6,
 	}
 	actual := cmd.Inspect()
-	expected := "cmdname(integer, float, string, arg4...arg6)"
+	expected := "cmdname(integer, float, string, arg4..arg6)"
 	if actual != expected {
 		t.Errorf("cmd.Inspect() test 3-6 args got %q, expected %q", actual, expected)
 	}
 	cmd.MaxArgs = -1
 	actual = cmd.Inspect()
-	expected = "cmdname(integer, float, string, ...)"
+	expected = "cmdname(integer, float, string, ..)"
 	if actual != expected {
 		t.Errorf("cmd.Inspect() test unlimited args got %q, expected %q", actual, expected)
 	}

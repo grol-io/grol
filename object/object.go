@@ -386,6 +386,7 @@ type Extension struct {
 	MaxArgs  int         // Maximum number of arguments allowed. -1 for unlimited.
 	ArgTypes []Type      // Type of each argument, provided at least up to MinArgs.
 	Callback ExtFunction // The go function or lambda to call when the grol by Name(...) is invoked.
+	Variadic bool        // MaxArgs > MinArgs
 }
 
 // ExtFunction is the signature of what grol will call when the extension is invoked.
@@ -402,9 +403,9 @@ func (e *Extension) Usage(out *strings.Builder) {
 	}
 	switch {
 	case e.MaxArgs < 0:
-		out.WriteString(", ...")
+		out.WriteString(", ..")
 	case e.MaxArgs > e.MinArgs:
-		out.WriteString(fmt.Sprintf(", arg%d...arg%d", e.MinArgs+1, e.MaxArgs))
+		out.WriteString(fmt.Sprintf(", arg%d..arg%d", e.MinArgs+1, e.MaxArgs))
 	}
 }
 
