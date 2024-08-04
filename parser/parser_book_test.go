@@ -345,7 +345,7 @@ func TestOperatorPrecedenceParsing(t *testing.T) {
 		program := p.ParseProgram()
 		checkParserErrors(t, p)
 
-		actual := ast.DebugString(program)
+		actual := program.PrettyPrint(ast.NewPrintState()).String()
 		last := actual[len(actual)-1]
 		if actual[len(actual)-1] != '\n' {
 			t.Errorf("expecting newline at end of program output, not found, got %q", last)
@@ -604,7 +604,7 @@ func TestCallExpressionParameterParsing(t *testing.T) {
 		{
 			input:         "add(1, 2 * 3, 4 + 5);",
 			expectedIdent: "add",
-			expectedArgs:  []string{"1", "2 * 3", "4 + 5"},
+			expectedArgs:  []string{"1", "2*3", "4+5"},
 		},
 	}
 

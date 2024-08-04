@@ -57,7 +57,7 @@ func TestDefineMacros(t *testing.T) {
 		t.Fatalf("parameter is not 'y'. got=%q", macro.Parameters[1])
 	}
 
-	expectedBody := "x + y\n" // or should have {}?
+	expectedBody := "x+y" // or should have {}?
 	got := ast.DebugString(macro.Body)
 	if got != expectedBody {
 		t.Fatalf("body is not %q. got=%q", expectedBody, got)
