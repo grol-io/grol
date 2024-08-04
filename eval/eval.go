@@ -116,7 +116,7 @@ func (s *State) evalPostfixExpression(node *ast.PostfixExpression) object.Object
 }
 
 // Doesn't unwrap return - return bubbles up.
-func (s *State) evalInternal(node any) object.Object {
+func (s *State) evalInternal(node any) object.Object { //nolint:funlen // quite a lot of cases.
 	switch node := node.(type) {
 	// Statements
 	case *ast.Statements:
