@@ -66,7 +66,7 @@ automatic memoization
 
 easy extensions/adding Go functions to grol (see [extensions/extension.go](extensions/extension.go) for a lot of `math` additions)
 
-variadic functions both go side and grol side (using `..` on grol side)
+variadic functions both Go side and grol side (using `..` on grol side)
 
 See also [sample.gr](examples/sample.gr) and others in that folder, that you can run with
 ```
