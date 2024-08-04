@@ -24,6 +24,7 @@ type PrintState struct {
 
 func DebugString(n Node) string {
 	ps := NewPrintState()
+	ps.Compact = true
 	n.PrettyPrint(ps)
 	return ps.String()
 }

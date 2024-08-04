@@ -1,7 +1,7 @@
 // There are 2 types of Token, constant ones (with no "value") and the ones with attached
-// value that is variable (e.g. IDENT, INT, FLOAT, STRING, COMMENT).
-// We'd use the upcoming unique https://tip.golang.org/doc/go1.23#new-unique-package
-// but we want this to run on 1.22 and earlier.
+// value that is variable (e.g. IDENT, INT, FLOAT, STRING, *COMMENT).
+// We might have used the upcoming unique https://tip.golang.org/doc/go1.23#new-unique-package
+// but we want this to run on 1.22 and earlier and rolled our own, not multi threaded.
 package token
 
 import (
@@ -56,9 +56,10 @@ const (
 	startValueTokens
 
 	// Identifiers + literals. with attached value.
-	IDENT // add, foobar, x, y, ...
-	INT   // 1343456
-	FLOAT // 1. 1e3
+	IDENT  // add, foobar, x, y, ...
+	INT    // 1343456
+	FLOAT  // .5, 3.14159,...
+	STRING // "foo bar"
 	LINECOMMENT
 	BLOCKCOMMENT
 
@@ -112,7 +113,6 @@ const (
 	IF
 	ELSE
 	RETURN
-	STRING
 	MACRO
 	// Macro magic.
 	QUOTE
