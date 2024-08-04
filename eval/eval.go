@@ -68,8 +68,7 @@ func (s *State) evalAssignment(right object.Object, node *ast.InfixExpression) o
 		return right
 	}
 	log.LogVf("eval assign %#v to %#v", right, id.Value())
-	s.env.Set(id.Literal(), right)
-	return right // maybe only if it's a literal?
+	return s.env.Set(id.Literal(), right)
 }
 
 func ArgCheck[T any](msg string, n int, vararg bool, args []T) *object.Error {
@@ -103,13 +102,12 @@ func (s *State) evalPostfixExpression(node *ast.PostfixExpression) object.Object
 	}
 	switch val := val.(type) {
 	case object.Integer:
-		s.env.Set(id, object.Integer{Value: val.Value + toAdd})
+		return s.env.Set(id, object.Integer{Value: val.Value + toAdd})
 	case object.Float:
-		s.env.Set(id, object.Float{Value: val.Value + float64(toAdd)})
+		return s.env.Set(id, object.Float{Value: val.Value + float64(toAdd)})
 	default:
 		return object.Error{Value: "can't increment/decrement " + val.Type().String()}
 	}
-	return val
 }
 
 // Doesn't unwrap return - return bubbles up.
@@ -174,7 +172,10 @@ func (s *State) evalInternal(node any) object.Object {
 		}
 		fn.SetCacheKey() // sets cache key
 		if name != nil {
-			s.env.Set(name.Literal(), fn)
+			oerr := s.env.Set(name.Literal(), fn)
+			if oerr.Type() == object.ERROR {
+				return oerr
+			}
 		}
 		return fn
 	case *ast.CallExpression:
@@ -459,7 +460,12 @@ func extendFunctionEnv(name string, fn object.Function, args []object.Object) (*
 			name, len(args), atLeast, n)}
 	}
 	for paramIdx, param := range params {
-		env.Set(param.Value().Literal(), args[paramIdx])
+		oerr := env.Set(param.Value().Literal(), args[paramIdx])
+		log.LogVf("set %s to %s - %s", param.Value().Literal(), args[paramIdx].Inspect(), oerr.Inspect())
+		if oerr.Type() == object.ERROR { // TODO: doesn't trigger
+			oe, _ := oerr.(object.Error)
+			return nil, &oe
+		}
 	}
 	if fn.Variadic {
 		env.Set("..", extra)

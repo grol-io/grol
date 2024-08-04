@@ -232,6 +232,10 @@ func TestErrorHandling(t *testing.T) {
 		expectedMessage string
 	}{
 		{
+			`func x(FOO){log("x",FOO,PI)if FOO<=1{return FOO}FOO+x(FOO-1)};FOO(1)`,
+			"constant FOO",
+		},
+		{
 			"myfunc=func(x,y) {x+y}; myfunc(1)",
 			"wrong number of arguments for myfunc. got=1, want=2",
 		},

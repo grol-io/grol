@@ -1,6 +1,10 @@
 package object
 
-import "fortio.org/log"
+import (
+	"fmt"
+
+	"fortio.org/log"
+)
 
 type Environment struct {
 	store map[string]Object
@@ -28,7 +32,26 @@ func (e *Environment) Get(name string) (Object, bool) {
 	return e.outer.Get(name) // recurse.
 }
 
+func IsConstantIdentifier(name string) bool {
+	for i, v := range name {
+		if i != 0 && v == '_' {
+			continue
+		}
+		if v < 'A' || v > 'Z' {
+			return false
+		}
+	}
+	return true
+}
+
 func (e *Environment) Set(name string, val Object) Object {
+	if IsConstantIdentifier(name) {
+		old, ok := e.Get(name) // not ok
+		if ok {
+			log.Warnf("Attempt to change constant %s from %v to %v", name, old, val)
+			return Error{Value: fmt.Sprintf("attempt to change constant %s from %s to %s", name, old.Inspect(), val.Inspect())}
+		}
+	}
 	e.store[name] = val
 	return val
 }
