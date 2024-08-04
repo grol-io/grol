@@ -7,8 +7,9 @@ import (
 )
 
 type Environment struct {
-	store map[string]Object
-	outer *Environment
+	store    map[string]Object
+	outer    *Environment
+	cacheKey string
 }
 
 // Truly empty store suitable for macros storage.
@@ -68,5 +69,21 @@ func (e *Environment) Set(name string, val Object) Object {
 
 func NewEnclosedEnvironment(outer *Environment) *Environment {
 	env := &Environment{store: make(map[string]Object), outer: outer}
+	return env
+}
+
+// Create a new environment either based on original function definitions' environment
+// or the current one if the function is the same, that allows a function to set some values
+// visible through recursion to itself.
+//
+//	func test(n) {if (n==2) {x=1}; if (n==1) {return x}; test(n-1)}; test(3)
+//
+// will return 1 (and not "identifier not found: x").
+func NewFunctionEnvironment(fn Function, current *Environment) *Environment {
+	parent := current
+	if current.cacheKey != fn.CacheKey {
+		parent = fn.Env
+	}
+	env := &Environment{store: make(map[string]Object), outer: parent, cacheKey: fn.CacheKey}
 	return env
 }

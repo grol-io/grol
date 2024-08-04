@@ -68,6 +68,7 @@ func(n) {
 `, 120},
 		{`ONE=1;ONE`, 1},
 		{`ONE=1;ONE=1`, 1}, // Ok to reassign CONSTANT if it's to same value.
+		{`myid=23; func test(n) {if (n==2) {myid=42}; if (n==1) {return myid}; test(n-1)}; test(3)`, 42}, // was 23 before
 	}
 	for i, tt := range tests {
 		evaluated := testEval(t, tt.input)
@@ -241,8 +242,8 @@ func TestErrorHandling(t *testing.T) {
 		expectedMessage string
 	}{
 		{
-			`func x(FOO) {log("x",FOO,PI);if FOO<=1 {return FOO}FOO+x(FOO-1)};FOO(1)`,
-			"constant FOO",
+			`func x(FOO) {log("x",FOO,PI);if FOO<=1 {return FOO} x(FOO-1)};x(2)`,
+			"attempt to change constant FOO from 2 to 1",
 		},
 		{
 			`func FOO(x){x}; func FOO(x){x+1}`,

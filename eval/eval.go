@@ -421,7 +421,7 @@ func (s *State) applyFunction(name string, fn object.Object, args []object.Objec
 		_, _ = s.Out.Write(output)
 		return v
 	}
-	nenv, oerr := extendFunctionEnv(name, function, args)
+	nenv, oerr := extendFunctionEnv(s.env, name, function, args)
 	if oerr != nil {
 		return *oerr
 	}
@@ -441,8 +441,16 @@ func (s *State) applyFunction(name string, fn object.Object, args []object.Objec
 	return res
 }
 
-func extendFunctionEnv(name string, fn object.Function, args []object.Object) (*object.Environment, *object.Error) {
-	env := object.NewEnclosedEnvironment(fn.Env)
+func extendFunctionEnv(
+	currrentEnv *object.Environment,
+	name string, fn object.Function,
+	args []object.Object,
+) (*object.Environment, *object.Error) {
+	// https://github.com/grol-io/grol/issues/47
+	// fn.Env is "captured state" but for recursion we now parent from current state; eg
+	// func test(n) {if (n==2) {x=1}; if (n==1) {return x}; test(n-1)}; test(3)
+	// return 1 (state set by recursion with n==2)
+	env := object.NewFunctionEnvironment(fn, currrentEnv)
 	params := fn.Parameters
 	atLeast := ""
 	extra := object.Array{}
@@ -467,7 +475,7 @@ func extendFunctionEnv(name string, fn object.Function, args []object.Object) (*
 	for paramIdx, param := range params {
 		oerr := env.Set(param.Value().Literal(), args[paramIdx])
 		log.LogVf("set %s to %s - %s", param.Value().Literal(), args[paramIdx].Inspect(), oerr.Inspect())
-		if oerr.Type() == object.ERROR { // TODO: doesn't trigger
+		if oerr.Type() == object.ERROR {
 			oe, _ := oerr.(object.Error)
 			return nil, &oe
 		}
