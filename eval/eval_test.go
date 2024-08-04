@@ -69,6 +69,10 @@ func(n) {
 		{`ONE=1;ONE`, 1},
 		{`ONE=1;ONE=1`, 1}, // Ok to reassign CONSTANT if it's to same value.
 		{`myid=23; func test(n) {if (n==2) {myid=42}; if (n==1) {return myid}; test(n-1)}; test(3)`, 42}, // was 23 before
+		{
+			`func FACT(n){if n<=1 {return 1}; n*FACT(n-1)};FACT(5)`, // Recursion on CONSTANT function should not error
+			120,
+		},
 	}
 	for i, tt := range tests {
 		evaluated := testEval(t, tt.input)

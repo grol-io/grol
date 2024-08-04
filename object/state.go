@@ -53,6 +53,11 @@ func Constant(name string) bool {
 	return true
 }
 
+func (e *Environment) SetNoChecks(name string, val Object) Object {
+	e.store[name] = val
+	return val
+}
+
 func (e *Environment) Set(name string, val Object) Object {
 	if Constant(name) {
 		old, ok := e.Get(name) // not ok
@@ -63,8 +68,7 @@ func (e *Environment) Set(name string, val Object) Object {
 			}
 		}
 	}
-	e.store[name] = val
-	return val
+	return e.SetNoChecks(name, val)
 }
 
 func NewEnclosedEnvironment(outer *Environment) *Environment {
@@ -79,11 +83,14 @@ func NewEnclosedEnvironment(outer *Environment) *Environment {
 //	func test(n) {if (n==2) {x=1}; if (n==1) {return x}; test(n-1)}; test(3)
 //
 // will return 1 (and not "identifier not found: x").
-func NewFunctionEnvironment(fn Function, current *Environment) *Environment {
+// Returns true if the function is the same as the current one and we should probably
+// set the function's name in that environment to avoid deep search for it.
+func NewFunctionEnvironment(fn Function, current *Environment) (*Environment, bool) {
 	parent := current
-	if current.cacheKey != fn.CacheKey {
+	sameFunction := (current.cacheKey == fn.CacheKey)
+	if !sameFunction {
 		parent = fn.Env
 	}
 	env := &Environment{store: make(map[string]Object), outer: parent, cacheKey: fn.CacheKey}
-	return env
+	return env, sameFunction
 }

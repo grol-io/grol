@@ -1,9 +1,10 @@
-// Somehow this version works fine with grol 0.24, 0.31 but not at all in current - keeping for regression
+// Keep 0.24 syntax for perf comparison. Used to detect a serious performance regression
+// during https://github.com/grol-io/grol/pull/102
 f = func(i, n, prod) {
 	if (i == n+1) {
 		return 1. / (prod * prod * n)
 	}
 	f(i+1, n, prod*(1-1./(2*i)))
 }
-n = 20000
+n = 100000
 f(1, n, 1)
