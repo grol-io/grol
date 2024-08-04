@@ -64,7 +64,7 @@ macros and more all the time (like canonical reformat using `grol -format` and w
 
 automatic memoization
 
-easy extensions/adding go functions to grol (see [extensions/extension.go](extensions/extension.go) for a lot of `math` additions)
+easy extensions/adding Go functions to grol (see [extensions/extension.go](extensions/extension.go) for a lot of `math` additions)
 
 variadic functions both go side and grol side (using `..` on grol side)
 
