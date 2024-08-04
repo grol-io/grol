@@ -443,7 +443,7 @@ func extendFunctionEnv(name string, fn object.Function, args []object.Object) (*
 	if fn.Variadic {
 		n := len(params) - 1
 		params = params[:n]
-		// Expending the last argument expecting it to be ".." but any other array will do too.
+		// Expending the last argument expecting it to be "..", but any other array will do too.
 		if len(args) > 0 && args[len(args)-1].Type() == object.ARRAY {
 			args = append(args[:len(args)-1], args[len(args)-1].(object.Array).Elements...)
 		}
