@@ -560,12 +560,16 @@ func (s *State) evalBangOperatorExpression(right object.Object) object.Object {
 }
 
 func (s *State) evalMinusPrefixOperatorExpression(right object.Object) object.Object {
-	if right.Type() != object.INTEGER {
+	switch right.Type() { //nolint:exhaustive // we have default which is errors.
+	case object.INTEGER:
+		value := right.(object.Integer).Value
+		return object.Integer{Value: -value}
+	case object.FLOAT:
+		value := right.(object.Float).Value
+		return object.Float{Value: -value}
+	default:
 		return object.Error{Value: "minus of " + right.Inspect()}
 	}
-
-	value := right.(object.Integer).Value
-	return object.Integer{Value: -value}
 }
 
 func (s *State) evalInfixExpression(operator token.Type, left, right object.Object) object.Object {

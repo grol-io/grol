@@ -54,6 +54,14 @@ func initInternal() error {
 	if err != nil {
 		return err
 	}
+	err = eval.AddEvalResult("abs", "func(x){if x < 0 {-x} else {x}}")
+	if err != nil {
+		return err
+	}
+	err = eval.AddEvalResult("log2", "func(x) {ln(x)/ln(2)}")
+	if err != nil {
+		return err
+	}
 	oneFloat := object.Extension{
 		MinArgs:  1,
 		MaxArgs:  1,
@@ -76,6 +84,7 @@ func initInternal() error {
 		{math.Trunc, "trunc"},
 		{math.Floor, "floor"},
 		{math.Ceil, "ceil"},
+		{math.Log10, "log10"},
 	} {
 		oneFloat.Callback = func(args []object.Object) object.Object {
 			// Arg len check already done through MinArgs=MaxArgs=1 and
