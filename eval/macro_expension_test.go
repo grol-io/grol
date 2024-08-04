@@ -15,27 +15,26 @@ func TestDefineMacros(t *testing.T) {
     mymacro = macro(x, y) { x + y; }
 	number + 1`
 
-	state := NewState()
-	env := state.env
+	state := object.NewMacroEnvironment()
 	program := testParseProgram(t, input)
 
-	state.DefineMacros(program)
+	DefineMacros(state, program)
 
 	if len(program.Statements) != 3 {
 		t.Fatalf("Wrong number of statements. got=%d: %+v",
 			len(program.Statements), program.Statements)
 	}
 
-	_, ok := env.Get("number")
+	_, ok := state.Get("number")
 	if ok {
 		t.Fatalf("number should not be defined")
 	}
-	_, ok = env.Get("function")
+	_, ok = state.Get("function")
 	if ok {
 		t.Fatalf("function should not be defined")
 	}
 
-	obj, ok := env.Get("mymacro")
+	obj, ok := state.Get("mymacro")
 	if !ok {
 		t.Fatalf("macro not in environment.")
 	}
@@ -124,9 +123,9 @@ func TestExpandMacros(t *testing.T) {
 		expected := testParseProgram(t, tt.expected)
 		program := testParseProgram(t, tt.input)
 
-		state := NewState()
-		state.DefineMacros(program)
-		expanded := state.ExpandMacros(program)
+		state := object.NewMacroEnvironment()
+		DefineMacros(state, program)
+		expanded := ExpandMacros(state, program)
 
 		expandedStr := ast.DebugString(expanded)
 		expectedStr := ast.DebugString(expected)

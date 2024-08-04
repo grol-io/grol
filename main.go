@@ -10,6 +10,7 @@ import (
 	"fortio.org/log"
 	"grol.io/grol/eval"
 	"grol.io/grol/extensions" // register extensions
+	"grol.io/grol/object"
 	"grol.io/grol/repl"
 )
 
@@ -52,19 +53,19 @@ func Main() int {
 	}
 	options.All = true
 	s := eval.NewState()
-	macroState := eval.NewState()
+	macroState := object.NewMacroEnvironment()
 	for _, file := range flag.Args() {
 		processOneFile(file, s, macroState, options)
 		if !*sharedState {
 			s = eval.NewState()
-			macroState = eval.NewState()
+			macroState = object.NewMacroEnvironment()
 		}
 	}
 	log.Infof("All done")
 	return 0
 }
 
-func processOneFile(file string, s, macroState *eval.State, options repl.Options) {
+func processOneFile(file string, s *eval.State, macroState *object.Environment, options repl.Options) {
 	if file == "-" {
 		if options.FormatOnly {
 			log.Infof("Formatting stdin")

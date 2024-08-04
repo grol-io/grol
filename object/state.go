@@ -11,6 +11,12 @@ type Environment struct {
 	outer *Environment
 }
 
+// Truly empty store suitable for macros storage.
+func NewMacroEnvironment() *Environment {
+	return &Environment{store: make(map[string]Object)}
+}
+
+// NewRootEnvironment contains the identifiers pre-seeded by extensions.
 func NewRootEnvironment() *Environment {
 	s := initialIdentifiersCopy()
 	return &Environment{store: s}
@@ -50,8 +56,10 @@ func (e *Environment) Set(name string, val Object) Object {
 	if Constant(name) {
 		old, ok := e.Get(name) // not ok
 		if ok {
-			log.Warnf("Attempt to change constant %s from %v to %v", name, old, val)
-			return Error{Value: fmt.Sprintf("attempt to change constant %s from %s to %s", name, old.Inspect(), val.Inspect())}
+			log.Debugf("Attempt to change constant %s from %v to %v", name, old, val)
+			if !Hashable(old) || !Hashable(val) || old != val {
+				return Error{Value: fmt.Sprintf("attempt to change constant %s from %s to %s", name, old.Inspect(), val.Inspect())}
+			}
 		}
 	}
 	e.store[name] = val

@@ -41,7 +41,7 @@ type Options struct {
 	Compact    bool
 }
 
-func EvalAll(s, macroState *eval.State, in io.Reader, out io.Writer, options Options) {
+func EvalAll(s *eval.State, macroState *object.Environment, in io.Reader, out io.Writer, options Options) {
 	b, err := io.ReadAll(in)
 	if err != nil {
 		log.Fatalf("%v", err)
@@ -65,7 +65,7 @@ func EvalString(what string) (res string, errs []string, formatted string) {
 		}
 	}()
 	s := eval.NewState()
-	macroState := eval.NewState()
+	macroState := object.NewMacroEnvironment()
 	out := &strings.Builder{}
 	s.Out = out
 	s.LogOut = out
@@ -78,7 +78,7 @@ func EvalString(what string) (res string, errs []string, formatted string) {
 
 func Interactive(in io.Reader, out io.Writer, options Options) {
 	s := eval.NewState()
-	macroState := eval.NewState()
+	macroState := object.NewMacroEnvironment()
 
 	scanner := bufio.NewScanner(in)
 	prev := ""
@@ -105,14 +105,14 @@ func Interactive(in io.Reader, out io.Writer, options Options) {
 // Alternate API for benchmarking and simplicity.
 type Grol struct {
 	State     *eval.State
-	Macros    *eval.State
+	Macros    *object.Environment
 	PrintEval bool
 	program   *ast.Statements
 }
 
 // Initialize with new empty state.
 func New() *Grol {
-	g := &Grol{State: eval.NewState(), Macros: eval.NewState()}
+	g := &Grol{State: eval.NewState(), Macros: object.NewMacroEnvironment()}
 	return g
 }
 
@@ -126,7 +126,7 @@ func (g *Grol) Parse(inp []byte) error {
 	if g.Macros == nil {
 		return nil
 	}
-	g.Macros.DefineMacros(g.program)
+	eval.DefineMacros(g.Macros, g.program)
 	numMacros := g.Macros.Len()
 	if numMacros == 0 {
 		return nil
@@ -134,7 +134,7 @@ func (g *Grol) Parse(inp []byte) error {
 	log.LogVf("Expanding, %d macros defined", numMacros)
 	// This actually modifies the original program, not sure... that's good but that's why
 	// expanded return value doesn't need to be used.
-	_ = g.Macros.ExpandMacros(g.program)
+	_ = eval.ExpandMacros(g.Macros, g.program)
 	return nil
 }
 
@@ -152,7 +152,7 @@ func (g *Grol) Run(out io.Writer) error {
 
 // Returns true in line mode if more should be fed to the parser.
 // TODO: this one size fits 3 different calls (file, interactive, bot) is getting spaghetti.
-func EvalOne(s, macroState *eval.State, what string, out io.Writer, options Options) (bool, []string, string) {
+func EvalOne(s *eval.State, macroState *object.Environment, what string, out io.Writer, options Options) (bool, []string, string) {
 	var l *lexer.Lexer
 	if options.All {
 		l = lexer.New(what)
@@ -180,13 +180,13 @@ func EvalOne(s, macroState *eval.State, what string, out io.Writer, options Opti
 			fmt.Fprintln(out)
 		}
 	}
-	macroState.DefineMacros(program)
+	eval.DefineMacros(macroState, program)
 	numMacros := macroState.Len()
 	if numMacros > 0 {
 		log.LogVf("Expanding, %d macros defined", numMacros)
 		// This actually modifies the original program, not sure... that's good but that's why
 		// expanded return value doesn't need to be used.
-		_ = macroState.ExpandMacros(program)
+		_ = eval.ExpandMacros(macroState, program)
 		if options.ShowParse {
 			fmt.Fprint(out, "== Macro ==> ")
 			program.PrettyPrint(&ast.PrintState{Out: out})

@@ -11,6 +11,13 @@ import (
 	"grol.io/grol/parser"
 )
 
+func init() {
+	err := extensions.Init()
+	if err != nil {
+		panic(err)
+	}
+}
+
 func TestEvalIntegerExpression(t *testing.T) {
 	tests := []struct {
 		input    string
@@ -59,12 +66,14 @@ func(n) {
 	n * self(n - 1)
 }(5)
 `, 120},
+		{`ONE=1;ONE`, 1},
+		{`ONE=1;ONE=1`, 1}, // Ok to reassign CONSTANT if it's to same value.
 	}
 	for i, tt := range tests {
 		evaluated := testEval(t, tt.input)
 		r := testIntegerObject(t, evaluated, tt.expected)
 		if !r {
-			t.Logf("test %d input: %s failed integer %d", i, tt.input, tt.expected)
+			t.Logf("test %d input: %s failed to eval to integer %d", i, tt.input, tt.expected)
 		}
 	}
 }
@@ -232,8 +241,28 @@ func TestErrorHandling(t *testing.T) {
 		expectedMessage string
 	}{
 		{
-			`func x(FOO){log("x",FOO,PI)if FOO<=1{return FOO}FOO+x(FOO-1)};FOO(1)`,
+			`func x(FOO) {log("x",FOO,PI);if FOO<=1 {return FOO}FOO+x(FOO-1)};FOO(1)`,
 			"constant FOO",
+		},
+		{
+			`func FOO(x){x}; func FOO(x){x+1}`,
+			"attempt to change constant FOO from func FOO(x){x} to func FOO(x){x+1}",
+		},
+		{
+			`ONE=1;ONE=2`,
+			"attempt to change constant ONE from 1 to 2",
+		},
+		{
+			`ONE=1;ONE--`,
+			"attempt to change constant ONE from 1 to 0",
+		},
+		{
+			`PI++`,
+			"attempt to change constant PI from 3.141592653589793 to 4.141592653589793",
+		},
+		{
+			`ONE=1;func f(x){func ff(y) {ONE=y} ff(x)};f(3)`,
+			"attempt to change constant ONE from 1 to 3",
 		},
 		{
 			"myfunc=func(x,y) {x+y}; myfunc(1)",
