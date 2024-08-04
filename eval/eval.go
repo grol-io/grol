@@ -752,7 +752,7 @@ func evalFloatInfixExpression(operator token.Type, left, right object.Object) ob
 	}
 }
 
-// Adds a (grol) from go to the base identifiers.
+// Adds a (grol) from Go to the base identifiers.
 func AddEvalResult(name, code string) error {
 	l := lexer.New(code)
 	p := parser.New(l)
