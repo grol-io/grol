@@ -752,7 +752,9 @@ func evalFloatInfixExpression(operator token.Type, left, right object.Object) ob
 	}
 }
 
-// Adds a (grol) from Go to the base identifiers.
+// AddEvalResult adds the result of an evaluation (for instance a function object)
+// to the base identifiers. Used to add grol defined functions to the base environment
+// (e.g abs(), log2(), etc). Eventually we may instead `include("lib.gr")` or some such.
 func AddEvalResult(name, code string) error {
 	l := lexer.New(code)
 	p := parser.New(l)
