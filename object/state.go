@@ -32,7 +32,9 @@ func (e *Environment) Get(name string) (Object, bool) {
 	return e.outer.Get(name) // recurse.
 }
 
-func IsConstantIdentifier(name string) bool {
+// Defines constant as all CAPS (with _ ok in the middle) identifiers.
+// Note that we use []byte as all identifiers are ASCII.
+func Constant(name string) bool {
 	for i, v := range name {
 		if i != 0 && v == '_' {
 			continue
@@ -45,7 +47,7 @@ func IsConstantIdentifier(name string) bool {
 }
 
 func (e *Environment) Set(name string, val Object) Object {
-	if IsConstantIdentifier(name) {
+	if Constant(name) {
 		old, ok := e.Get(name) // not ok
 		if ok {
 			log.Warnf("Attempt to change constant %s from %v to %v", name, old, val)

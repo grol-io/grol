@@ -68,7 +68,7 @@ func (s *State) evalAssignment(right object.Object, node *ast.InfixExpression) o
 		return right
 	}
 	log.LogVf("eval assign %#v to %#v", right, id.Value())
-	return s.env.Set(id.Literal(), right)
+	return s.env.Set(id.Literal(), right) // Propagate possible error (constant setting).
 }
 
 func ArgCheck[T any](msg string, n int, vararg bool, args []T) *object.Error {
@@ -104,7 +104,7 @@ func (s *State) evalPostfixExpression(node *ast.PostfixExpression) object.Object
 	case object.Integer:
 		return s.env.Set(id, object.Integer{Value: val.Value + toAdd})
 	case object.Float:
-		return s.env.Set(id, object.Float{Value: val.Value + float64(toAdd)})
+		return s.env.Set(id, object.Float{Value: val.Value + float64(toAdd)}) // So PI++ fails not silently.
 	default:
 		return object.Error{Value: "can't increment/decrement " + val.Type().String()}
 	}
@@ -174,7 +174,7 @@ func (s *State) evalInternal(node any) object.Object {
 		if name != nil {
 			oerr := s.env.Set(name.Literal(), fn)
 			if oerr.Type() == object.ERROR {
-				return oerr
+				return oerr // propagate that func FOO() { ... } can only be defined once.
 			}
 		}
 		return fn
