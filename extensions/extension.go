@@ -48,7 +48,7 @@ func initInternal() error {
 	if err != nil {
 		return err
 	}
-	// for printf we could expose current eval "Out" but instead let's use new variadic support and define
+	// for printf, we could expose current eval "Out", but instead let's use new variadic support and define
 	// printf as print(snprintf(format,..))
 	err = eval.AddEvalResult("printf", "func(format, ..){print(sprintf(format, ..))}")
 	if err != nil {
