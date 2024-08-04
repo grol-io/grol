@@ -79,8 +79,8 @@ stdout '1 2 \["ab",3.141592653589793]'
 !stderr .
 
 # printf expands correctly
-grol -quiet -c 'printf("%d %s %f", 42, "ab\ncd", 1.5)'
-stdout '42 ab\ncd 1.5'
+grol -quiet -c 'printf("%d %s %.2f\n", 42, "ab\ncd", 1.5)'
+stdout '42 ab\ncd 1.50\n'
 !stderr .
 
 -- sample_test.gr --
