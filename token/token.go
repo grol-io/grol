@@ -101,6 +101,7 @@ const (
 	NOTEQ
 	INCR
 	DECR
+	DOTDOT
 
 	endMultiCharTokens
 
@@ -244,6 +245,7 @@ func Init() {
 	assocC2(NOTEQ, "!=")
 	assocC2(INCR, "++")
 	assocC2(DECR, "--")
+	assocC2(DOTDOT, "..")
 	// Special alias for := to be same as ASSIGN.
 	c2Tokens[[2]byte{':', '='}] = cTokens['=']
 }

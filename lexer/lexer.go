@@ -72,12 +72,18 @@ func (l *Lexer) NextToken() *token.Token {
 		} else {
 			return token.EOFT
 		}
+	case '.':
+		if nextChar == '.' { // DOTDOT
+			l.pos++
+			return token.ConstantTokenChar2(ch, nextChar)
+		}
+		// number can start with . eg .5
+		return token.Intern(l.readNumber(ch))
 	default:
 		switch {
 		case isLetter(ch):
 			return token.LookupIdent(l.readIdentifier())
-		case isDigit(ch) || ch == '.':
-			// number can start with . eg .5
+		case isDigit(ch):
 			return token.Intern(l.readNumber(ch))
 		default:
 			return token.Intern(token.ILLEGAL, string(ch))

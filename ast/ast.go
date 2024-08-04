@@ -360,8 +360,9 @@ func (b Builtin) PrettyPrint(out *PrintState) *PrintState {
 type FunctionLiteral struct {
 	Base       // The 'func' token
 	Name       *Identifier
-	Parameters []Node
+	Parameters []Node // last one might be `..` for variadic.
 	Body       *Statements
+	Variadic   bool
 }
 
 func (fl FunctionLiteral) PrettyPrint(out *PrintState) *PrintState {

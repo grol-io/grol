@@ -206,6 +206,7 @@ type Function struct {
 	CacheKey   string
 	Body       *ast.Statements
 	Env        *Environment
+	Variadic   bool
 }
 
 func WriteStrings(out *strings.Builder, list []Object, before, sep, after string) {

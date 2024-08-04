@@ -111,7 +111,7 @@ func (s *State) evalPostfixExpression(node *ast.PostfixExpression) object.Object
 }
 
 // Doesn't unwrap return - return bubbles up.
-func (s *State) evalInternal(node any) object.Object { //nolint:funlen // we have a lot of cases.
+func (s *State) evalInternal(node any) object.Object {
 	switch node := node.(type) {
 	// Statements
 	case *ast.Statements:
@@ -162,10 +162,14 @@ func (s *State) evalInternal(node any) object.Object { //nolint:funlen // we hav
 	case *ast.Builtin:
 		return s.evalBuiltin(node)
 	case *ast.FunctionLiteral:
-		params := node.Parameters
-		body := node.Body
 		name := node.Name
-		fn := object.Function{Parameters: params, Name: name, Env: s.env, Body: body}
+		fn := object.Function{
+			Parameters: node.Parameters,
+			Name:       name,
+			Env:        s.env,
+			Body:       node.Body,
+			Variadic:   node.Variadic,
+		}
 		fn.SetCacheKey() // sets cache key
 		if name != nil {
 			s.env.Set(name.Literal(), fn)
@@ -421,13 +425,28 @@ func (s *State) applyFunction(name string, fn object.Object, args []object.Objec
 
 func extendFunctionEnv(name string, fn object.Function, args []object.Object) (*object.Environment, *object.Error) {
 	env := object.NewEnclosedEnvironment(fn.Env)
-	n := len(fn.Parameters)
-	if len(args) != n {
-		return nil, &object.Error{Value: fmt.Sprintf("wrong number of arguments for %s. got=%d, want=%d",
-			name, len(args), n)}
+	params := fn.Parameters
+	atLeast := ""
+	extra := object.Array{}
+	if fn.Variadic {
+		n := len(params) - 1
+		params = params[:n]
+		if len(args) >= n {
+			extra.Elements = args[n:]
+			args = args[:n]
+		}
+		atLeast = " at least"
 	}
-	for paramIdx, param := range fn.Parameters {
+	n := len(params)
+	if len(args) != n {
+		return nil, &object.Error{Value: fmt.Sprintf("wrong number of arguments for %s. got=%d, want%s=%d",
+			name, len(args), atLeast, n)}
+	}
+	for paramIdx, param := range params {
 		env.Set(param.Value().Literal(), args[paramIdx])
+	}
+	if fn.Variadic {
+		env.Set("..", extra)
 	}
 	// for recursion in anonymous functions.
 	// TODO: consider not having to keep setting this in the function's env and treating as a keyword.
