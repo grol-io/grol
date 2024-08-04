@@ -5,6 +5,7 @@ import (
 
 	"grol.io/grol/ast"
 	"grol.io/grol/eval"
+	"grol.io/grol/extensions"
 	"grol.io/grol/lexer"
 	"grol.io/grol/object"
 	"grol.io/grol/parser"
@@ -232,31 +233,31 @@ func TestErrorHandling(t *testing.T) {
 	}{
 		{
 			"myfunc=func(x,y) {x+y}; myfunc(1)",
-			"<wrong number of arguments for myfunc. got=1, want=2>",
+			"wrong number of arguments for myfunc. got=1, want=2",
 		},
 		{
 			"5 + true;",
-			"<operation on non integers left=5 right=true>",
+			"operation on non integers left=5 right=true",
 		},
 		{
 			"5 + true; 5;",
-			"<operation on non integers left=5 right=true>",
+			"operation on non integers left=5 right=true",
 		},
 		{
 			"-true",
-			"<minus of true>",
+			"minus of true",
 		},
 		{
 			"true + false;",
-			"<operation on non integers left=true right=false>",
+			"operation on non integers left=true right=false",
 		},
 		{
 			"5; true + false; 5",
-			"<operation on non integers left=true right=false>",
+			"operation on non integers left=true right=false",
 		},
 		{
 			"if (10 > 1) { true + false; }",
-			"<operation on non integers left=true right=false>",
+			"operation on non integers left=true right=false",
 		},
 		{
 			`
@@ -268,15 +269,15 @@ if (10 > 1) {
   return 1;
 }
 `,
-			"<operation on non integers left=true right=false>",
+			"operation on non integers left=true right=false",
 		},
 		{
 			"foobar",
-			"<identifier not found: foobar>",
+			"identifier not found: foobar",
 		},
 		{
 			`"Hello" - "World"`,
-			"<unknown operator: STRING MINUS STRING>",
+			"unknown operator: STRING MINUS STRING",
 		},
 		{
 			`{"name": "Monkey"}[func(x) { x }];`,
@@ -750,4 +751,36 @@ func testFloatObject(t *testing.T, obj object.Object, expected float64) bool {
 	}
 
 	return true
+}
+
+func TestExtension(t *testing.T) {
+	err := extensions.Init()
+	if err != nil {
+		t.Fatalf("extensions.Init() failed: %v", err)
+	}
+	input := `pow`
+	evaluated := testEval(t, input)
+	expected := "pow(float, float)"
+	if evaluated.Inspect() != expected {
+		t.Errorf("object has wrong value. got=%s, want=%s", evaluated.Inspect(), expected)
+	}
+	input = `pow(2,10)`
+	evaluated = testEval(t, input)
+	testFloatObject(t, evaluated, 1024)
+	input = `round(2.7)`
+	evaluated = testEval(t, input)
+	testFloatObject(t, evaluated, 3)
+	input = `cos(PI)` // somehow getting 'exact' -1 for cos() but some 1e-16 for sin().
+	evaluated = testEval(t, input)
+	testFloatObject(t, evaluated, -1)
+	input = `sprintf("%d %s %g", 42, "ab\ncd", pow(2, 43))`
+	evaluated = testEval(t, input)
+	expected = "42 ab\ncd 8.796093022208e+12" // might be brittle the %g output of float64.
+	actual, ok := evaluated.(object.String)
+	if !ok {
+		t.Errorf("object is not string. got=%T (%+v)", evaluated, evaluated)
+	}
+	if actual.Value != expected {
+		t.Errorf("object has wrong value. got=%q, want=%q", actual, expected)
+	}
 }

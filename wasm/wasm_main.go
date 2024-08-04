@@ -15,6 +15,7 @@ import (
 	"fortio.org/cli"
 	"fortio.org/log"
 	"fortio.org/version"
+	"grol.io/grol/extensions"
 	"grol.io/grol/repl"
 )
 
@@ -54,5 +55,9 @@ func main() {
 	global := js.Global()
 	global.Set("grol", js.FuncOf(jsEval))
 	global.Set("grolVersion", js.ValueOf(grolVersion))
+	err := extensions.Init()
+	if err != nil {
+		log.Critf("Error initializing extensions: %v", err)
+	}
 	<-done
 }

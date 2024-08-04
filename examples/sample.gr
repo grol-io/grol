@@ -21,7 +21,7 @@ fact=func(n) { // first class function objects, can also be written as `func fac
     /* recursion: */ n*self(n-1) // also last evaluated expression is returned (ie return at the end is optional)
 }
 
-a=[fact(5), "abc", 76-3] // array can contain different types
+a=[fact(5), "abc", 76-3, sqrt(2)] // array can contain different types, grol also has math functions.
 
 m={"key": a, 73: 29} // so do maps
 

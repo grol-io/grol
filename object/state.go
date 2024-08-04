@@ -7,8 +7,8 @@ type Environment struct {
 	outer *Environment
 }
 
-func NewEnvironment() *Environment {
-	s := make(map[string]Object)
+func NewRootEnvironment() *Environment {
+	s := initialIdentifiersCopy()
 	return &Environment{store: s}
 }
 
@@ -34,7 +34,6 @@ func (e *Environment) Set(name string, val Object) Object {
 }
 
 func NewEnclosedEnvironment(outer *Environment) *Environment {
-	env := NewEnvironment()
-	env.outer = outer
+	env := &Environment{store: make(map[string]Object), outer: outer}
 	return env
 }
