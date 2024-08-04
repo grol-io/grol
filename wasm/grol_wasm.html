@@ -128,6 +128,7 @@ Hit enter or click <button onClick="run();" id="runButton" disabled>Run</button>
             return str.replace(/\+/g, '%2B')
               .replace(/ /g, '+')
               .replace(/\n/g, '%0A')
+              .replace(/\t/g, '%09')
               .replace(/</g, '%3C')
         }
         const encodedValue = customEscape(paramValue)
