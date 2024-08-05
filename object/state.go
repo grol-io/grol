@@ -57,7 +57,7 @@ func (e *Environment) BaseInfo() Map {
 	// Ditto cache this as it's set for a given environment.
 	ext := ExtraFunctions()
 	keys = make([]Object, 0, len(ext))
-	for k, _ := range ext {
+	for k := range ext {
 		keys = append(keys, String{Value: k})
 	}
 	arr := Array{Elements: keys}
