@@ -26,7 +26,7 @@ jobs:
       - name: Download linter config
         run: curl -fsS -o .golangci.yml https://raw.githubusercontent.com/fortio/workflows/main/golangci.yml
       - name: Run golangci-lint
-        uses: golangci/golangci-lint-action@a4f60bb28d35aeee14e6880718e0c85ff1882e64 # pin@v6
+        uses: golangci/golangci-lint-action@aaa42aa0628b4ae2578232a66b541047968fac86 # pin@v6
       - name: Run tests
         run: |
           go version
