@@ -447,7 +447,7 @@ func extendFunctionEnv(
 	args []object.Object,
 ) (*object.Environment, *object.Error) {
 	// https://github.com/grol-io/grol/issues/47
-	// fn.Env is "captured state" but for recursion we now parent from current state; eg
+	// fn.Env is "captured state", but for recursion we now parent from current state; eg
 	//     func test(n) {if (n==2) {x=1}; if (n==1) {return x}; test(n-1)}; test(3)
 	// return 1 (state set by recursion with n==2)
 	// Make sure `self` is used to recurse, or named function, otherwise the function will

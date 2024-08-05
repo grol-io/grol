@@ -11,11 +11,12 @@ import (
 	"grol.io/grol/parser"
 )
 
-func init() {
+func TestMain(m *testing.M) {	
 	err := extensions.Init()
 	if err != nil {
 		panic(err)
 	}
+	os.Exit(m.Run())
 }
 
 func TestEvalIntegerExpression(t *testing.T) {
