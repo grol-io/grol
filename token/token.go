@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+
+	"fortio.org/sets"
 )
 
 // 'noCopy' Stolen from
@@ -156,6 +158,7 @@ func assoc(t Type, c byte) {
 	tok := &Token{tokenType: t, literal: string(c)}
 	cTokens[c] = tok
 	tToT[t] = tok
+	info.Tokens.Add(tok.literal)
 }
 
 func assocS(t Type, s string) *Token {
@@ -165,6 +168,7 @@ func assocS(t Type, s string) *Token {
 		panic("duplicate token for " + s)
 	}
 	tToT[t] = tok
+	info.Keywords.Add(s)
 	return tok
 }
 
@@ -179,10 +183,13 @@ func assocC2(t Type, str string) {
 	}
 	tToT[t] = tok
 	c2Tokens[[2]byte{str[0], str[1]}] = tok
+	info.Tokens.Add(str)
 }
 
 func Init() {
 	ResetInterning()
+	info.Keywords = sets.New[string]()
+	info.Tokens = sets.New[string]()
 	keywords = make(map[string]*Token)
 	cTokens = make(map[byte]*Token)
 	c2Tokens = make(map[[2]byte]*Token)
@@ -248,6 +255,7 @@ func Init() {
 	assocC2(DOTDOT, "..")
 	// Special alias for := to be same as ASSIGN.
 	c2Tokens[[2]byte{':', '='}] = cTokens['=']
+	info.Tokens.Add(":=")
 }
 
 //go:generate stringer -type=Type
