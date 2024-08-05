@@ -199,7 +199,7 @@ func (l *Lexer) readBlockComment() string {
 
 func (l *Lexer) readNumber(ch byte) (token.Type, string) {
 	t := token.INT
-	start := l.pos - 1
+	pos := l.pos - 1
 	dotSeen := false
 	hasDigits := true
 	// Integer part or leading dot for fractional part
@@ -216,7 +216,7 @@ func (l *Lexer) readNumber(ch byte) (token.Type, string) {
 	if l.peekChar() == '.' {
 		if dotSeen {
 			// Stop if we see another dot
-			return t, string(l.input[start : l.pos-1])
+			return t, string(l.input[pos : l.pos-1])
 		}
 		t = token.FLOAT
 		l.pos++
@@ -228,12 +228,12 @@ func (l *Lexer) readNumber(ch byte) (token.Type, string) {
 	// Exponent part
 	peek := l.peekChar()
 	if peek != 'e' && peek != 'E' {
-		return t, string(l.input[start:l.pos])
+		return t, string(l.input[pos:l.pos])
 	}
 	errPos := l.pos
 	if !hasDigits {
 		// Invalid number, stop here if no digits seen before exponent
-		return t, string(l.input[start:errPos])
+		return t, string(l.input[pos:errPos])
 	}
 	l.pos++
 	peek = l.peekChar()
@@ -242,14 +242,14 @@ func (l *Lexer) readNumber(ch byte) (token.Type, string) {
 	}
 	if !isDigit(l.peekChar()) {
 		// Invalid exponent, stop here
-		return t, string(l.input[start:errPos])
+		return t, string(l.input[pos:errPos])
 	}
 	t = token.FLOAT
 	// Read exponent
 	for isDigitOrUnderscore(l.peekChar()) {
 		l.pos++
 	}
-	return t, string(l.input[start:l.pos])
+	return t, string(l.input[pos:l.pos])
 }
 
 func isLetter(ch byte) bool {
