@@ -48,12 +48,21 @@ $ m=fact(7)
 $ m/n
 == Parse ==> m / n
 == Eval  ==> 7
-$ info["all_ids"][0]
-["E","PI","abs","log2","printf"]
+$ func fx(n) {if n>0 {return fx(n-1)}; info["all_ids"]}; fx(3)
+== Parse ==> func fx(n) {
+	if n > 0 {
+		return fx(n - 1)
+	}
+	(info["all_ids"])
+}
+fx(3)
+== Eval  ==> {0:["E","PI","abs","fx","log2","printf"],1:["n","self"],2:["fx","n","self"],3:["fx","n","self"],4:["fx","n","self"]}
 $ info["gofuncs"]
-["acos","asin","atan","ceil","cos","exp","floor","ln","log10","pow","round","sin","sprintf","sqrt","tan","trunc"]
+== Parse ==> (info["gofuncs"])
+== Eval  ==> ["acos","asin","atan","ceil","cos","exp","floor","ln","log10","pow","round","sin","sprintf","sqrt","tan","trunc"]
 $ info["keywords"]
-["else","error","false","first","func","if","len","log","macro","print","println","quote","rest","return","true","unquote"]
+== Parse ==> (info["keywords"])
+== Eval  ==> ["else","error","false","first","func","if","len","log","macro","print","println","quote","rest","return","true","unquote"]
 ```
 
 ## Language features
