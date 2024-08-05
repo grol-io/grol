@@ -29,7 +29,7 @@ func TestEvalIntegerExpression(t *testing.T) {
 		// {"5 + /* block comment in middle of expression */ 2", 7},
 		// {" - /* inline of prefix */ 5", -5},
 		{"2 * 2 * 2 * 2 * 2", 32},
-		{"-50 + 100 + -50", 0},
+		{"-50 + 1_0_0 + -50", 0},
 		{"5 * 2 + 10", 20},
 		{"5 + 2 * 10", 25},
 		{"20 + 2 * -10", 0},
