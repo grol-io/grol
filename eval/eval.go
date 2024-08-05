@@ -645,13 +645,13 @@ func evalArrayInfixExpression(operator token.Type, left, right object.Object) ob
 			return object.FALSE
 		}
 		rightVal := right.(object.Array).Elements
-		return object.ArrayEquals(leftVal, rightVal)
+		return object.NativeBoolToBooleanObject(object.ArrayEquals(leftVal, rightVal))
 	case token.NOTEQ:
 		if right.Type() != object.ARRAY {
 			return object.TRUE
 		}
 		rightVal := right.(object.Array).Elements
-		if object.ArrayEquals(leftVal, rightVal) == object.FALSE {
+		if !object.ArrayEquals(leftVal, rightVal) {
 			return object.TRUE
 		}
 		return object.FALSE
@@ -671,9 +671,9 @@ func evalMapInfixExpression(operator token.Type, left, right object.Object) obje
 	rightMap := right.(object.Map)
 	switch operator { //nolint:exhaustive // we have default.
 	case token.EQ:
-		return object.MapEquals(leftMap, rightMap)
+		return object.NativeBoolToBooleanObject(object.MapEquals(leftMap, rightMap))
 	case token.NOTEQ:
-		if object.MapEquals(leftMap, rightMap) == object.FALSE {
+		if !object.MapEquals(leftMap, rightMap) {
 			return object.TRUE
 		}
 		return object.FALSE

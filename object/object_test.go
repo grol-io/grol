@@ -25,7 +25,7 @@ func TestStringMapKey(t *testing.T) {
 	if v != diff1 {
 		t.Errorf("value for key %v is %v, expected %v", hello2, v, diff1)
 	}
-	if object.Equals(diff1, diff2) != object.TRUE {
+	if !object.Equals(diff1, diff2) {
 		t.Errorf("values aren't equal, unexpected")
 	}
 }

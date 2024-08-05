@@ -48,6 +48,21 @@ $ m=fact(7)
 $ m/n
 == Parse ==> m / n
 == Eval  ==> 7
+$ func fx(n) {if n>0 {return fx(n-1)}; info["all_ids"]}; fx(3)
+== Parse ==> func fx(n) {
+	if n > 0 {
+		return fx(n - 1)
+	}
+	(info["all_ids"])
+}
+fx(3)
+== Eval  ==> {0:["E","PI","abs","fx","log2","printf"],1:["n","self"],2:["fx","n","self"],3:["fx","n","self"],4:["fx","n","self"]}
+$ info["gofuncs"]
+== Parse ==> (info["gofuncs"])
+== Eval  ==> ["acos","asin","atan","ceil","cos","exp","floor","ln","log10","pow","round","sin","sprintf","sqrt","tan","trunc"]
+$ info["keywords"]
+== Parse ==> (info["keywords"])
+== Eval  ==> ["else","error","false","first","func","if","len","log","macro","print","println","quote","rest","return","true","unquote"]
 ```
 
 ## Language features
@@ -67,6 +82,8 @@ automatic memoization
 easy extensions/adding Go functions to grol (see [extensions/extension.go](extensions/extension.go) for a lot of `math` additions)
 
 variadic functions both Go side and grol side (using `..` on grol side)
+
+Use `info` to see all the available functions, keywords, operators etc... (can be used inside functions too to examine the stack)
 
 See also [sample.gr](examples/sample.gr) and others in that folder, that you can run with
 ```
@@ -169,4 +186,4 @@ flags:
   -shared-state
     	All files share same interpreter state (default is new state for each)
 ```
-(excluding logger control, see `gorepl help` for all the flags, of note `-logger-no-color` will turn off colors for gorepl too)
+(excluding logger control, see `gorepl help` for all the flags, of note `-logger-no-color` will turn off colors for gorepl too, for development there are also `-profile*` options for pprof)

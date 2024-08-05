@@ -2,13 +2,18 @@ package object
 
 import (
 	"fmt"
+	"sort"
 
+	"fortio.org/cli"
 	"fortio.org/log"
+	"fortio.org/sets"
+	"grol.io/grol/token"
 )
 
 type Environment struct {
 	store    map[string]Object
 	outer    *Environment
+	depth    int
 	cacheKey string
 }
 
@@ -31,7 +36,62 @@ func (e *Environment) Len() int {
 	return len(e.store)
 }
 
+var baseInfo Map
+
+func (e *Environment) BaseInfo() Map {
+	if baseInfo != nil {
+		return baseInfo
+	}
+	baseInfo := make(Map, 6) // 5 here + all_ids
+	tokInfo := token.Info()
+	keys := make([]Object, 0, len(tokInfo.Keywords))
+	for _, v := range sets.Sort(tokInfo.Keywords) {
+		keys = append(keys, String{Value: v})
+	}
+	baseInfo[String{"keywords"}] = Array{Elements: keys}
+	keys = make([]Object, 0, len(tokInfo.Tokens))
+	for _, v := range sets.Sort(tokInfo.Tokens) {
+		keys = append(keys, String{Value: v})
+	}
+	baseInfo[String{"tokens"}] = Array{Elements: keys}
+	// Ditto cache this as it's set for a given environment.
+	ext := ExtraFunctions()
+	keys = make([]Object, 0, len(ext))
+	for k := range ext {
+		keys = append(keys, String{Value: k})
+	}
+	arr := Array{Elements: keys}
+	sort.Sort(arr)
+	baseInfo[String{"gofuncs"}] = arr
+	baseInfo[String{"version"}] = String{Value: cli.ShortVersion}
+	baseInfo[String{"platform"}] = String{Value: cli.LongVersion}
+	return baseInfo
+}
+
+func (e *Environment) Info() Object {
+	allKeys := make(Map, e.depth)
+	for {
+		keys := make([]Object, 0, e.Len())
+		for k := range e.store {
+			keys = append(keys, String{Value: k})
+		}
+		arr := Array{Elements: keys}
+		sort.Sort(arr)
+		allKeys[Integer{Value: int64(e.depth)}] = arr
+		if e.outer == nil {
+			break
+		}
+		e = e.outer
+	}
+	info := e.BaseInfo()
+	info[String{"all_ids"}] = allKeys
+	return info
+}
+
 func (e *Environment) Get(name string) (Object, bool) {
+	if name == "info" {
+		return e.Info(), true
+	}
 	obj, ok := e.store[name]
 	if ok || e.outer == nil {
 		return obj, ok
@@ -63,7 +123,7 @@ func (e *Environment) Set(name string, val Object) Object {
 		old, ok := e.Get(name) // not ok
 		if ok {
 			log.Infof("Attempt to change constant %s from %v to %v", name, old, val)
-			if !Hashable(old) || !Hashable(val) || old != val {
+			if !Equals(old, val) {
 				return Error{Value: fmt.Sprintf("attempt to change constant %s from %s to %s", name, old.Inspect(), val.Inspect())}
 			}
 		}
@@ -91,6 +151,6 @@ func NewFunctionEnvironment(fn Function, current *Environment) (*Environment, bo
 	if !sameFunction {
 		parent = fn.Env
 	}
-	env := &Environment{store: make(map[string]Object), outer: parent, cacheKey: fn.CacheKey}
+	env := &Environment{store: make(map[string]Object), outer: parent, cacheKey: fn.CacheKey, depth: parent.depth + 1}
 	return env, sameFunction
 }

@@ -67,50 +67,52 @@ func NativeBoolToBooleanObject(input bool) Boolean {
 	return FALSE
 }
 
-func Equals(left, right Object) Object {
+func Equals(left, right Object) bool {
 	if left.Type() != right.Type() {
-		return FALSE
+		return false
 	}
 	switch left := left.(type) {
 	case Integer:
-		return NativeBoolToBooleanObject(left.Value == right.(Integer).Value)
+		return left.Value == right.(Integer).Value
+	case Float:
+		return left.Value == right.(Float).Value
 	case String:
-		return NativeBoolToBooleanObject(left.Value == right.(String).Value)
+		return left.Value == right.(String).Value
 	case Boolean:
-		return NativeBoolToBooleanObject(left.Value == right.(Boolean).Value)
+		return left.Value == right.(Boolean).Value
 	case Null:
-		return TRUE
+		return true
 	case Array:
 		return ArrayEquals(left.Elements, right.(Array).Elements)
 	case Map:
 		return MapEquals(left, right.(Map))
 	default: /*	ERROR RETURN FUNC */
-		return FALSE
+		return false
 	}
 }
 
-func ArrayEquals(left, right []Object) Object {
+func ArrayEquals(left, right []Object) bool {
 	if len(left) != len(right) {
-		return FALSE
+		return false
 	}
 	for i, l := range left {
-		if Equals(l, right[i]) == FALSE {
-			return FALSE
+		if !Equals(l, right[i]) {
+			return false
 		}
 	}
-	return TRUE
+	return true
 }
 
-func MapEquals(left, right Map) Object {
+func MapEquals(left, right Map) bool {
 	if len(left) != len(right) {
-		return FALSE
+		return false
 	}
 	for k, v := range left {
-		if Equals(v, right[k]) == FALSE {
-			return FALSE
+		if !Equals(v, right[k]) {
+			return false
 		}
 	}
-	return TRUE
+	return true
 }
 
 type Integer struct {
@@ -274,15 +276,13 @@ func NewMap() Map {
 	return make(map[Object]Object)
 }
 
-type MapKeys []Object
-
-func (mk MapKeys) Len() int {
-	return len(mk)
+func (ao Array) Len() int {
+	return len(ao.Elements)
 }
 
-func (mk MapKeys) Less(i, j int) bool {
-	ti := mk[i].Type()
-	tj := mk[j].Type()
+func (ao Array) Less(i, j int) bool {
+	ti := ao.Elements[i].Type()
+	tj := ao.Elements[j].Type()
 	if ti < tj {
 		return true
 	}
@@ -291,18 +291,18 @@ func (mk MapKeys) Less(i, j int) bool {
 	}
 	switch ti { //nolint:exhaustive // We have all the types that exist and can be in a map.
 	case INTEGER:
-		return mk[i].(Integer).Value < mk[j].(Integer).Value
+		return ao.Elements[i].(Integer).Value < ao.Elements[j].(Integer).Value
 	case FLOAT:
-		return mk[i].(Float).Value < mk[j].(Float).Value
+		return ao.Elements[i].(Float).Value < ao.Elements[j].(Float).Value
 	case BOOLEAN:
-		bi := mk[i].(Boolean).Value
-		bj := mk[j].(Boolean).Value
+		bi := ao.Elements[i].(Boolean).Value
+		bj := ao.Elements[j].(Boolean).Value
 		if bi {
 			return false
 		}
 		return bj
 	case STRING:
-		return mk[i].(String).Value < mk[j].(String).Value
+		return ao.Elements[i].(String).Value < ao.Elements[j].(String).Value
 	default:
 		log.Warnf("Unexpected type in map keys: %s", ti)
 		// UNKNOWN, NIL, ERROR, RETURN, FUNC, ARRAY, MAP, QUOTE, MACRO, LAST
@@ -310,8 +310,8 @@ func (mk MapKeys) Less(i, j int) bool {
 	return false
 }
 
-func (mk MapKeys) Swap(i, j int) {
-	mk[i], mk[j] = mk[j], mk[i]
+func (ao Array) Swap(i, j int) {
+	ao.Elements[i], ao.Elements[j] = ao.Elements[j], ao.Elements[i]
 }
 
 func (m Map) Unwrap() any {
@@ -327,13 +327,14 @@ func (m Map) Type() Type { return MAP }
 func (m Map) Inspect() string {
 	out := strings.Builder{}
 	out.WriteString("{")
-	keys := make(MapKeys, 0, len(m))
+	keys := make([]Object, 0, len(m))
 	for key := range m {
 		keys = append(keys, key)
 	}
+	arr := Array{Elements: keys}
 	// Sort the keys
-	sort.Sort(keys)
-	for i, k := range keys {
+	sort.Sort(arr)
+	for i, k := range arr.Elements {
 		if i != 0 {
 			out.WriteString(",")
 		}
