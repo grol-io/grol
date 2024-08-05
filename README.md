@@ -48,6 +48,12 @@ $ m=fact(7)
 $ m/n
 == Parse ==> m / n
 == Eval  ==> 7
+$ info["all_ids"][0]
+["E","PI","abs","log2","printf"]
+$ info["gofuncs"]
+["acos","asin","atan","ceil","cos","exp","floor","ln","log10","pow","round","sin","sprintf","sqrt","tan","trunc"]
+$ info["keywords"]
+["else","error","false","first","func","if","len","log","macro","print","println","quote","rest","return","true","unquote"]
 ```
 
 ## Language features
