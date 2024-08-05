@@ -43,11 +43,11 @@ func Main() int {
 	if *cpuprofile != "" {
 		f, err := os.Create(*cpuprofile)
 		if err != nil {
-			log.Fatalf("can't open file for cpu profile: %v", err)
+			return log.FErrf("can't open file for cpu profile: %v", err)
 		}
 		err = pprof.StartCPUProfile(f)
 		if err != nil {
-			log.Fatalf("can't start cpu profile: %v", err)
+			return log.FErrf("can't start cpu profile: %v", err)
 		}
 		log.Infof("Writing cpu profile to %s", *cpuprofile)
 		defer pprof.StopCPUProfile()
