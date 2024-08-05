@@ -1,6 +1,7 @@
 package eval_test
 
 import (
+	"os"
 	"testing"
 
 	"grol.io/grol/ast"
@@ -11,7 +12,7 @@ import (
 	"grol.io/grol/parser"
 )
 
-func TestMain(m *testing.M) {	
+func TestMain(m *testing.M) {
 	err := extensions.Init()
 	if err != nil {
 		panic(err)
