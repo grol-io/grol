@@ -49,6 +49,8 @@ func main() {
 	_, grolVersion, _ := version.FromBuildInfoPath("grol.io/grol")
 	if TinyGoVersion != "" { // tinygo doesn't have modules info in buildinfo nor tinygo install...
 		grolVersion = TinyGoVersion + " " + runtime.Compiler + runtime.Version() + " " + runtime.GOARCH + " " + runtime.GOOS
+		cli.LongVersion = grolVersion
+		cli.ShortVersion = TinyGoVersion
 	}
 	log.Infof("Grol wasm main %s", grolVersion)
 	done := make(chan struct{}, 0)
