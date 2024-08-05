@@ -67,52 +67,52 @@ func NativeBoolToBooleanObject(input bool) Boolean {
 	return FALSE
 }
 
-func Equals(left, right Object) Object {
+func Equals(left, right Object) bool {
 	if left.Type() != right.Type() {
-		return FALSE
+		return false
 	}
 	switch left := left.(type) {
 	case Integer:
-		return NativeBoolToBooleanObject(left.Value == right.(Integer).Value)
+		return left.Value == right.(Integer).Value
 	case Float:
-		return NativeBoolToBooleanObject(left.Value == right.(Float).Value)
+		return left.Value == right.(Float).Value
 	case String:
-		return NativeBoolToBooleanObject(left.Value == right.(String).Value)
+		return left.Value == right.(String).Value
 	case Boolean:
-		return NativeBoolToBooleanObject(left.Value == right.(Boolean).Value)
+		return left.Value == right.(Boolean).Value
 	case Null:
-		return TRUE
+		return true
 	case Array:
 		return ArrayEquals(left.Elements, right.(Array).Elements)
 	case Map:
 		return MapEquals(left, right.(Map))
 	default: /*	ERROR RETURN FUNC */
-		return FALSE
+		return false
 	}
 }
 
-func ArrayEquals(left, right []Object) Object {
+func ArrayEquals(left, right []Object) bool {
 	if len(left) != len(right) {
-		return FALSE
+		return false
 	}
 	for i, l := range left {
-		if Equals(l, right[i]) == FALSE {
-			return FALSE
+		if !Equals(l, right[i]) {
+			return false
 		}
 	}
-	return TRUE
+	return true
 }
 
-func MapEquals(left, right Map) Object {
+func MapEquals(left, right Map) bool {
 	if len(left) != len(right) {
-		return FALSE
+		return false
 	}
 	for k, v := range left {
-		if Equals(v, right[k]) == FALSE {
-			return FALSE
+		if !Equals(v, right[k]) {
+			return false
 		}
 	}
-	return TRUE
+	return true
 }
 
 type Integer struct {
