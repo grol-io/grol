@@ -283,6 +283,9 @@ func TestReadFloatNumber(t *testing.T) {
 		{"100..", "100."},
 		{"1000_000.5", "1000_000.5"},
 		{"1000_000.5_6", "1000_000.5_6"},
+		{"1.23e1_000", "1.23e1_000"},   // too big for float64, but "lexable".
+		{"1.23e+1_000", "1.23e+1_000"}, // too big for float64, but "lexable".
+		{"1.23E-1_000", "1.23E-1_000"}, // too big for float64, but "lexable".
 	}
 
 	for _, tt := range tests {
