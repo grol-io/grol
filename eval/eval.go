@@ -68,8 +68,7 @@ func (s *State) evalAssignment(right object.Object, node *ast.InfixExpression) o
 		return right
 	}
 	log.LogVf("eval assign %#v to %#v", right, id.Value())
-	s.env.Set(id.Literal(), right)
-	return right // maybe only if it's a literal?
+	return s.env.Set(id.Literal(), right) // Propagate possible error (constant setting).
 }
 
 func ArgCheck[T any](msg string, n int, vararg bool, args []T) *object.Error {
@@ -101,19 +100,23 @@ func (s *State) evalPostfixExpression(node *ast.PostfixExpression) object.Object
 	default:
 		return object.Error{Value: "unknown postfix operator: " + node.Type().String()}
 	}
+	var oerr object.Object
 	switch val := val.(type) {
 	case object.Integer:
-		s.env.Set(id, object.Integer{Value: val.Value + toAdd})
+		oerr = s.env.Set(id, object.Integer{Value: val.Value + toAdd})
 	case object.Float:
-		s.env.Set(id, object.Float{Value: val.Value + float64(toAdd)})
+		oerr = s.env.Set(id, object.Float{Value: val.Value + float64(toAdd)}) // So PI++ fails not silently.
 	default:
 		return object.Error{Value: "can't increment/decrement " + val.Type().String()}
+	}
+	if oerr.Type() == object.ERROR {
+		return oerr
 	}
 	return val
 }
 
 // Doesn't unwrap return - return bubbles up.
-func (s *State) evalInternal(node any) object.Object {
+func (s *State) evalInternal(node any) object.Object { //nolint:funlen // quite a lot of cases.
 	switch node := node.(type) {
 	// Statements
 	case *ast.Statements:
@@ -174,7 +177,10 @@ func (s *State) evalInternal(node any) object.Object {
 		}
 		fn.SetCacheKey() // sets cache key
 		if name != nil {
-			s.env.Set(name.Literal(), fn)
+			oerr := s.env.Set(name.Literal(), fn)
+			if oerr.Type() == object.ERROR {
+				return oerr // propagate that func FOO() { ... } can only be defined once.
+			}
 		}
 		return fn
 	case *ast.CallExpression:
@@ -415,7 +421,7 @@ func (s *State) applyFunction(name string, fn object.Object, args []object.Objec
 		_, _ = s.Out.Write(output)
 		return v
 	}
-	nenv, oerr := extendFunctionEnv(name, function, args)
+	nenv, oerr := extendFunctionEnv(s.env, name, function, args)
 	if oerr != nil {
 		return *oerr
 	}
@@ -435,8 +441,18 @@ func (s *State) applyFunction(name string, fn object.Object, args []object.Objec
 	return res
 }
 
-func extendFunctionEnv(name string, fn object.Function, args []object.Object) (*object.Environment, *object.Error) {
-	env := object.NewEnclosedEnvironment(fn.Env)
+func extendFunctionEnv(
+	currrentEnv *object.Environment,
+	name string, fn object.Function,
+	args []object.Object,
+) (*object.Environment, *object.Error) {
+	// https://github.com/grol-io/grol/issues/47
+	// fn.Env is "captured state", but for recursion we now parent from current state; eg
+	//     func test(n) {if (n==2) {x=1}; if (n==1) {return x}; test(n-1)}; test(3)
+	// return 1 (state set by recursion with n==2)
+	// Make sure `self` is used to recurse, or named function, otherwise the function will
+	// need to be found way up the now much deeper stack.
+	env, sameFunction := object.NewFunctionEnvironment(fn, currrentEnv)
 	params := fn.Parameters
 	atLeast := ""
 	extra := object.Array{}
@@ -459,14 +475,23 @@ func extendFunctionEnv(name string, fn object.Function, args []object.Object) (*
 			name, len(args), atLeast, n)}
 	}
 	for paramIdx, param := range params {
-		env.Set(param.Value().Literal(), args[paramIdx])
+		oerr := env.Set(param.Value().Literal(), args[paramIdx])
+		log.LogVf("set %s to %s - %s", param.Value().Literal(), args[paramIdx].Inspect(), oerr.Inspect())
+		if oerr.Type() == object.ERROR {
+			oe, _ := oerr.(object.Error)
+			return nil, &oe
+		}
 	}
 	if fn.Variadic {
-		env.Set("..", extra)
+		env.SetNoChecks("..", extra)
 	}
 	// for recursion in anonymous functions.
 	// TODO: consider not having to keep setting this in the function's env and treating as a keyword.
-	env.Set("self", fn)
+	env.SetNoChecks("self", fn)
+	// For recursion in named functions, set it here so we don't need to go up a stack of 50k envs to find it
+	if sameFunction && name != "" {
+		env.SetNoChecks(name, fn)
+	}
 	return env, nil
 }
 

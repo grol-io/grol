@@ -1,6 +1,7 @@
 package eval_test
 
 import (
+	"os"
 	"testing"
 
 	"grol.io/grol/ast"
@@ -10,6 +11,14 @@ import (
 	"grol.io/grol/object"
 	"grol.io/grol/parser"
 )
+
+func TestMain(m *testing.M) {
+	err := extensions.Init()
+	if err != nil {
+		panic(err)
+	}
+	os.Exit(m.Run())
+}
 
 func TestEvalIntegerExpression(t *testing.T) {
 	tests := []struct {
@@ -59,12 +68,19 @@ func(n) {
 	n * self(n - 1)
 }(5)
 `, 120},
+		{`ONE=1;ONE`, 1},
+		{`ONE=1;ONE=1`, 1}, // Ok to reassign CONSTANT if it's to same value.
+		{`myid=23; func test(n) {if (n==2) {myid=42}; if (n==1) {return myid}; test(n-1)}; test(3)`, 42}, // was 23 before
+		{
+			`func FACT(n){if n<=1 {return 1}; n*FACT(n-1)};FACT(5)`, // Recursion on CONSTANT function should not error
+			120,
+		},
 	}
 	for i, tt := range tests {
 		evaluated := testEval(t, tt.input)
 		r := testIntegerObject(t, evaluated, tt.expected)
 		if !r {
-			t.Logf("test %d input: %s failed integer %d", i, tt.input, tt.expected)
+			t.Logf("test %d input: %s failed to eval to integer %d", i, tt.input, tt.expected)
 		}
 	}
 }
@@ -231,6 +247,30 @@ func TestErrorHandling(t *testing.T) {
 		input           string
 		expectedMessage string
 	}{
+		{
+			`func x(FOO) {log("x",FOO,PI);if FOO<=1 {return FOO} x(FOO-1)};x(2)`,
+			"attempt to change constant FOO from 2 to 1",
+		},
+		{
+			`func FOO(x){x}; func FOO(x){x+1}`,
+			"attempt to change constant FOO from func FOO(x){x} to func FOO(x){x+1}",
+		},
+		{
+			`ONE=1;ONE=2`,
+			"attempt to change constant ONE from 1 to 2",
+		},
+		{
+			`ONE=1;ONE--`,
+			"attempt to change constant ONE from 1 to 0",
+		},
+		{
+			`PI++`,
+			"attempt to change constant PI from 3.141592653589793 to 4.141592653589793",
+		},
+		{
+			`ONE=1;func f(x){func ff(y) {ONE=y} ff(x)};f(3)`,
+			"attempt to change constant ONE from 1 to 3",
+		},
 		{
 			"myfunc=func(x,y) {x+y}; myfunc(1)",
 			"wrong number of arguments for myfunc. got=1, want=2",

@@ -9,11 +9,11 @@ import (
 	"grol.io/grol/token"
 )
 
-func (s *State) DefineMacros(program *ast.Statements) {
+func DefineMacros(store *object.Environment, program *ast.Statements) {
 	for i := 0; i < len(program.Statements); /* not always incrementing */ {
 		statement := program.Statements[i]
 		if isMacroDefinition(statement) {
-			s.addMacro(statement)
+			addMacro(store, statement)
 			program.Statements = append(program.Statements[:i], program.Statements[i+1:]...)
 		} else {
 			i++
@@ -38,7 +38,7 @@ func isMacroDefinition(node ast.Node) bool {
 	return ok
 }
 
-func (s *State) addMacro(stmt ast.Node) {
+func addMacro(s *object.Environment, stmt ast.Node) {
 	// TODO ok checks
 	assign, _ := stmt.(*ast.InfixExpression)
 	macroLiteral, _ := assign.Right.(*ast.MacroLiteral)
@@ -46,20 +46,20 @@ func (s *State) addMacro(stmt ast.Node) {
 
 	macro := &object.Macro{
 		Parameters: macroLiteral.Parameters,
-		Env:        s.env,
+		Env:        s,
 		Body:       macroLiteral.Body,
 	}
 
-	s.env.Set(name, macro)
+	s.Set(name, macro)
 }
 
-func (s *State) isMacroCall(exp *ast.CallExpression) (*object.Macro, bool) {
+func isMacroCall(s *object.Environment, exp *ast.CallExpression) (*object.Macro, bool) {
 	identifier, ok := exp.Function.(*ast.Identifier)
 	if !ok {
 		return nil, false
 	}
 
-	obj, ok := s.env.Get(identifier.Literal())
+	obj, ok := s.Get(identifier.Literal())
 	if !ok {
 		return nil, false
 	}
@@ -72,14 +72,14 @@ func (s *State) isMacroCall(exp *ast.CallExpression) (*object.Macro, bool) {
 	return macro, true
 }
 
-func (s *State) ExpandMacros(program ast.Node) ast.Node {
+func ExpandMacros(s *object.Environment, program ast.Node) ast.Node {
 	return ast.Modify(program, func(node ast.Node) ast.Node {
 		callExpression, ok := node.(*ast.CallExpression)
 		if !ok {
 			return node
 		}
 
-		macro, ok := s.isMacroCall(callExpression)
+		macro, ok := isMacroCall(s, callExpression)
 		if !ok {
 			return node
 		}

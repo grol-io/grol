@@ -53,3 +53,24 @@ func TestExtensionUsage(t *testing.T) {
 		t.Errorf("cmd.Inspect() test unlimited args got %q, expected %q", actual, expected)
 	}
 }
+
+func TestIsConstantIdentifier(t *testing.T) {
+	tests := []struct {
+		name     string
+		expected bool
+	}{
+		{"PI", true},
+		{"FOO_BAR", true},
+		{"_FOO_BAR", false},
+		{"Foo", false},
+		{"E", true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			actual := object.Constant(tt.name)
+			if actual != tt.expected {
+				t.Errorf("object.IsConstantIdentifier(%q) got %v, expected %v", tt.name, actual, tt.expected)
+			}
+		})
+	}
+}

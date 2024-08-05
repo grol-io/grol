@@ -1,12 +1,12 @@
-f = func(n, fac, dfac, exp, N) {
+f = func(n, fac, dfac, exp, max) {
   // log("Call n=", n, fac, dfac, exp)
-  if (n>N) {
+  if (n>max) {
     [fac, dfac, exp]
   } else {
     dfac = 1.*dfac*(2*n - 1)
     exp = exp * 2
     fac = fac * n
-    f(n+1, fac, dfac, exp, N)
+    f(n+1, fac, dfac, exp, max)
   }
 }
 N = 100

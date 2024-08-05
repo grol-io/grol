@@ -37,7 +37,18 @@ stderr 'called fact 5'
 stderr 'called fact 1'
 stderr 'I] All done'
 
-# fib_50.gr
+# macro output (there is a macro in sample_test.gr, it should show that stage with -parse)
+grol -parse sample_test.gr
+!stderr 'Errors'
+stdout '== Macro ==>'
+
+# no macro stage when no macro in the file:
+grol -parse fib_50.gr
+!stderr 'Errors'
+!stdout '== Macro ==>'
+stdout '12586269025\n'
+
+# fib_50.gr (redoing, checking exact match of output)
 grol fib_50.gr
 !stderr 'Errors'
 cmp stdout fib50_stdout

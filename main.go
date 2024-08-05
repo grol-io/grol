@@ -5,11 +5,13 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"runtime/pprof"
 
 	"fortio.org/cli"
 	"fortio.org/log"
 	"grol.io/grol/eval"
 	"grol.io/grol/extensions" // register extensions
+	"grol.io/grol/object"
 	"grol.io/grol/repl"
 )
 
@@ -24,6 +26,9 @@ func Main() int {
 	compact := flag.Bool("compact", false, "When printing code, use no indentation and most compact form")
 	showEval := flag.Bool("eval", true, "show eval results")
 	sharedState := flag.Bool("shared-state", false, "All files share same interpreter state (default is new state for each)")
+	cpuprofile := flag.String("profile-cpu", "", "write cpu profile to `file`")
+	memprofile := flag.String("profile-mem", "", "write memory profile to `file`")
+
 	cli.ArgsHelp = "*.gr files to interpret or `-` for stdin without prompt or no arguments for stdin repl..."
 	cli.MaxArgs = -1
 	cli.Main()
@@ -34,9 +39,22 @@ func Main() int {
 		FormatOnly: *format,
 		Compact:    *compact,
 	}
+
+	if *cpuprofile != "" {
+		f, err := os.Create(*cpuprofile)
+		if err != nil {
+			return log.FErrf("can't open file for cpu profile: %v", err)
+		}
+		err = pprof.StartCPUProfile(f)
+		if err != nil {
+			return log.FErrf("can't start cpu profile: %v", err)
+		}
+		log.Infof("Writing cpu profile to %s", *cpuprofile)
+		defer pprof.StopCPUProfile()
+	}
 	err := extensions.Init()
 	if err != nil {
-		log.Fatalf("Error initializing extensions: %v", err)
+		return log.FErrf("Error initializing extensions: %v", err)
 	}
 	if *commandFlag != "" {
 		res, errs, _ := repl.EvalString(*commandFlag)
@@ -52,19 +70,31 @@ func Main() int {
 	}
 	options.All = true
 	s := eval.NewState()
-	macroState := eval.NewState()
+	macroState := object.NewMacroEnvironment()
 	for _, file := range flag.Args() {
 		processOneFile(file, s, macroState, options)
 		if !*sharedState {
 			s = eval.NewState()
-			macroState = eval.NewState()
+			macroState = object.NewMacroEnvironment()
 		}
 	}
 	log.Infof("All done")
+	if *memprofile != "" {
+		f, err := os.Create(*memprofile)
+		if err != nil {
+			return log.FErrf("can't open file for mem profile: %v", err)
+		}
+		err = pprof.WriteHeapProfile(f)
+		if err != nil {
+			return log.FErrf("can't write mem profile: %v", err)
+		}
+		log.Infof("Wrote memory profile to %s", *memprofile)
+		f.Close()
+	}
 	return 0
 }
 
-func processOneFile(file string, s, macroState *eval.State, options repl.Options) {
+func processOneFile(file string, s *eval.State, macroState *object.Environment, options repl.Options) {
 	if file == "-" {
 		if options.FormatOnly {
 			log.Infof("Formatting stdin")
