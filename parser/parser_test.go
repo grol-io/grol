@@ -217,6 +217,15 @@ func TestFormat(t *testing.T) {
 		compact  string
 	}{
 		{
+			`a=[1,2,3]
+a[1]
+info["tokens"]`,
+			`a = [1, 2, 3]
+a[1]
+info["tokens"]`,
+			`a=[1,2,3]a[1]info["tokens"]`,
+		},
+		{
 			`func fact(a, b, ..) {println(a, b,..)}`,
 			"func fact(a, b, ..) {\n\tprintln(a, b, ..)\n}",
 			"func fact(a,b,..){println(a,b,..)}",
