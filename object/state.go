@@ -85,7 +85,6 @@ func (e *Environment) Info() Object {
 	}
 	info := e.BaseInfo()
 	info[String{"all_ids"}] = allKeys
-	// TODO: Cache this as it can't change without recompiling:
 	return info
 }
 
