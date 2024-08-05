@@ -41,3 +41,7 @@ grol_tiny.wasm
 wasm/grol_tiny.wasm
 wasm/index.html
 tiny_test
+
+*.svg
+*.prof
+*.pprof
