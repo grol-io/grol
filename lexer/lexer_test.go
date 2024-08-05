@@ -256,3 +256,75 @@ func TestNextTokenCommentEOLMode(t *testing.T) {
 		}
 	}
 }
+
+func TestReadFloatNumber(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		{".", "."},  // not a valid float number yet we consume and it'll fail to convert later.
+		{".a", "."}, // not a valid float number yet we consume and it'll fail to convert later.
+		{"123.", "123."},
+		{".5", ".5"},
+		{"100.56", "100.56"},
+		{"1e3", "1e3"},
+		{"1.23e-3", "1.23e-3"},
+		{"1.23E+3", "1.23E+3"},
+		{"1e-3", "1e-3"},
+		{"12..3", "12."},
+		{"1e+3", "1e+3"},
+		{"1.23e", "1.23"},
+		{"1.23e+", "1.23"},
+		{"1.23e-", "1.23"},
+		{"1.23e-abc", "1.23"},
+		{"123..", "123."},
+		{"1..23", "1."},
+		{".e3", "."},
+		{"100..", "100."},
+		{"1000_000.5", "1000_000.5"},
+		{"1000_000.5_6", "1000_000.5_6"},
+		{"1.23e1_000", "1.23e1_000"},   // too big for float64, but "lexable".
+		{"1.23e+1_000", "1.23e+1_000"}, // too big for float64, but "lexable".
+		{"1.23E-1_000", "1.23E-1_000"}, // too big for float64, but "lexable".
+	}
+
+	for _, tt := range tests {
+		l := New(tt.input)
+		tok := l.NextToken()
+		tokT := tok.Type()
+		result := tok.Literal()
+		isFloat := (tokT == token.FLOAT)
+		if !isFloat {
+			t.Errorf("input: %q, expected a float number, got: %#v", tt.input, tok.DebugString())
+		}
+		if result != tt.expected {
+			t.Errorf("input: %q, expected: %q, got: %q", tt.input, tt.expected, result)
+		}
+	}
+}
+
+func TestReadIntNumber(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		{"1_2_3", "1_2_3"},
+		{"5", "5"},
+		{"100abc", "100"},
+		{"1000_000", "1000_000"},
+	}
+
+	for _, tt := range tests {
+		l := New(tt.input)
+		tok := l.NextToken()
+		tokT := tok.Type()
+		result := tok.Literal()
+		isFloat := (tokT == token.INT)
+		if !isFloat {
+			t.Errorf("input: %q, expected a int number, got: %#v", tt.input, tok.DebugString())
+		}
+		if result != tt.expected {
+			t.Errorf("input: %q, expected: %q, got: %q", tt.input, tt.expected, result)
+		}
+	}
+}
