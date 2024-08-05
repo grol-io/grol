@@ -68,6 +68,8 @@ easy extensions/adding Go functions to grol (see [extensions/extension.go](exten
 
 variadic functions both Go side and grol side (using `..` on grol side)
 
+Use `info` to see all the available functions, keywords, operators etc... (can be used inside functions too to examine the stack)
+
 See also [sample.gr](examples/sample.gr) and others in that folder, that you can run with
 ```
 gorepl examples/*.gr
@@ -169,4 +171,4 @@ flags:
   -shared-state
     	All files share same interpreter state (default is new state for each)
 ```
-(excluding logger control, see `gorepl help` for all the flags, of note `-logger-no-color` will turn off colors for gorepl too)
+(excluding logger control, see `gorepl help` for all the flags, of note `-logger-no-color` will turn off colors for gorepl too, for development there are also `-profile*` options for pprof)

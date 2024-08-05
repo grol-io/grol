@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sort"
 
+	"fortio.org/cli"
 	"fortio.org/log"
 	"fortio.org/sets"
 	"grol.io/grol/token"
@@ -41,7 +42,7 @@ func (e *Environment) BaseInfo() Map {
 	if baseInfo != nil {
 		return baseInfo
 	}
-	baseInfo := make(Map, 4)
+	baseInfo := make(Map, 6) // 5 here + all_ids
 	tokInfo := token.Info()
 	keys := make([]Object, 0, len(tokInfo.Keywords))
 	for _, v := range sets.Sort(tokInfo.Keywords) {
@@ -62,6 +63,8 @@ func (e *Environment) BaseInfo() Map {
 	arr := Array{Elements: keys}
 	sort.Sort(arr)
 	baseInfo[String{"gofuncs"}] = arr
+	baseInfo[String{"version"}] = String{Value: cli.ShortVersion}
+	baseInfo[String{"platform"}] = String{Value: cli.LongVersion}
 	return baseInfo
 }
 
