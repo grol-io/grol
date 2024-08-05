@@ -199,7 +199,6 @@ func (l *Lexer) readBlockComment() string {
 
 func (l *Lexer) readNumber(ch byte) (token.Type, string) {
 	t := token.INT
-	pos := l.pos - 1
 	dotSeen := false
 	hasDigits := true
 	// Integer part or leading dot for fractional part
@@ -208,6 +207,7 @@ func (l *Lexer) readNumber(ch byte) (token.Type, string) {
 		hasDigits = false
 		dotSeen = true
 	}
+	pos := l.pos - 1
 	for isDigitOrUnderscore(l.peekChar()) {
 		hasDigits = true
 		l.pos++
