@@ -77,6 +77,9 @@ func (l *Lexer) NextToken() *token.Token {
 			l.pos++
 			return token.ConstantTokenChar2(ch, nextChar)
 		}
+		if !isDigit(nextChar) {
+			return token.ConstantTokenChar(ch) // DOT token
+		}
 		// number can start with . eg .5
 		return token.Intern(l.readNumber(ch))
 	default:

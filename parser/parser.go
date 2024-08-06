@@ -24,6 +24,7 @@ const (
 	PREFIX      // -X or !X
 	CALL        // myFunction(X)
 	INDEX       // array[index]
+	DOTINDEX    // map.str access
 )
 
 //go:generate stringer -type=Priority
@@ -117,6 +118,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerInfix(token.GTEQ, p.parseInfixExpression)
 	p.registerInfix(token.LPAREN, p.parseCallExpression)
 	p.registerInfix(token.LBRACKET, p.parseIndexExpression)
+	p.registerInfix(token.DOT, p.parseIndexExpression)
 	// no let:
 	p.registerInfix(token.ASSIGN, p.parseInfixExpression)
 
@@ -269,6 +271,11 @@ func (p *Parser) noPrefixParseFnError(t token.Type) {
 
 func (p *Parser) parseExpression(precedence Priority) ast.Node {
 	log.Debugf("parseExpression: %s precedence %s", p.curToken.DebugString(), precedence)
+	if p.curToken.Type() == token.EOL {
+		log.Debugf("parseExpression: EOL")
+		p.continuationNeeded = true
+		return nil
+	}
 	prefix := p.prefixParseFns[p.curToken.Type()]
 	if prefix == nil {
 		p.noPrefixParseFnError(p.curToken.Type())
@@ -387,6 +394,7 @@ var precedences = map[token.Type]Priority{
 	token.PERCENT:  PRODUCT,
 	token.LPAREN:   CALL,
 	token.LBRACKET: INDEX,
+	token.DOT:      DOTINDEX,
 }
 
 func (p *Parser) peekPrecedence() Priority {
@@ -574,9 +582,17 @@ func (p *Parser) parseExpressionList(end token.Type) []ast.Node {
 func (p *Parser) parseIndexExpression(left ast.Node) ast.Node {
 	exp := &ast.IndexExpression{Left: left}
 	exp.Token = p.curToken
+	isDot := p.curToken.Type() == token.DOT
 
 	p.nextToken()
-	exp.Index = p.parseExpression(LOWEST)
+	prec := LOWEST
+	if isDot {
+		prec = DOTINDEX
+	}
+	exp.Index = p.parseExpression(prec)
+	if isDot {
+		return exp
+	}
 
 	if !p.expectPeek(token.RBRACKET) {
 		return nil
@@ -592,6 +608,9 @@ func (p *Parser) parseMapLiteral() ast.Node {
 
 	for !p.peekTokenIs(token.RBRACE) {
 		p.nextToken()
+		if p.continuationNeeded {
+			return nil
+		}
 		key := p.parseExpression(LOWEST)
 
 		if !p.expectPeek(token.COLON) {

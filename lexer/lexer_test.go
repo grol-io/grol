@@ -43,6 +43,7 @@ j--
 /* This is a
    multiline comment */
 ..
+a.b
 @
 `
 	tests := []struct {
@@ -163,6 +164,9 @@ j--
 		{token.BLOCKCOMMENT, "/*/*/"},
 		{token.BLOCKCOMMENT, "/* This is a\n   multiline comment */"},
 		{token.DOTDOT, ".."},
+		{token.IDENT, "a"},
+		{token.DOT, "."},
+		{token.IDENT, "b"},
 		{token.ILLEGAL, "@"},
 		{token.EOF, ""},
 	}
@@ -279,7 +283,7 @@ func TestReadFloatNumber(t *testing.T) {
 		{"1.23e-abc", "1.23"},
 		{"123..", "123."},
 		{"1..23", "1."},
-		{".e3", "."},
+		{".e3", "."}, // that's now the DOT and not a (bad) float.
 		{"100..", "100."},
 		{"1000_000.5", "1000_000.5"},
 		{"1000_000.5_6", "1000_000.5_6"},
@@ -293,6 +297,12 @@ func TestReadFloatNumber(t *testing.T) {
 		tok := l.NextToken()
 		tokT := tok.Type()
 		result := tok.Literal()
+		if tt.expected == "." {
+			if tokT != token.DOT {
+				t.Errorf("input: %q, expected a DOT, got: %#v", tt.input, tok.DebugString())
+			}
+			continue
+		}
 		isFloat := (tokT == token.FLOAT)
 		if !isFloat {
 			t.Errorf("input: %q, expected a float number, got: %#v", tt.input, tok.DebugString())

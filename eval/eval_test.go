@@ -137,6 +137,7 @@ func TestEvalBooleanExpression(t *testing.T) {
 		{"(1 > 2) == false", true},
 		{`"hello" == "world"`, false},
 		{`"hello" == "hello"`, true},
+		{`info["all_ids"] == info.all_ids`, true},
 	}
 
 	for _, tt := range tests {
@@ -612,12 +613,24 @@ func TestMapIndexExpressions(t *testing.T) {
 			5,
 		},
 		{
+			`{"foo": 5}.foo`, // dot notation
+			5,
+		},
+		{
 			`{"foo": 5}["bar"]`,
+			nil,
+		},
+		{
+			`{"foo": 5}.bar`,
 			nil,
 		},
 		{
 			`key = "foo"; {"foo": 5}[key]`,
 			5,
+		},
+		{
+			`key = "foo"; {"foo": 5}.key`, // doesn't work (on puprpose), dot notation is string not eval.
+			nil,
 		},
 		{
 			`{}["foo"]`,

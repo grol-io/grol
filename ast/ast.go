@@ -422,9 +422,11 @@ func (ie IndexExpression) PrettyPrint(out *PrintState) *PrintState {
 		out.Print("(")
 	}
 	ie.Left.PrettyPrint(out)
-	out.Print("[")
+	out.Print(ie.Literal())
 	ie.Index.PrettyPrint(out)
-	out.Print("]")
+	if ie.Token.Type() == token.LBRACKET {
+		out.Print("]")
+	}
 	if out.ExpressionLevel > 0 {
 		out.Print(")")
 	}

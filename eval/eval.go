@@ -217,7 +217,13 @@ func (s *State) evalInternal(node any) object.Object { //nolint:funlen // quite 
 		return s.evalMapLiteral(node)
 	case *ast.IndexExpression:
 		left := s.evalInternal(node.Left)
-		index := s.evalInternal(node.Index)
+		var index object.Object
+		if node.Token.Type() == token.DOT {
+			// index is the string value and not an identifier.
+			index = object.String{Value: node.Index.Value().Literal()}
+		} else {
+			index = s.evalInternal(node.Index)
+		}
 		return evalIndexExpression(left, index)
 	case *ast.Comment:
 		return object.NULL

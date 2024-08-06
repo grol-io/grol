@@ -90,6 +90,7 @@ const (
 	LBRACKET
 	RBRACKET
 	COLON
+	DOT
 
 	endSingleCharTokens
 
@@ -220,6 +221,7 @@ func Init() {
 	assoc(LBRACKET, '[')
 	assoc(RBRACKET, ']')
 	assoc(COLON, ':')
+	assoc(DOT, '.')
 	// Verify we have all of them.
 	for i := startSingleCharTokens + 1; i < endSingleCharTokens; i++ {
 		b, ok := tToChar[i]

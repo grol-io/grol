@@ -113,14 +113,20 @@ stdout '^3$'
 !stderr .
 
 # eval() runs in the same context as when called
-grol -quiet -c 'func foo(x) {eval("info")};foo(1)["all_ids"][1]'
-stdout '^\["self","x"]$'
+grol -quiet -c 'func foo(x) {eval("info")};foo(42)["all_ids"][1]'
+stdout '^{"self":func foo\(x\){eval\("info"\)},"x":42}$'
 !stderr .
 
 # json of (nested) arrays
 grol -quiet -c 'a=[1,2,3,["a", "b"],4];println(json(a))'
 stdout '^\[1,2,3,\["a","b"],4]$'
 !stderr .
+
+# dot notation and priority with functions
+grol -quiet -c 'n1={"f1":func(){println("f1")},"f2":func(x){x+1}}n1.f1()n1.f2(41)'
+stdout '^f1\n42$'
+!stderr .
+
 -- foo.inp --
 foo
 -- sample_test.gr --
