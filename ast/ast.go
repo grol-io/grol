@@ -418,11 +418,16 @@ type IndexExpression struct {
 }
 
 func (ie IndexExpression) PrettyPrint(out *PrintState) *PrintState {
-	out.Print("(")
+	if out.ExpressionLevel > 0 { // TODO only add parens if precedence requires it.
+		out.Print("(")
+	}
 	ie.Left.PrettyPrint(out)
 	out.Print("[")
 	ie.Index.PrettyPrint(out)
-	out.Print("])")
+	out.Print("]")
+	if out.ExpressionLevel > 0 {
+		out.Print(")")
+	}
 	return out
 }
 
