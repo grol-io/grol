@@ -404,17 +404,19 @@ type Extension struct {
 
 // Adapter for functions that only need the argumants.
 func ShortCallback(f ShortExtFunction) ExtFunction {
-	return func(_ *Environment, _ string, args []Object) Object {
+	return func(_ any, _ string, args []Object) Object {
 		return f(args)
 	}
 }
 
-// Signature for callbacks that do not need more than the arguments (like math functions).
+// ShortExtFunction is the signature for callbacks that do not need more than the arguments (like math functions).
 type ShortExtFunction func(args []Object) Object
 
-// ShortExtFunction is the signature of what grol will call when the extension is invoked.
+// ExtFunction is the signature of what grol will call when the extension is invoked.
 // Incoming arguments are validated for type and number of arguments based on [Extension].
-type ExtFunction func(env *Environment, Name string, args []Object) Object
+// eval is the opaque state passed from the interpreter, it can be used with eval.Eval etc
+// name is the function name as registered under.
+type ExtFunction func(eval any, name string, args []Object) Object
 
 func (e *Extension) Usage(out *strings.Builder) {
 	for i := 1; i <= e.MinArgs; i++ {

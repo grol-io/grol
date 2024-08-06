@@ -421,7 +421,7 @@ func (s *State) applyExtension(fn object.Extension, args []object.Object) object
 				arg.Type(), fn.Inspect())}
 		}
 	}
-	return fn.Callback(s.env, fn.Name, args)
+	return fn.Callback(s, fn.Name, args)
 }
 
 func (s *State) applyFunction(name string, fn object.Object, args []object.Object) object.Object {
@@ -794,7 +794,7 @@ func evalFloatInfixExpression(operator token.Type, left, right object.Object) ob
 // to the base identifiers. Used to add grol defined functions to the base environment
 // (e.g abs(), log2(), etc). Eventually we may instead `include("lib.gr")` or some such.
 func AddEvalResult(name, code string) error {
-	res, err := EvalString(nil, code, false)
+	res, err := EvalString(NewState(), code, false)
 	if err != nil {
 		return err
 	}
@@ -806,23 +806,24 @@ func AddEvalResult(name, code string) error {
 // `unjson` uses emptyEnv == true (for now, pending better/safer implementation).
 //
 //nolint:revive // eval.EvalString is fine.
-func EvalString(env *object.Environment, code string, emptyEnv bool) (object.Object, error) {
+func EvalString(this any, code string, emptyEnv bool) (object.Object, error) {
 	l := lexer.New(code)
 	p := parser.New(l)
 	program := p.ParseProgram()
 	if len(p.Errors()) != 0 {
 		return object.NULL, fmt.Errorf("parsing error: %v", p.Errors())
 	}
-	var st *State
+	var evalState *State
 	if emptyEnv {
-		st = NewBlankState()
+		evalState = NewBlankState()
 	} else {
-		st = NewState()
-		if env != nil {
-			st.env = object.NewEnclosedEnvironment(env)
+		var ok bool
+		evalState, ok = this.(*State)
+		if !ok {
+			return object.NULL, fmt.Errorf("invalid this: %T", this)
 		}
 	}
-	res := st.Eval(program)
+	res := evalState.Eval(program)
 	if res.Type() == object.ERROR {
 		return res, fmt.Errorf("eval error: %v", res.Inspect())
 	}

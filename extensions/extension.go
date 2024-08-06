@@ -87,7 +87,7 @@ func initInternal() error {
 		{math.Ceil, "ceil"},
 		{math.Log10, "log10"},
 	} {
-		oneFloat.Callback = func(_ *object.Environment, _ string, args []object.Object) object.Object {
+		oneFloat.Callback = func(_ any, _ string, args []object.Object) object.Object {
 			// Arg len check already done through MinArgs=MaxArgs=1 and
 			// type through ArgTypes: []object.Type{object.FLOAT}.
 			return object.Float{Value: function.fn(args[0].(object.Float).Value)}
@@ -172,7 +172,7 @@ func jsonFunc(args []object.Object) object.Object {
 	return object.String{Value: string(b)}
 }
 
-func evalFunc(env *object.Environment, name string, args []object.Object) object.Object {
+func evalFunc(env any, name string, args []object.Object) object.Object {
 	s := args[0].(object.String).Value
 	res, err := eval.EvalString(env, s, name == "unjson" /* empty env */)
 	if err != nil {
