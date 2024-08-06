@@ -102,6 +102,22 @@ grol -quiet -c 'printf("%d %s %.2f\n", 42, "ab\ncd", 1.5)'
 stdout '42 ab\ncd 1.50\n'
 !stderr .
 
+# eval() runs in the same context as when called
+grol -quiet -c 'a=1;eval("a=2");a'
+stdout '^2$'
+!stderr .
+
+# eval() runs in the same context as when called
+grol -quiet -c 'func foo(a) {eval("b=2");a+b};foo(1)'
+stdout '^3$'
+!stderr .
+
+# eval() runs in the same context as when called
+grol -quiet -c 'func foo(x) {eval("info")};foo(1)["all_ids"][1]'
+stdout '^\["self","x"]$'
+!stderr .
+
+
 -- foo.inp --
 foo
 -- sample_test.gr --
