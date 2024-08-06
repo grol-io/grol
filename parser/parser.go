@@ -270,6 +270,11 @@ func (p *Parser) noPrefixParseFnError(t token.Type) {
 
 func (p *Parser) parseExpression(precedence Priority) ast.Node {
 	log.Debugf("parseExpression: %s precedence %s", p.curToken.DebugString(), precedence)
+	if p.curToken.Type() == token.EOL {
+		log.Debugf("parseExpression: EOL")
+		p.continuationNeeded = true
+		return nil
+	}
 	prefix := p.prefixParseFns[p.curToken.Type()]
 	if prefix == nil {
 		p.noPrefixParseFnError(p.curToken.Type())
@@ -598,6 +603,9 @@ func (p *Parser) parseMapLiteral() ast.Node {
 
 	for !p.peekTokenIs(token.RBRACE) {
 		p.nextToken()
+		if p.continuationNeeded {
+			return nil
+		}
 		key := p.parseExpression(LOWEST)
 
 		if !p.expectPeek(token.COLON) {
