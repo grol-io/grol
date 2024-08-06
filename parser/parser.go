@@ -117,6 +117,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerInfix(token.GTEQ, p.parseInfixExpression)
 	p.registerInfix(token.LPAREN, p.parseCallExpression)
 	p.registerInfix(token.LBRACKET, p.parseIndexExpression)
+	p.registerInfix(token.DOT, p.parseIndexExpression)
 	// no let:
 	p.registerInfix(token.ASSIGN, p.parseInfixExpression)
 
@@ -387,6 +388,7 @@ var precedences = map[token.Type]Priority{
 	token.PERCENT:  PRODUCT,
 	token.LPAREN:   CALL,
 	token.LBRACKET: INDEX,
+	token.DOT:      INDEX,
 }
 
 func (p *Parser) peekPrecedence() Priority {
@@ -577,6 +579,10 @@ func (p *Parser) parseIndexExpression(left ast.Node) ast.Node {
 
 	p.nextToken()
 	exp.Index = p.parseExpression(LOWEST)
+
+	if exp.Token.Type() == token.DOT {
+		return exp
+	}
 
 	if !p.expectPeek(token.RBRACKET) {
 		return nil

@@ -28,7 +28,7 @@ m={"key": a, 73: 29} // so do maps
 println("m is:", m) // stdout print
 println("Outputting a smiley: 😀")
 
-first(m["key"]) // get the value from key from map, which is an array, and the first element of the array is our factorial 5
-// could also have been m["key"][0]
+first(m.key) // get the value from key from map, which is an array, and the first element of the array is our factorial 5
+// (dot notation .key is shorthand for ["key"]), could also have been firs(m["key"]) or m["key"][0] or m.key[0]
 
 // ^^^ gorepl sample.gr should output 120

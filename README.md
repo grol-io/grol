@@ -48,20 +48,20 @@ $ m=fact(7)
 $ m/n
 == Parse ==> m / n
 == Eval  ==> 7
-$ func fx(n) {if n>0 {return fx(n-1)}; info["all_ids"]}; fx(3)
-== Parse ==> func fx(n) {
+$ func fx(n) {if n>0 {return fx(n-1)}; info.all_ids}; fx(3)
+== Parse ==> f== Parse ==> func fx(n) {
 	if n > 0 {
 		return fx(n - 1)
 	}
-	(info["all_ids"])
+	info.all_ids
 }
 fx(3)
 == Eval  ==> {0:["E","PI","abs","fx","log2","printf"],1:["n","self"],2:["fx","n","self"],3:["fx","n","self"],4:["fx","n","self"]}
 $ info["gofuncs"]
-== Parse ==> (info["gofuncs"])
+== Parse ==> info["gofuncs"]
 == Eval  ==> ["acos","asin","atan","ceil","cos","exp","floor","ln","log10","pow","round","sin","sprintf","sqrt","tan","trunc"]
-$ info["keywords"]
-== Parse ==> (info["keywords"])
+$ info.keywords
+== Parse ==> info.keywords
 == Eval  ==> ["else","error","false","first","func","if","len","log","macro","print","println","quote","rest","return","true","unquote"]
 ```
 
@@ -71,7 +71,7 @@ Functional int, float, string and boolean expressions
 
 Functions, lambdas, closures (including recursion in anonymous functions, using `self()`)
 
-Arrays, maps
+Arrays, maps (including map.key as map["key"] shorthand access)
 
 print, log
 
