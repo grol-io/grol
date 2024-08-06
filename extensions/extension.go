@@ -112,7 +112,7 @@ func initInternal() error {
 		return err
 	}
 	jsonFn.Name = "eval"
-	jsonFn.Callback = evalFunc // unjson at the moment is just eval hoping that json is map/array/...
+	jsonFn.LongCallback = evalFunc
 	jsonFn.ArgTypes = []object.Type{object.STRING}
 	jsonFn.MaxArgs = 1
 	err = object.CreateFunction(jsonFn)
@@ -120,7 +120,7 @@ func initInternal() error {
 		return err
 	}
 	jsonFn.Name = "unjson"
-	jsonFn.Callback = unjsonFunc // unjson at the moment is just (like) eval hoping that json is map/array/...
+	jsonFn.LongCallback = evalFunc // unjson at the moment is just (like) eval hoping that json is map/array/...
 	err = object.CreateFunction(jsonFn)
 	if err != nil {
 		return err
@@ -172,18 +172,9 @@ func jsonFunc(args []object.Object) object.Object {
 	return object.String{Value: string(b)}
 }
 
-func evalFunc(args []object.Object) object.Object {
+func evalFunc(env *object.Environment, name string, args []object.Object) object.Object {
 	s := args[0].(object.String).Value
-	res, err := eval.EvalString(s, false /* normal toplevel env */)
-	if err != nil {
-		return object.Error{Value: err.Error()}
-	}
-	return res
-}
-
-func unjsonFunc(args []object.Object) object.Object {
-	s := args[0].(object.String).Value
-	res, err := eval.EvalString(s, true /* empty env */)
+	res, err := eval.EvalString(env, s, name == "unjson" /* empty env */)
 	if err != nil {
 		return object.Error{Value: err.Error()}
 	}

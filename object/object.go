@@ -394,17 +394,20 @@ func (m Macro) Inspect() string {
 
 // Extensions are functions implemented in go and exposed to grol.
 type Extension struct {
-	Name     string      // Name to make the function available as in grol.
-	MinArgs  int         // Minimum number of arguments required.
-	MaxArgs  int         // Maximum number of arguments allowed. -1 for unlimited.
-	ArgTypes []Type      // Type of each argument, provided at least up to MinArgs.
-	Callback ExtFunction // The go function or lambda to call when the grol by Name(...) is invoked.
-	Variadic bool        // MaxArgs > MinArgs
+	Name         string             // Name to make the function available as in grol.
+	MinArgs      int                // Minimum number of arguments required.
+	MaxArgs      int                // Maximum number of arguments allowed. -1 for unlimited.
+	ArgTypes     []Type             // Type of each argument, provided at least up to MinArgs.
+	Callback     ExtFunction        // The go function or lambda to call when the grol by Name(...) is invoked.
+	LongCallback ExtFunctionDetails // Called if set instead of simpler Callback
+	Variadic     bool               // MaxArgs > MinArgs
 }
 
 // ExtFunction is the signature of what grol will call when the extension is invoked.
 // Incoming arguments are validated for type and number of arguments based on [Extension].
 type ExtFunction func(args []Object) Object
+
+type ExtFunctionDetails func(env *Environment, Name string, args []Object) Object
 
 func (e *Extension) Usage(out *strings.Builder) {
 	for i := 1; i <= e.MinArgs; i++ {
