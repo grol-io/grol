@@ -49,7 +49,7 @@ $ m/n
 == Parse ==> m / n
 == Eval  ==> 7
 $ func fx(n) {if n>0 {return fx(n-1)}; info.all_ids}; fx(3)
-== Parse ==> f== Parse ==> func fx(n) {
+== Parse ==> func fx(n) {
 	if n > 0 {
 		return fx(n - 1)
 	}
