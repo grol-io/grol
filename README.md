@@ -37,7 +37,7 @@ $ fact = func(n) {if (n<=1) {return 1} n*self(n-1)} // could be n*fact(n-1) too
 		return 1
 	}
 	n * self(n - 1)
-}
+} // could be n*fact(n-1) too
 == Eval  ==> func(n){if n<=1{return 1}n*self(n-1)}
 $ n=fact(6)
 == Parse ==> n = fact(6)
@@ -56,10 +56,10 @@ $ func fx(n) {if n>0 {return fx(n-1)}; info.all_ids}; fx(3)
 	info.all_ids
 }
 fx(3)
-== Eval  ==> {0:["E","PI","abs","fx","log2","printf"],1:["n","self"],2:["fx","n","self"],3:["fx","n","self"],4:["fx","n","self"]}
-$ info["gofuncs"]
-== Parse ==> info["gofuncs"]
-== Eval  ==> ["acos","asin","atan","ceil","cos","exp","floor","ln","log10","pow","round","sin","sprintf","sqrt","tan","trunc"]
+== Eval  ==> {0:["E","PI","abs","fact","fx","log2","n","printf"],1:["n","self"],2:["fx","n","self"],3:["fx","n","self"],4:["fx","n","self"]}
+$ info["gofuncs"] // other way to access map keys, for when they aren't strings for instance
+== Parse ==> info["gofuncs"] // other way to access map keys, for when they aren't strings for instance
+== Eval  ==> ["acos","asin","atan","ceil","cos","eval","exp","floor","json","ln","log10","pow","round","sin","sprintf","sqrt","tan","trunc","unjson"]
 $ info.keywords
 == Parse ==> info.keywords
 == Eval  ==> ["else","error","false","first","func","if","len","log","macro","print","println","quote","rest","return","true","unquote"]
