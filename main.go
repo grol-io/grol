@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"runtime/pprof"
 
 	"fortio.org/cli"
 	"fortio.org/log"
@@ -20,6 +19,8 @@ func main() {
 	os.Exit(Main())
 }
 
+var hookBefore, hookAfter func() int
+
 func Main() int {
 	commandFlag := flag.String("c", "", "command/inline script to run instead of interactive mode")
 	showParse := flag.Bool("parse", false, "show parse tree")
@@ -27,8 +28,6 @@ func Main() int {
 	compact := flag.Bool("compact", false, "When printing code, use no indentation and most compact form")
 	showEval := flag.Bool("eval", true, "show eval results")
 	sharedState := flag.Bool("shared-state", false, "All files share same interpreter state (default is new state for each)")
-	cpuprofile := flag.String("profile-cpu", "", "write cpu profile to `file`")
-	memprofile := flag.String("profile-mem", "", "write memory profile to `file`")
 
 	cli.ArgsHelp = "*.gr files to interpret or `-` for stdin without prompt or no arguments for stdin repl..."
 	cli.MaxArgs = -1
@@ -40,18 +39,11 @@ func Main() int {
 		FormatOnly: *format,
 		Compact:    *compact,
 	}
-
-	if *cpuprofile != "" {
-		f, err := os.Create(*cpuprofile)
-		if err != nil {
-			return log.FErrf("can't open file for cpu profile: %v", err)
+	if hookBefore != nil {
+		ret := hookBefore()
+		if ret != 0 {
+			return ret
 		}
-		err = pprof.StartCPUProfile(f)
-		if err != nil {
-			return log.FErrf("can't start cpu profile: %v", err)
-		}
-		log.Infof("Writing cpu profile to %s", *cpuprofile)
-		defer pprof.StopCPUProfile()
 	}
 	err := extensions.Init()
 	if err != nil {
@@ -83,17 +75,8 @@ func Main() int {
 		}
 	}
 	log.Infof("All done")
-	if *memprofile != "" {
-		f, err := os.Create(*memprofile)
-		if err != nil {
-			return log.FErrf("can't open file for mem profile: %v", err)
-		}
-		err = pprof.WriteHeapProfile(f)
-		if err != nil {
-			return log.FErrf("can't write mem profile: %v", err)
-		}
-		log.Infof("Wrote memory profile to %s", *memprofile)
-		f.Close()
+	if hookAfter != nil {
+		return hookAfter()
 	}
 	return 0
 }
