@@ -35,6 +35,16 @@ func NewState() *State {
 	}
 }
 
+func NewBlankState() *State {
+	return &State{
+		env:        object.NewMacroEnvironment(), // to get empty store
+		Out:        io.Discard,
+		LogOut:     io.Discard,
+		cache:      NewCache(),
+		extensions: make(map[string]object.Extension),
+	}
+}
+
 func (s *State) ResetCache() {
 	s.cache = NewCache()
 }
@@ -784,17 +794,32 @@ func evalFloatInfixExpression(operator token.Type, left, right object.Object) ob
 // to the base identifiers. Used to add grol defined functions to the base environment
 // (e.g abs(), log2(), etc). Eventually we may instead `include("lib.gr")` or some such.
 func AddEvalResult(name, code string) error {
+	res, err := EvalString(code, false)
+	if err != nil {
+		return err
+	}
+	object.AddIdentifier(name, res)
+	return nil
+}
+
+// Evals a string either from entirely blank environment or from the current environment.
+// `unjson` uses emptyEnv == true (for now, pending better/safer implementation).
+func EvalString(code string, emptyEnv bool) (object.Object, error) { //nolint:revive // eval.EvalString is fine.
 	l := lexer.New(code)
 	p := parser.New(l)
 	program := p.ParseProgram()
 	if len(p.Errors()) != 0 {
-		return fmt.Errorf("parsing error: %v", p.Errors())
+		return object.NULL, fmt.Errorf("parsing error: %v", p.Errors())
 	}
-	st := NewState()
+	var st *State
+	if emptyEnv {
+		st = NewBlankState()
+	} else {
+		st = NewState()
+	}
 	res := st.Eval(program)
 	if res.Type() == object.ERROR {
-		return fmt.Errorf("eval error: %v", res.Inspect())
+		return res, fmt.Errorf("eval error: %v", res.Inspect())
 	}
-	object.AddIdentifier(name, res)
-	return nil
+	return res, nil
 }

@@ -100,13 +100,28 @@ func initInternal() error {
 	}
 	object.AddIdentifier("PI", object.Float{Value: math.Pi})
 	object.AddIdentifier("E", object.Float{Value: math.E}) // using uppercase so "e" isn't taken/shadowed.
-	err = object.CreateFunction(object.Extension{
+	jsonFn := object.Extension{
 		Name:     "json",
 		MinArgs:  1,
-		MaxArgs:  1,
-		ArgTypes: []object.Type{object.ANY},
+		MaxArgs:  2,
+		ArgTypes: []object.Type{object.ANY, object.BOOLEAN},
 		Callback: jsonFunc,
-	})
+	}
+	err = object.CreateFunction(jsonFn)
+	if err != nil {
+		return err
+	}
+	jsonFn.Name = "eval"
+	jsonFn.Callback = evalFunc // unjson at the moment is just eval hoping that json is map/array/...
+	jsonFn.ArgTypes = []object.Type{object.STRING}
+	jsonFn.MaxArgs = 1
+	err = object.CreateFunction(jsonFn)
+	if err != nil {
+		return err
+	}
+	jsonFn.Name = "unjson"
+	jsonFn.Callback = unjsonFunc // unjson at the moment is just (like) eval hoping that json is map/array/...
+	err = object.CreateFunction(jsonFn)
 	if err != nil {
 		return err
 	}
@@ -143,9 +158,34 @@ func jsonFunc(args []object.Object) object.Object {
 	if valueMap, ok := v.(map[any]any); ok {
 		v = convertMap(valueMap)
 	}
-	b, err := json.Marshal(v)
+	doIndent := (len(args) > 1) && args[1].(object.Boolean).Value
+	var b []byte
+	var err error
+	if doIndent {
+		b, err = json.MarshalIndent(v, "", "  ")
+	} else {
+		b, err = json.Marshal(v)
+	}
 	if err != nil {
 		return object.Error{Value: err.Error()}
 	}
 	return object.String{Value: string(b)}
+}
+
+func evalFunc(args []object.Object) object.Object {
+	s := args[0].(object.String).Value
+	res, err := eval.EvalString(s, false /* normal toplevel env */)
+	if err != nil {
+		return object.Error{Value: err.Error()}
+	}
+	return res
+}
+
+func unjsonFunc(args []object.Object) object.Object {
+	s := args[0].(object.String).Value
+	res, err := eval.EvalString(s, true /* empty env */)
+	if err != nil {
+		return object.Error{Value: err.Error()}
+	}
+	return res
 }
