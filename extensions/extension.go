@@ -3,9 +3,9 @@
 package extensions
 
 import (
-	"encoding/json"
 	"fmt"
 	"math"
+	"strings"
 
 	"grol.io/grol/eval"
 	"grol.io/grol/object"
@@ -103,9 +103,9 @@ func initInternal() error {
 	jsonFn := object.Extension{
 		Name:     "json",
 		MinArgs:  1,
-		MaxArgs:  2,
-		ArgTypes: []object.Type{object.ANY, object.BOOLEAN},
-		Callback: object.ShortCallback(jsonFunc),
+		MaxArgs:  1,
+		ArgTypes: []object.Type{object.ANY},
+		Callback: object.ShortCallback(jsonSer),
 	}
 	err = object.CreateFunction(jsonFn)
 	if err != nil {
@@ -114,7 +114,6 @@ func initInternal() error {
 	jsonFn.Name = "eval"
 	jsonFn.Callback = evalFunc
 	jsonFn.ArgTypes = []object.Type{object.STRING}
-	jsonFn.MaxArgs = 1
 	err = object.CreateFunction(jsonFn)
 	if err != nil {
 		return err
@@ -142,34 +141,13 @@ func sprintf(args []object.Object) object.Object {
 	return object.String{Value: res}
 }
 
-func convertMap(m map[any]any) map[string]any {
-	result := make(map[string]any, len(m))
-	for key, value := range m {
-		if valueMap, ok := value.(map[any]any); ok {
-			value = convertMap(valueMap)
-		}
-		result[fmt.Sprint(key)] = value
-	}
-	return result
-}
-
-func jsonFunc(args []object.Object) object.Object {
-	v := args[0].Unwrap()
-	if valueMap, ok := v.(map[any]any); ok {
-		v = convertMap(valueMap)
-	}
-	doIndent := (len(args) > 1) && args[1].(object.Boolean).Value
-	var b []byte
-	var err error
-	if doIndent {
-		b, err = json.MarshalIndent(v, "", "  ")
-	} else {
-		b, err = json.Marshal(v)
-	}
+func jsonSer(args []object.Object) object.Object {
+	w := strings.Builder{}
+	err := args[0].JSON(&w)
 	if err != nil {
 		return object.Error{Value: err.Error()}
 	}
-	return object.String{Value: string(b)}
+	return object.String{Value: w.String()}
 }
 
 func evalFunc(env any, name string, args []object.Object) object.Object {

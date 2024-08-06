@@ -3,8 +3,6 @@ package ast
 import (
 	"reflect"
 	"testing"
-
-	"github.com/google/go-cmp/cmp"
 )
 
 func TestModify(t *testing.T) {
@@ -118,9 +116,6 @@ func TestModify(t *testing.T) {
 		modified := Modify(tt.input, turnOneIntoTwo)
 		if !reflect.DeepEqual(modified, tt.expected) {
 			t.Errorf("not equal.\n%#v\n-vs-\n%#v", modified, tt.expected)
-		}
-		if !cmp.Equal(modified, tt.expected) {
-			t.Errorf("not equal. %v", cmp.Diff(modified, tt.expected))
 		}
 	}
 }
