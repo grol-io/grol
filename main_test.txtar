@@ -117,7 +117,10 @@ grol -quiet -c 'func foo(x) {eval("info")};foo(1)["all_ids"][1]'
 stdout '^\["self","x"]$'
 !stderr .
 
-
+# json of (nested) arrays
+grol -quiet -c 'a=[1,2,3,["a", "b"],4];println(json(a))'
+stdout '^\[1,2,3,\["a","b"],4]$'
+!stderr .
 -- foo.inp --
 foo
 -- sample_test.gr --
