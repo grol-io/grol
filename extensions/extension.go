@@ -33,7 +33,7 @@ func initInternal() error {
 		MinArgs:  2,
 		MaxArgs:  2,
 		ArgTypes: []object.Type{object.FLOAT, object.FLOAT},
-		Callback: pow,
+		Callback: object.ShortCallback(pow),
 	}
 	err := object.CreateFunction(cmd)
 	if err != nil {
@@ -44,7 +44,7 @@ func initInternal() error {
 		MinArgs:  1,
 		MaxArgs:  -1,
 		ArgTypes: []object.Type{object.STRING},
-		Callback: sprintf,
+		Callback: object.ShortCallback(sprintf),
 	})
 	if err != nil {
 		return err
@@ -87,7 +87,7 @@ func initInternal() error {
 		{math.Ceil, "ceil"},
 		{math.Log10, "log10"},
 	} {
-		oneFloat.Callback = func(args []object.Object) object.Object {
+		oneFloat.Callback = func(_ *object.Environment, _ string, args []object.Object) object.Object {
 			// Arg len check already done through MinArgs=MaxArgs=1 and
 			// type through ArgTypes: []object.Type{object.FLOAT}.
 			return object.Float{Value: function.fn(args[0].(object.Float).Value)}
@@ -105,14 +105,14 @@ func initInternal() error {
 		MinArgs:  1,
 		MaxArgs:  2,
 		ArgTypes: []object.Type{object.ANY, object.BOOLEAN},
-		Callback: jsonFunc,
+		Callback: object.ShortCallback(jsonFunc),
 	}
 	err = object.CreateFunction(jsonFn)
 	if err != nil {
 		return err
 	}
 	jsonFn.Name = "eval"
-	jsonFn.LongCallback = evalFunc
+	jsonFn.Callback = evalFunc
 	jsonFn.ArgTypes = []object.Type{object.STRING}
 	jsonFn.MaxArgs = 1
 	err = object.CreateFunction(jsonFn)
@@ -120,7 +120,7 @@ func initInternal() error {
 		return err
 	}
 	jsonFn.Name = "unjson"
-	jsonFn.LongCallback = evalFunc // unjson at the moment is just (like) eval hoping that json is map/array/...
+	jsonFn.Callback = evalFunc // unjson at the moment is just (like) eval hoping that json is map/array/...
 	err = object.CreateFunction(jsonFn)
 	if err != nil {
 		return err

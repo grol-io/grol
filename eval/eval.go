@@ -421,10 +421,7 @@ func (s *State) applyExtension(fn object.Extension, args []object.Object) object
 				arg.Type(), fn.Inspect())}
 		}
 	}
-	if fn.LongCallback != nil {
-		return fn.LongCallback(s.env, fn.Name, args)
-	}
-	return fn.Callback(args)
+	return fn.Callback(s.env, fn.Name, args)
 }
 
 func (s *State) applyFunction(name string, fn object.Object, args []object.Object) object.Object {
