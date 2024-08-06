@@ -248,6 +248,10 @@ func TestErrorHandling(t *testing.T) {
 		expectedMessage string
 	}{
 		{
+			`C1=1;C1=2`,
+			"attempt to change constant C1 from 1 to 2",
+		},
+		{
 			`func x(FOO) {log("x",FOO,PI);if FOO<=1 {return FOO} x(FOO-1)};x(2)`,
 			"attempt to change constant FOO from 2 to 1",
 		},

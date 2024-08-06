@@ -64,6 +64,9 @@ func TestIsConstantIdentifier(t *testing.T) {
 		{"_FOO_BAR", false},
 		{"Foo", false},
 		{"E", true},
+		{"PI2", true},
+		{"P2P", true},
+		{"2PI", false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

@@ -1,0 +1,5 @@
+// regression test for
+// https://github.com/grol-io/grol/issues/112
+a=[1,2,3]
+a[1]
+info["tokens"]

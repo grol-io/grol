@@ -103,7 +103,7 @@ func (e *Environment) Get(name string) (Object, bool) {
 // Note that we use []byte as all identifiers are ASCII.
 func Constant(name string) bool {
 	for i, v := range name {
-		if i != 0 && v == '_' {
+		if i != 0 && (v == '_' || (v >= '0' && v <= '9')) {
 			continue
 		}
 		if v < 'A' || v > 'Z' {
