@@ -121,6 +121,12 @@ stdout '^\["self","x"]$'
 grol -quiet -c 'a=[1,2,3,["a", "b"],4];println(json(a))'
 stdout '^\[1,2,3,\["a","b"],4]$'
 !stderr .
+
+# dot notation and priority with functions
+grol -quiet -c 'n1={"f1":func(){println("f1")},"f2":func(x){x+1}}n1.f1()n1.f2(41)'
+stdout '^f1\n42$'
+!stderr .
+
 -- foo.inp --
 foo
 -- sample_test.gr --

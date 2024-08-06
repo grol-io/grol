@@ -24,6 +24,7 @@ const (
 	PREFIX      // -X or !X
 	CALL        // myFunction(X)
 	INDEX       // array[index]
+	DOTINDEX    // map.str access
 )
 
 //go:generate stringer -type=Priority
@@ -393,7 +394,7 @@ var precedences = map[token.Type]Priority{
 	token.PERCENT:  PRODUCT,
 	token.LPAREN:   CALL,
 	token.LBRACKET: INDEX,
-	token.DOT:      INDEX,
+	token.DOT:      DOTINDEX,
 }
 
 func (p *Parser) peekPrecedence() Priority {
@@ -581,11 +582,15 @@ func (p *Parser) parseExpressionList(end token.Type) []ast.Node {
 func (p *Parser) parseIndexExpression(left ast.Node) ast.Node {
 	exp := &ast.IndexExpression{Left: left}
 	exp.Token = p.curToken
+	isDot := p.curToken.Type() == token.DOT
 
 	p.nextToken()
-	exp.Index = p.parseExpression(LOWEST)
-
-	if exp.Token.Type() == token.DOT {
+	prec := LOWEST
+	if isDot {
+		prec = DOTINDEX
+	}
+	exp.Index = p.parseExpression(prec)
+	if isDot {
 		return exp
 	}
 
