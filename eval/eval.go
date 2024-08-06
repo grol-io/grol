@@ -35,6 +35,16 @@ func NewState() *State {
 	}
 }
 
+func NewBlankState() *State {
+	return &State{
+		env:        object.NewMacroEnvironment(), // to get empty store
+		Out:        io.Discard,
+		LogOut:     io.Discard,
+		cache:      NewCache(),
+		extensions: make(map[string]object.Extension),
+	}
+}
+
 func (s *State) ResetCache() {
 	s.cache = NewCache()
 }
@@ -398,6 +408,9 @@ func (s *State) applyExtension(fn object.Extension, args []object.Object) object
 		if i >= len(fn.ArgTypes) {
 			break
 		}
+		if fn.ArgTypes[i] == object.ANY {
+			continue
+		}
 		// Auto promote integer to float if needed.
 		if fn.ArgTypes[i] == object.FLOAT && arg.Type() == object.INTEGER {
 			args[i] = object.Float{Value: float64(arg.(object.Integer).Value)}
@@ -408,7 +421,7 @@ func (s *State) applyExtension(fn object.Extension, args []object.Object) object
 				arg.Type(), fn.Inspect())}
 		}
 	}
-	return fn.Callback(args)
+	return fn.Callback(s, fn.Name, args)
 }
 
 func (s *State) applyFunction(name string, fn object.Object, args []object.Object) object.Object {
@@ -781,17 +794,38 @@ func evalFloatInfixExpression(operator token.Type, left, right object.Object) ob
 // to the base identifiers. Used to add grol defined functions to the base environment
 // (e.g abs(), log2(), etc). Eventually we may instead `include("lib.gr")` or some such.
 func AddEvalResult(name, code string) error {
+	res, err := EvalString(NewState(), code, false)
+	if err != nil {
+		return err
+	}
+	object.AddIdentifier(name, res)
+	return nil
+}
+
+// Evals a string either from entirely blank environment or from the current environment.
+// `unjson` uses emptyEnv == true (for now, pending better/safer implementation).
+//
+//nolint:revive // eval.EvalString is fine.
+func EvalString(this any, code string, emptyEnv bool) (object.Object, error) {
 	l := lexer.New(code)
 	p := parser.New(l)
 	program := p.ParseProgram()
 	if len(p.Errors()) != 0 {
-		return fmt.Errorf("parsing error: %v", p.Errors())
+		return object.NULL, fmt.Errorf("parsing error: %v", p.Errors())
 	}
-	st := NewState()
-	res := st.Eval(program)
+	var evalState *State
+	if emptyEnv {
+		evalState = NewBlankState()
+	} else {
+		var ok bool
+		evalState, ok = this.(*State)
+		if !ok {
+			return object.NULL, fmt.Errorf("invalid this: %T", this)
+		}
+	}
+	res := evalState.Eval(program)
 	if res.Type() == object.ERROR {
-		return fmt.Errorf("eval error: %v", res.Inspect())
+		return res, fmt.Errorf("eval error: %v", res.Inspect())
 	}
-	object.AddIdentifier(name, res)
-	return nil
+	return res, nil
 }

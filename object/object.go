@@ -2,6 +2,7 @@ package object
 
 import (
 	"fmt"
+	"io"
 	"sort"
 	"strconv"
 	"strings"
@@ -16,6 +17,7 @@ type Object interface {
 	Type() Type
 	Inspect() string
 	Unwrap() any
+	JSON(out io.Writer) error
 }
 
 const (
@@ -33,11 +35,11 @@ const (
 	QUOTE
 	MACRO
 	EXTENSION
-	LAST
+	ANY // A marker, for extensions, not a real type.
 )
 
 //go:generate stringer -type=Type
-var _ = LAST.String() // force compile error if go generate is missing.
+var _ = ANY.String() // force compile error if go generate is missing.
 
 var (
 	NULL  = Null{}
@@ -53,7 +55,7 @@ type Number interface {
 
 func Hashable(o Object) bool {
 	switch o.Type() { //nolint:exhaustive // We have all the types that are hashable + default for the others.
-	case INTEGER, FLOAT, BOOLEAN, NIL, ERROR, RETURN, QUOTE, STRING:
+	case INTEGER, FLOAT, BOOLEAN, NIL, ERROR, STRING:
 		return true
 	default:
 		return false
@@ -86,7 +88,19 @@ func Equals(left, right Object) bool {
 		return ArrayEquals(left.Elements, right.(Array).Elements)
 	case Map:
 		return MapEquals(left, right.(Map))
-	default: /*	ERROR RETURN FUNC */
+	case Error:
+		return left.Value == right.(Error).Value
+	case ReturnValue:
+		return Equals(left.Value, right.(ReturnValue).Value)
+	case Function:
+		return left.CacheKey == right.(Function).CacheKey
+	case Macro:
+		return left.Env == right.(Macro).Env && left.Body == right.(Macro).Body
+	case Extension:
+		return left.Name == right.(Extension).Name // They are enforced to be constant by name.
+	default:
+		/* QUOTE should be the only one left from switch above... where is exhaustive linter when you need it */
+		log.Warnf("Unexpected type in equals: %s", left.Inspect())
 		return false
 	}
 }
@@ -119,6 +133,11 @@ type Integer struct {
 	Value int64
 }
 
+func (i Integer) JSON(w io.Writer) error {
+	_, err := fmt.Fprintf(w, "%d", i.Value)
+	return err
+}
+
 func (i Integer) Inspect() string {
 	return strconv.FormatInt(i.Value, 10)
 }
@@ -133,6 +152,11 @@ func (i Integer) Type() Type {
 
 type Float struct {
 	Value float64
+}
+
+func (f Float) JSON(w io.Writer) error {
+	_, err := fmt.Fprintf(w, "%f", f.Value)
+	return err
 }
 
 func (f Float) Unwrap() any {
@@ -151,6 +175,11 @@ type Boolean struct {
 	Value bool
 }
 
+func (b Boolean) JSON(w io.Writer) error {
+	_, err := fmt.Fprintf(w, "%t", b.Value)
+	return err
+}
+
 func (b Boolean) Unwrap() any {
 	return b.Value
 }
@@ -167,6 +196,11 @@ type String struct {
 	Value string
 }
 
+func (s String) JSON(w io.Writer) error {
+	_, err := fmt.Fprintf(w, "%q", s.Value)
+	return err
+}
+
 func (s String) Unwrap() any {
 	return s.Value
 }
@@ -181,6 +215,10 @@ func (s String) Inspect() string {
 
 type Null struct{}
 
+func (n Null) JSON(w io.Writer) error {
+	_, err := w.Write([]byte("null"))
+	return err
+}
 func (n Null) Unwrap() any     { return nil }
 func (n Null) Type() Type      { return NIL }
 func (n Null) Inspect() string { return "nil" }
@@ -189,6 +227,10 @@ type Error struct {
 	Value string // message
 }
 
+func (e Error) JSON(w io.Writer) error {
+	_, err := fmt.Fprintf(w, `{"err":%q}`, e.Value)
+	return err
+}
 func (e Error) Unwrap() any     { return e }
 func (e Error) Error() string   { return e.Value }
 func (e Error) Type() Type      { return ERROR }
@@ -198,6 +240,12 @@ type ReturnValue struct {
 	Value Object
 }
 
+func (rv ReturnValue) JSON(w io.Writer) error {
+	_, _ = w.Write([]byte(`{"return":`))
+	err := rv.Value.JSON(w)
+	_, _ = w.Write([]byte("}"))
+	return err
+}
 func (rv ReturnValue) Unwrap() any     { return rv.Value }
 func (rv ReturnValue) Type() Type      { return RETURN }
 func (rv ReturnValue) Inspect() string { return rv.Value.Inspect() }
@@ -256,6 +304,11 @@ func (f Function) Inspect() string {
 	return f.finishFuncOutput(&out)
 }
 
+func (f Function) JSON(w io.Writer) error {
+	_, err := fmt.Fprintf(w, `{"func":%q}`, f.Inspect())
+	return err
+}
+
 type Array struct {
 	Elements []Object
 }
@@ -266,6 +319,21 @@ func (ao Array) Inspect() string {
 	out := strings.Builder{}
 	WriteStrings(&out, ao.Elements, "[", ",", "]")
 	return out.String()
+}
+
+func (ao Array) JSON(w io.Writer) error {
+	_, _ = w.Write([]byte("["))
+	for i, p := range ao.Elements {
+		if i > 0 {
+			_, _ = w.Write([]byte(","))
+		}
+		err := p.JSON(w)
+		if err != nil {
+			return err
+		}
+	}
+	_, err := w.Write([]byte("]"))
+	return err
 }
 
 // possible optimization: us a map of any and put the inner value of object in there, would be faster than
@@ -347,6 +415,35 @@ func (m Map) Inspect() string {
 	return out.String()
 }
 
+func (m Map) JSON(w io.Writer) error {
+	_, _ = w.Write([]byte("{"))
+	keys := make([]Object, 0, len(m))
+	for key := range m {
+		keys = append(keys, key)
+	}
+	arr := Array{Elements: keys}
+	// Sort the keys
+	sort.Sort(arr)
+	for i, k := range arr.Elements {
+		if i > 0 {
+			_, _ = w.Write([]byte(","))
+		}
+		if _, ok := k.(String); !ok {
+			_, _ = fmt.Fprintf(w, "%q", k.Inspect()) // as JSON keys must be strings
+		} else {
+			_, _ = w.Write([]byte(k.Inspect()))
+		}
+		_, _ = w.Write([]byte(":"))
+		v := m[k]
+		err := v.JSON(w)
+		if err != nil {
+			return err
+		}
+	}
+	_, err := w.Write([]byte("}"))
+	return err
+}
+
 type Quote struct {
 	Node ast.Node
 }
@@ -359,6 +456,11 @@ func (q Quote) Inspect() string {
 	q.Node.PrettyPrint(&ast.PrintState{Out: &out})
 	out.WriteString(")")
 	return out.String()
+}
+
+func (q Quote) JSON(w io.Writer) error {
+	_, err := fmt.Fprintf(w, `{"quote":%q}`, q.Inspect())
+	return err
 }
 
 type Macro struct {
@@ -380,6 +482,11 @@ func (m Macro) Inspect() string {
 	return out.String()
 }
 
+func (m Macro) JSON(w io.Writer) error {
+	_, err := fmt.Fprintf(w, `{"macro":%q}`, m.Inspect())
+	return err
+}
+
 // Extensions are functions implemented in go and exposed to grol.
 type Extension struct {
 	Name     string      // Name to make the function available as in grol.
@@ -390,9 +497,21 @@ type Extension struct {
 	Variadic bool        // MaxArgs > MinArgs
 }
 
+// Adapter for functions that only need the argumants.
+func ShortCallback(f ShortExtFunction) ExtFunction {
+	return func(_ any, _ string, args []Object) Object {
+		return f(args)
+	}
+}
+
+// ShortExtFunction is the signature for callbacks that do not need more than the arguments (like math functions).
+type ShortExtFunction func(args []Object) Object
+
 // ExtFunction is the signature of what grol will call when the extension is invoked.
 // Incoming arguments are validated for type and number of arguments based on [Extension].
-type ExtFunction func(args []Object) Object
+// eval is the opaque state passed from the interpreter, it can be used with eval.Eval etc
+// name is the function name as registered under.
+type ExtFunction func(eval any, name string, args []Object) Object
 
 func (e *Extension) Usage(out *strings.Builder) {
 	for i := 1; i <= e.MinArgs; i++ {
@@ -419,4 +538,9 @@ func (e Extension) Inspect() string {
 	e.Usage(&out)
 	out.WriteString(")")
 	return out.String()
+}
+
+func (e Extension) JSON(w io.Writer) error {
+	_, err := fmt.Fprintf(w, `{"gofunc":%q}`, e.Inspect())
+	return err
 }

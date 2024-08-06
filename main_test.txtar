@@ -22,11 +22,19 @@ stdout '^2$'
 stderr welcome
 !stderr 'rror' # no Errors or other case/singular/plural
 
-# syntax error
+# syntax error interactive mode, stdout repeats errors
+#grol
+#stdin foo.inp
+#stderr 'Errors'
+#stderr 'identifier not found: foo'
+#stdout '<err: identifier not found: foo>'
+
+# syntax error non mode, stdout doesn't repeat errors
 !grol -c 'foo'
 stderr 'Errors'
 stderr 'identifier not found: foo'
-stdout '<err: identifier not found: foo>'
+!stdout .
+
 
 # sample_test.gr
 grol sample_test.gr
@@ -67,7 +75,7 @@ stdout '^1\n3$'
 
 # test bad macro as well as indirectly the error() builtin
 !grol -c 'm=macro(){};m()'
-stdout '^<err: macro should return Quote. got=object.Null \({}\)>\n$'
+stderr '<err: macro should return Quote. got=object.Null \({}\)>'
 
 # quiet mode and fast fibbonaci (log won't show)
 grol -quiet -c 'fib=func(x){log("fib",x);if x<=1 {x} else {fib(x-1)+fib(x-2)}}; fib(92)'
@@ -94,6 +102,27 @@ grol -quiet -c 'printf("%d %s %.2f\n", 42, "ab\ncd", 1.5)'
 stdout '42 ab\ncd 1.50\n'
 !stderr .
 
+# eval() runs in the same context as when called
+grol -quiet -c 'a=1;eval("a=2");a'
+stdout '^2$'
+!stderr .
+
+# eval() runs in the same context as when called
+grol -quiet -c 'func foo(a) {eval("b=2");a+b};foo(1)'
+stdout '^3$'
+!stderr .
+
+# eval() runs in the same context as when called
+grol -quiet -c 'func foo(x) {eval("info")};foo(1)["all_ids"][1]'
+stdout '^\["self","x"]$'
+!stderr .
+
+# json of (nested) arrays
+grol -quiet -c 'a=[1,2,3,["a", "b"],4];println(json(a))'
+stdout '^\[1,2,3,\["a","b"],4]$'
+!stderr .
+-- foo.inp --
+foo
 -- sample_test.gr --
 // Sample file that our gorepl can interpret
 // <--- comments

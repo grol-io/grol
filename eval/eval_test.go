@@ -828,4 +828,14 @@ func TestExtension(t *testing.T) {
 	if actual.Value != expected {
 		t.Errorf("object has wrong value. got=%q, want=%q", actual, expected)
 	}
+	input = `m={1.5:"a",2: {"str": 42, 3: pow}}; json(m)`
+	evaluated = testEval(t, input)
+	expected = `{"2":{"3":{"gofunc":"pow(float, float)"},"str":42},"1.5":"a"}`
+	actual, ok = evaluated.(object.String)
+	if !ok {
+		t.Errorf("object is not string. got=%T (%+v)", evaluated, evaluated)
+	}
+	if actual.Value != expected {
+		t.Errorf("object has wrong value.got:\n%s\n---want--\n%s", actual.Value, expected)
+	}
 }

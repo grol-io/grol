@@ -186,4 +186,4 @@ flags:
   -shared-state
     	All files share same interpreter state (default is new state for each)
 ```
-(excluding logger control, see `gorepl help` for all the flags, of note `-logger-no-color` will turn off colors for gorepl too, for development there are also `-profile*` options for pprof)
+(excluding logger control, see `gorepl help` for all the flags, of note `-logger-no-color` will turn off colors for gorepl too, for development there are also `-profile*` options for pprof, when building without `no_pprof`)

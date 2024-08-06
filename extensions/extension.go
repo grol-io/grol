@@ -5,6 +5,7 @@ package extensions
 import (
 	"fmt"
 	"math"
+	"strings"
 
 	"grol.io/grol/eval"
 	"grol.io/grol/object"
@@ -32,7 +33,7 @@ func initInternal() error {
 		MinArgs:  2,
 		MaxArgs:  2,
 		ArgTypes: []object.Type{object.FLOAT, object.FLOAT},
-		Callback: pow,
+		Callback: object.ShortCallback(pow),
 	}
 	err := object.CreateFunction(cmd)
 	if err != nil {
@@ -43,13 +44,13 @@ func initInternal() error {
 		MinArgs:  1,
 		MaxArgs:  -1,
 		ArgTypes: []object.Type{object.STRING},
-		Callback: sprintf,
+		Callback: object.ShortCallback(sprintf),
 	})
 	if err != nil {
 		return err
 	}
 	// for printf, we could expose current eval "Out", but instead let's use new variadic support and define
-	// printf as print(snprintf(format,..))
+	// printf as print(snprintf(format,..)) that way the memoization of output also works out of the box.
 	err = eval.AddEvalResult("printf", "func(format, ..){print(sprintf(format, ..))}")
 	if err != nil {
 		return err
@@ -86,7 +87,7 @@ func initInternal() error {
 		{math.Ceil, "ceil"},
 		{math.Log10, "log10"},
 	} {
-		oneFloat.Callback = func(args []object.Object) object.Object {
+		oneFloat.Callback = func(_ any, _ string, args []object.Object) object.Object {
 			// Arg len check already done through MinArgs=MaxArgs=1 and
 			// type through ArgTypes: []object.Type{object.FLOAT}.
 			return object.Float{Value: function.fn(args[0].(object.Float).Value)}
@@ -99,6 +100,30 @@ func initInternal() error {
 	}
 	object.AddIdentifier("PI", object.Float{Value: math.Pi})
 	object.AddIdentifier("E", object.Float{Value: math.E}) // using uppercase so "e" isn't taken/shadowed.
+	jsonFn := object.Extension{
+		Name:     "json",
+		MinArgs:  1,
+		MaxArgs:  1,
+		ArgTypes: []object.Type{object.ANY},
+		Callback: object.ShortCallback(jsonSer),
+	}
+	err = object.CreateFunction(jsonFn)
+	if err != nil {
+		return err
+	}
+	jsonFn.Name = "eval"
+	jsonFn.Callback = evalFunc
+	jsonFn.ArgTypes = []object.Type{object.STRING}
+	err = object.CreateFunction(jsonFn)
+	if err != nil {
+		return err
+	}
+	jsonFn.Name = "unjson"
+	jsonFn.Callback = evalFunc // unjson at the moment is just (like) eval hoping that json is map/array/...
+	err = object.CreateFunction(jsonFn)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -114,4 +139,22 @@ func pow(args []object.Object) object.Object {
 func sprintf(args []object.Object) object.Object {
 	res := fmt.Sprintf(args[0].(object.String).Value, object.Unwrap(args[1:])...)
 	return object.String{Value: res}
+}
+
+func jsonSer(args []object.Object) object.Object {
+	w := strings.Builder{}
+	err := args[0].JSON(&w)
+	if err != nil {
+		return object.Error{Value: err.Error()}
+	}
+	return object.String{Value: w.String()}
+}
+
+func evalFunc(env any, name string, args []object.Object) object.Object {
+	s := args[0].(object.String).Value
+	res, err := eval.EvalString(env, s, name == "unjson" /* empty env */)
+	if err != nil {
+		return object.Error{Value: err.Error()}
+	}
+	return res
 }
