@@ -3,6 +3,7 @@
 package extensions
 
 import (
+	"encoding/json"
 	"fmt"
 	"math"
 
@@ -49,7 +50,7 @@ func initInternal() error {
 		return err
 	}
 	// for printf, we could expose current eval "Out", but instead let's use new variadic support and define
-	// printf as print(snprintf(format,..))
+	// printf as print(snprintf(format,..)) that way the memoization of output also works out of the box.
 	err = eval.AddEvalResult("printf", "func(format, ..){print(sprintf(format, ..))}")
 	if err != nil {
 		return err
@@ -99,6 +100,16 @@ func initInternal() error {
 	}
 	object.AddIdentifier("PI", object.Float{Value: math.Pi})
 	object.AddIdentifier("E", object.Float{Value: math.E}) // using uppercase so "e" isn't taken/shadowed.
+	err = object.CreateFunction(object.Extension{
+		Name:     "json",
+		MinArgs:  1,
+		MaxArgs:  1,
+		ArgTypes: []object.Type{object.ANY},
+		Callback: jsonFunc,
+	})
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -114,4 +125,27 @@ func pow(args []object.Object) object.Object {
 func sprintf(args []object.Object) object.Object {
 	res := fmt.Sprintf(args[0].(object.String).Value, object.Unwrap(args[1:])...)
 	return object.String{Value: res}
+}
+
+func convertMap(m map[any]any) map[string]any {
+	result := make(map[string]any, len(m))
+	for key, value := range m {
+		if valueMap, ok := value.(map[any]any); ok {
+			value = convertMap(valueMap)
+		}
+		result[fmt.Sprint(key)] = value
+	}
+	return result
+}
+
+func jsonFunc(args []object.Object) object.Object {
+	v := args[0].Unwrap()
+	if valueMap, ok := v.(map[any]any); ok {
+		v = convertMap(valueMap)
+	}
+	b, err := json.Marshal(v)
+	if err != nil {
+		return object.Error{Value: err.Error()}
+	}
+	return object.String{Value: string(b)}
 }

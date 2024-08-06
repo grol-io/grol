@@ -33,11 +33,11 @@ const (
 	QUOTE
 	MACRO
 	EXTENSION
-	LAST
+	ANY // A marker, for extensions, not a real type.
 )
 
 //go:generate stringer -type=Type
-var _ = LAST.String() // force compile error if go generate is missing.
+var _ = ANY.String() // force compile error if go generate is missing.
 
 var (
 	NULL  = Null{}

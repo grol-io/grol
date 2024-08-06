@@ -124,11 +124,26 @@ func TestEvalStringEvalError(t *testing.T) {
 	if errs[0] != expected {
 		t.Errorf("EvalString() errors\n---\n%s\n---want---\n%s\n---", errs[0], expected)
 	}
-	expected += "\n" // in output, there is a newline at the end.
-	if res != expected {
-		t.Errorf("EvalString() result %v\n---\n%s\n---want---\n%s\n---", errs, res, expected)
+	if res != "" {
+		t.Errorf("EvalString() result %v\n---\n%s\n---want empty on error---", errs, res)
 	}
 	if formatted != "y\n" {
 		t.Errorf("EvalString() formatted %q expected just \"y\"", formatted)
+	}
+}
+
+func TestEvalStringPrintNoNil(t *testing.T) {
+	s := ` print("ab\nc")  `
+	res, errs, formatted := repl.EvalString(s)
+	if len(errs) != 0 {
+		t.Fatalf("EvalString() got errors expected none %v", errs)
+	}
+	expected := "ab\nc"
+	if res != expected {
+		t.Errorf("EvalString() result\n---\n%s\n---want---\n%s\n---", res, expected)
+	}
+	expected = "print(\"ab\\nc\")\n"
+	if formatted != expected {
+		t.Errorf("EvalString() formatted %q unexpected vs %q", formatted, expected)
 	}
 }

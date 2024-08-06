@@ -39,15 +39,17 @@ type Options struct {
 	NoColor    bool // color controlled by log package, unless this is set to true.
 	FormatOnly bool
 	Compact    bool
+	NilAndErr  bool // Show nil and errors in normal output.
 }
 
-func EvalAll(s *eval.State, macroState *object.Environment, in io.Reader, out io.Writer, options Options) {
+func EvalAll(s *eval.State, macroState *object.Environment, in io.Reader, out io.Writer, options Options) []string {
 	b, err := io.ReadAll(in)
 	if err != nil {
 		log.Fatalf("%v", err)
 	}
 	what := string(b)
-	EvalOne(s, macroState, what, out, options)
+	_, errs, _ := EvalOne(s, macroState, what, out, options)
+	return errs
 }
 
 // Kinda ugly (global) but helpful to not change the signature of EvalString for now and
@@ -77,6 +79,7 @@ func EvalString(what string) (res string, errs []string, formatted string) {
 }
 
 func Interactive(in io.Reader, out io.Writer, options Options) {
+	options.NilAndErr = true
 	s := eval.NewState()
 	macroState := object.NewMacroEnvironment()
 
@@ -204,6 +207,9 @@ func EvalOne(s *eval.State, macroState *object.Environment, what string, out io.
 	var errs []string
 	if obj.Type() == object.ERROR {
 		errs = append(errs, obj.Inspect())
+	}
+	if !options.NilAndErr && (obj.Type() == object.NIL || obj.Type() == object.ERROR) {
+		return false, errs, formatted
 	}
 	if !options.NoColor {
 		if obj.Type() == object.ERROR {

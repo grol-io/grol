@@ -4,6 +4,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"runtime/pprof"
 
@@ -72,7 +73,10 @@ func Main() int {
 	s := eval.NewState()
 	macroState := object.NewMacroEnvironment()
 	for _, file := range flag.Args() {
-		processOneFile(file, s, macroState, options)
+		ret := processOneFile(file, s, macroState, options)
+		if ret != 0 {
+			return ret
+		}
 		if !*sharedState {
 			s = eval.NewState()
 			macroState = object.NewMacroEnvironment()
@@ -94,15 +98,22 @@ func Main() int {
 	return 0
 }
 
-func processOneFile(file string, s *eval.State, macroState *object.Environment, options repl.Options) {
+func processOneStream(s *eval.State, macroState *object.Environment, in io.Reader, options repl.Options) int {
+	errs := repl.EvalAll(s, macroState, in, os.Stdout, options)
+	if len(errs) > 0 {
+		log.Errf("Errors: %v", errs)
+	}
+	return len(errs)
+}
+
+func processOneFile(file string, s *eval.State, macroState *object.Environment, options repl.Options) int {
 	if file == "-" {
 		if options.FormatOnly {
 			log.Infof("Formatting stdin")
 		} else {
 			log.Infof("Running on stdin")
 		}
-		repl.EvalAll(s, macroState, os.Stdin, os.Stdout, options)
-		return
+		return processOneStream(s, macroState, os.Stdin, options)
 	}
 	f, err := os.Open(file)
 	if err != nil {
@@ -113,6 +124,7 @@ func processOneFile(file string, s *eval.State, macroState *object.Environment, 
 		verb = "Formatting"
 	}
 	log.Infof("%s %s", verb, file)
-	repl.EvalAll(s, macroState, f, os.Stdout, options)
+	code := processOneStream(s, macroState, f, options)
 	f.Close()
+	return code
 }
