@@ -53,7 +53,7 @@ type Number interface {
 
 func Hashable(o Object) bool {
 	switch o.Type() { //nolint:exhaustive // We have all the types that are hashable + default for the others.
-	case INTEGER, FLOAT, BOOLEAN, NIL, ERROR, RETURN, QUOTE, STRING:
+	case INTEGER, FLOAT, BOOLEAN, NIL, ERROR, STRING:
 		return true
 	default:
 		return false
@@ -86,7 +86,19 @@ func Equals(left, right Object) bool {
 		return ArrayEquals(left.Elements, right.(Array).Elements)
 	case Map:
 		return MapEquals(left, right.(Map))
-	default: /*	ERROR RETURN FUNC */
+	case Error:
+		return left.Value == right.(Error).Value
+	case ReturnValue:
+		return Equals(left.Value, right.(ReturnValue).Value)
+	case Function:
+		return left.CacheKey == right.(Function).CacheKey
+	case Macro:
+		return left.Env == right.(Macro).Env && left.Body == right.(Macro).Body
+	case Extension:
+		return left.Name == right.(Extension).Name // They are enforced to be constant by name.
+	default:
+		/* QUOTE should be the only one left from switch above... where is exhaustive linter when you need it */
+		log.Warnf("Unexpected type in equals: %s", left.Inspect())
 		return false
 	}
 }
