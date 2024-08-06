@@ -69,22 +69,20 @@ func (e *Environment) BaseInfo() Map {
 }
 
 func (e *Environment) Info() Object {
-	allKeys := make(Map, e.depth)
+	allKeys := make([]Object, e.depth+1)
 	for {
-		keys := make([]Object, 0, e.Len())
-		for k := range e.store {
-			keys = append(keys, String{Value: k})
+		val := make(Map, e.Len())
+		for k, v := range e.store {
+			val[String{Value: k}] = v
 		}
-		arr := Array{Elements: keys}
-		sort.Sort(arr)
-		allKeys[Integer{Value: int64(e.depth)}] = arr
+		allKeys[e.depth] = val
 		if e.outer == nil {
 			break
 		}
 		e = e.outer
 	}
 	info := e.BaseInfo()
-	info[String{"all_ids"}] = allKeys
+	info[String{"all_ids"}] = Array{Elements: allKeys}
 	return info
 }
 
