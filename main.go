@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 
 	"fortio.org/cli"
 	"fortio.org/log"
@@ -28,16 +29,24 @@ func Main() int {
 	compact := flag.Bool("compact", false, "When printing code, use no indentation and most compact form")
 	showEval := flag.Bool("eval", true, "show eval results")
 	sharedState := flag.Bool("shared-state", false, "All files share same interpreter state (default is new state for each)")
+	homeDir, err := os.UserHomeDir()
+	historyFileDefault := filepath.Join(homeDir, ".grol_history")
+	if err != nil {
+		log.Warnf("Couldn't get user home dir: %v", err)
+		historyFileDefault = ""
+	}
+	historyFile := flag.String("history", historyFileDefault, "history file to use")
 
 	cli.ArgsHelp = "*.gr files to interpret or `-` for stdin without prompt or no arguments for stdin repl..."
 	cli.MaxArgs = -1
 	cli.Main()
 	log.Infof("grol %s - welcome!", cli.LongVersion)
 	options := repl.Options{
-		ShowParse:  *showParse,
-		ShowEval:   *showEval,
-		FormatOnly: *format,
-		Compact:    *compact,
+		ShowParse:   *showParse,
+		ShowEval:    *showEval,
+		FormatOnly:  *format,
+		Compact:     *compact,
+		HistoryFile: *historyFile,
 	}
 	if hookBefore != nil {
 		ret := hookBefore()
@@ -45,7 +54,7 @@ func Main() int {
 			return ret
 		}
 	}
-	err := extensions.Init()
+	err = extensions.Init()
 	if err != nil {
 		return log.FErrf("Error initializing extensions: %v", err)
 	}
@@ -58,8 +67,7 @@ func Main() int {
 		return len(errs)
 	}
 	if len(flag.Args()) == 0 {
-		repl.Interactive(os.Stdin, os.Stdout, options)
-		return 0
+		return repl.Interactive(options)
 	}
 	options.All = true
 	s := eval.NewState()

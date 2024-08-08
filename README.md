@@ -167,7 +167,7 @@ See [Open Issues](https://grol.io/grol/issues) for what's left to do
 ### CLI Usage
 
 ```
-grol 0.29.0 usage:
+grol 0.38.0 usage:
 	grol [flags] *.gr files to interpret or `-` for stdin without prompt
   or no arguments for stdin repl...
 or 1 of the special arguments
@@ -181,6 +181,8 @@ flags:
     	show eval results (default true)
   -format
     	don't execute, just parse and re format the input
+  -history string
+    	history file to use (default "~/.grol_history")
   -parse
     	show parse tree
   -shared-state

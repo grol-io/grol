@@ -1,12 +1,13 @@
 package repl
 
 import (
-	"bufio"
 	"fmt"
 	"io"
 	"strings"
 
 	"fortio.org/log"
+	"fortio.org/terminal"
+
 	"grol.io/grol/ast"
 	"grol.io/grol/eval"
 	"grol.io/grol/lexer"
@@ -33,13 +34,14 @@ func logParserErrors(p *parser.Parser) bool {
 }
 
 type Options struct {
-	ShowParse  bool
-	ShowEval   bool
-	All        bool
-	NoColor    bool // color controlled by log package, unless this is set to true.
-	FormatOnly bool
-	Compact    bool
-	NilAndErr  bool // Show nil and errors in normal output.
+	ShowParse   bool
+	ShowEval    bool
+	All         bool
+	NoColor     bool // color controlled by log package, unless this is set to true.
+	FormatOnly  bool
+	Compact     bool
+	NilAndErr   bool // Show nil and errors in normal output.
+	HistoryFile string
 }
 
 func EvalAll(s *eval.State, macroState *object.Environment, in io.Reader, out io.Writer, options Options) []string {
@@ -78,29 +80,39 @@ func EvalString(what string) (res string, errs []string, formatted string) {
 	return
 }
 
-func Interactive(in io.Reader, out io.Writer, options Options) {
+func Interactive(options Options) int {
 	options.NilAndErr = true
 	s := eval.NewState()
 	macroState := object.NewMacroEnvironment()
 
-	scanner := bufio.NewScanner(in)
 	prev := ""
-	prompt := PROMPT
+
+	term, err := terminal.Open()
+	if err != nil {
+		return log.FErrf("Error creating readline: %v", err)
+	}
+	defer term.Close()
+	term.LoggerSetup()
+	term.SetPrompt(PROMPT)
+	_ = term.SetHistoryFile(options.HistoryFile)
 	for {
-		fmt.Fprint(out, prompt)
-		scanned := scanner.Scan()
-		if !scanned {
-			return
+		rd, err := term.ReadLine()
+		if err != nil {
+			return log.FErrf("Error reading line: %v", err)
 		}
-		l := prev + scanner.Text()
+		log.Debugf("Read: %q", rd)
+		l := prev + rd
 		// errors are already logged and this is the only case that can get contNeeded (EOL instead of EOF mode)
-		contNeeded, _, _ := EvalOne(s, macroState, l, out, options)
+		contNeeded, _, formatted := EvalOne(s, macroState, l, term.Out, options)
 		if contNeeded {
 			prev = l + "\n"
-			prompt = CONTINUATION
+			term.SetPrompt(CONTINUATION)
 		} else {
+			if prev != "" {
+				term.AddToHistory(strings.TrimSpace(formatted))
+			}
 			prev = ""
-			prompt = PROMPT
+			term.SetPrompt(PROMPT)
 		}
 	}
 }
