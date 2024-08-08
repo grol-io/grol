@@ -1,13 +1,13 @@
 package repl
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"strings"
 
 	"fortio.org/log"
 	"fortio.org/terminal"
-
 	"grol.io/grol/ast"
 	"grol.io/grol/eval"
 	"grol.io/grol/lexer"
@@ -94,10 +94,18 @@ func Interactive(options Options) int {
 	defer term.Close()
 	term.LoggerSetup()
 	term.SetPrompt(PROMPT)
+	options.Compact = true // because terminal doesn't do well will multi-line commands.
 	_ = term.SetHistoryFile(options.HistoryFile)
 	for {
 		rd, err := term.ReadLine()
 		if err != nil {
+			if errors.Is(err, io.EOF) {
+				// To avoid trailing prompt due to prompt refresh on the log output
+				// that's a bit ugly that it's necessary. consider handling in terminal.Close
+				term.SetPrompt("")
+				log.Infof("Exit requested") // Don't say EOF as ^C comes through as EOF as well.
+				return 0
+			}
 			return log.FErrf("Error reading line: %v", err)
 		}
 		log.Debugf("Read: %q", rd)
@@ -109,7 +117,9 @@ func Interactive(options Options) int {
 			term.SetPrompt(CONTINUATION)
 		} else {
 			if prev != "" {
-				term.AddToHistory(strings.TrimSpace(formatted))
+				what := strings.TrimSpace(formatted)
+				log.LogVf("Adding to history: %q", what)
+				term.AddToHistory(what)
 			}
 			prev = ""
 			term.SetPrompt(PROMPT)
