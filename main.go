@@ -29,10 +29,10 @@ func Main() int {
 	compact := flag.Bool("compact", false, "When printing code, use no indentation and most compact form")
 	showEval := flag.Bool("eval", true, "show eval results")
 	sharedState := flag.Bool("shared-state", false, "All files share same interpreter state (default is new state for each)")
-	homeDir, err := os.UserHomeDir()
-	historyFileDefault := filepath.Join(homeDir, ".grol_history")
+	configDir, err := os.UserConfigDir() // TODO: this is ugly on a mac... allow homedir...
+	historyFileDefault := filepath.Join(configDir, ".grol_history")
 	if err != nil {
-		log.Warnf("Couldn't get user home dir: %v", err)
+		log.Warnf("Couldn't get user config dir: %v", err)
 		historyFileDefault = ""
 	}
 	historyFile := flag.String("history", historyFileDefault, "history `file` to use")
