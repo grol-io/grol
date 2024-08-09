@@ -105,14 +105,11 @@ func Interactive(options Options) int {
 	historyRegex := regexp.MustCompile(`^!(\d+)$`)
 	for {
 		rd, err := term.ReadLine()
+		if errors.Is(err, io.EOF) {
+			log.Infof("Exit requested") // Don't say EOF as ^C comes through as EOF as well.
+			return 0
+		}
 		if err != nil {
-			if errors.Is(err, io.EOF) {
-				// To avoid trailing prompt due to prompt refresh on the log output
-				// that's a bit ugly that it's necessary. consider handling in terminal.Close
-				term.SetPrompt("")
-				log.Infof("Exit requested") // Don't say EOF as ^C comes through as EOF as well.
-				return 0
-			}
 			return log.FErrf("Error reading line: %v", err)
 		}
 		log.Debugf("Read: %q", rd)
