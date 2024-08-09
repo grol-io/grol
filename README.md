@@ -65,6 +65,8 @@ $ info.keywords
 == Eval  ==> ["else","error","false","first","func","if","len","log","macro","print","println","quote","rest","return","true","unquote"]
 ```
 
+There is also in interactive repl mode: `history`, `!23` to repeat the 23rd statement for instance and `help`.
+
 ## Language features
 
 Functional int, float, string and boolean expressions
@@ -183,6 +185,8 @@ flags:
     	don't execute, just parse and re format the input
   -history string
     	history file to use (default "~/.grol_history")
+  -max-history size
+    	max history size, use 0 to disable. (default 99)
   -parse
     	show parse tree
   -shared-state
