@@ -4,6 +4,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"regexp"
+	"slices"
+	"strconv"
 	"strings"
 
 	"fortio.org/log"
@@ -42,6 +45,7 @@ type Options struct {
 	Compact     bool
 	NilAndErr   bool // Show nil and errors in normal output.
 	HistoryFile string
+	MaxHistory  int
 }
 
 func EvalAll(s *eval.State, macroState *object.Environment, in io.Reader, out io.Writer, options Options) []string {
@@ -95,7 +99,10 @@ func Interactive(options Options) int {
 	term.LoggerSetup()
 	term.SetPrompt(PROMPT)
 	options.Compact = true // because terminal doesn't do well will multi-line commands.
+	term.NewHistory(options.MaxHistory)
 	_ = term.SetHistoryFile(options.HistoryFile)
+	// Regular expression for "!nn" to run history command nn.
+	historyRegex := regexp.MustCompile(`^!(\d+)$`)
 	for {
 		rd, err := term.ReadLine()
 		if err != nil {
@@ -110,6 +117,31 @@ func Interactive(options Options) int {
 		}
 		log.Debugf("Read: %q", rd)
 		l := prev + rd
+		if historyRegex.MatchString(l) {
+			h := term.History()
+			slices.Reverse(h)
+			idxStr := l[1:]
+			idx, _ := strconv.Atoi(idxStr)
+			if idx < 1 || idx > len(h) {
+				log.Errf("Invalid history index %d", idx)
+				continue
+			}
+			l = h[idx-1]
+			fmt.Fprintf(term.Out, "Repeating history %d: %s\n", idx, l)
+			term.ReplaceLatest(l)
+		}
+		switch {
+		case l == "history":
+			h := term.History()
+			slices.Reverse(h)
+			for i, v := range h {
+				fmt.Fprintf(term.Out, "%02d: %s\n", i+1, v)
+			}
+			continue
+		case l == "help":
+			fmt.Fprintln(term.Out, "Type 'history' to see history, '!n' to repeat history n, 'info' for language builtins")
+			continue
+		}
 		// errors are already logged and this is the only case that can get contNeeded (EOL instead of EOF mode)
 		contNeeded, _, formatted := EvalOne(s, macroState, l, term.Out, options)
 		if contNeeded {
@@ -117,9 +149,9 @@ func Interactive(options Options) int {
 			term.SetPrompt(CONTINUATION)
 		} else {
 			if prev != "" {
-				what := strings.TrimSpace(formatted)
-				log.LogVf("Adding to history: %q", what)
-				term.AddToHistory(what)
+				// In addition to raw lines, we also add the single line version to history.
+				log.LogVf("Adding to history: %q", formatted)
+				term.AddToHistory(formatted)
 			}
 			prev = ""
 			term.SetPrompt(PROMPT)

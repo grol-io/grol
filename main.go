@@ -35,7 +35,8 @@ func Main() int {
 		log.Warnf("Couldn't get user home dir: %v", err)
 		historyFileDefault = ""
 	}
-	historyFile := flag.String("history", historyFileDefault, "history file to use")
+	historyFile := flag.String("history", historyFileDefault, "history `file` to use")
+	maxHistory := flag.Int("max-history", 99, "max history `size`, use 0 to disable.")
 
 	cli.ArgsHelp = "*.gr files to interpret or `-` for stdin without prompt or no arguments for stdin repl..."
 	cli.MaxArgs = -1
@@ -47,6 +48,7 @@ func Main() int {
 		FormatOnly:  *format,
 		Compact:     *compact,
 		HistoryFile: *historyFile,
+		MaxHistory:  *maxHistory,
 	}
 	if hookBefore != nil {
 		ret := hookBefore()
