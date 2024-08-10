@@ -96,7 +96,6 @@ func Interactive(options Options) int {
 		return log.FErrf("Error creating readline: %v", err)
 	}
 	defer term.Close()
-	term.LoggerSetup()
 	term.SetPrompt(PROMPT)
 	options.Compact = true // because terminal doesn't do well will multi-line commands.
 	term.NewHistory(options.MaxHistory)
