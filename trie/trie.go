@@ -6,8 +6,10 @@ type Trie struct {
 	// Children of this node
 	children [256]*Trie
 	// This node itself is a valid leaf (end of a word) in addition having children.
-	valid bool
-	leaf  bool // Note really needed outside of debugging but with struct alignment it doesn't cost anything extra.
+	// optimization for enumeration, not strictly needed.
+	min, max byte // min starts at 255, max at 0 so they get set immediately after the first child addition.
+	valid    bool
+	leaf     bool // Note really needed outside of debugging but with struct alignment it doesn't cost anything extra.
 }
 
 // Save some memory by having a shared end marker for leaves.
@@ -15,7 +17,7 @@ type Trie struct {
 var endMarker = &Trie{valid: true, leaf: true}
 
 func NewTrie() *Trie {
-	return &Trie{}
+	return &Trie{min: 255, max: 0}
 }
 
 func (t *Trie) Insert(word string) {
@@ -32,7 +34,13 @@ func (t *Trie) Insert(word string) {
 			if i == l-1 {
 				t.children[char] = endMarker // Shared for all leaves, saves memory.
 			} else {
-				t.children[char] = &Trie{valid: valid}
+				t.children[char] = &Trie{valid: valid, min: 255, max: 0}
+			}
+			if char < t.min {
+				t.min = char
+			}
+			if char > t.max {
+				t.max = char
 			}
 		}
 		t = t.children[char]
@@ -64,8 +72,9 @@ func (t *Trie) IsValid() bool {
 
 // All returns all the valid words from that point onwards.
 // Typically called from the result of [Prefix].
-// This is one case where the map would likely be faster than
-// checking every single 256 children pointers.
+// if somehow both 0 and 255 are valid yet not much in between,
+// the optimization of min,max range won't do much, but for
+// normal words, it should help a lot.
 func (t *Trie) All(prefix string) []string {
 	if t == nil {
 		return nil
@@ -77,9 +86,9 @@ func (t *Trie) All(prefix string) []string {
 	if t.leaf {
 		return res
 	}
-	for i := range 256 {
+	for i := t.min; i <= t.max; i++ {
 		if t.children[i] != nil {
-			newPrefix := prefix + string(byte(i))
+			newPrefix := prefix + string(i)
 			res = append(res, t.children[i].All(newPrefix)...)
 		}
 	}
@@ -92,3 +101,19 @@ func (t *Trie) All(prefix string) []string {
 
   [A] -> [B] children[C] = endMarker
 */
+
+// gets inlined hopefully
+
+func min(a, b byte) byte {
+	if a < b {
+		return a
+	}
+	return b
+}
+
+func max(a, b byte) byte {
+	if a > b {
+		return a
+	}
+	return b
+}
