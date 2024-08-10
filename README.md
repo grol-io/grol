@@ -65,6 +65,9 @@ $ info.keywords
 == Eval  ==> ["else","error","false","first","func","if","len","log","macro","print","println","quote","rest","return","true","unquote"]
 ```
 
+There is also in interactive repl mode: `history`, `!23` to repeat the 23rd statement for instance and `help`.
+And full edit and history navigation with arrow keys etc...
+
 ## Language features
 
 Functional int, float, string and boolean expressions
@@ -167,7 +170,7 @@ See [Open Issues](https://grol.io/grol/issues) for what's left to do
 ### CLI Usage
 
 ```
-grol 0.29.0 usage:
+grol 0.38.0 usage:
 	grol [flags] *.gr files to interpret or `-` for stdin without prompt
   or no arguments for stdin repl...
 or 1 of the special arguments
@@ -181,9 +184,15 @@ flags:
     	show eval results (default true)
   -format
     	don't execute, just parse and re format the input
+  -history string
+    	history file to use (default "~/.grol_history")
+  -max-history size
+    	max history size, use 0 to disable. (default 99)
   -parse
     	show parse tree
   -shared-state
     	All files share same interpreter state (default is new state for each)
 ```
 (excluding logger control, see `gorepl help` for all the flags, of note `-logger-no-color` will turn off colors for gorepl too, for development there are also `-profile*` options for pprof, when building without `no_pprof`)
+
+If you don't want to pass a flag and want to permanently change the `grol` history file location from your HOME directory, set GROL_HISTORY_FILE in the environment.

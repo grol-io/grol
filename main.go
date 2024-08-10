@@ -6,9 +6,12 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 
 	"fortio.org/cli"
 	"fortio.org/log"
+	"fortio.org/struct2env"
+	"fortio.org/terminal"
 	"grol.io/grol/eval"
 	"grol.io/grol/extensions" // register extensions
 	"grol.io/grol/object"
@@ -17,6 +20,19 @@ import (
 
 func main() {
 	os.Exit(Main())
+}
+
+type Config struct {
+	HistoryFile string
+}
+
+var config = Config{}
+
+func EnvHelp(w io.Writer) {
+	res, _ := struct2env.StructToEnvVars(config)
+	str := struct2env.ToShellWithPrefix("GROL_", res, true)
+	fmt.Fprintln(w, "# Grol environment variables:")
+	fmt.Fprint(w, str)
 }
 
 var hookBefore, hookAfter func() int
@@ -28,16 +44,38 @@ func Main() int {
 	compact := flag.Bool("compact", false, "When printing code, use no indentation and most compact form")
 	showEval := flag.Bool("eval", true, "show eval results")
 	sharedState := flag.Bool("shared-state", false, "All files share same interpreter state (default is new state for each)")
-
+	const historyDefault = "~/.grol_history" // virtual/token filename, will be replaced by actual home dir if not changed.
+	cli.EnvHelpFuncs = append(cli.EnvHelpFuncs, EnvHelp)
+	defaultHistoryFile := historyDefault
+	errs := struct2env.SetFromEnv("GROL_", &config)
+	if len(errs) > 0 {
+		log.Errf("Error setting config from env: %v", errs)
+	}
+	if config.HistoryFile != "" {
+		defaultHistoryFile = config.HistoryFile
+	}
+	historyFile := flag.String("history", defaultHistoryFile, "history `file` to use")
+	maxHistory := flag.Int("max-history", terminal.DefaultHistoryCapacity, "max history `size`, use 0 to disable.")
 	cli.ArgsHelp = "*.gr files to interpret or `-` for stdin without prompt or no arguments for stdin repl..."
 	cli.MaxArgs = -1
 	cli.Main()
+	histFile := *historyFile
+	if histFile == historyDefault {
+		homeDir, err := os.UserHomeDir()
+		histFile = filepath.Join(homeDir, ".grol_history")
+		if err != nil {
+			log.Warnf("Couldn't get user home dir: %v", err)
+			histFile = ""
+		}
+	}
 	log.Infof("grol %s - welcome!", cli.LongVersion)
 	options := repl.Options{
-		ShowParse:  *showParse,
-		ShowEval:   *showEval,
-		FormatOnly: *format,
-		Compact:    *compact,
+		ShowParse:   *showParse,
+		ShowEval:    *showEval,
+		FormatOnly:  *format,
+		Compact:     *compact,
+		HistoryFile: histFile,
+		MaxHistory:  *maxHistory,
 	}
 	if hookBefore != nil {
 		ret := hookBefore()
@@ -58,8 +96,7 @@ func Main() int {
 		return len(errs)
 	}
 	if len(flag.Args()) == 0 {
-		repl.Interactive(os.Stdin, os.Stdout, options)
-		return 0
+		return repl.Interactive(options)
 	}
 	options.All = true
 	s := eval.NewState()

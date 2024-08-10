@@ -1,12 +1,16 @@
 package repl
 
 import (
-	"bufio"
+	"errors"
 	"fmt"
 	"io"
+	"regexp"
+	"slices"
+	"strconv"
 	"strings"
 
 	"fortio.org/log"
+	"fortio.org/terminal"
 	"grol.io/grol/ast"
 	"grol.io/grol/eval"
 	"grol.io/grol/lexer"
@@ -33,13 +37,15 @@ func logParserErrors(p *parser.Parser) bool {
 }
 
 type Options struct {
-	ShowParse  bool
-	ShowEval   bool
-	All        bool
-	NoColor    bool // color controlled by log package, unless this is set to true.
-	FormatOnly bool
-	Compact    bool
-	NilAndErr  bool // Show nil and errors in normal output.
+	ShowParse   bool
+	ShowEval    bool
+	All         bool
+	NoColor     bool // color controlled by log package, unless this is set to true.
+	FormatOnly  bool
+	Compact     bool
+	NilAndErr   bool // Show nil and errors in normal output.
+	HistoryFile string
+	MaxHistory  int
 }
 
 func EvalAll(s *eval.State, macroState *object.Environment, in io.Reader, out io.Writer, options Options) []string {
@@ -78,29 +84,73 @@ func EvalString(what string) (res string, errs []string, formatted string) {
 	return
 }
 
-func Interactive(in io.Reader, out io.Writer, options Options) {
+func Interactive(options Options) int {
 	options.NilAndErr = true
 	s := eval.NewState()
 	macroState := object.NewMacroEnvironment()
 
-	scanner := bufio.NewScanner(in)
 	prev := ""
-	prompt := PROMPT
+
+	term, err := terminal.Open()
+	if err != nil {
+		return log.FErrf("Error creating readline: %v", err)
+	}
+	defer term.Close()
+	term.SetPrompt(PROMPT)
+	options.Compact = true // because terminal doesn't (yet) do well will multi-line commands.
+	term.NewHistory(options.MaxHistory)
+	_ = term.SetHistoryFile(options.HistoryFile)
+	// Regular expression for "!nn" to run history command nn.
+	historyRegex := regexp.MustCompile(`^!(\d+)$`)
 	for {
-		fmt.Fprint(out, prompt)
-		scanned := scanner.Scan()
-		if !scanned {
-			return
+		rd, err := term.ReadLine()
+		if errors.Is(err, io.EOF) {
+			log.Infof("Exit requested") // Don't say EOF as ^C comes through as EOF as well.
+			return 0
 		}
-		l := prev + scanner.Text()
+		if err != nil {
+			return log.FErrf("Error reading line: %v", err)
+		}
+		log.Debugf("Read: %q", rd)
+		l := prev + rd
+		if historyRegex.MatchString(l) {
+			h := term.History()
+			slices.Reverse(h)
+			idxStr := l[1:]
+			idx, _ := strconv.Atoi(idxStr)
+			if idx < 1 || idx > len(h) {
+				log.Errf("Invalid history index %d", idx)
+				continue
+			}
+			l = h[idx-1]
+			fmt.Fprintf(term.Out, "Repeating history %d: %s\n", idx, l)
+			term.ReplaceLatest(l)
+		}
+		switch {
+		case l == "history":
+			h := term.History()
+			slices.Reverse(h)
+			for i, v := range h {
+				fmt.Fprintf(term.Out, "%02d: %s\n", i+1, v)
+			}
+			continue
+		case l == "help":
+			fmt.Fprintln(term.Out, "Type 'history' to see history, '!n' to repeat history n, 'info' for language builtins")
+			continue
+		}
 		// errors are already logged and this is the only case that can get contNeeded (EOL instead of EOF mode)
-		contNeeded, _, _ := EvalOne(s, macroState, l, out, options)
+		contNeeded, _, formatted := EvalOne(s, macroState, l, term.Out, options)
 		if contNeeded {
 			prev = l + "\n"
-			prompt = CONTINUATION
+			term.SetPrompt(CONTINUATION)
 		} else {
+			if prev != "" {
+				// In addition to raw lines, we also add the single line version to history.
+				log.LogVf("Adding to history: %q", formatted)
+				term.AddToHistory(formatted)
+			}
 			prev = ""
-			prompt = PROMPT
+			term.SetPrompt(PROMPT)
 		}
 	}
 }
