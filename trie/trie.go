@@ -62,6 +62,30 @@ func (t *Trie) IsValid() bool {
 	return t != nil && t.valid
 }
 
+// All returns all the valid words from that point onwards.
+// Typically called from the result of [Prefix].
+// This is one case where the map would likely be faster than
+// checking every single 256 children pointers.
+func (t *Trie) All(prefix string) []string {
+	if t == nil {
+		return nil
+	}
+	var res []string
+	if t.valid {
+		res = append(res, prefix)
+	}
+	if t.leaf {
+		return res
+	}
+	for i := range 256 {
+		if t.children[i] != nil {
+			newPrefix := prefix + string(byte(i))
+			res = append(res, t.children[i].All(newPrefix)...)
+		}
+	}
+	return res
+}
+
 /*
   A-B
   A-B-C
