@@ -97,7 +97,7 @@ func Interactive(options Options) int {
 	}
 	defer term.Close()
 	term.SetPrompt(PROMPT)
-	options.Compact = true // because terminal doesn't do well will multi-line commands.
+	options.Compact = true // because terminal doesn't (yet) do well will multi-line commands.
 	term.NewHistory(options.MaxHistory)
 	_ = term.SetHistoryFile(options.HistoryFile)
 	// Regular expression for "!nn" to run history command nn.

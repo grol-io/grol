@@ -11,6 +11,7 @@ import (
 	"fortio.org/cli"
 	"fortio.org/log"
 	"fortio.org/struct2env"
+	"fortio.org/terminal"
 	"grol.io/grol/eval"
 	"grol.io/grol/extensions" // register extensions
 	"grol.io/grol/object"
@@ -54,7 +55,7 @@ func Main() int {
 		defaultHistoryFile = config.HistoryFile
 	}
 	historyFile := flag.String("history", defaultHistoryFile, "history `file` to use")
-	maxHistory := flag.Int("max-history", 99, "max history `size`, use 0 to disable.")
+	maxHistory := flag.Int("max-history", terminal.DefaultHistoryCapacity, "max history `size`, use 0 to disable.")
 	cli.ArgsHelp = "*.gr files to interpret or `-` for stdin without prompt or no arguments for stdin repl..."
 	cli.MaxArgs = -1
 	cli.Main()
