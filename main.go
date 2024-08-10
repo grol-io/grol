@@ -10,6 +10,7 @@ import (
 
 	"fortio.org/cli"
 	"fortio.org/log"
+	"fortio.org/struct2env"
 	"grol.io/grol/eval"
 	"grol.io/grol/extensions" // register extensions
 	"grol.io/grol/object"
@@ -18,6 +19,19 @@ import (
 
 func main() {
 	os.Exit(Main())
+}
+
+type Config struct {
+	HistoryFile string
+}
+
+var config = Config{}
+
+func EnvHelp(w io.Writer) {
+	res, _ := struct2env.StructToEnvVars(config)
+	str := struct2env.ToShellWithPrefix("GROL_", res, true)
+	fmt.Fprintln(w, "# Grol environment variables:")
+	fmt.Fprint(w, str)
 }
 
 var hookBefore, hookAfter func() int
@@ -29,25 +43,37 @@ func Main() int {
 	compact := flag.Bool("compact", false, "When printing code, use no indentation and most compact form")
 	showEval := flag.Bool("eval", true, "show eval results")
 	sharedState := flag.Bool("shared-state", false, "All files share same interpreter state (default is new state for each)")
-	configDir, err := os.UserConfigDir() // TODO: this is ugly on a mac... allow homedir...
-	historyFileDefault := filepath.Join(configDir, ".grol_history")
-	if err != nil {
-		log.Warnf("Couldn't get user config dir: %v", err)
-		historyFileDefault = ""
+	const historyDefault = "~/.grol_history" // virtual/token filename, will be replaced by actual home dir if not changed.
+	cli.EnvHelpFuncs = append(cli.EnvHelpFuncs, EnvHelp)
+	defaultHistoryFile := historyDefault
+	errs := struct2env.SetFromEnv("GROL_", &config)
+	if len(errs) > 0 {
+		log.Errf("Error setting config from env: %v", errs)
 	}
-	historyFile := flag.String("history", historyFileDefault, "history `file` to use")
+	if config.HistoryFile != "" {
+		defaultHistoryFile = config.HistoryFile
+	}
+	historyFile := flag.String("history", defaultHistoryFile, "history `file` to use")
 	maxHistory := flag.Int("max-history", 99, "max history `size`, use 0 to disable.")
-
 	cli.ArgsHelp = "*.gr files to interpret or `-` for stdin without prompt or no arguments for stdin repl..."
 	cli.MaxArgs = -1
 	cli.Main()
+	histFile := *historyFile
+	if histFile == historyDefault {
+		homeDir, err := os.UserHomeDir()
+		histFile = filepath.Join(homeDir, ".grol_history")
+		if err != nil {
+			log.Warnf("Couldn't get user home dir: %v", err)
+			histFile = ""
+		}
+	}
 	log.Infof("grol %s - welcome!", cli.LongVersion)
 	options := repl.Options{
 		ShowParse:   *showParse,
 		ShowEval:    *showEval,
 		FormatOnly:  *format,
 		Compact:     *compact,
-		HistoryFile: *historyFile,
+		HistoryFile: histFile,
 		MaxHistory:  *maxHistory,
 	}
 	if hookBefore != nil {
@@ -56,7 +82,7 @@ func Main() int {
 			return ret
 		}
 	}
-	err = extensions.Init()
+	err := extensions.Init()
 	if err != nil {
 		return log.FErrf("Error initializing extensions: %v", err)
 	}
