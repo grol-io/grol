@@ -61,6 +61,11 @@ func (s *State) Len() int {
 	return s.env.Len()
 }
 
+// Save() saves the current toplevel state (ids and functions) to the writer, forwards to the object store.
+func (s *State) Save(w io.Writer) error {
+	return s.env.Save(w)
+}
+
 // Does unwrap (so stop bubbling up) return values.
 func (s *State) Eval(node any) object.Object {
 	result := s.evalInternal(node)

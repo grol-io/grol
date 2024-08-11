@@ -2,6 +2,7 @@ package object
 
 import (
 	"fmt"
+	"io"
 	"sort"
 
 	"fortio.org/cli"
@@ -92,6 +93,30 @@ func (e *Environment) RegisterTrie(t *trie.Trie) {
 	for k, v := range e.store {
 		record(t, k, v.Type())
 	}
+}
+
+func (e *Environment) Save(to io.Writer) error {
+	for k, v := range e.store {
+		if v.Type() == FUNC {
+			f := v.(Function)
+			if f.Name != nil {
+				// Named function inspect is ready for definition, eg func y(a,b){a+b}.
+				_, err := fmt.Fprintf(to, "%s\n", f.Inspect())
+				if err != nil {
+					return err
+				}
+				continue
+			}
+			// Anonymous function are like other variables.
+			//   x=func(a,b){a+b}
+			// fallthrough.
+		}
+		_, err := fmt.Fprintf(to, "%s=%s\n", k, v.Inspect())
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (e *Environment) Info() Object {
