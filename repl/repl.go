@@ -97,7 +97,13 @@ func Interactive(options Options) int {
 	autoComplete := NewCompletion()
 	tokInfo := token.Info()
 	for v := range tokInfo.Keywords {
-		autoComplete.Trie.Insert(v)
+		autoComplete.Trie.Insert(v + " ")
+	}
+	for v := range tokInfo.Builtins {
+		autoComplete.Trie.Insert(v + "(")
+	}
+	for k := range object.ExtraFunctions() {
+		autoComplete.Trie.Insert(k + "(")
 	}
 	term.SetAutoCompleteCallback(autoComplete.AutoComplete())
 	term.SetPrompt(PROMPT)
@@ -108,6 +114,13 @@ func Interactive(options Options) int {
 	historyRegex := regexp.MustCompile(`^!(\d+)$`)
 	prev := ""
 	for {
+		ids, fns := s.TopLevelIDs()
+		for _, v := range ids {
+			autoComplete.Trie.Insert(v + " ")
+		}
+		for _, v := range fns {
+			autoComplete.Trie.Insert(v + "(")
+		}
 		rd, err := term.ReadLine()
 		if errors.Is(err, io.EOF) {
 			log.Infof("Exit requested") // Don't say EOF as ^C comes through as EOF as well.

@@ -45,6 +45,11 @@ func NewBlankState() *State {
 	}
 }
 
+// TopLevelIDs returns ids and functions.
+func (s *State) TopLevelIDs() ([]string, []string) {
+	return s.env.TopLevelIDs()
+}
+
 func (s *State) ResetCache() {
 	s.cache = NewCache()
 }

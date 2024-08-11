@@ -68,6 +68,23 @@ func (e *Environment) BaseInfo() Map {
 	return baseInfo
 }
 
+// List of IDs and functions.
+func (e *Environment) TopLevelIDs() ([]string, []string) {
+	for e.outer != nil {
+		e = e.outer
+	}
+	ids := make([]string, 0, len(e.store))
+	fns := make([]string, 0, len(e.store))
+	for k, v := range e.store {
+		if v.Type() == FUNC {
+			fns = append(fns, k)
+		} else {
+			ids = append(ids, k)
+		}
+	}
+	return ids, fns
+}
+
 func (e *Environment) Info() Object {
 	allKeys := make([]Object, e.depth+1)
 	for {

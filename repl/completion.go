@@ -2,6 +2,7 @@ package repl
 
 import (
 	"fmt"
+	"strings"
 
 	"fortio.org/terminal"
 	"grol.io/grol/trie"
@@ -30,7 +31,15 @@ func (a *AutoComplete) autoCompleteCallback(t *terminal.Terminal, line string, p
 		return
 	}
 	if len(commands) > 1 {
-		fmt.Fprintln(t.Out, commands)
+		fmt.Fprint(t.Out, "One of: ")
+		for _, c := range commands {
+			if strings.HasSuffix(c, "(") {
+				fmt.Fprint(t.Out, c, ") ")
+			} else {
+				fmt.Fprint(t.Out, c)
+			}
+		}
+		fmt.Fprintln(t.Out)
 	}
 	return commands[0][:l], l, true
 }
