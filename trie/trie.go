@@ -70,29 +70,48 @@ func (t *Trie) IsValid() bool {
 	return t != nil && t.valid
 }
 
+// Returns all the matches for the given prefix and the
+// length of the longest common prefix.
+func (t *Trie) PrefixAll(prefix string) (int, []string) {
+	return t.Prefix(prefix).All(prefix)
+}
+
 // All returns all the valid words from that point onwards.
 // Typically called from the result of [Prefix].
 // if somehow both 0 and 255 are valid yet not much in between,
 // the optimization of min,max range won't do much, but for
 // normal words, it should help a lot.
-func (t *Trie) All(prefix string) []string {
+// Returns the len of the longest common prefix.
+func (t *Trie) All(prefix string) (int, []string) {
 	if t == nil {
-		return nil
+		return 0, nil
 	}
 	var res []string
+	longest := len(prefix)
+	numChildren := 0
 	if t.valid {
 		res = append(res, prefix)
+		numChildren++
 	}
 	if t.leaf {
-		return res
+		return longest, res
 	}
 	for i := t.min; i <= t.max; i++ {
-		if t.children[i] != nil {
-			newPrefix := prefix + string(i)
-			res = append(res, t.children[i].All(newPrefix)...)
+		if t.children[i] == nil {
+			continue
 		}
+		numChildren++
+		newPrefix := prefix + string(i)
+		l, additional := t.children[i].All(newPrefix)
+		if l > longest {
+			longest = l
+		}
+		res = append(res, additional...)
 	}
-	return res
+	if numChildren > 1 {
+		longest = len(prefix)
+	}
+	return longest, res
 }
 
 /*

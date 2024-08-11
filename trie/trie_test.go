@@ -55,11 +55,14 @@ func TestTrie(t *testing.T) {
 		t.Error("Expected to find 'ABCD', but it was not found.")
 	}
 
-	all := trie.Prefix("X").All("Y")
+	l, all := trie.Prefix("X").All("Y")
 	if len(all) != 0 {
 		t.Errorf("Expected no results for 'X' but got: %v", all)
 	}
-	all = trie.Prefix("A").All("xy")
+	if l != 0 {
+		t.Errorf("Expected 0 for 'X' but got: %v", l)
+	}
+	_, all = trie.Prefix("A").All("xy")
 	expected := []string{"xyB2", "xyBC", "xyBCD"}
 	if len(all) != len(expected) {
 		t.Errorf("Expected %v for 'A' but got: %v", expected, all)
@@ -67,11 +70,19 @@ func TestTrie(t *testing.T) {
 	if !reflect.DeepEqual(all, expected) {
 		t.Errorf("Expected %v for 'A' but got: %v", expected, all)
 	}
-	all = trie.Prefix("ABCD").All("z")
+	prefix := "ABCD"
+	l, all = trie.PrefixAll(prefix)
 	if len(all) != 1 {
 		t.Errorf("Expected one result for all of 'ABCD' but got: %v", all)
 	}
-	if all[0] != "z" {
+	if all[0] != prefix {
 		t.Errorf("Expected 'z' for 'ABCD' but got: %v", all)
+	}
+	if l != 4 {
+		t.Errorf("Expected 4 for 'ABCD' but got: %v", l)
+	}
+	l, _ = trie.PrefixAll("")
+	if l != 2 {
+		t.Errorf("Expected 3 for common prefix (AB) but got: %v", l)
 	}
 }

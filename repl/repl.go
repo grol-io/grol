@@ -16,6 +16,7 @@ import (
 	"grol.io/grol/lexer"
 	"grol.io/grol/object"
 	"grol.io/grol/parser"
+	"grol.io/grol/token"
 )
 
 const (
@@ -88,20 +89,24 @@ func Interactive(options Options) int {
 	options.NilAndErr = true
 	s := eval.NewState()
 	macroState := object.NewMacroEnvironment()
-
-	prev := ""
-
 	term, err := terminal.Open()
 	if err != nil {
 		return log.FErrf("Error creating readline: %v", err)
 	}
 	defer term.Close()
+	autoComplete := NewCompletion()
+	tokInfo := token.Info()
+	for v := range tokInfo.Keywords {
+		autoComplete.Trie.Insert(v)
+	}
+	term.SetAutoCompleteCallback(autoComplete.AutoComplete())
 	term.SetPrompt(PROMPT)
 	options.Compact = true // because terminal doesn't (yet) do well will multi-line commands.
 	term.NewHistory(options.MaxHistory)
 	_ = term.SetHistoryFile(options.HistoryFile)
 	// Regular expression for "!nn" to run history command nn.
 	historyRegex := regexp.MustCompile(`^!(\d+)$`)
+	prev := ""
 	for {
 		rd, err := term.ReadLine()
 		if errors.Is(err, io.EOF) {
