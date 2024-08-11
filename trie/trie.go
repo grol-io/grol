@@ -82,7 +82,12 @@ func (t *Trie) PrefixAll(prefix string) (int, []string) {
 // the optimization of min,max range won't do much, but for
 // normal words, it should help a lot.
 // Returns the len of the longest common prefix.
+// If the input is incomplete UTF-8 sequence, use AllBytes() instead.
 func (t *Trie) All(prefix string) (int, []string) {
+	return t.AllBytes([]byte(prefix))
+}
+
+func (t *Trie) AllBytes(prefix []byte) (int, []string) {
 	if t == nil {
 		return 0, nil
 	}
@@ -90,23 +95,29 @@ func (t *Trie) All(prefix string) (int, []string) {
 	longest := len(prefix)
 	numChildren := 0
 	if t.valid {
-		res = append(res, prefix)
+		res = append(res, string(prefix))
 		numChildren++
 	}
 	if t.leaf {
 		return longest, res
 	}
+	l1 := len(prefix)
+	newPrefix := make([]byte, l1+1)
+	copy(newPrefix, prefix)
 	for i := t.min; i <= t.max; i++ {
 		if t.children[i] == nil {
 			continue
 		}
 		numChildren++
-		newPrefix := prefix + string(i)
-		l, additional := t.children[i].All(newPrefix)
+		newPrefix[l1] = i
+		l, additional := t.children[i].AllBytes(newPrefix)
 		if l > longest {
 			longest = l
 		}
 		res = append(res, additional...)
+		if i == 255 {
+			break // Exit the loop after processing last possible byte value 255, avoid infinite loop.
+		}
 	}
 	if numChildren > 1 {
 		longest = len(prefix)
