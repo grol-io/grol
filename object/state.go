@@ -2,6 +2,8 @@ package object
 
 import (
 	"fmt"
+	"io"
+	"slices"
 	"sort"
 
 	"fortio.org/cli"
@@ -92,6 +94,47 @@ func (e *Environment) RegisterTrie(t *trie.Trie) {
 	for k, v := range e.store {
 		record(t, k, v.Type())
 	}
+}
+
+// Returns the number of ids written.
+func (e *Environment) SaveGlobals(to io.Writer) (int, error) {
+	for e.outer != nil {
+		e = e.outer
+	}
+	keys := make([]string, 0, len(e.store))
+	for k := range e.store {
+		keys = append(keys, k)
+	}
+	slices.Sort(keys)
+	n := 0
+	for _, k := range keys {
+		if isConstantAndExtraIdentifier(k) {
+			// Don't save PI, E, etc.. that can't be changed.
+			continue
+		}
+		v := e.store[k]
+		if v.Type() == FUNC {
+			f := v.(Function)
+			if f.Name != nil {
+				// Named function inspect is ready for definition, eg func y(a,b){a+b}.
+				_, err := fmt.Fprintf(to, "%s\n", f.Inspect())
+				if err != nil {
+					return n, err
+				}
+				n++
+				continue
+			}
+			// Anonymous function are like other variables.
+			//   x=func(a,b){a+b}
+			// fallthrough.
+		}
+		_, err := fmt.Fprintf(to, "%s=%s\n", k, v.Inspect())
+		if err != nil {
+			return n, err
+		}
+		n++
+	}
+	return n, nil
 }
 
 func (e *Environment) Info() Object {

@@ -4,9 +4,12 @@ package extensions
 
 import (
 	"fmt"
+	"io"
 	"math"
+	"os"
 	"strings"
 
+	"fortio.org/log"
 	"grol.io/grol/eval"
 	"grol.io/grol/object"
 )
@@ -124,6 +127,18 @@ func initInternal() error {
 	if err != nil {
 		return err
 	}
+	jsonFn.Name = "save"
+	jsonFn.Callback = saveFunc // save to file.
+	err = object.CreateFunction(jsonFn)
+	if err != nil {
+		return err
+	}
+	jsonFn.Name = "load"
+	jsonFn.Callback = loadFunc // eval a file.
+	err = object.CreateFunction(jsonFn)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -156,5 +171,44 @@ func evalFunc(env any, name string, args []object.Object) object.Object {
 	if err != nil {
 		return object.Error{Value: err.Error()}
 	}
+	return res
+}
+
+func saveFunc(env any, _ string, args []object.Object) object.Object {
+	eval := env.(*eval.State)
+	file := args[0].(object.String).Value
+	// Open file for writing.
+	f, err := os.Create(file)
+	if err != nil {
+		return object.Error{Value: err.Error()}
+	}
+	defer f.Close()
+	// Write to file.
+	n, err := eval.SaveGlobals(f)
+	if err != nil {
+		return object.Error{Value: err.Error()}
+	}
+	log.Infof("Saved %d ids/fns to: %s", n, file)
+	return object.NULL
+}
+
+func loadFunc(env any, _ string, args []object.Object) object.Object {
+	file := args[0].(object.String).Value
+	// Open file for reading.
+	f, err := os.Open(file)
+	if err != nil {
+		return object.Error{Value: err.Error()}
+	}
+	defer f.Close()
+	all, err := io.ReadAll(f)
+	if err != nil {
+		return object.Error{Value: err.Error()}
+	}
+	// Eval the content.
+	res, err := eval.EvalString(env, string(all), false)
+	if err != nil {
+		return object.Error{Value: err.Error()}
+	}
+	log.Infof("Read/evaluated: %s", file)
 	return res
 }

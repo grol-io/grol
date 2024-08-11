@@ -3,73 +3,16 @@ package eval
 import (
 	"bytes"
 	"fmt"
-	"io"
 	"math"
-	"os"
 	"strings"
 
 	"fortio.org/log"
 	"grol.io/grol/ast"
-	"grol.io/grol/lexer"
 	"grol.io/grol/object"
-	"grol.io/grol/parser"
 	"grol.io/grol/token"
-	"grol.io/grol/trie"
 )
 
-type State struct {
-	env        *object.Environment
-	Out        io.Writer
-	LogOut     io.Writer
-	NoLog      bool // turn log() into println() (for EvalString)
-	cache      Cache
-	extensions map[string]object.Extension
-}
-
-func NewState() *State {
-	return &State{
-		env:        object.NewRootEnvironment(),
-		Out:        os.Stdout,
-		LogOut:     os.Stdout,
-		cache:      NewCache(),
-		extensions: object.ExtraFunctions(),
-	}
-}
-
-func NewBlankState() *State {
-	return &State{
-		env:        object.NewMacroEnvironment(), // to get empty store
-		Out:        io.Discard,
-		LogOut:     io.Discard,
-		cache:      NewCache(),
-		extensions: make(map[string]object.Extension),
-	}
-}
-
-// RegisterTrie sets up the Trie to record all top level ids and functions.
-// Forwards to the underlying object store environment.
-func (s *State) RegisterTrie(t *trie.Trie) {
-	s.env.RegisterTrie(t)
-}
-
-func (s *State) ResetCache() {
-	s.cache = NewCache()
-}
-
-// Forward to env to count the number of bindings. Used mostly to know if there are any macros.
-func (s *State) Len() int {
-	return s.env.Len()
-}
-
-// Does unwrap (so stop bubbling up) return values.
-func (s *State) Eval(node any) object.Object {
-	result := s.evalInternal(node)
-	// unwrap return values only at the top.
-	if returnValue, ok := result.(object.ReturnValue); ok {
-		return returnValue.Value
-	}
-	return result
-}
+// Eval implementation.
 
 // See todo in token about publishing all of them.
 var unquoteToken = token.ByType(token.UNQUOTE)
@@ -88,7 +31,7 @@ func (s *State) evalAssignment(right object.Object, node *ast.InfixExpression) o
 	return s.env.Set(id.Literal(), right) // Propagate possible error (constant setting).
 }
 
-func ArgCheck[T any](msg string, n int, vararg bool, args []T) *object.Error {
+func argCheck[T any](msg string, n int, vararg bool, args []T) *object.Error {
 	if vararg {
 		if len(args) < n {
 			return &object.Error{Value: fmt.Sprintf("%s: wrong number of arguments. got=%d, want at least %d", msg, len(args), n)}
@@ -310,7 +253,7 @@ func (s *State) evalBuiltin(node *ast.Builtin) object.Object {
 		min = 0
 		varArg = true
 	}
-	if oerr := ArgCheck(node.Literal(), min, varArg, node.Parameters); oerr != nil {
+	if oerr := argCheck(node.Literal(), min, varArg, node.Parameters); oerr != nil {
 		return *oerr
 	}
 	if t == token.QUOTE {
@@ -801,44 +744,4 @@ func evalFloatInfixExpression(operator token.Type, left, right object.Object) ob
 	default:
 		return object.Error{Value: "unknown operator: " + operator.String()}
 	}
-}
-
-// AddEvalResult adds the result of an evaluation (for instance a function object)
-// to the base identifiers. Used to add grol defined functions to the base environment
-// (e.g abs(), log2(), etc). Eventually we may instead `include("lib.gr")` or some such.
-func AddEvalResult(name, code string) error {
-	res, err := EvalString(NewState(), code, false)
-	if err != nil {
-		return err
-	}
-	object.AddIdentifier(name, res)
-	return nil
-}
-
-// Evals a string either from entirely blank environment or from the current environment.
-// `unjson` uses emptyEnv == true (for now, pending better/safer implementation).
-//
-//nolint:revive // eval.EvalString is fine.
-func EvalString(this any, code string, emptyEnv bool) (object.Object, error) {
-	l := lexer.New(code)
-	p := parser.New(l)
-	program := p.ParseProgram()
-	if len(p.Errors()) != 0 {
-		return object.NULL, fmt.Errorf("parsing error: %v", p.Errors())
-	}
-	var evalState *State
-	if emptyEnv {
-		evalState = NewBlankState()
-	} else {
-		var ok bool
-		evalState, ok = this.(*State)
-		if !ok {
-			return object.NULL, fmt.Errorf("invalid this: %T", this)
-		}
-	}
-	res := evalState.Eval(program)
-	if res.Type() == object.ERROR {
-		return res, fmt.Errorf("eval error: %v", res.Inspect())
-	}
-	return res, nil
 }

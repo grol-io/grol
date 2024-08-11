@@ -14,7 +14,6 @@ import (
 	"fortio.org/terminal"
 	"grol.io/grol/eval"
 	"grol.io/grol/extensions" // register extensions
-	"grol.io/grol/object"
 	"grol.io/grol/repl"
 )
 
@@ -100,15 +99,13 @@ func Main() int {
 	}
 	options.All = true
 	s := eval.NewState()
-	macroState := object.NewMacroEnvironment()
 	for _, file := range flag.Args() {
-		ret := processOneFile(file, s, macroState, options)
+		ret := processOneFile(file, s, options)
 		if ret != 0 {
 			return ret
 		}
 		if !*sharedState {
 			s = eval.NewState()
-			macroState = object.NewMacroEnvironment()
 		}
 	}
 	log.Infof("All done")
@@ -118,22 +115,22 @@ func Main() int {
 	return 0
 }
 
-func processOneStream(s *eval.State, macroState *object.Environment, in io.Reader, options repl.Options) int {
-	errs := repl.EvalAll(s, macroState, in, os.Stdout, options)
+func processOneStream(s *eval.State, in io.Reader, options repl.Options) int {
+	errs := repl.EvalAll(s, in, os.Stdout, options)
 	if len(errs) > 0 {
 		log.Errf("Errors: %v", errs)
 	}
 	return len(errs)
 }
 
-func processOneFile(file string, s *eval.State, macroState *object.Environment, options repl.Options) int {
+func processOneFile(file string, s *eval.State, options repl.Options) int {
 	if file == "-" {
 		if options.FormatOnly {
 			log.Infof("Formatting stdin")
 		} else {
 			log.Infof("Running on stdin")
 		}
-		return processOneStream(s, macroState, os.Stdin, options)
+		return processOneStream(s, os.Stdin, options)
 	}
 	f, err := os.Open(file)
 	if err != nil {
@@ -144,7 +141,7 @@ func processOneFile(file string, s *eval.State, macroState *object.Environment, 
 		verb = "Formatting"
 	}
 	log.Infof("%s %s", verb, file)
-	code := processOneStream(s, macroState, f, options)
+	code := processOneStream(s, f, options)
 	f.Close()
 	return code
 }

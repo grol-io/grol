@@ -53,6 +53,14 @@ func AddIdentifier(name string, value Object) {
 	extraIdentifiers[name] = value
 }
 
+func isConstantAndExtraIdentifier(name string) bool {
+	if !Constant(name) {
+		return false
+	}
+	_, ok := extraIdentifiers[name]
+	return ok
+}
+
 // This makes a copy of the extraIdentifiers map to serve as initial Environment without mutating the original.
 // use to setup the root environment for the interpreter state.
 func initialIdentifiersCopy() map[string]Object {

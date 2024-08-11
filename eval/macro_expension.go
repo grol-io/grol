@@ -9,11 +9,11 @@ import (
 	"grol.io/grol/token"
 )
 
-func DefineMacros(store *object.Environment, program *ast.Statements) {
+func (s *State) DefineMacros(program *ast.Statements) {
 	for i := 0; i < len(program.Statements); /* not always incrementing */ {
 		statement := program.Statements[i]
 		if isMacroDefinition(statement) {
-			addMacro(store, statement)
+			addMacro(s.macroState, statement)
 			program.Statements = append(program.Statements[:i], program.Statements[i+1:]...)
 		} else {
 			i++
@@ -72,14 +72,14 @@ func isMacroCall(s *object.Environment, exp *ast.CallExpression) (*object.Macro,
 	return macro, true
 }
 
-func ExpandMacros(s *object.Environment, program ast.Node) ast.Node {
+func (s *State) ExpandMacros(program ast.Node) ast.Node {
 	return ast.Modify(program, func(node ast.Node) ast.Node {
 		callExpression, ok := node.(*ast.CallExpression)
 		if !ok {
 			return node
 		}
 
-		macro, ok := isMacroCall(s, callExpression)
+		macro, ok := isMacroCall(s.macroState, callExpression)
 		if !ok {
 			return node
 		}

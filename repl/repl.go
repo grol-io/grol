@@ -49,13 +49,13 @@ type Options struct {
 	MaxHistory  int
 }
 
-func EvalAll(s *eval.State, macroState *object.Environment, in io.Reader, out io.Writer, options Options) []string {
+func EvalAll(s *eval.State, in io.Reader, out io.Writer, options Options) []string {
 	b, err := io.ReadAll(in)
 	if err != nil {
 		log.Fatalf("%v", err)
 	}
 	what := string(b)
-	_, errs, _ := EvalOne(s, macroState, what, out, options)
+	_, errs, _ := EvalOne(s, what, out, options)
 	return errs
 }
 
@@ -74,12 +74,11 @@ func EvalString(what string) (res string, errs []string, formatted string) {
 		}
 	}()
 	s := eval.NewState()
-	macroState := object.NewMacroEnvironment()
 	out := &strings.Builder{}
 	s.Out = out
 	s.LogOut = out
 	s.NoLog = true
-	_, errs, formatted = EvalOne(s, macroState, what, out,
+	_, errs, formatted = EvalOne(s, what, out,
 		Options{All: true, ShowEval: true, NoColor: true, Compact: CompactEvalString})
 	res = out.String()
 	return
@@ -88,7 +87,6 @@ func EvalString(what string) (res string, errs []string, formatted string) {
 func Interactive(options Options) int {
 	options.NilAndErr = true
 	s := eval.NewState()
-	macroState := object.NewMacroEnvironment()
 	term, err := terminal.Open()
 	if err != nil {
 		return log.FErrf("Error creating readline: %v", err)
@@ -154,7 +152,7 @@ func Interactive(options Options) int {
 			continue
 		}
 		// errors are already logged and this is the only case that can get contNeeded (EOL instead of EOF mode)
-		contNeeded, _, formatted := EvalOne(s, macroState, l, term.Out, options)
+		contNeeded, _, formatted := EvalOne(s, l, term.Out, options)
 		if contNeeded {
 			prev = l + "\n"
 			term.SetPrompt(CONTINUATION)
@@ -173,14 +171,13 @@ func Interactive(options Options) int {
 // Alternate API for benchmarking and simplicity.
 type Grol struct {
 	State     *eval.State
-	Macros    *object.Environment
 	PrintEval bool
 	program   *ast.Statements
 }
 
 // Initialize with new empty state.
 func New() *Grol {
-	g := &Grol{State: eval.NewState(), Macros: object.NewMacroEnvironment()}
+	g := &Grol{State: eval.NewState()}
 	return g
 }
 
@@ -191,18 +188,15 @@ func (g *Grol) Parse(inp []byte) error {
 	if len(p.Errors()) > 0 {
 		return fmt.Errorf("parse errors: %v", p.Errors())
 	}
-	if g.Macros == nil {
-		return nil
-	}
-	eval.DefineMacros(g.Macros, g.program)
-	numMacros := g.Macros.Len()
+	g.State.DefineMacros(g.program)
+	numMacros := g.State.NumMacros()
 	if numMacros == 0 {
 		return nil
 	}
 	log.LogVf("Expanding, %d macros defined", numMacros)
 	// This actually modifies the original program, not sure... that's good but that's why
 	// expanded return value doesn't need to be used.
-	_ = eval.ExpandMacros(g.Macros, g.program)
+	_ = g.State.ExpandMacros(g.program)
 	return nil
 }
 
@@ -220,7 +214,7 @@ func (g *Grol) Run(out io.Writer) error {
 
 // Returns true in line mode if more should be fed to the parser.
 // TODO: this one size fits 3 different calls (file, interactive, bot) is getting spaghetti.
-func EvalOne(s *eval.State, macroState *object.Environment, what string, out io.Writer, options Options) (bool, []string, string) {
+func EvalOne(s *eval.State, what string, out io.Writer, options Options) (bool, []string, string) {
 	var l *lexer.Lexer
 	if options.All {
 		l = lexer.New(what)
@@ -248,13 +242,13 @@ func EvalOne(s *eval.State, macroState *object.Environment, what string, out io.
 			fmt.Fprintln(out)
 		}
 	}
-	eval.DefineMacros(macroState, program)
-	numMacros := macroState.Len()
+	s.DefineMacros(program)
+	numMacros := s.NumMacros()
 	if numMacros > 0 {
 		log.LogVf("Expanding, %d macros defined", numMacros)
 		// This actually modifies the original program, not sure... that's good but that's why
 		// expanded return value doesn't need to be used.
-		_ = eval.ExpandMacros(macroState, program)
+		_ = s.ExpandMacros(program)
 		if options.ShowParse {
 			fmt.Fprint(out, "== Macro ==> ")
 			program.PrettyPrint(&ast.PrintState{Out: out})
