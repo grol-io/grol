@@ -101,19 +101,3 @@ func (t *Trie) All(prefix string) []string {
 
   [A] -> [B] children[C] = endMarker
 */
-
-// gets inlined hopefully
-
-func min(a, b byte) byte {
-	if a < b {
-		return a
-	}
-	return b
-}
-
-func max(a, b byte) byte {
-	if a > b {
-		return a
-	}
-	return b
-}
