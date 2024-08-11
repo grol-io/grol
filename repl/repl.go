@@ -94,6 +94,7 @@ func Interactive(options Options) int {
 		return log.FErrf("Error creating readline: %v", err)
 	}
 	defer term.Close()
+	s.Out = term.Out
 	autoComplete := NewCompletion()
 	tokInfo := token.Info()
 	for v := range tokInfo.Keywords {
