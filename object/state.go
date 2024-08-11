@@ -108,6 +108,10 @@ func (e *Environment) SaveGlobals(to io.Writer) (int, error) {
 	slices.Sort(keys)
 	n := 0
 	for _, k := range keys {
+		if isConstantAndExtraIdentifier(k) {
+			// Don't save PI, E, etc.. that can't be changed.
+			continue
+		}
 		v := e.store[k]
 		if v.Type() == FUNC {
 			f := v.(Function)
