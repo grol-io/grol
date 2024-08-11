@@ -82,7 +82,8 @@ func record(ids *trie.Trie, key string, t Type) {
 	ids.Insert(key)
 }
 
-// List of IDs and functions.
+// Records the current toplevel ids and functions as well
+// as sets up the callback to for future ids additions.
 func (e *Environment) RegisterTrie(t *trie.Trie) {
 	for e.outer != nil {
 		e = e.outer

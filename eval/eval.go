@@ -46,7 +46,8 @@ func NewBlankState() *State {
 	}
 }
 
-// RegisterTrie returns ids and functions.
+// RegisterTrie sets up the Trie to record all top level ids and functions.
+// Forwards to the underlying object store environment.
 func (s *State) RegisterTrie(t *trie.Trie) {
 	s.env.RegisterTrie(t)
 }
