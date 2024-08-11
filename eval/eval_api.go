@@ -61,8 +61,9 @@ func (s *State) Len() int {
 }
 
 // Save() saves the current toplevel state (ids and functions) to the writer, forwards to the object store.
-func (s *State) Save(w io.Writer) error {
-	return s.env.Save(w)
+// Saves the top level (global) environment.
+func (s *State) SaveGlobals(w io.Writer) (int, error) {
+	return s.env.SaveGlobals(w)
 }
 
 // Does unwrap (so stop bubbling up) return values.

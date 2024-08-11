@@ -184,11 +184,11 @@ func saveFunc(env any, _ string, args []object.Object) object.Object {
 	}
 	defer f.Close()
 	// Write to file.
-	err = eval.Save(f)
+	n, err := eval.SaveGlobals(f)
 	if err != nil {
 		return object.Error{Value: err.Error()}
 	}
-	log.Infof("Saved state to: %s", file)
+	log.Infof("Saved %d ids/fns to: %s", n, file)
 	return object.NULL
 }
 
