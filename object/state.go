@@ -8,6 +8,7 @@ import (
 	"fortio.org/log"
 	"fortio.org/sets"
 	"grol.io/grol/token"
+	"grol.io/grol/trie"
 )
 
 type Environment struct {
@@ -15,6 +16,7 @@ type Environment struct {
 	outer    *Environment
 	depth    int
 	cacheKey string
+	ids      *trie.Trie
 }
 
 // Truly empty store suitable for macros storage.
@@ -68,6 +70,30 @@ func (e *Environment) BaseInfo() Map {
 	return baseInfo
 }
 
+func record(ids *trie.Trie, key string, t Type) {
+	if ids == nil {
+		return
+	}
+	if t == FUNC {
+		ids.Insert(key + "(")
+	} else {
+		ids.Insert(key + " ")
+	}
+	ids.Insert(key)
+}
+
+// Records the current toplevel ids and functions as well
+// as sets up the callback to for future ids additions.
+func (e *Environment) RegisterTrie(t *trie.Trie) {
+	for e.outer != nil {
+		e = e.outer
+	}
+	e.ids = t
+	for k, v := range e.store {
+		record(t, k, v.Type())
+	}
+}
+
 func (e *Environment) Info() Object {
 	allKeys := make([]Object, e.depth+1)
 	for {
@@ -112,6 +138,12 @@ func Constant(name string) bool {
 }
 
 func (e *Environment) SetNoChecks(name string, val Object) Object {
+	if e.depth == 0 {
+		if _, ok := e.store[name]; !ok {
+			// new top level entry, record it.
+			record(e.ids, name, val.Type())
+		}
+	}
 	e.store[name] = val
 	return val
 }

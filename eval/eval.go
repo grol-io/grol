@@ -14,6 +14,7 @@ import (
 	"grol.io/grol/object"
 	"grol.io/grol/parser"
 	"grol.io/grol/token"
+	"grol.io/grol/trie"
 )
 
 type State struct {
@@ -43,6 +44,12 @@ func NewBlankState() *State {
 		cache:      NewCache(),
 		extensions: make(map[string]object.Extension),
 	}
+}
+
+// RegisterTrie sets up the Trie to record all top level ids and functions.
+// Forwards to the underlying object store environment.
+func (s *State) RegisterTrie(t *trie.Trie) {
+	s.env.RegisterTrie(t)
 }
 
 func (s *State) ResetCache() {

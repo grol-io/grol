@@ -16,6 +16,7 @@ import (
 	"grol.io/grol/lexer"
 	"grol.io/grol/object"
 	"grol.io/grol/parser"
+	"grol.io/grol/token"
 )
 
 const (
@@ -88,20 +89,33 @@ func Interactive(options Options) int {
 	options.NilAndErr = true
 	s := eval.NewState()
 	macroState := object.NewMacroEnvironment()
-
-	prev := ""
-
 	term, err := terminal.Open()
 	if err != nil {
 		return log.FErrf("Error creating readline: %v", err)
 	}
 	defer term.Close()
+	s.Out = term.Out
+	autoComplete := NewCompletion()
+	tokInfo := token.Info()
+	for v := range tokInfo.Keywords {
+		autoComplete.Trie.Insert(v + " ")
+	}
+	for v := range tokInfo.Builtins {
+		autoComplete.Trie.Insert(v + "(")
+	}
+	for k := range object.ExtraFunctions() {
+		autoComplete.Trie.Insert(k + "(")
+	}
+	// Initial ids and functions.
+	s.RegisterTrie(autoComplete.Trie)
+	term.SetAutoCompleteCallback(autoComplete.AutoComplete())
 	term.SetPrompt(PROMPT)
 	options.Compact = true // because terminal doesn't (yet) do well will multi-line commands.
 	term.NewHistory(options.MaxHistory)
 	_ = term.SetHistoryFile(options.HistoryFile)
 	// Regular expression for "!nn" to run history command nn.
 	historyRegex := regexp.MustCompile(`^!(\d+)$`)
+	prev := ""
 	for {
 		rd, err := term.ReadLine()
 		if errors.Is(err, io.EOF) {
@@ -135,7 +149,8 @@ func Interactive(options Options) int {
 			}
 			continue
 		case l == "help":
-			fmt.Fprintln(term.Out, "Type 'history' to see history, '!n' to repeat history n, 'info' for language builtins")
+			fmt.Fprintln(term.Out,
+				"Type 'history' to see history, '!n' to repeat history n, 'info' for language builtins, use <tab> for completion.")
 			continue
 		}
 		// errors are already logged and this is the only case that can get contNeeded (EOL instead of EOF mode)

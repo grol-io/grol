@@ -117,8 +117,8 @@ const (
 	IF
 	ELSE
 	RETURN
-	MACRO
 	// Macro magic.
+	MACRO
 	QUOTE
 	UNQUOTE
 	// Built-in functions.
@@ -169,8 +169,18 @@ func assocS(t Type, s string) *Token {
 		panic("duplicate token for " + s)
 	}
 	tToT[t] = tok
-	info.Keywords.Add(s)
 	return tok
+}
+
+func assocKeywords(t Type, s string) *Token {
+	info.Keywords.Add(s)
+	return assocS(t, s)
+}
+
+// Functions().
+func assocBuiltins(t Type, s string) *Token {
+	info.Builtins.Add(s)
+	return assocS(t, s)
 }
 
 func assocC2(t Type, str string) {
@@ -190,6 +200,7 @@ func assocC2(t Type, str string) {
 func Init() {
 	ResetInterning()
 	info.Keywords = sets.New[string]()
+	info.Builtins = sets.New[string]()
 	info.Tokens = sets.New[string]()
 	keywords = make(map[string]*Token)
 	cTokens = make(map[byte]*Token)
@@ -197,7 +208,12 @@ func Init() {
 	tToChar = make(map[Type]byte)
 	tToT = make(map[Type]*Token)
 	for i := startIdentityTokens + 1; i < endIdentityTokens; i++ {
-		t := assocS(i, strings.ToLower(i.String()))
+		var t *Token
+		if i >= MACRO {
+			t = assocBuiltins(i, strings.ToLower(i.String()))
+		} else {
+			t = assocKeywords(i, strings.ToLower(i.String()))
+		}
 		keywords[t.literal] = t
 	}
 	TRUET = tToT[TRUE]

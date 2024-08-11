@@ -65,8 +65,12 @@ $ info.keywords
 == Eval  ==> ["else","error","false","first","func","if","len","log","macro","print","println","quote","rest","return","true","unquote"]
 ```
 
-There is also in interactive repl mode: `history`, `!23` to repeat the 23rd statement for instance and `help`.
-And full edit and history navigation with arrow keys etc...
+The interactive repl mode has extra features:
+- Editable history (use arrow keys, Ctrl-A etc...) to navigate previous commands.
+- Hit the `<tab>` key at any time to get id/keywords/function completion.
+- `history` command to see the current history, prefixed by a number
+- You can use for instance `!23` to repeat the 23rd statement
+- A short `help`
 
 ## Language features
 
