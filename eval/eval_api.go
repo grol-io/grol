@@ -14,12 +14,13 @@ import (
 // Exported part of the eval package.
 
 type State struct {
-	env        *object.Environment
 	Out        io.Writer
 	LogOut     io.Writer
-	NoLog      bool // turn log() into println() (for EvalString)
+	macroState *object.Environment
+	env        *object.Environment
 	cache      Cache
 	extensions map[string]object.Extension
+	NoLog      bool // turn log() into println() (for EvalString)
 }
 
 func NewState() *State {
@@ -29,6 +30,7 @@ func NewState() *State {
 		LogOut:     os.Stdout,
 		cache:      NewCache(),
 		extensions: object.ExtraFunctions(),
+		macroState: object.NewMacroEnvironment(),
 	}
 }
 
@@ -39,6 +41,7 @@ func NewBlankState() *State {
 		LogOut:     io.Discard,
 		cache:      NewCache(),
 		extensions: make(map[string]object.Extension),
+		macroState: object.NewMacroEnvironment(),
 	}
 }
 
@@ -104,10 +107,16 @@ func EvalString(this any, code string, emptyEnv bool) (object.Object, error) {
 		if !ok {
 			return object.NULL, fmt.Errorf("invalid this: %T", this)
 		}
+		evalState.DefineMacros(program)
+		_ = evalState.ExpandMacros(program)
 	}
 	res := evalState.Eval(program)
 	if res.Type() == object.ERROR {
 		return res, fmt.Errorf("eval error: %v", res.Inspect())
 	}
 	return res, nil
+}
+
+func (s *State) NumMacros() int {
+	return s.macroState.Len()
 }
