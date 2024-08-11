@@ -177,7 +177,7 @@ func assocKeywords(t Type, s string) *Token {
 	return assocS(t, s)
 }
 
-// Functions
+// Functions().
 func assocBuiltins(t Type, s string) *Token {
 	info.Builtins.Add(s)
 	return assocS(t, s)
