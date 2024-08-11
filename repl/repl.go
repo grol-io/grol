@@ -149,7 +149,8 @@ func Interactive(options Options) int {
 			}
 			continue
 		case l == "help":
-			fmt.Fprintln(term.Out, "Type 'history' to see history, '!n' to repeat history n, 'info' for language builtins")
+			fmt.Fprintln(term.Out,
+				"Type 'history' to see history, '!n' to repeat history n, 'info' for language builtins, use <tab> for completion.")
 			continue
 		}
 		// errors are already logged and this is the only case that can get contNeeded (EOL instead of EOF mode)
