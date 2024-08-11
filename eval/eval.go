@@ -14,6 +14,7 @@ import (
 	"grol.io/grol/object"
 	"grol.io/grol/parser"
 	"grol.io/grol/token"
+	"grol.io/grol/trie"
 )
 
 type State struct {
@@ -45,9 +46,9 @@ func NewBlankState() *State {
 	}
 }
 
-// TopLevelIDs returns ids and functions.
-func (s *State) TopLevelIDs() ([]string, []string) {
-	return s.env.TopLevelIDs()
+// RegisterTrie returns ids and functions.
+func (s *State) RegisterTrie(t *trie.Trie) {
+	s.env.RegisterTrie(t)
 }
 
 func (s *State) ResetCache() {

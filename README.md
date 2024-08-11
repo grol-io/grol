@@ -66,7 +66,7 @@ $ info.keywords
 ```
 
 There is also in interactive repl mode: `history`, `!23` to repeat the 23rd statement for instance and `help`.
-And full edit and history navigation with arrow keys etc...
+And full edit and history navigation with arrow keys etc... and hit the `<tab>` key at anytime for completion.
 
 ## Language features
 

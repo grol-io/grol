@@ -106,6 +106,8 @@ func Interactive(options Options) int {
 	for k := range object.ExtraFunctions() {
 		autoComplete.Trie.Insert(k + "(")
 	}
+	// Initial ids and functions.
+	s.RegisterTrie(autoComplete.Trie)
 	term.SetAutoCompleteCallback(autoComplete.AutoComplete())
 	term.SetPrompt(PROMPT)
 	options.Compact = true // because terminal doesn't (yet) do well will multi-line commands.
@@ -115,13 +117,6 @@ func Interactive(options Options) int {
 	historyRegex := regexp.MustCompile(`^!(\d+)$`)
 	prev := ""
 	for {
-		ids, fns := s.TopLevelIDs()
-		for _, v := range ids {
-			autoComplete.Trie.Insert(v + " ")
-		}
-		for _, v := range fns {
-			autoComplete.Trie.Insert(v + "(")
-		}
 		rd, err := term.ReadLine()
 		if errors.Is(err, io.EOF) {
 			log.Infof("Exit requested") // Don't say EOF as ^C comes through as EOF as well.
