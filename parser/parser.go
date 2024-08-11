@@ -315,34 +315,26 @@ func (p *Parser) parseIdentifier() ast.Node {
 }
 
 func (p *Parser) parseIntegerLiteral() ast.Node {
+	value, err := strconv.ParseInt(p.curToken.Literal(), 0, 64)
+	if err != nil { // switch to float
+		return p.parseFloatLiteral()
+	}
 	lit := &ast.IntegerLiteral{}
 	lit.Token = p.curToken
-
-	value, err := strconv.ParseInt(p.curToken.Literal(), 0, 64)
-	if err != nil {
-		msg := fmt.Sprintf("could not parse %q as integer", p.curToken.Literal())
-		p.errors = append(p.errors, msg)
-		return nil
-	}
-
 	lit.Val = value
-
 	return lit
 }
 
 func (p *Parser) parseFloatLiteral() ast.Node {
-	lit := &ast.FloatLiteral{}
-	lit.Token = p.curToken
-
 	value, err := strconv.ParseFloat(p.curToken.Literal(), 64)
 	if err != nil {
 		msg := fmt.Sprintf("could not parse %q as float", p.curToken.Literal())
 		p.errors = append(p.errors, msg)
 		return nil
 	}
-
+	lit := &ast.FloatLiteral{}
+	lit.Token = p.curToken
 	lit.Val = value
-
 	return lit
 }
 
