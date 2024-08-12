@@ -77,13 +77,20 @@ func AutoLoad(s *eval.State, options Options) error {
 	}
 	// Eval the content.
 	_, err = eval.EvalString(s, string(all), false)
-	log.Infof("Auto loaded %s", AutoSaveFile)
+	_, numset := s.UpdateNumSet()
+	log.Infof("Auto loaded %s (%d set)", AutoSaveFile, numset)
 	return err
 }
 
 func AutoSave(s *eval.State, options Options) error {
 	if !options.AutoSave {
 		log.Debugf("Autosave disabled")
+		return nil
+	}
+	newS, oldS := s.UpdateNumSet()
+	updates := newS - oldS
+	if updates == 0 {
+		log.Infof("Nothing changed, not auto saving")
 		return nil
 	}
 	f, err := os.CreateTemp(".", ".grol*.tmp")
@@ -100,7 +107,7 @@ func AutoSave(s *eval.State, options Options) error {
 	if err != nil {
 		return err
 	}
-	log.Infof("Auto saved %d ids/fns to: %s", n, AutoSaveFile)
+	log.Infof("Auto saved %d ids/fns (%d set) to: %s", n, updates, AutoSaveFile)
 	return nil
 }
 

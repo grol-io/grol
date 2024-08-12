@@ -21,6 +21,7 @@ type State struct {
 	cache      Cache
 	extensions map[string]object.Extension
 	NoLog      bool // turn log() into println() (for EvalString)
+	lastNumSet int64
 }
 
 func NewState() *State {
@@ -64,6 +65,14 @@ func (s *State) Len() int {
 // Saves the top level (global) environment.
 func (s *State) SaveGlobals(w io.Writer) (int, error) {
 	return s.env.SaveGlobals(w)
+}
+
+// NumSet returns the previous and current cumulative number of set in the toplevel environment, if that
+// number hasn't changed, no need to autosave.
+func (s *State) UpdateNumSet() (int64, int64) {
+	prev := s.lastNumSet
+	s.lastNumSet = s.env.NumSet()
+	return s.lastNumSet, prev
 }
 
 // Does unwrap (so stop bubbling up) return values.
