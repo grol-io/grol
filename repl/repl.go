@@ -77,6 +77,7 @@ func AutoLoad(s *eval.State, options Options) error {
 	}
 	// Eval the content.
 	_, err = eval.EvalString(s, string(all), false)
+	log.Infof("Auto loaded %s", AutoSaveFile)
 	return err
 }
 
