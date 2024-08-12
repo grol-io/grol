@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"regexp"
 	"slices"
 	"strconv"
@@ -13,6 +14,7 @@ import (
 	"fortio.org/terminal"
 	"grol.io/grol/ast"
 	"grol.io/grol/eval"
+	"grol.io/grol/extensions"
 	"grol.io/grol/lexer"
 	"grol.io/grol/object"
 	"grol.io/grol/parser"
@@ -37,6 +39,10 @@ func logParserErrors(p *parser.Parser) bool {
 	return true
 }
 
+// AutoSaveFile is the filename used to autoload/save to.
+// It matches extension's LoadSaveEmptyOnly file.
+const AutoSaveFile = extensions.GrolFileExtension
+
 type Options struct {
 	ShowParse   bool
 	ShowEval    bool
@@ -47,6 +53,54 @@ type Options struct {
 	NilAndErr   bool // Show nil and errors in normal output.
 	HistoryFile string
 	MaxHistory  int
+	AutoLoad    bool
+	AutoSave    bool
+}
+
+func AutoLoad(s *eval.State, options Options) error {
+	if !options.AutoLoad {
+		log.Debugf("Autoload disabled")
+		return nil
+	}
+	f, err := os.Open(AutoSaveFile)
+	if errors.Is(err, os.ErrNotExist) {
+		log.Infof("No autoload file %s", AutoSaveFile)
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	all, err := io.ReadAll(f)
+	if err != nil {
+		return err
+	}
+	// Eval the content.
+	_, err = eval.EvalString(s, string(all), false)
+	return err
+}
+
+func AutoSave(s *eval.State, options Options) error {
+	if !options.AutoSave {
+		log.Debugf("Autosave disabled")
+		return nil
+	}
+	f, err := os.CreateTemp(".", ".grol*.tmp")
+	if err != nil {
+		return err
+	}
+	// Write to temp file.
+	n, err := s.SaveGlobals(f)
+	if err != nil {
+		return err
+	}
+	// Rename "atomically" (not really but close enough).
+	err = os.Rename(f.Name(), AutoSaveFile)
+	if err != nil {
+		return err
+	}
+	log.Infof("Auto saved %d ids/fns to: %s", n, AutoSaveFile)
+	return nil
 }
 
 func EvalAll(s *eval.State, in io.Reader, out io.Writer, options Options) []string {
@@ -111,6 +165,10 @@ func Interactive(options Options) int {
 	options.Compact = true // because terminal doesn't (yet) do well will multi-line commands.
 	term.NewHistory(options.MaxHistory)
 	_ = term.SetHistoryFile(options.HistoryFile)
+	err = AutoLoad(s, options)
+	if err != nil {
+		log.Errf("Error loading autoload file: %v", err)
+	}
 	// Regular expression for "!nn" to run history command nn.
 	historyRegex := regexp.MustCompile(`^!(\d+)$`)
 	prev := ""
@@ -118,6 +176,7 @@ func Interactive(options Options) int {
 		rd, err := term.ReadLine()
 		if errors.Is(err, io.EOF) {
 			log.Infof("Exit requested") // Don't say EOF as ^C comes through as EOF as well.
+			_ = AutoSave(s, options)
 			return 0
 		}
 		if err != nil {

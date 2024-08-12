@@ -16,15 +16,18 @@ import (
 )
 
 var (
-	initDone        = false
-	errInInit       error
+	initDone  = false
+	errInInit error
+	// These are a bit ugly as globals, maybe lambda capture and/or receivers on config instead.
 	unrestrictedIOs = false
 	emptyOnly       = false
 )
 
+const GrolFileExtension = ".gr" // Also the default filename for LoadSaveEmptyOnly.
+
 // Configure restrictions and features.
 // Currently about IOs of load and save functions.
-type ExtensionConfig struct {
+type Config struct {
 	HasLoad           bool // load() only present if this is true.
 	HasSave           bool // save() only present if this is true.
 	LoadSaveEmptyOnly bool // Restrict load/save to a single .gr file inside the current directory.
@@ -32,13 +35,13 @@ type ExtensionConfig struct {
 }
 
 // Init initializes the extensions, can be called multiple time safely but should really be called only once
-// before using GROL repl/eval. If the passed [ExtensionConfig] pointer is nil, default (safe) values are used.
-func Init(c *ExtensionConfig) error {
+// before using GROL repl/eval. If the passed [Config] pointer is nil, default (safe) values are used.
+func Init(c *Config) error {
 	if initDone {
 		return errInInit
 	}
 	if c == nil {
-		c = &ExtensionConfig{}
+		c = &Config{}
 	}
 	errInInit = initInternal(c)
 	initDone = true
@@ -47,7 +50,7 @@ func Init(c *ExtensionConfig) error {
 
 type OneFloatInOutFunc func(float64) float64
 
-func initInternal(c *ExtensionConfig) error {
+func initInternal(c *Config) error {
 	unrestrictedIOs = c.UnrestrictedIOs
 	emptyOnly = c.LoadSaveEmptyOnly
 	cmd := object.Extension{
@@ -212,18 +215,18 @@ func sanitizeFileName(file string) (string, error) {
 		return file, nil
 	}
 	// only alhpanumeric and _ allowed. no dots, slashes, etc.
-	f := strings.TrimSuffix(file, ".gr")
+	f := strings.TrimSuffix(file, GrolFileExtension)
 	for _, r := range []byte(f) {
 		if !lexer.IsAlphaNum(r) {
 			return "", fmt.Errorf("invalid character in filename %q: %c", file, r)
 		}
 	}
-	return f + ".gr", nil
+	return f + GrolFileExtension, nil
 }
 
 func saveFunc(env any, _ string, args []object.Object) object.Object {
 	eval := env.(*eval.State)
-	file := ".gr"
+	file := GrolFileExtension
 	if len(args) != 0 {
 		file = args[0].(object.String).Value
 		var err error
@@ -247,7 +250,7 @@ func saveFunc(env any, _ string, args []object.Object) object.Object {
 }
 
 func loadFunc(env any, _ string, args []object.Object) object.Object {
-	file := ".gr"
+	file := GrolFileExtension
 	if len(args) != 0 {
 		file = args[0].(object.String).Value
 		var err error

@@ -58,6 +58,7 @@ func Main() int {
 	disableLoadSave := flag.Bool("no-load-save", false, "disable load/save of history")
 	unrestrictedIOs := flag.Bool("unrestricted-io", false, "enable unrestricted io (dangerous)")
 	emptyOnly := flag.Bool("empty-only", false, "only allow load()/save() to ./.gr")
+	noAuto := flag.Bool("no-auto", false, "don't auto load/save the state to ./.gr")
 
 	cli.ArgsHelp = "*.gr files to interpret or `-` for stdin without prompt or no arguments for stdin repl..."
 	cli.MaxArgs = -1
@@ -79,6 +80,8 @@ func Main() int {
 		Compact:     *compact,
 		HistoryFile: histFile,
 		MaxHistory:  *maxHistory,
+		AutoLoad:    !*noAuto,
+		AutoSave:    !*noAuto,
 	}
 	if hookBefore != nil {
 		ret := hookBefore()
@@ -86,7 +89,7 @@ func Main() int {
 			return ret
 		}
 	}
-	c := extensions.ExtensionConfig{
+	c := extensions.Config{
 		HasLoad:           !*disableLoadSave,
 		HasSave:           !*disableLoadSave,
 		UnrestrictedIOs:   *unrestrictedIOs,

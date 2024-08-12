@@ -66,10 +66,11 @@ $ info.keywords
 ```
 
 The interactive repl mode has extra features:
-- Editable history (use arrow keys, Ctrl-A etc...) to navigate previous commands.
-- Hit the `<tab>` key at any time to get id/keywords/function completion.
+- Editable history (use arrow keys, Ctrl-A etc...) to navigate previous commands
+- Hit the `<tab>` key at any time to get id/keywords/function completion
 - `history` command to see the current history, prefixed by a number
 - You can use for instance `!23` to repeat the 23rd statement
+- State is auto saved/loaded from `.gr` file in current directory unless `-no-auto` is passed
 - A short `help`
 
 ## Language features
@@ -196,6 +197,8 @@ flags:
     	history file to use (default "~/.grol_history")
   -max-history size
     	max history size, use 0 to disable. (default 99)
+  -no-auto
+    	don't auto load/save the state to ./.gr
   -no-load-save
     	disable load/save of history
   -parse
