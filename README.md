@@ -186,19 +186,27 @@ flags:
     	command/inline script to run instead of interactive mode
   -compact
     	When printing code, use no indentation and most compact form
+  -empty-only
+    	only allow load()/save() to ./.gr
   -eval
     	show eval results (default true)
   -format
     	don't execute, just parse and re format the input
-  -history string
+  -history file
     	history file to use (default "~/.grol_history")
   -max-history size
     	max history size, use 0 to disable. (default 99)
+  -no-load-save
+    	disable load/save of history
   -parse
     	show parse tree
+  -quiet
+    	Quiet mode, sets loglevel to Error (quietly) to reduces the output
   -shared-state
     	All files share same interpreter state (default is new state for each)
+  -unrestricted-io
+    	enable unrestricted io (dangerous)
 ```
 (excluding logger control, see `gorepl help` for all the flags, of note `-logger-no-color` will turn off colors for gorepl too, for development there are also `-profile*` options for pprof, when building without `no_pprof`)
 
-If you don't want to pass a flag and want to permanently change the `grol` history file location from your HOME directory, set GROL_HISTORY_FILE in the environment.
+If you don't want to pass a flag and want to permanently change the `grol` history file location from your HOME directory, set `GROL_HISTORY_FILE` in the environment.
