@@ -28,8 +28,10 @@ func jsEval(this js.Value, args []js.Value) interface{} {
 	if len(args) == 2 {
 		compact = args[1].Bool()
 	}
-	repl.CompactEvalString = compact
-	res, errs, formatted := repl.EvalString(input)
+	res, errs, formatted := repl.EvalStringWithOption(
+		repl.Options{All: true, ShowEval: true, NoColor: true, Compact: compact},
+		input,
+	)
 	result := make(map[string]any)
 	result["result"] = strings.TrimSuffix(res, "\n")
 	// transfer errors to []any (!)
@@ -57,8 +59,9 @@ func main() {
 	global := js.Global()
 	global.Set("grol", js.FuncOf(jsEval))
 	global.Set("grolVersion", js.ValueOf(grolVersion))
-	// IOs don't work yet https://github.com/grol-io/grol/issues/124 otherwise we'd allow HasLoad HasSave.
-	err := extensions.Init(&extensions.ExtensionConfig{})
+	// IOs don't work yet https://github.com/grol-io/grol/issues/124 otherwise we'd
+	// use extensions.Config and allow HasLoad HasSave.
+	err := extensions.Init(nil)
 	if err != nil {
 		log.Critf("Error initializing extensions: %v", err)
 	}
