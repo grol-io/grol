@@ -22,16 +22,23 @@ var (
 	emptyOnly       = false
 )
 
+// Configure restrictions and features.
+// Currently about IOs of load and save functions.
 type ExtensionConfig struct {
-	HasLoad           bool
-	HasSave           bool
-	LoadSaveEmptyOnly bool
-	UnrestrictedIOs   bool // Dangerous, can overrwite files, read any readable file etc...
+	HasLoad           bool // load() only present if this is true.
+	HasSave           bool // save() only present if this is true.
+	LoadSaveEmptyOnly bool // Restrict load/save to a single .gr file inside the current directory.
+	UnrestrictedIOs   bool // Dangerous when true: can overwrite files, read any readable file etc...
 }
 
+// Init initializes the extensions, can be called multiple time safely but should really be called only once
+// before using GROL repl/eval. If the passed [ExtensionConfig] pointer is nil, default (safe) values are used.
 func Init(c *ExtensionConfig) error {
 	if initDone {
 		return errInInit
+	}
+	if c == nil {
+		c = &ExtensionConfig{}
 	}
 	errInInit = initInternal(c)
 	initDone = true
