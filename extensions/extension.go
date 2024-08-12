@@ -206,7 +206,11 @@ func evalFunc(env any, name string, args []object.Object) object.Object {
 }
 
 // Normalizes to alphanum.gr.
-func sanitizeFileName(file string) (string, error) {
+func sanitizeFileName(args []object.Object) (string, error) {
+	if len(args) == 0 {
+		return GrolFileExtension, nil
+	}
+	file := args[0].(object.String).Value
 	if emptyOnly && file != "" {
 		return "", fmt.Errorf("empty only mode, filename must be empty or no arguments, got: %q", file)
 	}
@@ -226,14 +230,9 @@ func sanitizeFileName(file string) (string, error) {
 
 func saveFunc(env any, _ string, args []object.Object) object.Object {
 	eval := env.(*eval.State)
-	file := GrolFileExtension
-	if len(args) != 0 {
-		file = args[0].(object.String).Value
-		var err error
-		file, err = sanitizeFileName(file)
-		if err != nil {
-			return object.Error{Value: err.Error()}
-		}
+	file, err := sanitizeFileName(args)
+	if err != nil {
+		return object.Error{Value: err.Error()}
 	}
 	f, err := os.Create(file)
 	if err != nil {
@@ -246,18 +245,16 @@ func saveFunc(env any, _ string, args []object.Object) object.Object {
 		return object.Error{Value: err.Error()}
 	}
 	log.Infof("Saved %d ids/fns to: %s", n, file)
-	return object.NULL
+	return object.Map{
+		object.String{Value: "entries"}:  object.Integer{Value: int64(n)},
+		object.String{Value: "filename"}: object.String{Value: file},
+	}
 }
 
 func loadFunc(env any, _ string, args []object.Object) object.Object {
-	file := GrolFileExtension
-	if len(args) != 0 {
-		file = args[0].(object.String).Value
-		var err error
-		file, err = sanitizeFileName(file)
-		if err != nil {
-			return object.Error{Value: err.Error()}
-		}
+	file, err := sanitizeFileName(args)
+	if err != nil {
+		return object.Error{Value: err.Error()}
 	}
 	f, err := os.Open(file)
 	if err != nil {
