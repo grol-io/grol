@@ -19,6 +19,7 @@ type Environment struct {
 	depth    int
 	cacheKey string
 	ids      *trie.Trie
+	numSet   int64
 }
 
 // Truly empty store suitable for macros storage.
@@ -180,8 +181,15 @@ func Constant(name string) bool {
 	return true
 }
 
+// NumSet returns the cumulative number of set operations done in the toplevel environment so far.
+// It can be used to avoid calling SaveGlobals if nothing has changed since the last time.
+func (e *Environment) NumSet() int64 {
+	return e.numSet
+}
+
 func (e *Environment) SetNoChecks(name string, val Object) Object {
 	if e.depth == 0 {
+		e.numSet++
 		if _, ok := e.store[name]; !ok {
 			// new top level entry, record it.
 			record(e.ids, name, val.Type())
