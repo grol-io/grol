@@ -11,26 +11,45 @@ import (
 
 	"fortio.org/log"
 	"grol.io/grol/eval"
+	"grol.io/grol/lexer"
 	"grol.io/grol/object"
 )
 
 var (
-	initDone  = false
-	errInInit error
+	initDone        = false
+	errInInit       error
+	unrestrictedIOs = false
+	emptyOnly       = false
 )
 
-func Init() error {
+// Configure restrictions and features.
+// Currently about IOs of load and save functions.
+type ExtensionConfig struct {
+	HasLoad           bool // load() only present if this is true.
+	HasSave           bool // save() only present if this is true.
+	LoadSaveEmptyOnly bool // Restrict load/save to a single .gr file inside the current directory.
+	UnrestrictedIOs   bool // Dangerous when true: can overwrite files, read any readable file etc...
+}
+
+// Init initializes the extensions, can be called multiple time safely but should really be called only once
+// before using GROL repl/eval. If the passed [ExtensionConfig] pointer is nil, default (safe) values are used.
+func Init(c *ExtensionConfig) error {
 	if initDone {
 		return errInInit
 	}
-	errInInit = initInternal()
+	if c == nil {
+		c = &ExtensionConfig{}
+	}
+	errInInit = initInternal(c)
 	initDone = true
 	return errInInit
 }
 
 type OneFloatInOutFunc func(float64) float64
 
-func initInternal() error {
+func initInternal(c *ExtensionConfig) error {
+	unrestrictedIOs = c.UnrestrictedIOs
+	emptyOnly = c.LoadSaveEmptyOnly
 	cmd := object.Extension{
 		Name:     "pow",
 		MinArgs:  2,
@@ -127,17 +146,26 @@ func initInternal() error {
 	if err != nil {
 		return err
 	}
-	jsonFn.Name = "save"
-	jsonFn.Callback = saveFunc // save to file.
-	err = object.CreateFunction(jsonFn)
-	if err != nil {
-		return err
+	loadSaveFn := object.Extension{
+		MinArgs:  0, // empty only case - ie ".gr" save file.
+		MaxArgs:  1,
+		ArgTypes: []object.Type{object.STRING},
 	}
-	jsonFn.Name = "load"
-	jsonFn.Callback = loadFunc // eval a file.
-	err = object.CreateFunction(jsonFn)
-	if err != nil {
-		return err
+	if c.HasSave {
+		loadSaveFn.Name = "save"
+		loadSaveFn.Callback = saveFunc // save to file.
+		err = object.CreateFunction(loadSaveFn)
+		if err != nil {
+			return err
+		}
+	}
+	if c.HasLoad {
+		loadSaveFn.Name = "load"
+		loadSaveFn.Callback = loadFunc // eval a file.
+		err = object.CreateFunction(loadSaveFn)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -174,10 +202,36 @@ func evalFunc(env any, name string, args []object.Object) object.Object {
 	return res
 }
 
+// Normalizes to alphanum.gr.
+func sanitizeFileName(file string) (string, error) {
+	if emptyOnly && file != "" {
+		return "", fmt.Errorf("empty only mode, filename must be empty or no arguments, got: %q", file)
+	}
+	if unrestrictedIOs {
+		log.Infof("Unrestricted IOs, not sanitizing filename: %s", file)
+		return file, nil
+	}
+	// only alhpanumeric and _ allowed. no dots, slashes, etc.
+	f := strings.TrimSuffix(file, ".gr")
+	for _, r := range []byte(f) {
+		if !lexer.IsAlphaNum(r) {
+			return "", fmt.Errorf("invalid character in filename %q: %c", file, r)
+		}
+	}
+	return f + ".gr", nil
+}
+
 func saveFunc(env any, _ string, args []object.Object) object.Object {
 	eval := env.(*eval.State)
-	file := args[0].(object.String).Value
-	// Open file for writing.
+	file := ".gr"
+	if len(args) != 0 {
+		file = args[0].(object.String).Value
+		var err error
+		file, err = sanitizeFileName(file)
+		if err != nil {
+			return object.Error{Value: err.Error()}
+		}
+	}
 	f, err := os.Create(file)
 	if err != nil {
 		return object.Error{Value: err.Error()}
@@ -193,8 +247,15 @@ func saveFunc(env any, _ string, args []object.Object) object.Object {
 }
 
 func loadFunc(env any, _ string, args []object.Object) object.Object {
-	file := args[0].(object.String).Value
-	// Open file for reading.
+	file := ".gr"
+	if len(args) != 0 {
+		file = args[0].(object.String).Value
+		var err error
+		file, err = sanitizeFileName(file)
+		if err != nil {
+			return object.Error{Value: err.Error()}
+		}
+	}
 	f, err := os.Open(file)
 	if err != nil {
 		return object.Error{Value: err.Error()}

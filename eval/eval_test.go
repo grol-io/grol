@@ -13,7 +13,7 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	err := extensions.Init()
+	err := extensions.Init(nil)
 	if err != nil {
 		panic(err)
 	}
@@ -812,7 +812,7 @@ func testFloatObject(t *testing.T, obj object.Object, expected float64) bool {
 }
 
 func TestExtension(t *testing.T) {
-	err := extensions.Init()
+	err := extensions.Init(nil)
 	if err != nil {
 		t.Fatalf("extensions.Init() failed: %v", err)
 	}
