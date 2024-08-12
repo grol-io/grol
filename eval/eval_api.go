@@ -69,10 +69,11 @@ func (s *State) SaveGlobals(w io.Writer) (int, error) {
 
 // NumSet returns the previous and current cumulative number of set in the toplevel environment, if that
 // number hasn't changed, no need to autosave.
-func (s *State) UpdateNumSet() (int64, int64) {
-	prev := s.lastNumSet
-	s.lastNumSet = s.env.NumSet()
-	return s.lastNumSet, prev
+func (s *State) UpdateNumSet() (oldvalue, newvalue int64) {
+	oldvalue = s.lastNumSet
+	newvalue = s.env.NumSet()
+	s.lastNumSet = newvalue
+	return
 }
 
 // Does unwrap (so stop bubbling up) return values.

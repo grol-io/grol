@@ -87,7 +87,7 @@ func AutoSave(s *eval.State, options Options) error {
 		log.Debugf("Autosave disabled")
 		return nil
 	}
-	newS, oldS := s.UpdateNumSet()
+	oldS, newS := s.UpdateNumSet()
 	updates := newS - oldS
 	if updates == 0 {
 		log.Infof("Nothing changed, not auto saving")
