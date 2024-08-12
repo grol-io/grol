@@ -11,6 +11,7 @@ import (
 
 	"fortio.org/log"
 	"grol.io/grol/eval"
+	"grol.io/grol/lexer"
 	"grol.io/grol/object"
 )
 
@@ -19,18 +20,22 @@ var (
 	errInInit error
 )
 
-func Init() error {
+type ExtensionConfig struct {
+	LoadAndSave bool
+}
+
+func Init(c *ExtensionConfig) error {
 	if initDone {
 		return errInInit
 	}
-	errInInit = initInternal()
+	errInInit = initInternal(c)
 	initDone = true
 	return errInInit
 }
 
 type OneFloatInOutFunc func(float64) float64
 
-func initInternal() error {
+func initInternal(c *ExtensionConfig) error {
 	cmd := object.Extension{
 		Name:     "pow",
 		MinArgs:  2,
@@ -127,6 +132,9 @@ func initInternal() error {
 	if err != nil {
 		return err
 	}
+	if !c.LoadAndSave {
+		return nil
+	}
 	jsonFn.Name = "save"
 	jsonFn.Callback = saveFunc // save to file.
 	err = object.CreateFunction(jsonFn)
@@ -174,10 +182,26 @@ func evalFunc(env any, name string, args []object.Object) object.Object {
 	return res
 }
 
+// Normalizes to alphanum.gr
+func sanitizeFileName(file string) (string, error) {
+	// only alhpanumeric and _ allowed. no dots, slashes, etc.
+	f := strings.TrimSuffix(file, ".gr")
+	for _, r := range []byte(f) {
+		if !lexer.IsAlphaNum(r) {
+			return "", fmt.Errorf("Invalid character in filename %q: %c", file, r)
+		}
+	}
+	return f + ".gr", nil
+}
+
 func saveFunc(env any, _ string, args []object.Object) object.Object {
 	eval := env.(*eval.State)
 	file := args[0].(object.String).Value
 	// Open file for writing.
+	file, err := sanitizeFileName(file)
+	if err != nil {
+		return object.Error{Value: err.Error()}
+	}
 	f, err := os.Create(file)
 	if err != nil {
 		return object.Error{Value: err.Error()}
@@ -195,6 +219,10 @@ func saveFunc(env any, _ string, args []object.Object) object.Object {
 func loadFunc(env any, _ string, args []object.Object) object.Object {
 	file := args[0].(object.String).Value
 	// Open file for reading.
+	file, err := sanitizeFileName(file)
+	if err != nil {
+		return object.Error{Value: err.Error()}
+	}
 	f, err := os.Open(file)
 	if err != nil {
 		return object.Error{Value: err.Error()}

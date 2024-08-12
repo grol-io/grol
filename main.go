@@ -55,6 +55,7 @@ func Main() int {
 	}
 	historyFile := flag.String("history", defaultHistoryFile, "history `file` to use")
 	maxHistory := flag.Int("max-history", terminal.DefaultHistoryCapacity, "max history `size`, use 0 to disable.")
+	disableLoadSave := flag.Bool("no-load-save", false, "disable load/save of history")
 	cli.ArgsHelp = "*.gr files to interpret or `-` for stdin without prompt or no arguments for stdin repl..."
 	cli.MaxArgs = -1
 	cli.Main()
@@ -82,7 +83,10 @@ func Main() int {
 			return ret
 		}
 	}
-	err := extensions.Init()
+	c := extensions.ExtensionConfig{
+		LoadAndSave: !*disableLoadSave,
+	}
+	err := extensions.Init(&c)
 	if err != nil {
 		return log.FErrf("Error initializing extensions: %v", err)
 	}

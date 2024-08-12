@@ -127,6 +127,19 @@ grol -quiet -c 'n1={"f1":func(){println("f1")},"f2":func(x){x+1}}n1.f1()n1.f2(41
 stdout '^f1\n42$'
 !stderr .
 
+!grol -no-load-save -c 'save("foo.gr"); load("foo.gr")'
+stderr 'identifier not found: save'
+
+!grol -no-load-save -c 'load("foo.gr")'
+stderr 'identifier not found: load'
+
+!grol -c 'save("/tmp/foo.gr"); load("/tmp/foo.gr")'
+stderr 'Invalid character in filename "/tmp/foo.gr": /'
+
+grol -c 'load("fib_50")'
+stdout '^12586269025\n$'
+stderr 'Read/evaluated: fib_50.gr'
+
 -- foo.inp --
 foo
 -- sample_test.gr --
