@@ -114,15 +114,25 @@ func EvalAll(s *eval.State, in io.Reader, out io.Writer, options Options) []stri
 	return errs
 }
 
-// Kinda ugly (global) but helpful to not change the signature of EvalString for now and
-// yet allow the caller to set this (ie. the discord bot).
-var CompactEvalString bool
-
 // EvalString can be used from playground etc for single eval.
 // returns the eval errors and an array of errors if any.
 // also returns the normalized/reformatted input if no parsing errors
 // occurred.
-func EvalString(what string) (res string, errs []string, formatted string) {
+// Default options are Options{All: true, ShowEval: true, NoColor: true, Compact: CompactEvalString}.
+func EvalString(what string) (string, []string, string) {
+	return EvalStringWithOption(Options{All: true, ShowEval: true, NoColor: true, Compact: false}, what)
+}
+
+// EvalStringWithOption can be used from playground etc for single eval.
+// returns the eval errors and an array of errors if any.
+// also returns the normalized/reformatted input if no parsing errors
+// occurred.
+// Following options should be set (like in EvalString) to control the behavior:
+//
+//	All: true. ShowEval: true, NoColor: true.
+//
+// Options to set AutoLoad and AutoSave and Compact.
+func EvalStringWithOption(o Options, what string) (res string, errs []string, formatted string) {
 	defer func() {
 		if r := recover(); r != nil {
 			errs = append(errs, fmt.Sprintf("panic: %v", r))
@@ -133,9 +143,13 @@ func EvalString(what string) (res string, errs []string, formatted string) {
 	s.Out = out
 	s.LogOut = out
 	s.NoLog = true
-	_, errs, formatted = EvalOne(s, what, out,
-		Options{All: true, ShowEval: true, NoColor: true, Compact: CompactEvalString})
+	err := AutoLoad(s, o)
+	if err != nil {
+		log.Errf("Error loading autoload file: %v", err)
+	}
+	_, errs, formatted = EvalOne(s, what, out, o)
 	res = out.String()
+	_ = AutoSave(s, o)
 	return
 }
 
