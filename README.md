@@ -92,6 +92,8 @@ variadic functions both Go side and grol side (using `..` on grol side)
 
 Use `info` to see all the available functions, keywords, operators etc... (can be used inside functions too to examine the stack)
 
+`save("filename")` and `load("filename")` current state.
+
 See also [sample.gr](examples/sample.gr) and others in that folder, that you can run with
 ```
 gorepl examples/*.gr

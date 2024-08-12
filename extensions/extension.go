@@ -16,12 +16,17 @@ import (
 )
 
 var (
-	initDone  = false
-	errInInit error
+	initDone        = false
+	errInInit       error
+	unrestrictedIOs = false
+	emptyOnly       = false
 )
 
 type ExtensionConfig struct {
-	LoadAndSave bool
+	HasLoad           bool
+	HasSave           bool
+	LoadSaveEmptyOnly bool
+	UnrestrictedIOs   bool // Dangerous, can overrwite files, read any readable file etc...
 }
 
 func Init(c *ExtensionConfig) error {
@@ -36,6 +41,8 @@ func Init(c *ExtensionConfig) error {
 type OneFloatInOutFunc func(float64) float64
 
 func initInternal(c *ExtensionConfig) error {
+	unrestrictedIOs = c.UnrestrictedIOs
+	emptyOnly = c.LoadSaveEmptyOnly
 	cmd := object.Extension{
 		Name:     "pow",
 		MinArgs:  2,
@@ -132,20 +139,26 @@ func initInternal(c *ExtensionConfig) error {
 	if err != nil {
 		return err
 	}
-	if !c.LoadAndSave {
-		return nil
+	loadSaveFn := object.Extension{
+		MinArgs:  0, // empty only case - ie ".gr" save file.
+		MaxArgs:  1,
+		ArgTypes: []object.Type{object.STRING},
 	}
-	jsonFn.Name = "save"
-	jsonFn.Callback = saveFunc // save to file.
-	err = object.CreateFunction(jsonFn)
-	if err != nil {
-		return err
+	if c.HasSave {
+		loadSaveFn.Name = "save"
+		loadSaveFn.Callback = saveFunc // save to file.
+		err = object.CreateFunction(loadSaveFn)
+		if err != nil {
+			return err
+		}
 	}
-	jsonFn.Name = "load"
-	jsonFn.Callback = loadFunc // eval a file.
-	err = object.CreateFunction(jsonFn)
-	if err != nil {
-		return err
+	if c.HasLoad {
+		loadSaveFn.Name = "load"
+		loadSaveFn.Callback = loadFunc // eval a file.
+		err = object.CreateFunction(loadSaveFn)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -182,13 +195,20 @@ func evalFunc(env any, name string, args []object.Object) object.Object {
 	return res
 }
 
-// Normalizes to alphanum.gr
+// Normalizes to alphanum.gr.
 func sanitizeFileName(file string) (string, error) {
+	if emptyOnly && file != "" {
+		return "", fmt.Errorf("empty only mode, filename must be empty or no arguments, got: %q", file)
+	}
+	if unrestrictedIOs {
+		log.Infof("Unrestricted IOs, not sanitizing filename: %s", file)
+		return file, nil
+	}
 	// only alhpanumeric and _ allowed. no dots, slashes, etc.
 	f := strings.TrimSuffix(file, ".gr")
 	for _, r := range []byte(f) {
 		if !lexer.IsAlphaNum(r) {
-			return "", fmt.Errorf("Invalid character in filename %q: %c", file, r)
+			return "", fmt.Errorf("invalid character in filename %q: %c", file, r)
 		}
 	}
 	return f + ".gr", nil
@@ -196,11 +216,14 @@ func sanitizeFileName(file string) (string, error) {
 
 func saveFunc(env any, _ string, args []object.Object) object.Object {
 	eval := env.(*eval.State)
-	file := args[0].(object.String).Value
-	// Open file for writing.
-	file, err := sanitizeFileName(file)
-	if err != nil {
-		return object.Error{Value: err.Error()}
+	file := ".gr"
+	if len(args) != 0 {
+		file = args[0].(object.String).Value
+		var err error
+		file, err = sanitizeFileName(file)
+		if err != nil {
+			return object.Error{Value: err.Error()}
+		}
 	}
 	f, err := os.Create(file)
 	if err != nil {
@@ -217,11 +240,14 @@ func saveFunc(env any, _ string, args []object.Object) object.Object {
 }
 
 func loadFunc(env any, _ string, args []object.Object) object.Object {
-	file := args[0].(object.String).Value
-	// Open file for reading.
-	file, err := sanitizeFileName(file)
-	if err != nil {
-		return object.Error{Value: err.Error()}
+	file := ".gr"
+	if len(args) != 0 {
+		file = args[0].(object.String).Value
+		var err error
+		file, err = sanitizeFileName(file)
+		if err != nil {
+			return object.Error{Value: err.Error()}
+		}
 	}
 	f, err := os.Open(file)
 	if err != nil {

@@ -134,11 +134,25 @@ stderr 'identifier not found: save'
 stderr 'identifier not found: load'
 
 !grol -c 'save("/tmp/foo.gr"); load("/tmp/foo.gr")'
-stderr 'Invalid character in filename "/tmp/foo.gr": /'
+stderr 'invalid character in filename "/tmp/foo.gr": /'
 
 grol -c 'load("fib_50")'
 stdout '^12586269025\n$'
 stderr 'Read/evaluated: fib_50.gr'
+
+!grol -c 'load("./fib_50.gr")'
+stderr 'invalid character in filename "./fib_50.gr": \.'
+
+grol -unrestricted-io -c 'load("./fib_50.gr")'
+stdout '^12586269025\n$'
+stderr 'Read/evaluated: ./fib_50.gr'
+
+!grol -empty-only -c 'load("fib_50")'
+stderr 'empty only mode, filename must be empty or no arguments, got: "fib_50"'
+
+grol -empty-only -c 'save();load()'
+stderr 'Saved .* ids/fns to: .gr'
+stderr 'Read/evaluated: .gr'
 
 -- foo.inp --
 foo

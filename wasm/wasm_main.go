@@ -57,7 +57,8 @@ func main() {
 	global := js.Global()
 	global.Set("grol", js.FuncOf(jsEval))
 	global.Set("grolVersion", js.ValueOf(grolVersion))
-	err := extensions.Init()
+	// IOs don't work yet https://github.com/grol-io/grol/issues/124 otherwise we'd allow HasLoad HasSave.
+	err := extensions.Init(&extensions.ExtensionConfig{})
 	if err != nil {
 		log.Critf("Error initializing extensions: %v", err)
 	}
