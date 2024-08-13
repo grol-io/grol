@@ -47,18 +47,23 @@ func (e *Environment) BaseInfo() Map {
 	if baseInfo != nil {
 		return baseInfo
 	}
-	baseInfo := make(Map, 6) // 5 here + all_ids
+	baseInfo := make(Map, 7) // 6 here + all_ids
 	tokInfo := token.Info()
 	keys := make([]Object, 0, len(tokInfo.Keywords))
 	for _, v := range sets.Sort(tokInfo.Keywords) {
 		keys = append(keys, String{Value: v})
 	}
-	baseInfo[String{"keywords"}] = Array{Elements: keys}
+	baseInfo[String{"keywords"}] = Array{Elements: keys} // 1
 	keys = make([]Object, 0, len(tokInfo.Tokens))
 	for _, v := range sets.Sort(tokInfo.Tokens) {
 		keys = append(keys, String{Value: v})
 	}
-	baseInfo[String{"tokens"}] = Array{Elements: keys}
+	baseInfo[String{"tokens"}] = Array{Elements: keys} // 2
+	keys = make([]Object, 0, len(tokInfo.Builtins))
+	for _, v := range sets.Sort(tokInfo.Builtins) {
+		keys = append(keys, String{Value: v})
+	}
+	baseInfo[String{"builtins"}] = Array{Elements: keys} // 3
 	// Ditto cache this as it's set for a given environment.
 	ext := ExtraFunctions()
 	keys = make([]Object, 0, len(ext))
@@ -67,10 +72,28 @@ func (e *Environment) BaseInfo() Map {
 	}
 	arr := Array{Elements: keys}
 	sort.Sort(arr)
-	baseInfo[String{"gofuncs"}] = arr
-	baseInfo[String{"version"}] = String{Value: cli.ShortVersion}
-	baseInfo[String{"platform"}] = String{Value: cli.LongVersion}
+	baseInfo[String{"gofuncs"}] = arr                             // 4
+	baseInfo[String{"version"}] = String{Value: cli.ShortVersion} // 5
+	baseInfo[String{"platform"}] = String{Value: cli.LongVersion} // 6
 	return baseInfo
+}
+
+func (e *Environment) Info() Object {
+	allKeys := make([]Object, e.depth+1)
+	for {
+		val := make(Map, e.Len())
+		for k, v := range e.store {
+			val[String{Value: k}] = v
+		}
+		allKeys[e.depth] = val
+		if e.outer == nil {
+			break
+		}
+		e = e.outer
+	}
+	info := e.BaseInfo()
+	info[String{"all_ids"}] = Array{Elements: allKeys} // 7
+	return info
 }
 
 func record(ids *trie.Trie, key string, t Type) {
@@ -95,6 +118,7 @@ func (e *Environment) RegisterTrie(t *trie.Trie) {
 	for k, v := range e.store {
 		record(t, k, v.Type())
 	}
+	t.Insert("info") // magic extra identifier.
 }
 
 // Returns the number of ids written.
@@ -136,24 +160,6 @@ func (e *Environment) SaveGlobals(to io.Writer) (int, error) {
 		n++
 	}
 	return n, nil
-}
-
-func (e *Environment) Info() Object {
-	allKeys := make([]Object, e.depth+1)
-	for {
-		val := make(Map, e.Len())
-		for k, v := range e.store {
-			val[String{Value: k}] = v
-		}
-		allKeys[e.depth] = val
-		if e.outer == nil {
-			break
-		}
-		e = e.outer
-	}
-	info := e.BaseInfo()
-	info[String{"all_ids"}] = Array{Elements: allKeys}
-	return info
 }
 
 func (e *Environment) Get(name string) (Object, bool) {
