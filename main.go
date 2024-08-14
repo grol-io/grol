@@ -102,7 +102,6 @@ func Main() int {
 		return log.FErrf("Error initializing extensions: %v", err)
 	}
 	if *commandFlag != "" {
-		// return EvalStringWithOption(Options{All: true, ShowEval: true, NoColor: true, Compact: false}, what)
 		res, errs, _ := repl.EvalStringWithOption(options, *commandFlag)
 		if len(errs) > 0 {
 			log.Errf("Errors: %v", errs)
