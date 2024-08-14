@@ -52,6 +52,7 @@ func NewBlankState() *State {
 		cache:      NewCache(),
 		extensions: make(map[string]object.Extension),
 		macroState: object.NewMacroEnvironment(),
+		MaxDepth:   DefaultMaxDepth,
 	}
 }
 
@@ -89,6 +90,7 @@ func (s *State) UpdateNumSet() (oldvalue, newvalue int64) {
 func (s *State) Eval(node any) object.Object {
 	if s.depth > s.MaxDepth {
 		log.LogVf("max depth %d reached", s.MaxDepth) // will be logged by the panic handler.
+		// reset the state so the interpreter can continue post catching the panic (avoids putting s.depth-- in a defer)
 		s.depth = 0
 		panic(fmt.Sprintf("max depth %d reached", s.MaxDepth))
 	}
@@ -125,12 +127,15 @@ func EvalString(this any, code string, emptyEnv bool) (object.Object, error) {
 	if len(p.Errors()) != 0 {
 		return object.NULL, fmt.Errorf("parsing error: %v", p.Errors())
 	}
-	var evalState *State
+	evalState, ok := this.(*State)
 	if emptyEnv {
+		maxDepth := DefaultMaxDepth
+		if ok {
+			maxDepth = evalState.MaxDepth // in case it's lower, carry that lower value.
+		}
 		evalState = NewBlankState()
+		evalState.MaxDepth = maxDepth
 	} else {
-		var ok bool
-		evalState, ok = this.(*State)
 		if !ok {
 			return object.NULL, fmt.Errorf("invalid this: %T", this)
 		}
