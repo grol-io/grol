@@ -181,15 +181,6 @@ func (s *State) evalInternal(node any) object.Object { //nolint:funlen // quite 
 	return object.Error{Value: fmt.Sprintf("unknown node type: %T", node)}
 }
 
-func hashable(o object.Object) *object.Error {
-	t := o.Type()
-	// because it contains env which is a map.
-	if t == object.FUNC || t == object.ARRAY || t == object.MAP {
-		return &object.Error{Value: o.Type().String() + " not usable as map key"}
-	}
-	return nil
-}
-
 func (s *State) evalMapLiteral(node *ast.MapLiteral) object.Object {
 	result := object.NewMap()
 
@@ -201,9 +192,6 @@ func (s *State) evalMapLiteral(node *ast.MapLiteral) object.Object {
 			return object.Error{Value: "key " + key.Inspect() + " is not hashable"}
 		}
 		value := s.evalInternal(valueNode)
-		if oerr := hashable(key); oerr != nil {
-			return *oerr
-		}
 		result.Set(key, value)
 	}
 	return &result
@@ -324,9 +312,6 @@ func evalIndexExpression(left, index object.Object) object.Object {
 }
 
 func evalMapIndexExpression(hash, key object.Object) object.Object {
-	if oerr := hashable(key); oerr != nil {
-		return *oerr
-	}
 	m := hash.(*object.Map)
 	v, ok := m.Get(key)
 	if !ok {

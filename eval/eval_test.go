@@ -325,10 +325,6 @@ if (10 > 1) {
 			`"Hello" - "World"`,
 			"unknown operator: STRING MINUS STRING",
 		},
-		{
-			`{"name": "Monkey"}[func(x) { x }];`,
-			"FUNC not usable as map key",
-		},
 	}
 
 	for _, tt := range tests {
