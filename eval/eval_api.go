@@ -14,7 +14,7 @@ import (
 
 // Exported part of the eval package.
 
-const DefaultMaxDepth = 100_000
+const DefaultMaxDepth = 250_000
 
 type State struct {
 	Out        io.Writer

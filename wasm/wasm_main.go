@@ -19,6 +19,11 @@ import (
 	"grol.io/grol/repl"
 )
 
+// Can do 10k on safari but only ~3.5k on chrome before
+// Error: Maximum call stack size exceeded.
+// That means n = 3096 on pi2.gr, off by 4 for some reason
+var WasmMaxDepth = 3_100
+
 func jsEval(this js.Value, args []js.Value) interface{} {
 	if len(args) != 1 && len(args) != 2 {
 		return "ERROR: number of arguments doesn't match should be string or string, bool for compact mode"
@@ -29,10 +34,13 @@ func jsEval(this js.Value, args []js.Value) interface{} {
 		compact = args[1].Bool()
 	}
 	res, errs, formatted := repl.EvalStringWithOption(
-		// Set a large value for MaxDepth so we get Error: Maximum call stack size exceeded.
+		// For tinygo until recover is implemented, we would set a large value for MaxDepth to get
+		// Error: Maximum call stack size exceeded.
 		// instead of failing to handle our panic (!)
 		// https://tinygo.org/docs/reference/lang-support/#recover-builtin
-		repl.Options{All: true, ShowEval: true, NoColor: true, Compact: compact, MaxDepth: 10000},
+		// But enough is enough... switched back to big go for now, way too many troubles with tinygo as well
+		// as not exactly responsive to PRs nor issues folks (everyone trying their best yet...).
+		repl.Options{All: true, ShowEval: true, NoColor: true, Compact: compact, MaxDepth: WasmMaxDepth},
 		input,
 	)
 	result := make(map[string]any)
@@ -43,7 +51,11 @@ func jsEval(this js.Value, args []js.Value) interface{} {
 		anyErrs[i] = v
 	}
 	result["errors"] = anyErrs
-	result["formatted"] = strings.TrimSuffix(formatted, "\n")
+	fmt := strings.TrimSuffix(formatted, "\n")
+	if fmt == "" {
+		fmt = input
+	}
+	result["formatted"] = fmt
 	return result
 }
 

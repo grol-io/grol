@@ -59,7 +59,7 @@ func Main() int {
 	unrestrictedIOs := flag.Bool("unrestricted-io", false, "enable unrestricted io (dangerous)")
 	emptyOnly := flag.Bool("empty-only", false, "only allow load()/save() to ./.gr")
 	noAuto := flag.Bool("no-auto", false, "don't auto load/save the state to ./.gr")
-	maxDepth := flag.Int("max-depth", eval.DefaultMaxDepth, "Maximum interpreter depth")
+	maxDepth := flag.Int("max-depth", eval.DefaultMaxDepth-1, "Maximum interpreter depth")
 
 	cli.ArgsHelp = "*.gr files to interpret or `-` for stdin without prompt or no arguments for stdin repl..."
 	cli.MaxArgs = -1

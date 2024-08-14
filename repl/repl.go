@@ -160,7 +160,9 @@ func EvalString(what string) (string, []string, string) {
 // Options to set AutoLoad and AutoSave and Compact.
 func EvalStringWithOption(o Options, what string) (res string, errs []string, formatted string) {
 	s := eval.NewState()
-	s.MaxDepth = o.MaxDepth
+	if o.MaxDepth > 0 {
+		s.MaxDepth = o.MaxDepth
+	}
 	out := &strings.Builder{}
 	s.Out = out
 	s.LogOut = out
