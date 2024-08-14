@@ -406,7 +406,11 @@ func (m Map) Inspect() string {
 		if i != 0 {
 			out.WriteString(",")
 		}
-		v := m[k]
+		v, ok := m[k]
+		if !ok {
+			// We got a NaN.
+			v = Error{Value: "NaN in map"}
+		}
 		out.WriteString(k.Inspect())
 		out.WriteString(":")
 		out.WriteString(v.Inspect())

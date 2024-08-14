@@ -196,6 +196,10 @@ func (s *State) evalMapLiteral(node *ast.MapLiteral) object.Object {
 	for _, keyNode := range node.Order {
 		valueNode := node.Pairs[keyNode]
 		key := s.evalInternal(keyNode)
+		if !object.Equals(key, key) {
+			log.Warnf("key %s is not hashable", key.Inspect())
+			return object.Error{Value: "key " + key.Inspect() + " is not hashable"}
+		}
 		value := s.evalInternal(valueNode)
 		if oerr := hashable(key); oerr != nil {
 			return *oerr
