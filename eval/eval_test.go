@@ -325,10 +325,6 @@ if (10 > 1) {
 			`"Hello" - "World"`,
 			"unknown operator: STRING MINUS STRING",
 		},
-		{
-			`{"name": "Monkey"}[func(x) { x }];`,
-			"FUNC not usable as map key",
-		},
 	}
 
 	for _, tt := range tests {
@@ -576,7 +572,7 @@ func TestMapLiterals(t *testing.T) {
     }`
 
 	evaluated := testEval(t, input)
-	result, ok := evaluated.(object.Map)
+	result, ok := evaluated.(*object.Map)
 	if !ok {
 		t.Fatalf("Eval didn't return Map. got=%T (%+v)", evaluated, evaluated)
 	}
@@ -590,12 +586,12 @@ func TestMapLiterals(t *testing.T) {
 		object.FALSE:                  6,
 	}
 
-	if len(result) != len(expected) {
-		t.Fatalf("Map has wrong num of pairs. got=%d", len(result))
+	if result.Len() != len(expected) {
+		t.Fatalf("Map has wrong num of pairs. got=%d", result.Len())
 	}
 
 	for expectedKey, expectedValue := range expected {
-		v, ok := result[expectedKey]
+		v, ok := result.Get(expectedKey)
 		if !ok {
 			t.Errorf("no value for given key %#v in Pairs", expectedKey)
 		}
@@ -842,9 +838,9 @@ func TestExtension(t *testing.T) {
 	if actual.Value != expected {
 		t.Errorf("object has wrong value. got=%q, want=%q", actual, expected)
 	}
-	input = `m={1.5:"a",2: {"str": 42, 3: pow}}; json(m)`
+	input = `m={1.5:"a",2: {"str": 42, 3: pow}, -3:42}; json(m)`
 	evaluated = testEval(t, input)
-	expected = `{"2":{"3":{"gofunc":"pow(float, float)"},"str":42},"1.5":"a"}`
+	expected = `{"-3":42,"1.5":"a","2":{"3":{"gofunc":"pow(float, float)"},"str":42}}`
 	actual, ok = evaluated.(object.String)
 	if !ok {
 		t.Errorf("object is not string. got=%T (%+v)", evaluated, evaluated)
@@ -871,18 +867,21 @@ func TestNotCachingErrors(t *testing.T) {
 }
 
 func TestNaNMapKey(t *testing.T) {
+	// Also tests sorting order with ints mixed
 	s := eval.NewState()
 	_, err := eval.EvalString(s, `nan=0./0.`, false)
 	if err != nil {
 		t.Errorf("should have not errored out just defining NaN, got %v", err)
 	}
-	_, errs, _ := repl.EvalString(`nan=0./0; m={-42.3: "about -42", 42.1:"42.1", nan: "this is NaN"}; println(m)`)
-	if len(errs) != 1 {
-		t.Errorf("should have an error trying to put a nan in map, got %v", errs)
+	res, errs, _ := repl.EvalString(`nan=0./0; minf=-1/0.; pinf=1/0.
+	m={-42.3: "about -42",42:"int 42", minf:"minf", pinf:"pinf", 42.1:"42.1", nan: "this is NaN"}
+	println(m)`)
+	if len(errs) != 0 {
+		t.Errorf("should have no error trying to put a nan in map, got %v", errs)
 	}
-	e := errs[0]
-	if e != "<err: key NaN is not hashable>" {
-		t.Errorf("wrong error message, got %q", e)
+	expected := `{NaN:"this is NaN",-Inf:"minf",-42.3:"about -42",42:"int 42",42.1:"42.1",+Inf:"pinf"}` + "\n"
+	if res != expected {
+		t.Errorf("wrong result, got %s expected %s", res, expected)
 	}
 }
 

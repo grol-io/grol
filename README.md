@@ -79,7 +79,7 @@ Functional int, float, string and boolean expressions
 
 Functions, lambdas, closures (including recursion in anonymous functions, using `self()`)
 
-Arrays, maps (including map.key as map["key"] shorthand access)
+Arrays, ordered maps (including map.key as map["key"] shorthand access and ability to put any type, including arrays, maps and functions as keys)
 
 print, log
 

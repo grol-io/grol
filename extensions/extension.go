@@ -245,10 +245,15 @@ func saveFunc(env any, _ string, args []object.Object) object.Object {
 		return object.Error{Value: err.Error()}
 	}
 	log.Infof("Saved %d ids/fns to: %s", n, file)
-	return object.Map{
-		object.String{Value: "entries"}:  object.Integer{Value: int64(n)},
-		object.String{Value: "filename"}: object.String{Value: file},
-	}
+	res := &object.Map{}
+	res.Set(
+		object.String{Value: "entries"},
+		object.Integer{Value: int64(n)})
+	res.Set(
+		object.String{Value: "filename"},
+		object.String{Value: file},
+	)
+	return res
 }
 
 func loadFunc(env any, _ string, args []object.Object) object.Object {

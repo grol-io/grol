@@ -16,9 +16,9 @@ func TestStringMapKey(t *testing.T) {
 	}
 
 	m := object.NewMap()
-	m[hello1] = diff1
+	m.Set(hello1, diff1)
 
-	v, ok := m[hello2]
+	v, ok := m.Get(hello2)
 	if !ok {
 		t.Errorf("no value found for key %v", hello2)
 	}

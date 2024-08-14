@@ -181,15 +181,6 @@ func (s *State) evalInternal(node any) object.Object { //nolint:funlen // quite 
 	return object.Error{Value: fmt.Sprintf("unknown node type: %T", node)}
 }
 
-func hashable(o object.Object) *object.Error {
-	t := o.Type()
-	// because it contains env which is a map.
-	if t == object.FUNC || t == object.ARRAY || t == object.MAP {
-		return &object.Error{Value: o.Type().String() + " not usable as map key"}
-	}
-	return nil
-}
-
 func (s *State) evalMapLiteral(node *ast.MapLiteral) object.Object {
 	result := object.NewMap()
 
@@ -201,12 +192,9 @@ func (s *State) evalMapLiteral(node *ast.MapLiteral) object.Object {
 			return object.Error{Value: "key " + key.Inspect() + " is not hashable"}
 		}
 		value := s.evalInternal(valueNode)
-		if oerr := hashable(key); oerr != nil {
-			return *oerr
-		}
-		result[key] = value
+		result.Set(key, value)
 	}
-	return result
+	return &result
 }
 
 func (s *State) evalPrintLogError(node *ast.Builtin) object.Object {
@@ -301,6 +289,8 @@ func (s *State) evalBuiltin(node *ast.Builtin) object.Object {
 			return object.Integer{Value: int64(len(val.(object.String).Value))}
 		case object.ARRAY:
 			return object.Integer{Value: int64(len(arr.Elements))}
+		case object.MAP:
+			return object.Integer{Value: int64(val.(*object.Map).Len())}
 		case object.NIL:
 			return object.Integer{Value: 0}
 		}
@@ -322,11 +312,8 @@ func evalIndexExpression(left, index object.Object) object.Object {
 }
 
 func evalMapIndexExpression(hash, key object.Object) object.Object {
-	if oerr := hashable(key); oerr != nil {
-		return *oerr
-	}
-	m := hash.(object.Map)
-	v, ok := m[key]
+	m := hash.(*object.Map)
+	v, ok := m.Get(key)
 	if !ok {
 		return object.NULL
 	}
@@ -583,7 +570,19 @@ func (s *State) evalMinusPrefixOperatorExpression(right object.Object) object.Ob
 
 func (s *State) evalInfixExpression(operator token.Type, left, right object.Object) object.Object {
 	switch {
-	// can't use generics :/ see other comment.
+	case operator == token.EQ:
+		return object.NativeBoolToBooleanObject(object.Equals(left, right))
+	case operator == token.NOTEQ:
+		return object.NativeBoolToBooleanObject(!object.Equals(left, right))
+	case operator == token.GT:
+		return object.NativeBoolToBooleanObject(object.Cmp(left, right) == 1)
+	case operator == token.LT:
+		return object.NativeBoolToBooleanObject(object.Cmp(left, right) == -1)
+	case operator == token.GTEQ:
+		return object.NativeBoolToBooleanObject(object.Cmp(left, right) >= 0)
+	case operator == token.LTEQ:
+		return object.NativeBoolToBooleanObject(object.Cmp(left, right) <= 0)
+		// can't use generics :/ see other comment.
 	case left.Type() == object.INTEGER && right.Type() == object.INTEGER:
 		return evalIntegerInfixExpression(operator, left, right)
 	case left.Type() == object.FLOAT || right.Type() == object.FLOAT:
@@ -594,10 +593,6 @@ func (s *State) evalInfixExpression(operator token.Type, left, right object.Obje
 		return evalArrayInfixExpression(operator, left, right)
 	case left.Type() == object.MAP && right.Type() == object.MAP:
 		return evalMapInfixExpression(operator, left, right)
-	case operator == token.EQ:
-		return object.NativeBoolToBooleanObject(object.Equals(left, right))
-	case operator == token.NOTEQ:
-		return object.NativeBoolToBooleanObject(!object.Equals(left, right))
 	default:
 		return object.Error{Value: "operation on non integers left=" + left.Inspect() + " right=" + right.Inspect()}
 	}
@@ -607,10 +602,6 @@ func evalStringInfixExpression(operator token.Type, left, right object.Object) o
 	leftVal := left.(object.String).Value
 	rightVal := right.(object.String).Value
 	switch operator { //nolint:exhaustive // we have default.
-	case token.EQ:
-		return object.NativeBoolToBooleanObject(leftVal == rightVal)
-	case token.NOTEQ:
-		return object.NativeBoolToBooleanObject(leftVal != rightVal)
 	case token.PLUS:
 		return object.String{Value: leftVal + rightVal}
 	default:
@@ -622,21 +613,6 @@ func evalStringInfixExpression(operator token.Type, left, right object.Object) o
 func evalArrayInfixExpression(operator token.Type, left, right object.Object) object.Object {
 	leftVal := left.(object.Array).Elements
 	switch operator { //nolint:exhaustive // we have default.
-	case token.EQ:
-		if right.Type() != object.ARRAY {
-			return object.FALSE
-		}
-		rightVal := right.(object.Array).Elements
-		return object.NativeBoolToBooleanObject(object.ArrayEquals(leftVal, rightVal))
-	case token.NOTEQ:
-		if right.Type() != object.ARRAY {
-			return object.TRUE
-		}
-		rightVal := right.(object.Array).Elements
-		if !object.ArrayEquals(leftVal, rightVal) {
-			return object.TRUE
-		}
-		return object.FALSE
 	case token.PLUS: // concat / append
 		if right.Type() != object.ARRAY {
 			return object.Array{Elements: append(leftVal, right)}
@@ -649,25 +625,11 @@ func evalArrayInfixExpression(operator token.Type, left, right object.Object) ob
 }
 
 func evalMapInfixExpression(operator token.Type, left, right object.Object) object.Object {
-	leftMap := left.(object.Map)
-	rightMap := right.(object.Map)
+	leftMap := left.(*object.Map)
+	rightMap := right.(*object.Map)
 	switch operator { //nolint:exhaustive // we have default.
-	case token.EQ:
-		return object.NativeBoolToBooleanObject(object.MapEquals(leftMap, rightMap))
-	case token.NOTEQ:
-		if !object.MapEquals(leftMap, rightMap) {
-			return object.TRUE
-		}
-		return object.FALSE
 	case token.PLUS: // concat / append
-		res := object.NewMap()
-		for k, v := range leftMap {
-			res[k] = v
-		}
-		for k, v := range rightMap {
-			res[k] = v
-		}
-		return res
+		return leftMap.Append(rightMap)
 	default:
 		return object.Error{Value: fmt.Sprintf("unknown operator: %s %s %s",
 			left.Type(), operator, right.Type())}
@@ -693,18 +655,6 @@ func evalIntegerInfixExpression(operator token.Type, left, right object.Object) 
 		return object.Integer{Value: leftVal / rightVal}
 	case token.PERCENT:
 		return object.Integer{Value: leftVal % rightVal}
-	case token.LT:
-		return object.NativeBoolToBooleanObject(leftVal < rightVal)
-	case token.LTEQ:
-		return object.NativeBoolToBooleanObject(leftVal <= rightVal)
-	case token.GT:
-		return object.NativeBoolToBooleanObject(leftVal > rightVal)
-	case token.GTEQ:
-		return object.NativeBoolToBooleanObject(leftVal >= rightVal)
-	case token.EQ:
-		return object.NativeBoolToBooleanObject(leftVal == rightVal)
-	case token.NOTEQ:
-		return object.NativeBoolToBooleanObject(leftVal != rightVal)
 	default:
 		return object.Error{Value: "unknown operator: " + operator.String()}
 	}
@@ -742,18 +692,6 @@ func evalFloatInfixExpression(operator token.Type, left, right object.Object) ob
 		return object.Float{Value: leftVal / rightVal}
 	case token.PERCENT:
 		return object.Float{Value: math.Mod(leftVal, rightVal)}
-	case token.LT:
-		return object.NativeBoolToBooleanObject(leftVal < rightVal)
-	case token.LTEQ:
-		return object.NativeBoolToBooleanObject(leftVal <= rightVal)
-	case token.GT:
-		return object.NativeBoolToBooleanObject(leftVal > rightVal)
-	case token.GTEQ:
-		return object.NativeBoolToBooleanObject(leftVal >= rightVal)
-	case token.EQ:
-		return object.NativeBoolToBooleanObject(leftVal == rightVal)
-	case token.NOTEQ:
-		return object.NativeBoolToBooleanObject(leftVal != rightVal)
 	default:
 		return object.Error{Value: "unknown operator: " + operator.String()}
 	}

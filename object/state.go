@@ -43,27 +43,27 @@ func (e *Environment) Len() int {
 
 var baseInfo Map
 
-func (e *Environment) BaseInfo() Map {
-	if baseInfo != nil {
-		return baseInfo
+func (e *Environment) BaseInfo() *Map {
+	if baseInfo.kv != nil {
+		return &baseInfo
 	}
-	baseInfo := make(Map, 7) // 6 here + all_ids
+	baseInfo.kv = make([]KV, 0, 7) // 6 here + all_ids
 	tokInfo := token.Info()
 	keys := make([]Object, 0, len(tokInfo.Keywords))
 	for _, v := range sets.Sort(tokInfo.Keywords) {
 		keys = append(keys, String{Value: v})
 	}
-	baseInfo[String{"keywords"}] = Array{Elements: keys} // 1
+	baseInfo.Set(String{"keywords"}, Array{Elements: keys}) // 1
 	keys = make([]Object, 0, len(tokInfo.Tokens))
 	for _, v := range sets.Sort(tokInfo.Tokens) {
 		keys = append(keys, String{Value: v})
 	}
-	baseInfo[String{"tokens"}] = Array{Elements: keys} // 2
+	baseInfo.Set(String{"tokens"}, Array{Elements: keys}) // 2
 	keys = make([]Object, 0, len(tokInfo.Builtins))
 	for _, v := range sets.Sort(tokInfo.Builtins) {
 		keys = append(keys, String{Value: v})
 	}
-	baseInfo[String{"builtins"}] = Array{Elements: keys} // 3
+	baseInfo.Set(String{"builtins"}, Array{Elements: keys}) // 3
 	// Ditto cache this as it's set for a given environment.
 	ext := ExtraFunctions()
 	keys = make([]Object, 0, len(ext))
@@ -72,18 +72,19 @@ func (e *Environment) BaseInfo() Map {
 	}
 	arr := Array{Elements: keys}
 	sort.Sort(arr)
-	baseInfo[String{"gofuncs"}] = arr                             // 4
-	baseInfo[String{"version"}] = String{Value: cli.ShortVersion} // 5
-	baseInfo[String{"platform"}] = String{Value: cli.LongVersion} // 6
-	return baseInfo
+	baseInfo.Set(String{"gofuncs"}, arr)                             // 4
+	baseInfo.Set(String{"version"}, String{Value: cli.ShortVersion}) // 5
+	baseInfo.Set(String{"platform"}, String{Value: cli.LongVersion}) // 6
+	return &baseInfo
 }
 
 func (e *Environment) Info() Object {
 	allKeys := make([]Object, e.depth+1)
 	for {
-		val := make(Map, e.Len())
+		val := &Map{}
+		val.kv = make([]KV, 0, e.Len())
 		for k, v := range e.store {
-			val[String{Value: k}] = v
+			val.Set(String{Value: k}, v)
 		}
 		allKeys[e.depth] = val
 		if e.outer == nil {
@@ -92,7 +93,7 @@ func (e *Environment) Info() Object {
 		e = e.outer
 	}
 	info := e.BaseInfo()
-	info[String{"all_ids"}] = Array{Elements: allKeys} // 7
+	info.Set(String{"all_ids"}, Array{Elements: allKeys}) // 7
 	return info
 }
 

@@ -155,6 +155,11 @@ grol -no-auto -max-depth 12 -c 'func foo(n) {if n<=1 {1} else {self(n-1);n}}; fo
 stdout '^12$'
 !stderr 'max depth.*reached'
 
+# map don't mutate on append
+grol -no-auto -quiet -c 'm={2:"b"};n={1:"a"};println(m+n); println(m)'
+stdout '^{1:"a",2:"b"}\n{2:"b"}$'
+!stderr .
+
 -- sample_test.gr --
 // Sample file that our gorepl can interpret
 // <--- comments
