@@ -251,13 +251,13 @@ func (s *State) evalPrintLogError(node *ast.Builtin) object.Object {
 func (s *State) evalBuiltin(node *ast.Builtin) object.Object {
 	// all take 1 arg exactly except print and log which take 1+.
 	t := node.Type()
-	min := 1
+	minV := 1
 	varArg := (t == token.PRINT || t == token.LOG || t == token.ERROR)
 	if t == token.PRINTLN {
-		min = 0
+		minV = 0
 		varArg = true
 	}
-	if oerr := argCheck(node.Literal(), min, varArg, node.Parameters); oerr != nil {
+	if oerr := argCheck(node.Literal(), minV, varArg, node.Parameters); oerr != nil {
 		return *oerr
 	}
 	if t == token.QUOTE {
@@ -265,7 +265,7 @@ func (s *State) evalBuiltin(node *ast.Builtin) object.Object {
 	}
 	var val object.Object
 	var rt object.Type
-	if min > 0 {
+	if minV > 0 {
 		val = s.evalInternal(node.Parameters[0])
 		rt = val.Type()
 		if rt == object.ERROR {
@@ -336,9 +336,9 @@ func evalMapIndexExpression(hash, key object.Object) object.Object {
 func evalArrayIndexExpression(array, index object.Object) object.Object {
 	arrayObject := array.(object.Array)
 	idx := index.(object.Integer).Value
-	max := int64(len(arrayObject.Elements) - 1)
+	maxV := int64(len(arrayObject.Elements) - 1)
 
-	if idx < 0 || idx > max {
+	if idx < 0 || idx > maxV {
 		return object.NULL
 	}
 	return arrayObject.Elements[idx]
