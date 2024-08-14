@@ -1,15 +1,18 @@
 package repl
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
 	"io"
 	"os"
 	"regexp"
+	"runtime/debug"
 	"slices"
 	"strconv"
 	"strings"
 
+	"fortio.org/cli"
 	"fortio.org/log"
 	"fortio.org/terminal"
 	"grol.io/grol/ast"
@@ -55,6 +58,7 @@ type Options struct {
 	MaxHistory  int
 	AutoLoad    bool
 	AutoSave    bool
+	MaxDepth    int
 }
 
 func AutoLoad(s *eval.State, options Options) error {
@@ -71,15 +75,30 @@ func AutoLoad(s *eval.State, options Options) error {
 		return err
 	}
 	defer f.Close()
-	all, err := io.ReadAll(f)
-	if err != nil {
-		return err
+	// Read line by line because some stuff don't serialize well (eg +Inf https://github.com/grol-io/grol/issues/138)
+	// and yet we should try to get back as much as possible instead of aborting.
+	scanner := bufio.NewScanner(f)
+	count := 0
+	errorCount := 0
+	var errs []error
+	for scanner.Scan() {
+		line := scanner.Text()
+		_, err = eval.EvalString(s, line, false)
+		if err == nil {
+			count++
+		} else {
+			errorCount++
+			errs = append(errs, err)
+			log.Errf("Error loading autoload line %q: %v", line, err)
+		}
 	}
-	// Eval the content.
-	_, err = eval.EvalString(s, string(all), false)
 	_, numset := s.UpdateNumSet()
-	log.Infof("Auto loaded %s (%d set)", AutoSaveFile, numset)
-	return err
+	log.Infof("Auto loaded %s (%d set) %d lines, %d %s",
+		AutoSaveFile,
+		numset,
+		count,
+		errorCount, cli.Plural(errorCount, "error"))
+	return errors.Join(errs...)
 }
 
 func AutoSave(s *eval.State, options Options) error {
@@ -117,7 +136,7 @@ func EvalAll(s *eval.State, in io.Reader, out io.Writer, options Options) []stri
 		log.Fatalf("%v", err)
 	}
 	what := string(b)
-	_, errs, _ := EvalOne(s, what, out, options)
+	_, _, errs, _ := EvalOne(s, what, out, options) //nolint:dogsled // as mentioned we should refactor EvalOne.
 	return errs
 }
 
@@ -140,29 +159,26 @@ func EvalString(what string) (string, []string, string) {
 //
 // Options to set AutoLoad and AutoSave and Compact.
 func EvalStringWithOption(o Options, what string) (res string, errs []string, formatted string) {
-	defer func() {
-		if r := recover(); r != nil {
-			errs = append(errs, fmt.Sprintf("panic: %v", r))
-		}
-	}()
 	s := eval.NewState()
+	s.MaxDepth = o.MaxDepth
 	out := &strings.Builder{}
 	s.Out = out
 	s.LogOut = out
 	s.NoLog = true
-	err := AutoLoad(s, o)
-	if err != nil {
-		log.Errf("Error loading autoload file: %v", err)
-	}
-	_, errs, formatted = EvalOne(s, what, out, o)
+	_ = AutoLoad(s, o) // errors already logged
+	panicked := false
+	_, panicked, errs, formatted = EvalOne(s, what, out, o)
 	res = out.String()
-	_ = AutoSave(s, o)
+	if !panicked {
+		_ = AutoSave(s, o)
+	}
 	return
 }
 
 func Interactive(options Options) int {
 	options.NilAndErr = true
 	s := eval.NewState()
+	s.MaxDepth = options.MaxDepth
 	term, err := terminal.Open()
 	if err != nil {
 		return log.FErrf("Error creating readline: %v", err)
@@ -187,10 +203,7 @@ func Interactive(options Options) int {
 	options.Compact = true // because terminal doesn't (yet) do well will multi-line commands.
 	term.NewHistory(options.MaxHistory)
 	_ = term.SetHistoryFile(options.HistoryFile)
-	err = AutoLoad(s, options)
-	if err != nil {
-		log.Errf("Error loading autoload file: %v", err)
-	}
+	_ = AutoLoad(s, options) // errors already logged
 	// Regular expression for "!nn" to run history command nn.
 	historyRegex := regexp.MustCompile(`^!(\d+)$`)
 	prev := ""
@@ -232,19 +245,23 @@ func Interactive(options Options) int {
 				"Type 'history' to see history, '!n' to repeat history n, 'info' for language builtins, use <tab> for completion.")
 			continue
 		}
-		// errors are already logged and this is the only case that can get contNeeded (EOL instead of EOF mode)
-		contNeeded, _, formatted := EvalOne(s, l, term.Out, options)
+		// normal errors are already logged but not the panic recoveries
+		// Note this is the only case that can get contNeeded (EOL instead of EOF mode)
+		contNeeded, panicked, errs, formatted := EvalOne(s, l, term.Out, options)
 		if contNeeded {
 			prev = l + "\n"
 			term.SetPrompt(CONTINUATION)
 		} else {
-			if prev != "" {
+			if prev != "" && len(formatted) > 0 {
 				// In addition to raw lines, we also add the single line version to history.
 				log.LogVf("Adding to history: %q", formatted)
 				term.AddToHistory(formatted)
 			}
 			prev = ""
 			term.SetPrompt(PROMPT)
+		}
+		if panicked {
+			log.Errf("%s", errs[0]) // we know there is exactly 1 error in this case, see EvalOne defer.
 		}
 	}
 }
@@ -293,9 +310,32 @@ func (g *Grol) Run(out io.Writer) error {
 	return nil
 }
 
-// Returns true in line mode if more should be fed to the parser.
+// EvalOne returns continuation=true in line mode if more should be fed to the parser.
+// errs is the list of errors, formatted is the normalized input.
+// If a panic occurs, panicked is true and errs contains the one panic message.
 // TODO: this one size fits 3 different calls (file, interactive, bot) is getting spaghetti.
-func EvalOne(s *eval.State, what string, out io.Writer, options Options) (bool, []string, string) {
+func EvalOne(s *eval.State, what string, out io.Writer, options Options) (
+	continuation, panicked bool,
+	errs []string,
+	formatted string,
+) {
+	defer func() {
+		if r := recover(); r != nil {
+			panicked = true
+			log.Critf("Caught panic: %v", r)
+			if log.LogDebug() {
+				log.Debugf("Dumping stack trace")
+				debug.PrintStack()
+			}
+			errs = append(errs, fmt.Sprintf("panic: %v", r))
+			return
+		}
+	}()
+	continuation, errs, formatted = evalOne(s, what, out, options)
+	return
+}
+
+func evalOne(s *eval.State, what string, out io.Writer, options Options) (bool, []string, string) {
 	var l *lexer.Lexer
 	if options.All {
 		l = lexer.New(what)

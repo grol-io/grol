@@ -195,6 +195,8 @@ flags:
     	don't execute, just parse and re format the input
   -history file
     	history file to use (default "~/.grol_history")
+  -max-depth int
+    	Maximum interpreter depth (default 100000)
   -max-history size
     	max history size, use 0 to disable. (default 99)
   -no-auto

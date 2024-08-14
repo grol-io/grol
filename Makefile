@@ -25,7 +25,7 @@ tiny_test:
 	./tiny_test -test.v
 
 tinygo: Makefile *.go */*.go $(GEN)
-	CGO_ENABLED=0 tinygo build -o grol.tiny -tags "$(GO_BUILD_TAGS)" .
+	CGO_ENABLED=0 tinygo build -o grol.tiny $(TINYGO_STACKS) -tags "$(GO_BUILD_TAGS)" .
 	strip grol.tiny
 	ls -lh grol.tiny
 

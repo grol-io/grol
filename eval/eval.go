@@ -405,6 +405,11 @@ func (s *State) applyFunction(name string, fn object.Object, args []object.Objec
 	s.Out = oldOut
 	output := buf.Bytes()
 	_, _ = s.Out.Write(output)
+	// Don't cache errors, as it could be due to binding for instance.
+	if res.Type() == object.ERROR {
+		log.Debugf("Cache miss for %s %v, not caching error result", function.CacheKey, args)
+		return res
+	}
 	s.cache.Set(function.CacheKey, args, res, output)
 	log.Debugf("Cache miss for %s %v", function.CacheKey, args)
 	return res

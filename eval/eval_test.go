@@ -852,3 +852,19 @@ func TestExtension(t *testing.T) {
 		t.Errorf("object has wrong value.got:\n%s\n---want--\n%s", actual.Value, expected)
 	}
 }
+
+func TestNotCachingErrors(t *testing.T) {
+	s := eval.NewState()
+	_, err := eval.EvalString(s, `func x(n) {aa+n};x(3)`, false)
+	if err == nil {
+		t.Fatalf("should have errored out, got nil")
+	}
+	_, err = eval.EvalString(s, `aa=1;x(4)`, false)
+	if err != nil {
+		t.Errorf("should have not errored out after defining aa, got %v", err)
+	}
+	_, err = eval.EvalString(s, `x(3)`, false)
+	if err != nil {
+		t.Errorf("should have not cached the error, got %v", err)
+	}
+}

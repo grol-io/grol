@@ -29,7 +29,10 @@ func jsEval(this js.Value, args []js.Value) interface{} {
 		compact = args[1].Bool()
 	}
 	res, errs, formatted := repl.EvalStringWithOption(
-		repl.Options{All: true, ShowEval: true, NoColor: true, Compact: compact},
+		// Set a large value for MaxDepth so we get Error: Maximum call stack size exceeded.
+		// instead of failing to handle our panic (!)
+		// https://tinygo.org/docs/reference/lang-support/#recover-builtin
+		repl.Options{All: true, ShowEval: true, NoColor: true, Compact: compact, MaxDepth: 10000},
 		input,
 	)
 	result := make(map[string]any)

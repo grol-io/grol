@@ -22,19 +22,11 @@ stdout '^2$'
 stderr welcome
 !stderr 'rror' # no Errors or other case/singular/plural
 
-# syntax error interactive mode, stdout repeats errors
-#grol
-#stdin foo.inp
-#stderr 'Errors'
-#stderr 'identifier not found: foo'
-#stdout '<err: identifier not found: foo>'
-
 # syntax error non mode, stdout doesn't repeat errors
 !grol -c 'foo'
 stderr 'Errors'
 stderr 'identifier not found: foo'
 !stdout .
-
 
 # sample_test.gr
 grol sample_test.gr
@@ -154,8 +146,15 @@ grol -empty-only -c 'save();load()'
 stderr 'Saved .* ids/fns to: .gr'
 stderr 'Read/evaluated: .gr'
 
--- foo.inp --
-foo
+# max depth
+
+!grol -no-auto -max-depth 12 -c 'func foo(n) {if n<=1 {1} else {self(n-1);n}}; foo(13)'
+stderr 'max depth 13 reached'
+
+grol -no-auto -max-depth 12 -c 'func foo(n) {if n<=1 {1} else {self(n-1);n}}; foo(12)'
+stdout '^12$'
+!stderr 'max depth.*reached'
+
 -- sample_test.gr --
 // Sample file that our gorepl can interpret
 // <--- comments
