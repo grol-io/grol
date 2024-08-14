@@ -204,9 +204,9 @@ func (s *State) evalMapLiteral(node *ast.MapLiteral) object.Object {
 		if oerr := hashable(key); oerr != nil {
 			return *oerr
 		}
-		result[key] = value
+		result.Set(key, value)
 	}
-	return result
+	return &result
 }
 
 func (s *State) evalPrintLogError(node *ast.Builtin) object.Object {
@@ -325,8 +325,8 @@ func evalMapIndexExpression(hash, key object.Object) object.Object {
 	if oerr := hashable(key); oerr != nil {
 		return *oerr
 	}
-	m := hash.(object.Map)
-	v, ok := m[key]
+	m := hash.(*object.Map)
+	v, ok := m.Get(key)
 	if !ok {
 		return object.NULL
 	}
@@ -649,8 +649,8 @@ func evalArrayInfixExpression(operator token.Type, left, right object.Object) ob
 }
 
 func evalMapInfixExpression(operator token.Type, left, right object.Object) object.Object {
-	leftMap := left.(object.Map)
-	rightMap := right.(object.Map)
+	leftMap := left.(*object.Map)
+	rightMap := right.(*object.Map)
 	switch operator { //nolint:exhaustive // we have default.
 	case token.EQ:
 		return object.NativeBoolToBooleanObject(object.MapEquals(leftMap, rightMap))
@@ -660,14 +660,7 @@ func evalMapInfixExpression(operator token.Type, left, right object.Object) obje
 		}
 		return object.FALSE
 	case token.PLUS: // concat / append
-		res := object.NewMap()
-		for k, v := range leftMap {
-			res[k] = v
-		}
-		for k, v := range rightMap {
-			res[k] = v
-		}
-		return res
+		return leftMap.Append(rightMap)
 	default:
 		return object.Error{Value: fmt.Sprintf("unknown operator: %s %s %s",
 			left.Type(), operator, right.Type())}

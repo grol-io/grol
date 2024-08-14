@@ -576,7 +576,7 @@ func TestMapLiterals(t *testing.T) {
     }`
 
 	evaluated := testEval(t, input)
-	result, ok := evaluated.(object.Map)
+	result, ok := evaluated.(*object.Map)
 	if !ok {
 		t.Fatalf("Eval didn't return Map. got=%T (%+v)", evaluated, evaluated)
 	}
@@ -590,12 +590,12 @@ func TestMapLiterals(t *testing.T) {
 		object.FALSE:                  6,
 	}
 
-	if len(result) != len(expected) {
-		t.Fatalf("Map has wrong num of pairs. got=%d", len(result))
+	if result.Len() != len(expected) {
+		t.Fatalf("Map has wrong num of pairs. got=%d", result.Len())
 	}
 
 	for expectedKey, expectedValue := range expected {
-		v, ok := result[expectedKey]
+		v, ok := result.Get(expectedKey)
 		if !ok {
 			t.Errorf("no value for given key %#v in Pairs", expectedKey)
 		}
@@ -842,9 +842,9 @@ func TestExtension(t *testing.T) {
 	if actual.Value != expected {
 		t.Errorf("object has wrong value. got=%q, want=%q", actual, expected)
 	}
-	input = `m={1.5:"a",2: {"str": 42, 3: pow}}; json(m)`
+	input = `m={1.5:"a",2: {"str": 42, 3: pow}, -3:42}; json(m)`
 	evaluated = testEval(t, input)
-	expected = `{"2":{"3":{"gofunc":"pow(float, float)"},"str":42},"1.5":"a"}`
+	expected = `{"-3":42,"1.5":"a","2":{"3":{"gofunc":"pow(float, float)"},"str":42}}`
 	actual, ok = evaluated.(object.String)
 	if !ok {
 		t.Errorf("object is not string. got=%T (%+v)", evaluated, evaluated)

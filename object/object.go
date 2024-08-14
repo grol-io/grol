@@ -1,9 +1,10 @@
 package object
 
 import (
+	"cmp"
 	"fmt"
 	"io"
-	"sort"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -31,7 +32,7 @@ const (
 	FUNC
 	STRING
 	ARRAY
-	MAP
+	MAP // Ordered map and allows any key type including more maps/arrays/functions/...
 	QUOTE
 	MACRO
 	EXTENSION
@@ -86,8 +87,8 @@ func Equals(left, right Object) bool {
 		return true
 	case Array:
 		return ArrayEquals(left.Elements, right.(Array).Elements)
-	case Map:
-		return MapEquals(left, right.(Map))
+	case *Map:
+		return MapEquals(left, right.(*Map))
 	case Error:
 		return left.Value == right.(Error).Value
 	case ReturnValue:
@@ -105,6 +106,52 @@ func Equals(left, right Object) bool {
 	}
 }
 
+func Cmp(ei, ej Object) int {
+	ti := ei.Type()
+	tj := ej.Type()
+	if areIntFloat(ti, tj) {
+		// We have float and integer, let's sort them together.
+		var v1, v2 float64
+		if ti == INTEGER {
+			v1 = float64(ei.(Integer).Value)
+			v2 = ej.(Float).Value
+		} else {
+			v1 = ei.(Float).Value
+			v2 = float64(ej.(Integer).Value)
+		}
+		return cmp.Compare(v1, v2)
+	}
+	if ti < tj {
+		return -1
+	}
+	if ti > tj {
+		return 1
+	}
+	switch ti { //nolint:exhaustive // We have all the types that exist and can be in a map.
+	case INTEGER:
+		return cmp.Compare(ei.(Integer).Value, ej.(Integer).Value)
+	case FLOAT:
+		return cmp.Compare(ei.(Float).Value, ej.(Float).Value)
+	case BOOLEAN:
+		bi := ei.(Boolean).Value
+		bj := ej.(Boolean).Value
+		if bi == bj {
+			return 0
+		}
+		if bi {
+			return 1
+		}
+		return -1
+	case STRING:
+		return cmp.Compare(ei.(String).Value, ej.(String).Value)
+	default:
+		// TODO forward the others their own Cmp() method.
+		log.Warnf("Unexpected type in map keys: %s", ti)
+		// UNKNOWN, NIL, ERROR, RETURN, FUNC, ARRAY, MAP, QUOTE, MACRO, LAST
+	}
+	return 1
+}
+
 func ArrayEquals(left, right []Object) bool {
 	if len(left) != len(right) {
 		return false
@@ -117,16 +164,59 @@ func ArrayEquals(left, right []Object) bool {
 	return true
 }
 
-func MapEquals(left, right Map) bool {
-	if len(left) != len(right) {
+func MapEquals(left, right *Map) bool {
+	if len(left.kv) != len(right.kv) {
 		return false
 	}
-	for k, v := range left {
-		if !Equals(v, right[k]) {
+	for i, kv := range left.kv {
+		if !Equals(kv.Key, right.kv[i].Key) {
+			return false
+		}
+		if !Equals(kv.Value, right.kv[i].Value) {
 			return false
 		}
 	}
 	return true
+}
+
+func CompareKeys(a, b KV) int {
+	return Cmp(a.Key, b.Key)
+}
+
+func (m *Map) Get(key Object) (Object, bool) {
+	kv := KV{Key: key}
+	i, ok := slices.BinarySearchFunc(m.kv, kv, CompareKeys)
+	if !ok {
+		return NULL, false
+	}
+	return m.kv[i].Value, true
+}
+
+func (m *Map) Set(key, value Object) {
+	kv := KV{Key: key, Value: value}
+	i, ok := slices.BinarySearchFunc(m.kv, kv, CompareKeys)
+	if ok {
+		m.kv[i].Value = value
+		return
+	}
+	m.kv = slices.Insert(m.kv, i, kv)
+}
+
+func (m *Map) Len() int {
+	return len(m.kv)
+}
+
+func (m *Map) KV() []KV {
+	return m.kv
+}
+
+// Creates a new Map appending the right map to the left map.
+func (m *Map) Append(right *Map) *Map {
+	res := &Map{kv: m.kv}
+	for _, kv := range right.kv {
+		res.Set(kv.Key, kv.Value)
+	}
+	return res
 }
 
 type Integer struct {
@@ -338,108 +428,76 @@ func (ao Array) JSON(w io.Writer) error {
 
 // possible optimization: us a map of any and put the inner value of object in there, would be faster than
 // wrapping strings etc into object.
-type Map map[Object]Object
+type KV struct {
+	Key   Object
+	Value Object
+}
+
+// Sorted KV pairs, O(n) insert O(log n) access/same key mutations.
+type Map struct {
+	kv []KV
+}
 
 func NewMap() Map {
-	return make(map[Object]Object)
+	return Map{kv: make([]KV, 0, 4)}
 }
 
 func (ao Array) Len() int {
 	return len(ao.Elements)
 }
 
+func areIntFloat(a, b Type) bool {
+	l := min(a, b)
+	h := max(a, b)
+	return l == INTEGER && h == FLOAT
+}
+
 func (ao Array) Less(i, j int) bool {
-	ti := ao.Elements[i].Type()
-	tj := ao.Elements[j].Type()
-	if ti < tj {
-		return true
-	}
-	if ti > tj {
-		return false
-	}
-	switch ti { //nolint:exhaustive // We have all the types that exist and can be in a map.
-	case INTEGER:
-		return ao.Elements[i].(Integer).Value < ao.Elements[j].(Integer).Value
-	case FLOAT:
-		return ao.Elements[i].(Float).Value < ao.Elements[j].(Float).Value
-	case BOOLEAN:
-		bi := ao.Elements[i].(Boolean).Value
-		bj := ao.Elements[j].(Boolean).Value
-		if bi {
-			return false
-		}
-		return bj
-	case STRING:
-		return ao.Elements[i].(String).Value < ao.Elements[j].(String).Value
-	default:
-		log.Warnf("Unexpected type in map keys: %s", ti)
-		// UNKNOWN, NIL, ERROR, RETURN, FUNC, ARRAY, MAP, QUOTE, MACRO, LAST
-	}
-	return false
+	return Cmp(ao.Elements[i], ao.Elements[j]) < 0
 }
 
 func (ao Array) Swap(i, j int) {
 	ao.Elements[i], ao.Elements[j] = ao.Elements[j], ao.Elements[i]
 }
 
-func (m Map) Unwrap() any {
-	res := make(map[any]any, len(m))
-	for k, v := range m {
-		res[k.Unwrap()] = v.Unwrap()
+func (m *Map) Unwrap() any {
+	res := make(map[any]any, len(m.kv))
+	for _, kv := range m.kv {
+		res[kv.Key.Unwrap()] = kv.Value.Unwrap()
 	}
 	return res
 }
 
-func (m Map) Type() Type { return MAP }
+func (m *Map) Type() Type { return MAP }
 
-func (m Map) Inspect() string {
+func (m *Map) Inspect() string {
 	out := strings.Builder{}
 	out.WriteString("{")
-	keys := make([]Object, 0, len(m))
-	for key := range m {
-		keys = append(keys, key)
-	}
-	arr := Array{Elements: keys}
-	// Sort the keys
-	sort.Sort(arr)
-	for i, k := range arr.Elements {
+	for i, kv := range m.kv {
 		if i != 0 {
 			out.WriteString(",")
 		}
-		v, ok := m[k]
-		if !ok {
-			// We got a NaN.
-			v = Error{Value: "NaN in map"}
-		}
-		out.WriteString(k.Inspect())
+		out.WriteString(kv.Key.Inspect())
 		out.WriteString(":")
-		out.WriteString(v.Inspect())
+		out.WriteString(kv.Value.Inspect())
 	}
 	out.WriteString("}")
 	return out.String()
 }
 
-func (m Map) JSON(w io.Writer) error {
+func (m *Map) JSON(w io.Writer) error {
 	_, _ = w.Write([]byte("{"))
-	keys := make([]Object, 0, len(m))
-	for key := range m {
-		keys = append(keys, key)
-	}
-	arr := Array{Elements: keys}
-	// Sort the keys
-	sort.Sort(arr)
-	for i, k := range arr.Elements {
+	for i, kv := range m.kv {
 		if i > 0 {
 			_, _ = w.Write([]byte(","))
 		}
-		if _, ok := k.(String); !ok {
-			_, _ = fmt.Fprintf(w, "%q", k.Inspect()) // as JSON keys must be strings
+		if _, ok := kv.Key.(String); !ok {
+			_, _ = fmt.Fprintf(w, "%q", kv.Key.Inspect()) // as JSON keys must be strings
 		} else {
-			_, _ = w.Write([]byte(k.Inspect()))
+			_, _ = w.Write([]byte(kv.Key.Inspect()))
 		}
 		_, _ = w.Write([]byte(":"))
-		v := m[k]
-		err := v.JSON(w)
+		err := kv.Value.JSON(w)
 		if err != nil {
 			return err
 		}
