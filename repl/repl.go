@@ -30,13 +30,13 @@ const (
 )
 
 func logParserErrors(p *parser.Parser) bool {
-	errors := p.Errors()
-	if len(errors) == 0 {
+	errs := p.Errors()
+	if len(errs) == 0 {
 		return false
 	}
 
-	log.Critf("parser has %d error(s)", len(errors))
-	for _, msg := range errors {
+	log.Critf("parser has %d error(s)", len(errs))
+	for _, msg := range errs {
 		log.Errf("parser error: %s", msg)
 	}
 	return true

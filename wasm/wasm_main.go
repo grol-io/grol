@@ -51,11 +51,11 @@ func jsEval(this js.Value, args []js.Value) interface{} {
 		anyErrs[i] = v
 	}
 	result["errors"] = anyErrs
-	fmt := strings.TrimSuffix(formatted, "\n")
-	if fmt == "" {
-		fmt = input
+	fmted := strings.TrimSuffix(formatted, "\n")
+	if fmted == "" {
+		fmted = input
 	}
-	result["formatted"] = fmt
+	result["formatted"] = fmted
 	return result
 }
 

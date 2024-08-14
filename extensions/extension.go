@@ -229,7 +229,7 @@ func sanitizeFileName(args []object.Object) (string, error) {
 }
 
 func saveFunc(env any, _ string, args []object.Object) object.Object {
-	eval := env.(*eval.State)
+	ev := env.(*eval.State)
 	file, err := sanitizeFileName(args)
 	if err != nil {
 		return object.Error{Value: err.Error()}
@@ -240,7 +240,7 @@ func saveFunc(env any, _ string, args []object.Object) object.Object {
 	}
 	defer f.Close()
 	// Write to file.
-	n, err := eval.SaveGlobals(f)
+	n, err := ev.SaveGlobals(f)
 	if err != nil {
 		return object.Error{Value: err.Error()}
 	}
