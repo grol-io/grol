@@ -885,3 +885,31 @@ func TestNaNMapKey(t *testing.T) {
 		t.Errorf("wrong error message, got %q", e)
 	}
 }
+
+func TestBlankSlateEval(t *testing.T) {
+	// log.SetLogLevel(log.Debug) // was used to confirm no extensions eval etc...
+	inp := `func f(a){a+1}; f(1)`
+	obj, err := eval.EvalString(nil, inp, true) // indirectly tests unjason which also uses "blank state"
+	if err != nil {
+		t.Errorf("should have not errored using blank slate eval: %v", err)
+	}
+	if obj.Type() != object.INTEGER {
+		t.Fatalf("should have returned a string value, got %#v", obj)
+	}
+	if obj.Inspect() != "2" {
+		t.Errorf("wrong value, got %q", obj.Inspect())
+	}
+	s := eval.NewState()
+	s.MaxDepth = 10
+	inp = `func f(a){if a==0 {return 0} f(a-1)}; f(20)`
+	defer func() {
+		if r := recover(); r != nil {
+			t.Logf("recovered from panic as expected: %v", r)
+			if r.(string) != "max depth 10 reached" {
+				t.Fatalf("wrong panic message: %v", r)
+			}
+		}
+	}()
+	_, _ = eval.EvalString(s, inp, true)
+	t.Fatalf("should have panicked and not reach")
+}
