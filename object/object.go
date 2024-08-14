@@ -23,7 +23,7 @@ type Object interface {
 const (
 	UNKNOWN Type = iota
 	INTEGER
-	FLOAT
+	FLOAT // These 2 must stay in that order for areIntFloat to work.
 	BOOLEAN
 	NIL
 	ERROR
