@@ -301,6 +301,8 @@ func (s *State) evalBuiltin(node *ast.Builtin) object.Object {
 			return object.Integer{Value: int64(len(val.(object.String).Value))}
 		case object.ARRAY:
 			return object.Integer{Value: int64(len(arr.Elements))}
+		case object.MAP:
+			return object.Integer{Value: int64(val.(*object.Map).Len())}
 		case object.NIL:
 			return object.Integer{Value: 0}
 		}
