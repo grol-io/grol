@@ -391,7 +391,10 @@ func (s *State) applyFunction(name string, fn object.Object, args []object.Objec
 	}
 	if v, output, ok := s.cache.Get(function.CacheKey, args); ok {
 		log.Debugf("Cache hit for %s %v", function.CacheKey, args)
-		_, _ = s.Out.Write(output)
+		_, err := s.Out.Write(output)
+		if err != nil {
+			log.Warnf("output: %v", err)
+		}
 		return v
 	}
 	nenv, oerr := extendFunctionEnv(s.env, name, function, args)
@@ -408,7 +411,10 @@ func (s *State) applyFunction(name string, fn object.Object, args []object.Objec
 	s.env = curState
 	s.Out = oldOut
 	output := buf.Bytes()
-	_, _ = s.Out.Write(output)
+	_, err := s.Out.Write(output)
+	if err != nil {
+		log.Warnf("output: %v", err)
+	}
 	// Don't cache errors, as it could be due to binding for instance.
 	if res.Type() == object.ERROR {
 		log.Debugf("Cache miss for %s %v, not caching error result", function.CacheKey, args)

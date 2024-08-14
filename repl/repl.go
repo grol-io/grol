@@ -86,11 +86,11 @@ func AutoLoad(s *eval.State, options Options) error {
 		_, err = eval.EvalString(s, line, false)
 		if err == nil {
 			count++
-		} else {
-			errorCount++
-			errs = append(errs, err)
-			log.Errf("Error loading autoload line %q: %v", line, err)
+			continue
 		}
+		errorCount++
+		errs = append(errs, err)
+		log.Errf("Error loading autoload line %q: %v", line, err)
 	}
 	_, numset := s.UpdateNumSet()
 	log.Infof("Auto loaded %s (%d set) %d lines, %d %s",
@@ -249,7 +249,7 @@ func Interactive(options Options) int {
 		}
 		// normal errors are already logged but not the panic recoveries
 		// Note this is the only case that can get contNeeded (EOL instead of EOF mode)
-		contNeeded, panicked, errs, formatted := EvalOne(s, l, term.Out, options)
+		contNeeded, _, _, formatted := EvalOne(s, l, term.Out, options)
 		if contNeeded {
 			prev = l + "\n"
 			term.SetPrompt(CONTINUATION)
@@ -261,9 +261,6 @@ func Interactive(options Options) int {
 			}
 			prev = ""
 			term.SetPrompt(PROMPT)
-		}
-		if panicked {
-			log.Errf("%s", errs[0]) // we know there is exactly 1 error in this case, see EvalOne defer.
 		}
 	}
 }
