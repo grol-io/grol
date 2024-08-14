@@ -8,7 +8,6 @@ import (
 	"strconv"
 	"strings"
 
-	"fortio.org/log"
 	"grol.io/grol/ast"
 )
 
@@ -54,6 +53,7 @@ type Number interface {
 }
 */
 
+// Hashable in tem of go map for cache key.
 func Hashable(o Object) bool {
 	switch o.Type() { //nolint:exhaustive // We have all the types that are hashable + default for the others.
 	case INTEGER, FLOAT, BOOLEAN, NIL, ERROR, STRING:
@@ -72,41 +72,12 @@ func NativeBoolToBooleanObject(input bool) Boolean {
 
 func Equals(left, right Object) bool {
 	if left.Type() != right.Type() {
-		return false
+		return false // int and float aren't the same even though they can Cmp to the same value.
 	}
-	switch left := left.(type) {
-	case Integer:
-		return left.Value == right.(Integer).Value
-	case Float:
-		return left.Value == right.(Float).Value
-	case String:
-		return left.Value == right.(String).Value
-	case Boolean:
-		return left.Value == right.(Boolean).Value
-	case Null:
-		return true
-	case Array:
-		return ArrayEquals(left.Elements, right.(Array).Elements)
-	case *Map:
-		return MapEquals(left, right.(*Map))
-	case Error:
-		return left.Value == right.(Error).Value
-	case ReturnValue:
-		return Equals(left.Value, right.(ReturnValue).Value)
-	case Function:
-		return left.CacheKey == right.(Function).CacheKey
-	case Macro:
-		return left.Env == right.(Macro).Env && left.Body == right.(Macro).Body
-	case Extension:
-		return left.Name == right.(Extension).Name // They are enforced to be constant by name.
-	default:
-		/* QUOTE should be the only one left from switch above... where is exhaustive linter when you need it */
-		log.Warnf("Unexpected type in equals: %s", left.Inspect())
-		return false
-	}
+	return Cmp(left, right) == 0
 }
 
-func Cmp(ei, ej Object) int {
+func Cmp(ei, ej Object) int { //nolint:gocyclo // We have a lot of types to compare.
 	ti := ei.Type()
 	tj := ej.Type()
 	if areIntFloat(ti, tj) {
@@ -127,7 +98,49 @@ func Cmp(ei, ej Object) int {
 	if ti > tj {
 		return 1
 	}
-	switch ti { //nolint:exhaustive // We have all the types that exist and can be in a map.
+	// same types at this point.
+	switch ti {
+	case EXTENSION:
+		return cmp.Compare(ei.(Extension).Name, ej.(Extension).Name)
+	case FUNC:
+		return cmp.Compare(ei.(Function).CacheKey, ej.(Function).CacheKey)
+	case MAP:
+		m1 := ei.(*Map)
+		m2 := ej.(*Map)
+		if len(m1.kv) < len(m2.kv) {
+			return -1
+		}
+		if len(m1.kv) > len(m2.kv) {
+			return 1
+		}
+		for i, kv := range m1.kv {
+			if c := Cmp(kv.Key, m2.kv[i].Key); c != 0 {
+				return c
+			}
+			if c := Cmp(kv.Value, m2.kv[i].Value); c != 0 {
+				return c
+			}
+		}
+		return 0
+	case ARRAY:
+		a1 := ei.(Array)
+		a2 := ej.(Array)
+		if len(a1.Elements) < len(a2.Elements) {
+			return -1
+		}
+		if len(a1.Elements) > len(a2.Elements) {
+			return 1
+		}
+		for i, l := range a1.Elements {
+			if c := Cmp(l, a2.Elements[i]); c != 0 {
+				return c
+			}
+		}
+		return 0
+	case ERROR:
+		return cmp.Compare(ei.(Error).Value, ej.(Error).Value)
+	case NIL:
+		return 0
 	case INTEGER:
 		return cmp.Compare(ei.(Integer).Value, ej.(Integer).Value)
 	case FLOAT:
@@ -144,10 +157,18 @@ func Cmp(ei, ej Object) int {
 		return -1
 	case STRING:
 		return cmp.Compare(ei.(String).Value, ej.(String).Value)
-	default:
-		// TODO forward the others their own Cmp() method.
-		log.Warnf("Unexpected type in map keys: %s", ti)
-		// UNKNOWN, NIL, ERROR, RETURN, FUNC, ARRAY, MAP, QUOTE, MACRO, LAST
+
+	// RETURN, QUOTE, MACRO, ANY aren't expected to be compared.
+	case RETURN:
+		fallthrough
+	case QUOTE:
+		fallthrough
+	case MACRO:
+		fallthrough
+	case UNKNOWN:
+		fallthrough
+	case ANY:
+		panic(fmt.Sprintf("Unexpected type in Cmp: %s", ti))
 	}
 	return 1
 }
