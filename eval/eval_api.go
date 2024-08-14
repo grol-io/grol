@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 
+	"fortio.org/log"
 	"grol.io/grol/lexer"
 	"grol.io/grol/object"
 	"grol.io/grol/parser"
@@ -12,6 +13,8 @@ import (
 )
 
 // Exported part of the eval package.
+
+const DefaultMaxDepth = 250_000
 
 type State struct {
 	Out        io.Writer
@@ -21,6 +24,10 @@ type State struct {
 	cache      Cache
 	extensions map[string]object.Extension
 	NoLog      bool // turn log() into println() (for EvalString)
+	// Max depth / recursion level - default DefaultMaxDepth,
+	// note that a simple function consumes at least 2 levels and typically at least 3 or 4.
+	MaxDepth   int
+	depth      int // current depth / recursion level
 	lastNumSet int64
 }
 
@@ -32,6 +39,8 @@ func NewState() *State {
 		cache:      NewCache(),
 		extensions: object.ExtraFunctions(),
 		macroState: object.NewMacroEnvironment(),
+		MaxDepth:   DefaultMaxDepth,
+		depth:      0,
 	}
 }
 
@@ -78,7 +87,14 @@ func (s *State) UpdateNumSet() (oldvalue, newvalue int64) {
 
 // Does unwrap (so stop bubbling up) return values.
 func (s *State) Eval(node any) object.Object {
+	if s.depth > s.MaxDepth {
+		log.LogVf("max depth %d reached", s.MaxDepth) // will be logged by the panic handler.
+		s.depth = 0
+		panic(fmt.Sprintf("max depth %d reached", s.MaxDepth))
+	}
+	s.depth++
 	result := s.evalInternal(node)
+	s.depth--
 	// unwrap return values only at the top.
 	if returnValue, ok := result.(object.ReturnValue); ok {
 		return returnValue.Value

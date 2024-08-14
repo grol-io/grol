@@ -10,6 +10,7 @@ import (
 	"grol.io/grol/lexer"
 	"grol.io/grol/object"
 	"grol.io/grol/parser"
+	"grol.io/grol/repl"
 )
 
 func TestMain(m *testing.M) {
@@ -850,5 +851,37 @@ func TestExtension(t *testing.T) {
 	}
 	if actual.Value != expected {
 		t.Errorf("object has wrong value.got:\n%s\n---want--\n%s", actual.Value, expected)
+	}
+}
+
+func TestNotCachingErrors(t *testing.T) {
+	s := eval.NewState()
+	_, err := eval.EvalString(s, `func x(n) {aa+n};x(3)`, false)
+	if err == nil {
+		t.Fatalf("should have errored out, got nil")
+	}
+	_, err = eval.EvalString(s, `aa=1;x(4)`, false)
+	if err != nil {
+		t.Errorf("should have not errored out after defining aa, got %v", err)
+	}
+	_, err = eval.EvalString(s, `x(3)`, false)
+	if err != nil {
+		t.Errorf("should have not cached the error, got %v", err)
+	}
+}
+
+func TestNaNMapKey(t *testing.T) {
+	s := eval.NewState()
+	_, err := eval.EvalString(s, `nan=0./0.`, false)
+	if err != nil {
+		t.Errorf("should have not errored out just defining NaN, got %v", err)
+	}
+	_, errs, _ := repl.EvalString(`nan=0./0; m={-42.3: "about -42", 42.1:"42.1", nan: "this is NaN"}; println(m)`)
+	if len(errs) != 1 {
+		t.Errorf("should have an error trying to put a nan in map, got %v", errs)
+	}
+	e := errs[0]
+	if e != "<err: key NaN is not hashable>" {
+		t.Errorf("wrong error message, got %q", e)
 	}
 }

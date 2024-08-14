@@ -196,6 +196,10 @@ func (s *State) evalMapLiteral(node *ast.MapLiteral) object.Object {
 	for _, keyNode := range node.Order {
 		valueNode := node.Pairs[keyNode]
 		key := s.evalInternal(keyNode)
+		if !object.Equals(key, key) {
+			log.Warnf("key %s is not hashable", key.Inspect())
+			return object.Error{Value: "key " + key.Inspect() + " is not hashable"}
+		}
 		value := s.evalInternal(valueNode)
 		if oerr := hashable(key); oerr != nil {
 			return *oerr
@@ -247,13 +251,13 @@ func (s *State) evalPrintLogError(node *ast.Builtin) object.Object {
 func (s *State) evalBuiltin(node *ast.Builtin) object.Object {
 	// all take 1 arg exactly except print and log which take 1+.
 	t := node.Type()
-	min := 1
+	minV := 1
 	varArg := (t == token.PRINT || t == token.LOG || t == token.ERROR)
 	if t == token.PRINTLN {
-		min = 0
+		minV = 0
 		varArg = true
 	}
-	if oerr := argCheck(node.Literal(), min, varArg, node.Parameters); oerr != nil {
+	if oerr := argCheck(node.Literal(), minV, varArg, node.Parameters); oerr != nil {
 		return *oerr
 	}
 	if t == token.QUOTE {
@@ -261,7 +265,7 @@ func (s *State) evalBuiltin(node *ast.Builtin) object.Object {
 	}
 	var val object.Object
 	var rt object.Type
-	if min > 0 {
+	if minV > 0 {
 		val = s.evalInternal(node.Parameters[0])
 		rt = val.Type()
 		if rt == object.ERROR {
@@ -332,9 +336,9 @@ func evalMapIndexExpression(hash, key object.Object) object.Object {
 func evalArrayIndexExpression(array, index object.Object) object.Object {
 	arrayObject := array.(object.Array)
 	idx := index.(object.Integer).Value
-	max := int64(len(arrayObject.Elements) - 1)
+	maxV := int64(len(arrayObject.Elements) - 1)
 
-	if idx < 0 || idx > max {
+	if idx < 0 || idx > maxV {
 		return object.NULL
 	}
 	return arrayObject.Elements[idx]
@@ -387,7 +391,10 @@ func (s *State) applyFunction(name string, fn object.Object, args []object.Objec
 	}
 	if v, output, ok := s.cache.Get(function.CacheKey, args); ok {
 		log.Debugf("Cache hit for %s %v", function.CacheKey, args)
-		_, _ = s.Out.Write(output)
+		_, err := s.Out.Write(output)
+		if err != nil {
+			log.Warnf("output: %v", err)
+		}
 		return v
 	}
 	nenv, oerr := extendFunctionEnv(s.env, name, function, args)
@@ -404,7 +411,15 @@ func (s *State) applyFunction(name string, fn object.Object, args []object.Objec
 	s.env = curState
 	s.Out = oldOut
 	output := buf.Bytes()
-	_, _ = s.Out.Write(output)
+	_, err := s.Out.Write(output)
+	if err != nil {
+		log.Warnf("output: %v", err)
+	}
+	// Don't cache errors, as it could be due to binding for instance.
+	if res.Type() == object.ERROR {
+		log.Debugf("Cache miss for %s %v, not caching error result", function.CacheKey, args)
+		return res
+	}
 	s.cache.Set(function.CacheKey, args, res, output)
 	log.Debugf("Cache miss for %s %v", function.CacheKey, args)
 	return res
@@ -580,11 +595,9 @@ func (s *State) evalInfixExpression(operator token.Type, left, right object.Obje
 	case left.Type() == object.MAP && right.Type() == object.MAP:
 		return evalMapInfixExpression(operator, left, right)
 	case operator == token.EQ:
-		// should be left.Value() and right.Value() as currently this relies
-		// on bool interning and ptr equality.
-		return object.NativeBoolToBooleanObject(left == right)
+		return object.NativeBoolToBooleanObject(object.Equals(left, right))
 	case operator == token.NOTEQ:
-		return object.NativeBoolToBooleanObject(left != right)
+		return object.NativeBoolToBooleanObject(!object.Equals(left, right))
 	default:
 		return object.Error{Value: "operation on non integers left=" + left.Inspect() + " right=" + right.Inspect()}
 	}
