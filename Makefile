@@ -57,7 +57,7 @@ wasm-release: Makefile *.go */*.go $(GEN) wasm/wasm_exec.js wasm/wasm_exec.html
 	GOOS=js GOARCH=wasm go install -trimpath -ldflags="-w -s" -tags "$(GO_BUILD_TAGS)" grol.io/grol/wasm@$(GIT_TAG)
 	# No buildinfo and no tinygo install so we set version old style:
 #	GOOS=js GOARCH=wasm tinygo build $(TINYGO_STACKS) -o wasm/grol.wasm -no-debug -ldflags="-X main.TinyGoVersion=$(GIT_TAG)" -tags  "$(GO_BUILD_TAGS)" ./wasm
-#	mv "$(shell go env GOPATH)/bin/js_wasm/wasm" wasm/grol.wasm
+	mv "$(shell go env GOPATH)/bin/js_wasm/wasm" wasm/grol.wasm
 	ls -lh wasm/*.wasm
 
 wasm/wasm_exec.js: Makefile
