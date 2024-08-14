@@ -589,11 +589,9 @@ func (s *State) evalInfixExpression(operator token.Type, left, right object.Obje
 	case left.Type() == object.MAP && right.Type() == object.MAP:
 		return evalMapInfixExpression(operator, left, right)
 	case operator == token.EQ:
-		// should be left.Value() and right.Value() as currently this relies
-		// on bool interning and ptr equality.
-		return object.NativeBoolToBooleanObject(left == right)
+		return object.NativeBoolToBooleanObject(object.Equals(left, right))
 	case operator == token.NOTEQ:
-		return object.NativeBoolToBooleanObject(left != right)
+		return object.NativeBoolToBooleanObject(!object.Equals(left, right))
 	default:
 		return object.Error{Value: "operation on non integers left=" + left.Inspect() + " right=" + right.Inspect()}
 	}
