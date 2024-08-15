@@ -248,9 +248,9 @@ func (m *Map) Rest() Object {
 
 // Creates a new Map appending the right map to the left map.
 func (m *Map) Append(right *Map) *Map {
-	// important to avoid underlying array mutation.
-	// note: when we do map mutations, will need to copy instead.
-	res := &Map{kv: m.kv[:len(m.kv):len(m.kv)]}
+	// allocate for case of all unique keys.
+	res := &Map{kv: make([]KV, 0, len(m.kv)+len(right.kv))}
+	res.kv = append(res.kv, m.kv...)
 	for _, kv := range right.kv {
 		res.Set(kv.Key, kv.Value)
 	}

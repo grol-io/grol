@@ -333,16 +333,20 @@ func evalRest(val object.Object) object.Object {
 }
 
 func evalIndexExpression(left, index object.Object) object.Object {
+	idxOrZero := index
+	if idxOrZero.Type() == object.NIL {
+		idxOrZero = object.Integer{Value: 0}
+	}
 	switch {
-	case left.Type() == object.STRING && index.Type() == object.INTEGER:
-		idx := index.(object.Integer).Value
+	case left.Type() == object.STRING && idxOrZero.Type() == object.INTEGER:
+		idx := idxOrZero.(object.Integer).Value
 		str := left.(object.String).Value
 		if idx < 0 || idx >= int64(len(str)) {
 			return object.NULL
 		}
 		return object.Integer{Value: int64(str[idx])}
-	case left.Type() == object.ARRAY && index.Type() == object.INTEGER:
-		return evalArrayIndexExpression(left, index)
+	case left.Type() == object.ARRAY && idxOrZero.Type() == object.INTEGER:
+		return evalArrayIndexExpression(left, idxOrZero)
 	case left.Type() == object.MAP:
 		return evalMapIndexExpression(left, index)
 	case left.Type() == object.NIL:
