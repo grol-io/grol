@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"regexp"
 	"runtime/debug"
 	"slices"
 	"strconv"
@@ -177,6 +176,16 @@ func EvalStringWithOption(o Options, what string) (res string, errs []string, fo
 	return
 }
 
+func extractHistoryNumber(input string) (int, bool) {
+	if len(input) > 1 && input[0] == '!' {
+		numberPart := input[1:]
+		if num, err := strconv.Atoi(numberPart); err == nil {
+			return num, true
+		}
+	}
+	return 0, false
+}
+
 func Interactive(options Options) int {
 	options.NilAndErr = true
 	s := eval.NewState()
@@ -202,12 +211,12 @@ func Interactive(options Options) int {
 	s.RegisterTrie(autoComplete.Trie)
 	term.SetAutoCompleteCallback(autoComplete.AutoComplete())
 	term.SetPrompt(PROMPT)
+	term.SetAutoHistory(false)
 	options.Compact = true // because terminal doesn't (yet) do well will multi-line commands.
 	term.NewHistory(options.MaxHistory)
 	_ = term.SetHistoryFile(options.HistoryFile)
 	_ = AutoLoad(s, options) // errors already logged
 	// Regular expression for "!nn" to run history command nn.
-	historyRegex := regexp.MustCompile(`^!(\d+)$`)
 	prev := ""
 	for {
 		rd, err := term.ReadLine()
@@ -220,20 +229,18 @@ func Interactive(options Options) int {
 			return log.FErrf("Error reading line: %v", err)
 		}
 		log.Debugf("Read: %q", rd)
-		l := prev + rd
-		if historyRegex.MatchString(l) {
+		if idx, ok := extractHistoryNumber(rd); ok {
 			h := term.History()
 			slices.Reverse(h)
-			idxStr := l[1:]
-			idx, _ := strconv.Atoi(idxStr)
 			if idx < 1 || idx > len(h) {
 				log.Errf("Invalid history index %d", idx)
 				continue
 			}
-			l = h[idx-1]
-			fmt.Fprintf(term.Out, "Repeating history %d: %s\n", idx, l)
-			term.ReplaceLatest(l)
+			rd = h[idx-1]
+			fmt.Fprintf(term.Out, "Repeating history %d: %s\n", idx, rd)
 		}
+		term.AddToHistory(rd)
+		l := prev + rd
 		switch {
 		case l == "history":
 			h := term.History()

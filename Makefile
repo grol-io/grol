@@ -60,6 +60,11 @@ wasm-release: Makefile *.go */*.go $(GEN) wasm/wasm_exec.js wasm/wasm_exec.html
 	mv "$(shell go env GOPATH)/bin/js_wasm/wasm" wasm/grol.wasm
 	ls -lh wasm/*.wasm
 
+install:
+	CGO_ENABLED=0 go install -trimpath -ldflags="-w -s" -tags "$(GO_BUILD_TAGS)" grol.io/grol@$(GIT_TAG)
+	ls -lh "$(shell go env GOPATH)/bin/grol"
+	grol version
+
 wasm/wasm_exec.js: Makefile
 #	cp "$(shell tinygo env TINYGOROOT)/targets/wasm_exec.js" ./wasm/
 	cp "$(shell go env GOROOT)/misc/wasm/wasm_exec.js" ./wasm/
@@ -100,4 +105,4 @@ lint: .golangci.yml
 .golangci.yml: Makefile
 	curl -fsS -o .golangci.yml https://raw.githubusercontent.com/fortio/workflows/main/golangci.yml
 
-.PHONY: all lint generate test clean run build wasm tinygo wasm-release tiny_test tinygo-tests check
+.PHONY: all lint generate test clean run build wasm tinygo wasm-release tiny_test tinygo-tests check install
