@@ -52,6 +52,7 @@ type Options struct {
 	NoColor     bool // color controlled by log package, unless this is set to true.
 	FormatOnly  bool
 	Compact     bool
+	DualFormat  bool // Want both non Compact (Compact=false) printed yet compact version returned by EvalOne for history.
 	NilAndErr   bool // Show nil and errors in normal output.
 	HistoryFile string
 	MaxHistory  int
@@ -212,7 +213,7 @@ func Interactive(options Options) int {
 	term.SetAutoCompleteCallback(autoComplete.AutoComplete())
 	term.SetPrompt(PROMPT)
 	term.SetAutoHistory(false)
-	options.Compact = true // because terminal doesn't (yet) do well will multi-line commands.
+	options.DualFormat = true // because terminal doesn't (yet) do well will multi-line commands.
 	term.NewHistory(options.MaxHistory)
 	_ = term.SetHistoryFile(options.HistoryFile)
 	_ = AutoLoad(s, options) // errors already logged
@@ -358,6 +359,10 @@ func evalOne(s *eval.State, what string, out io.Writer, options Options) (bool, 
 	}
 	printer := ast.NewPrintState()
 	printer.Compact = options.Compact
+	if options.DualFormat && !options.ShowParse {
+		// We won't print the long form, so do the compact for directly
+		printer.Compact = true
+	}
 	formatted := program.PrettyPrint(printer).String()
 	if options.FormatOnly {
 		_, _ = out.Write([]byte(formatted))
@@ -367,6 +372,12 @@ func evalOne(s *eval.State, what string, out io.Writer, options Options) (bool, 
 		fmt.Fprint(out, "== Parse ==> ", formatted)
 		if options.Compact {
 			fmt.Fprintln(out)
+		}
+		// If we printed the long form, redo with short form.
+		if options.DualFormat && !options.Compact {
+			printer = ast.NewPrintState()
+			printer.Compact = true
+			formatted = program.PrettyPrint(printer).String()
 		}
 	}
 	s.DefineMacros(program)
