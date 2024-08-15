@@ -3,7 +3,7 @@ module grol.io/grol
 go 1.22.6
 
 require (
-	fortio.org/cli v1.8.0
+	fortio.org/cli v1.9.0
 	fortio.org/log v1.16.0
 	fortio.org/sets v1.2.0
 	fortio.org/struct2env v0.4.1
