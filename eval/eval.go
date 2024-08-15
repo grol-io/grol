@@ -345,6 +345,8 @@ func evalIndexExpression(left, index object.Object) object.Object {
 		return evalArrayIndexExpression(left, index)
 	case left.Type() == object.MAP:
 		return evalMapIndexExpression(left, index)
+	case left.Type() == object.NIL:
+		return object.NULL
 	default:
 		return object.Error{Value: "index operator not supported: " + left.Type().String() + "[" + index.Type().String() + "]"}
 	}
