@@ -261,13 +261,7 @@ func (s *State) evalBuiltin(node *ast.Builtin) object.Object {
 		}
 	}
 	switch t { //nolint:exhaustive // we have defaults and covering all the builtins.
-	case token.ERROR:
-		fallthrough
-	case token.PRINT:
-		fallthrough
-	case token.PRINTLN:
-		fallthrough
-	case token.LOG:
+	case token.ERROR, token.PRINT, token.PRINTLN, token.LOG:
 		return s.evalPrintLogError(node)
 	case token.FIRST:
 		return evalFirst(val)

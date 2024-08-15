@@ -53,7 +53,7 @@ type Number interface {
 }
 */
 
-// Hashable in tem of go map for cache key.
+// Hashable in tem of Go map for cache key.
 func Hashable(o Object) bool {
 	switch o.Type() { //nolint:exhaustive // We have all the types that are hashable + default for the others.
 	case INTEGER, FLOAT, BOOLEAN, NIL, ERROR, STRING:
@@ -77,7 +77,7 @@ func Equals(left, right Object) bool {
 	return Cmp(left, right) == 0
 }
 
-func Cmp(ei, ej Object) int { //nolint:gocyclo // We have a lot of types to compare.
+func Cmp(ei, ej Object) int {
 	ti := ei.Type()
 	tj := ej.Type()
 	if areIntFloat(ti, tj) {
@@ -159,15 +159,7 @@ func Cmp(ei, ej Object) int { //nolint:gocyclo // We have a lot of types to comp
 		return cmp.Compare(ei.(String).Value, ej.(String).Value)
 
 	// RETURN, QUOTE, MACRO, ANY aren't expected to be compared.
-	case RETURN:
-		fallthrough
-	case QUOTE:
-		fallthrough
-	case MACRO:
-		fallthrough
-	case UNKNOWN:
-		fallthrough
-	case ANY:
+	case RETURN, QUOTE, MACRO, UNKNOWN, ANY:
 		panic(fmt.Sprintf("Unexpected type in Cmp: %s", ti))
 	}
 	return 1
@@ -206,7 +198,7 @@ func CompareKeys(a, b KV) int {
 
 func (m *Map) Get(key Object) (Object, bool) {
 	kv := KV{Key: key}
-	i, ok := slices.BinarySearchFunc(m.kv, kv, CompareKeys)
+	i, ok := slices.BinarySearchFunc(m.kv, kv, CompareKeys) // log(n) search as we keep it sorted.
 	if !ok {
 		return NULL, false
 	}
@@ -472,8 +464,7 @@ func (ao Array) JSON(w io.Writer) error {
 	return err
 }
 
-// possible optimization: us a map of any and put the inner value of object in there, would be faster than
-// wrapping strings etc into object.
+// KeyValue pairs, what we have inside Map.
 type KV struct {
 	Key   Object
 	Value Object
