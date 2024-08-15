@@ -11,7 +11,7 @@ There is also now a [discord bot](https://github.com/grol-io/grol-discord-bot#gr
 
 Install/run it:
 ```shell
-CGO_ENABLED=0 go install -trimpath -ldflags="-w -s" -tags no_net,no_json grol.io/grol@latest
+CGO_ENABLED=0 go install -trimpath -ldflags="-w -s" -tags "no_net,no_json,no_pprof" grol.io/grol@latest
 ```
 
 Or with docker:

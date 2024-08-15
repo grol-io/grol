@@ -261,13 +261,7 @@ func (s *State) evalBuiltin(node *ast.Builtin) object.Object {
 		}
 	}
 	switch t { //nolint:exhaustive // we have defaults and covering all the builtins.
-	case token.ERROR:
-		fallthrough
-	case token.PRINT:
-		fallthrough
-	case token.PRINTLN:
-		fallthrough
-	case token.LOG:
+	case token.ERROR, token.PRINT, token.PRINTLN, token.LOG:
 		return s.evalPrintLogError(node)
 	case token.FIRST:
 		return evalFirst(val)
@@ -339,18 +333,24 @@ func evalRest(val object.Object) object.Object {
 }
 
 func evalIndexExpression(left, index object.Object) object.Object {
+	idxOrZero := index
+	if idxOrZero.Type() == object.NIL {
+		idxOrZero = object.Integer{Value: 0}
+	}
 	switch {
-	case left.Type() == object.STRING && index.Type() == object.INTEGER:
-		idx := index.(object.Integer).Value
+	case left.Type() == object.STRING && idxOrZero.Type() == object.INTEGER:
+		idx := idxOrZero.(object.Integer).Value
 		str := left.(object.String).Value
 		if idx < 0 || idx >= int64(len(str)) {
 			return object.NULL
 		}
 		return object.Integer{Value: int64(str[idx])}
-	case left.Type() == object.ARRAY && index.Type() == object.INTEGER:
-		return evalArrayIndexExpression(left, index)
+	case left.Type() == object.ARRAY && idxOrZero.Type() == object.INTEGER:
+		return evalArrayIndexExpression(left, idxOrZero)
 	case left.Type() == object.MAP:
 		return evalMapIndexExpression(left, index)
+	case left.Type() == object.NIL:
+		return object.NULL
 	default:
 		return object.Error{Value: "index operator not supported: " + left.Type().String() + "[" + index.Type().String() + "]"}
 	}
@@ -582,6 +582,9 @@ func (s *State) evalPrefixExpression(operator token.Type, right object.Object) o
 		return s.evalBangOperatorExpression(right)
 	case token.MINUS:
 		return s.evalMinusPrefixOperatorExpression(right)
+	case token.PLUS:
+		// nothing do with unary plus, just return the value.
+		return right
 	default:
 		return object.Error{Value: "unknown operator: " + operator.String()}
 	}

@@ -160,6 +160,10 @@ grol -no-auto -quiet -c 'm={2:"b"};n={1:"a"};println(m+n); println(m)'
 stdout '^{1:"a",2:"b"}\n{2:"b"}$'
 !stderr .
 
+grol -no-auto -quiet -c 'm={1:1, nil:"foo"}; println(m+{nil:"bar"}); m'
+stdout '^{1:1,nil:"bar"}\n{1:1,nil:"foo"}$'
+!stderr .
+
 -- sample_test.gr --
 // Sample file that our gorepl can interpret
 // <--- comments

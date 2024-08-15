@@ -912,3 +912,17 @@ func TestBlankSlateEval(t *testing.T) {
 	_, _ = eval.EvalString(s, inp, true)
 	t.Fatalf("should have panicked and not reach")
 }
+
+func TestMapAccidentalMutation(t *testing.T) {
+	inp := `m={1:1, nil:"foo"}; m+{nil:"bar"}; m`
+	s := eval.NewState()
+	res, err := eval.EvalString(s, inp, false)
+	if err != nil {
+		t.Fatalf("should not have errored: %v", err)
+	}
+	resStr := res.Inspect()
+	expected := `{1:1,nil:"foo"}`
+	if resStr != expected {
+		t.Fatalf("wrong result, got %q expected %q", resStr, expected)
+	}
+}

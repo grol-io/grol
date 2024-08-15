@@ -92,6 +92,10 @@ func initInternal(c *Config) error {
 	if err != nil {
 		return err
 	}
+	object.AddIdentifier("nil", object.NULL)
+	object.AddIdentifier("NaN", object.Float{Value: math.NaN()})
+	object.AddIdentifier("Inf", object.Float{Value: math.Inf(0)}) // Works for both -Inf and +Inf (thanks to noop unary +).
+
 	oneFloat := object.Extension{
 		MinArgs:  1,
 		MaxArgs:  1,

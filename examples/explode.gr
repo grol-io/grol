@@ -1,0 +1,22 @@
+// Turn a string into an array of byte values
+
+// Take a var arg and return first value or 0.
+func optint(a) {
+	if len(a) == 0 {
+		0
+	} else {
+		a[0]
+	}
+}
+// Use var arg trick to not need to define an inner lambda.
+func explode(s, ..) {
+	i = optint(..)
+	if i >= len(s) {
+		[]
+	} else {
+		[(s[i])] + self(s, i + 1)
+	}
+}
+
+println("ABC -> ", explode("ABC"))
+// ^ [65,66,67]
