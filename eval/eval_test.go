@@ -61,6 +61,14 @@ func TestEvalIntegerExpression(t *testing.T) {
 		{`a=2; b=3; r=a+5*(b++)+b;`, 21}, // left to right eval, yet not that not well defined behavior.
 		{`a=2; b=3; r=b+5*(b++)+a;`, 20}, // because that solo b is evaluated last, after the b++ - not well defined behavior.
 		{`a=2; b=3; r=a+5*b+++b;`, 21},   // parentheses are not technically needed here though... this is rather un readable.
+		{`i=1; i++ + ++i; i`, 3},
+		{`i=1; i++ + ++i`, 4},
+		{`i=1; i++-++i; i`, 3},
+		{`i=1; i++-++i`, -2},
+		{`i=1; i--+--i; i`, -1},
+		{`i=1; i--+--i`, 0},
+		// TODO: doesn't work without a space or ()
+		// {`i=1; i+++++i; i`, 4},
 		{`// IIFE factorial
 func(n) {
 	if n <= 1 {

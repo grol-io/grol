@@ -44,6 +44,31 @@ func argCheck[T any](msg string, n int, vararg bool, args []T) *object.Error {
 	return nil
 }
 
+func (s *State) evalPrefixIncrDecr(operator token.Type, node ast.Node) object.Object {
+	log.LogVf("eval prefix %s", ast.DebugString(node))
+	nv := node.Value()
+	if nv.Type() != token.IDENT {
+		return object.Error{Value: "can't increment/decrement " + nv.DebugString()}
+	}
+	id := nv.Literal()
+	val, ok := s.env.Get(id)
+	if !ok {
+		return object.Error{Value: "identifier not found: " + id}
+	}
+	toAdd := int64(1)
+	if operator == token.DECR {
+		toAdd = -1
+	}
+	switch val := val.(type) {
+	case object.Integer:
+		return s.env.Set(id, object.Integer{Value: val.Value + toAdd})
+	case object.Float:
+		return s.env.Set(id, object.Float{Value: val.Value + float64(toAdd)}) // So PI++ fails not silently.
+	default:
+		return object.Error{Value: "can't increment/decrement " + val.Type().String()}
+	}
+}
+
 func (s *State) evalPostfixExpression(node *ast.PostfixExpression) object.Object {
 	log.LogVf("eval postfix %s", node.DebugString())
 	id := node.Prev.Literal()
@@ -92,8 +117,13 @@ func (s *State) evalInternal(node any) object.Object { //nolint:funlen // quite 
 		return s.evalIdentifier(node)
 	case *ast.PrefixExpression:
 		log.LogVf("eval prefix %s", node.DebugString())
-		right := s.evalInternal(node.Right)
-		return s.evalPrefixExpression(node.Type(), right)
+		switch node.Type() { //nolint:exhaustive // we have default.
+		case token.INCR, token.DECR:
+			return s.evalPrefixIncrDecr(node.Type(), node.Right)
+		default:
+			right := s.evalInternal(node.Right)
+			return s.evalPrefixExpression(node.Type(), right)
+		}
 	case *ast.PostfixExpression:
 		return s.evalPostfixExpression(node)
 	case *ast.InfixExpression:
