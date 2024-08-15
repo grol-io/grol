@@ -84,6 +84,10 @@ func initInternal(c *Config) error {
 	if err != nil {
 		return err
 	}
+	err = eval.AddEvalResult("keys", "func(m){if len(m)==0{return []}return [(first(m).key)]+self(rest(m))}")
+	if err != nil {
+		return err
+	}
 	err = eval.AddEvalResult("log2", "func(x) {ln(x)/ln(2)}")
 	if err != nil {
 		return err
