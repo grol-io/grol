@@ -55,14 +55,9 @@ func (s *State) evalPrefixIncrDecr(operator token.Type, node ast.Node) object.Ob
 	if !ok {
 		return object.Error{Value: "identifier not found: " + id}
 	}
-	var toAdd int64
-	switch operator { //nolint:exhaustive // we have default.
-	case token.INCR:
-		toAdd = 1
-	case token.DECR:
+	toAdd := int64(1)
+	if operator == token.DECR {
 		toAdd = -1
-	default:
-		return object.Error{Value: "unknown postfix operator: " + operator.String()}
 	}
 	switch val := val.(type) {
 	case object.Integer:
