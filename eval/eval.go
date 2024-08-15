@@ -578,6 +578,9 @@ func (s *State) evalPrefixExpression(operator token.Type, right object.Object) o
 		return s.evalBangOperatorExpression(right)
 	case token.MINUS:
 		return s.evalMinusPrefixOperatorExpression(right)
+	case token.PLUS:
+		// nothing do with unary plus, just return the value.
+		return right
 	default:
 		return object.Error{Value: "unknown operator: " + operator.String()}
 	}
