@@ -260,7 +260,6 @@ func (s *State) evalBuiltin(node *ast.Builtin) object.Object {
 			return val
 		}
 	}
-	arr, _ := val.(object.Array)
 	switch t { //nolint:exhaustive // we have defaults and covering all the builtins.
 	case token.ERROR:
 		fallthrough
@@ -271,24 +270,15 @@ func (s *State) evalBuiltin(node *ast.Builtin) object.Object {
 	case token.LOG:
 		return s.evalPrintLogError(node)
 	case token.FIRST:
-		if rt != object.ARRAY {
-			break
-		}
-		if len(arr.Elements) == 0 {
-			return object.NULL
-		}
-		return arr.Elements[0]
+		return evalFirst(val)
 	case token.REST:
-		if rt != object.ARRAY {
-			break
-		}
-		return object.Array{Elements: arr.Elements[1:]}
+		return evalRest(val)
 	case token.LEN:
 		switch rt { //nolint:exhaustive // we have default, len doesn't work on many types.
 		case object.STRING:
 			return object.Integer{Value: int64(len(val.(object.String).Value))}
 		case object.ARRAY:
-			return object.Integer{Value: int64(len(arr.Elements))}
+			return object.Integer{Value: int64(len(val.(object.Array).Elements))}
 		case object.MAP:
 			return object.Integer{Value: int64(val.(*object.Map).Len())}
 		case object.NIL:
@@ -300,8 +290,63 @@ func (s *State) evalBuiltin(node *ast.Builtin) object.Object {
 	return object.Error{Value: node.Literal() + ": not supported on " + rt.String()}
 }
 
+func evalFirst(val object.Object) object.Object {
+	rt := val.Type()
+	switch rt { //nolint:exhaustive // falls back to errors.
+	case object.NIL:
+		return object.NULL
+	case object.STRING:
+		str := val.(object.String).Value
+		if len(str) == 0 {
+			return object.NULL
+		}
+		// first rune of str
+		return object.String{Value: string([]rune(str)[:1])}
+	case object.ARRAY:
+		arr := val.(object.Array)
+		if len(arr.Elements) == 0 {
+			return object.NULL
+		}
+		return arr.Elements[0]
+	case object.MAP:
+		return val.(*object.Map).First()
+	}
+	return object.Error{Value: "first() not supported on " + rt.String()}
+}
+
+func evalRest(val object.Object) object.Object {
+	rt := val.Type()
+	switch rt { //nolint:exhaustive // falls back to errors.
+	case object.NIL:
+		return object.NULL
+	case object.STRING:
+		str := val.(object.String).Value
+		if len(str) <= 1 {
+			return object.NULL
+		}
+		// rest of the string
+		return object.String{Value: string([]rune(str)[1:])}
+	case object.ARRAY:
+		arr := val.(object.Array)
+		if len(arr.Elements) <= 1 {
+			return object.NULL
+		}
+		return object.Array{Elements: arr.Elements[1:]}
+	case object.MAP:
+		return val.(*object.Map).Rest()
+	}
+	return object.Error{Value: "rest() not supported on " + rt.String()}
+}
+
 func evalIndexExpression(left, index object.Object) object.Object {
 	switch {
+	case left.Type() == object.STRING && index.Type() == object.INTEGER:
+		idx := index.(object.Integer).Value
+		str := left.(object.String).Value
+		if idx < 0 || idx >= int64(len(str)) {
+			return object.NULL
+		}
+		return object.Integer{Value: int64(str[idx])}
 	case left.Type() == object.ARRAY && index.Type() == object.INTEGER:
 		return evalArrayIndexExpression(left, index)
 	case left.Type() == object.MAP:

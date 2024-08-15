@@ -231,6 +231,29 @@ func (m *Map) KV() []KV {
 	return m.kv
 }
 
+var (
+	KeyKey   = String{Value: "key"}
+	ValueKey = String{Value: "value"}
+)
+
+func (m *Map) First() Object {
+	if len(m.kv) == 0 {
+		return NULL
+	}
+	return &Map{kv: []KV{
+		{Key: KeyKey, Value: m.kv[0].Key},
+		{Key: ValueKey, Value: m.kv[0].Value},
+	}}
+}
+
+func (m *Map) Rest() Object {
+	if len(m.kv) <= 1 {
+		return NULL
+	}
+	res := &Map{kv: m.kv[1:]}
+	return res
+}
+
 // Creates a new Map appending the right map to the left map.
 func (m *Map) Append(right *Map) *Map {
 	// important to avoid underlying array mutation.
@@ -609,8 +632,20 @@ func (e *Extension) Usage(out *strings.Builder) {
 	switch {
 	case e.MaxArgs < 0:
 		out.WriteString(", ..")
+	case e.MinArgs == 0 && e.MaxArgs == 1:
+		arg := "arg"
+		if len(e.ArgTypes) > 0 {
+			arg = strings.ToLower(e.ArgTypes[0].String())
+		}
+		out.WriteString("[") // to indicate optional
+		out.WriteString(arg)
+		out.WriteString("]")
 	case e.MaxArgs > e.MinArgs:
-		out.WriteString(fmt.Sprintf(", arg%d..arg%d", e.MinArgs+1, e.MaxArgs))
+		prefix := ", "
+		if e.MinArgs == 0 {
+			prefix = ""
+		}
+		out.WriteString(fmt.Sprintf("%sarg%d..arg%d", prefix, e.MinArgs+1, e.MaxArgs))
 	}
 }
 
