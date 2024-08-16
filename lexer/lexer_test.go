@@ -29,7 +29,8 @@ if (5 < 10) {
 "foobar"
 "foo bar"
 "foo\"bar"
-"foo\nbar\t\\"
+"foo\r\nbar\t\\"
+"x\x41y\u263Az\U0001F600"
 [1, 2];
 a2=.3
 {"foo": "bar"}
@@ -123,7 +124,8 @@ a.b
 		{token.STRING, "foobar"},
 		{token.STRING, "foo bar"},
 		{token.STRING, `foo"bar`},
-		{token.STRING, "foo\nbar\t\\"},
+		{token.STRING, "foo\r\nbar\t\\"},
+		{token.STRING, "xAy☺z😀"},
 		{token.LBRACKET, "["},
 		{token.INT, "1"},
 		{token.COMMA, ","},

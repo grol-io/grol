@@ -43,6 +43,9 @@ func boxTextWeb(s) {
 	boxTextInternal(s, rune_len)
 }
 
-testStr = "ABC😀\nHello World 乒乓\nShorter text.\nalso   short"
+testStr = `ABC😀
+Hello World 乒乓
+Shorter text.
+also   short`
 
 boxTextTerm(testStr)

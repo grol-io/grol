@@ -61,7 +61,7 @@ const (
 	IDENT  // add, foobar, x, y, ...
 	INT    // 1343456
 	FLOAT  // .5, 3.14159,...
-	STRING // "foo bar"
+	STRING // "foo bar" or `foo bar`
 	LINECOMMENT
 	BLOCKCOMMENT
 

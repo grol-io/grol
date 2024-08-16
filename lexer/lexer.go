@@ -28,6 +28,13 @@ func NewBytes(input []byte) *Lexer {
 	return &Lexer{input: input}
 }
 
+func (l *Lexer) EOLEOF() *token.Token {
+	if l.lineMode {
+		return token.EOLT
+	}
+	return token.EOFT
+}
+
 func (l *Lexer) NextToken() *token.Token {
 	l.skipWhitespace()
 	ch := l.readChar()
@@ -64,14 +71,14 @@ func (l *Lexer) NextToken() *token.Token {
 			return token.ConstantTokenChar2(ch, nextChar)
 		}
 		return token.ConstantTokenChar(ch)
-	case '"':
-		return token.Intern(token.STRING, l.readString())
-	case 0:
-		if l.lineMode {
-			return token.EOLT
-		} else {
-			return token.EOFT
+	case '"', '`':
+		str, ok := l.readString(ch)
+		if !ok {
+			return l.EOLEOF()
 		}
+		return token.Intern(token.STRING, str)
+	case 0:
+		return l.EOLEOF()
 	case '.':
 		if nextChar == '.' { // DOTDOT
 			l.pos++
@@ -129,26 +136,67 @@ func (l *Lexer) readChar() byte {
 	return ch
 }
 
-func (l *Lexer) readString() string {
+func hexCharToHex(ch byte) byte {
+	switch {
+	case '0' <= ch && ch <= '9':
+		return ch - '0'
+	case 'a' <= ch && ch <= 'f':
+		return ch - 'a' + 10
+	case 'A' <= ch && ch <= 'F':
+		return ch - 'A' + 10
+	}
+	return 0
+}
+
+func (l *Lexer) readHex() byte {
+	hb := hexCharToHex(l.readChar()) << 4
+	lb := hexCharToHex(l.readChar())
+	return hb | lb
+}
+
+func (l *Lexer) readUnicode16() rune {
+	hb := int(l.readHex()) << 8
+	lb := int(l.readHex())
+	return rune(hb | lb)
+}
+
+func (l *Lexer) readUnicode32() rune {
+	hb := l.readUnicode16() << 16
+	lb := l.readUnicode16()
+	return hb | lb
+}
+
+func (l *Lexer) readString(sep byte) (string, bool) {
+	doubleQuotes := (sep == '"')
 	buf := strings.Builder{}
-scanLoop:
 	for {
 		ch := l.readChar()
-		switch ch {
-		case '\\':
+		switch {
+		case doubleQuotes && ch == '\\':
 			ch = l.readChar()
 			switch ch {
+			case 'r':
+				ch = '\r'
 			case 'n':
 				ch = '\n'
 			case 't':
 				ch = '\t'
+			case 'u':
+				buf.WriteRune(l.readUnicode16())
+				continue
+			case 'U':
+				buf.WriteRune(l.readUnicode32())
+				continue
+			case 'x':
+				ch = l.readHex()
 			}
-		case '"', 0:
-			break scanLoop
+		case ch == sep:
+			return buf.String(), true
+		case ch == 0:
+			return buf.String(), false
 		}
 		buf.WriteByte(ch)
 	}
-	return buf.String()
 }
 
 func (l *Lexer) peekChar() byte {
