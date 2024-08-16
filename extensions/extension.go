@@ -262,13 +262,13 @@ func initInternal(c *Config) error { //nolint:funlen,gocognit,gocyclo,maintidx /
 		if len(args) == 1 {
 			return args[0]
 		}
-		min := args[0]
+		minV := args[0]
 		for _, a := range args[1:] {
-			if object.Cmp(a, min) < 0 {
-				min = a
+			if object.Cmp(a, minV) < 0 {
+				minV = a
 			}
 		}
-		return min
+		return minV
 	}
 	err = object.CreateFunction(minMaxFn)
 	if err != nil {
@@ -279,13 +279,13 @@ func initInternal(c *Config) error { //nolint:funlen,gocognit,gocyclo,maintidx /
 		if len(args) == 1 {
 			return args[0]
 		}
-		max := args[0]
+		maxV := args[0]
 		for _, a := range args[1:] {
-			if object.Cmp(a, max) > 0 {
-				max = a
+			if object.Cmp(a, maxV) > 0 {
+				maxV = a
 			}
 		}
-		return max
+		return maxV
 	}
 	err = object.CreateFunction(minMaxFn)
 	if err != nil {
