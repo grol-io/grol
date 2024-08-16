@@ -324,6 +324,8 @@ func TestReadIntNumber(t *testing.T) {
 		{"5", "5"},
 		{"100abc", "100"},
 		{"1000_000", "1000_000"},
+		{"0xe_f1Ag", "0xe_f1A"},
+		{"0b1010_11112", "0b1010_1111"},
 	}
 
 	for _, tt := range tests {

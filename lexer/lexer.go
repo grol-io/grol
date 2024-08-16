@@ -259,6 +259,20 @@ func (l *Lexer) readNumber(ch byte) (token.Type, string) {
 		dotSeen = true
 	}
 	pos := l.pos - 1
+	if ch == '0' && (l.peekChar() == 'x') {
+		l.pos++
+		for isHexDigit(l.peekChar()) {
+			l.pos++
+		}
+		return t, string(l.input[pos:l.pos])
+	}
+	if ch == '0' && (l.peekChar() == 'b') {
+		l.pos++
+		for isBinaryDigit(l.peekChar()) {
+			l.pos++
+		}
+		return t, string(l.input[pos:l.pos])
+	}
 	for isDigitOrUnderscore(l.peekChar()) {
 		hasDigits = true
 		l.pos++
@@ -303,8 +317,16 @@ func (l *Lexer) readNumber(ch byte) (token.Type, string) {
 	return t, string(l.input[pos:l.pos])
 }
 
+func isHexDigit(ch byte) bool {
+	return isDigitOrUnderscore(ch) || ('a' <= ch && ch <= 'f') || ('A' <= ch && ch <= 'F')
+}
+
+func isBinaryDigit(ch byte) bool {
+	return ch == '0' || ch == '1' || ch == '_'
+}
+
 func isLetter(ch byte) bool {
-	return 'a' <= ch && ch <= 'z' || 'A' <= ch && ch <= 'Z' || ch == '_'
+	return ('a' <= ch && ch <= 'z') || ('A' <= ch && ch <= 'Z') || ch == '_'
 }
 
 func IsAlphaNum(ch byte) bool {
