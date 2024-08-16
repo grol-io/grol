@@ -1,0 +1,18 @@
+// Binary bits that work for high bit numbers like ^0 ...
+func bit2str(v) {
+	if v == 1 {
+		"1"
+	} else {
+		"0"
+	}
+}
+
+func binary(v) {
+	if v == 0 {
+		return "0"
+	} else if v == 1 {
+		return "1"
+	} else {
+		return binary(v>>1) + bit2str(v&1)
+	}
+}

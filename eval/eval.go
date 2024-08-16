@@ -619,7 +619,7 @@ func (s *State) evalPrefixExpression(operator token.Type, right object.Object) o
 		return s.evalBangOperatorExpression(right)
 	case token.MINUS:
 		return s.evalMinusPrefixOperatorExpression(right)
-	case token.BITNOT:
+	case token.BITNOT, token.BITXOR:
 		if right.Type() == object.INTEGER {
 			return object.Integer{Value: ^right.(object.Integer).Value}
 		}
@@ -755,7 +755,7 @@ func evalIntegerInfixExpression(operator token.Type, left, right object.Object) 
 	case token.LEFTSHIFT:
 		return object.Integer{Value: leftVal << rightVal}
 	case token.RIGHTSHIFT:
-		return object.Integer{Value: leftVal >> rightVal}
+		return object.Integer{Value: int64(uint64(leftVal) >> rightVal)}
 	case token.BITAND:
 		return object.Integer{Value: leftVal & rightVal}
 	case token.BITOR:
