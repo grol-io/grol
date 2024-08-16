@@ -416,9 +416,8 @@ func evalArrayIndexExpression(array, index object.Object) object.Object {
 func (s *State) applyExtension(fn object.Extension, args []object.Object) object.Object {
 	l := len(args)
 	log.Debugf("apply extension %s variadic %t : %d args %v", fn.Inspect(), fn.Variadic, l, args)
-	if fn.Variadic {
-		// In theory we should only do that if the last arg was ".." and not any array, but
-		// that could be a useful feature too.
+	if fn.MaxArgs == -1 {
+		// Only do this for true variadic functions (maxargs == -1)
 		if l > 0 && args[l-1].Type() == object.ARRAY {
 			args = append(args[:l-1], args[l-1].(object.Array).Elements...)
 			l = len(args)
@@ -710,6 +709,20 @@ func evalStringInfixExpression(operator token.Type, left, right object.Object) o
 func evalArrayInfixExpression(operator token.Type, left, right object.Object) object.Object {
 	leftVal := left.(object.Array).Elements
 	switch operator { //nolint:exhaustive // we have default.
+	case token.ASTERISK: // repeat
+		if right.Type() != object.INTEGER {
+			return object.Error{Value: "right operand of * on arrays must be an integer"}
+		}
+		// TODO: go1.23 use	slices.Repeat
+		rightVal := right.(object.Integer).Value
+		if rightVal < 0 {
+			return object.Error{Value: "right operand of * on arrays must be a positive integer"}
+		}
+		result := make([]object.Object, 0, len(leftVal)*int(rightVal))
+		for range rightVal {
+			result = append(result, leftVal...)
+		}
+		return object.Array{Elements: result}
 	case token.PLUS: // concat / append
 		if right.Type() != object.ARRAY {
 			return object.Array{Elements: append(leftVal, right)}
