@@ -10,9 +10,8 @@ require (
 	fortio.org/terminal v0.7.3
 	fortio.org/testscript v0.3.1 // only for tests
 	fortio.org/version v1.0.4
+	github.com/rivo/uniseg v0.4.7
 )
-
-require github.com/rivo/uniseg v0.4.7
 
 require (
 	fortio.org/term v0.23.0-fortio-6 // indirect
