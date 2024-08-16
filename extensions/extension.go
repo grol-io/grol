@@ -7,6 +7,7 @@ import (
 	"io"
 	"math"
 	"os"
+	"strconv"
 	"strings"
 	"unicode/utf8"
 
@@ -288,6 +289,41 @@ func initInternal(c *Config) error { //nolint:funlen,gocognit,gocyclo,maintidx /
 		return maxV
 	}
 	err = object.CreateFunction(minMaxFn)
+	if err != nil {
+		return err
+	}
+
+	intFn := object.Extension{
+		Name:     "int",
+		MinArgs:  1,
+		MaxArgs:  1,
+		ArgTypes: []object.Type{object.ANY},
+		Callback: func(_ any, _ string, args []object.Object) object.Object {
+			o := args[0]
+			switch o.Type() { //nolint:exhaustive // that's what default is for.
+			case object.INTEGER:
+				return o
+			case object.NIL:
+				return object.Integer{Value: 0}
+			case object.BOOLEAN:
+				if o.(object.Boolean).Value {
+					return object.Integer{Value: 1}
+				}
+				return object.Integer{Value: 0}
+			case object.FLOAT:
+				return object.Integer{Value: int64(o.(object.Float).Value)}
+			case object.STRING:
+				i, serr := strconv.ParseInt(o.(object.String).Value, 0, 64)
+				if serr != nil {
+					return object.Error{Value: serr.Error()}
+				}
+				return object.Integer{Value: i}
+			default:
+				return object.Error{Value: fmt.Sprintf("cannot convert %s to int", o.Type())}
+			}
+		},
+	}
+	err = object.CreateFunction(intFn)
 	if err != nil {
 		return err
 	}
