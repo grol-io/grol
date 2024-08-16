@@ -8,8 +8,10 @@ import (
 	"math"
 	"os"
 	"strings"
+	"unicode/utf8"
 
 	"fortio.org/log"
+	"github.com/rivo/uniseg"
 	"grol.io/grol/eval"
 	"grol.io/grol/lexer"
 	"grol.io/grol/object"
@@ -177,6 +179,41 @@ func initInternal(c *Config) error {
 		if err != nil {
 			return err
 		}
+	}
+	strFn := object.Extension{
+		MinArgs:  1,
+		MaxArgs:  1,
+		ArgTypes: []object.Type{object.STRING},
+	}
+	strFn.Name = "runes" // like explode.gr explodeRunes but go side and not recursive.
+	strFn.Callback = func(_ any, _ string, args []object.Object) object.Object {
+		inp := args[0].(object.String).Value
+		gorunes := []rune(inp)
+		runes := make([]object.Object, len(gorunes))
+		for i, r := range gorunes {
+			runes[i] = object.String{Value: string(r)}
+		}
+		return object.Array{Elements: runes}
+	}
+	err = object.CreateFunction(strFn)
+	if err != nil {
+		return err
+	}
+	strFn.Name = "rune_len"
+	strFn.Callback = func(_ any, _ string, args []object.Object) object.Object {
+		return object.Integer{Value: int64(utf8.RuneCountInString(args[0].(object.String).Value))}
+	}
+	err = object.CreateFunction(strFn)
+	if err != nil {
+		return err
+	}
+	strFn.Name = "width"
+	strFn.Callback = func(_ any, _ string, args []object.Object) object.Object {
+		return object.Integer{Value: int64(uniseg.StringWidth((args[0].(object.String).Value)))}
+	}
+	err = object.CreateFunction(strFn)
+	if err != nil {
+		return err
 	}
 	return nil
 }

@@ -1,0 +1,21 @@
+// Output input string sourounded by rounded corner box
+
+box = {
+	"topLeft": "╭",
+	"topRight": "╮",
+	"bottomLeft": "╰",
+	"bottomRight": "╯",
+	"horizontal": "─",
+	"vertical": "│"
+}
+
+func boxText(s) {
+	// Get the width of the string (including double width runes)
+	lenS = width(s)
+	// Create the top line
+	println(box.topLeft + box.horizontal * lenS + box.topRight)
+	// Create the middle line
+	println(box.vertical +  s + box.vertical)
+	// Create the bottom line
+	println(box.bottomLeft + box.horizontal * lenS + box.bottomRight)
+}
