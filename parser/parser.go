@@ -17,6 +17,8 @@ const (
 	_ Priority = iota
 	LOWEST
 	ASSIGN      // =
+	OR          // ||
+	AND         // &&
 	EQUALS      // ==
 	LESSGREATER // > or <
 	SUM         // +
@@ -86,6 +88,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.PLUS, p.parsePrefixExpression)
 	p.registerPrefix(token.INCR, p.parsePrefixExpression)
 	p.registerPrefix(token.DECR, p.parsePrefixExpression)
+	p.registerPrefix(token.BITNOT, p.parsePrefixExpression)
 	p.registerPrefix(token.TRUE, p.parseBoolean)
 	p.registerPrefix(token.FALSE, p.parseBoolean)
 	p.registerPrefix(token.LPAREN, p.parseGroupedExpression)
@@ -122,6 +125,14 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerInfix(token.LPAREN, p.parseCallExpression)
 	p.registerInfix(token.LBRACKET, p.parseIndexExpression)
 	p.registerInfix(token.DOT, p.parseIndexExpression)
+	p.registerInfix(token.LEFTSHIFT, p.parseInfixExpression)
+	p.registerInfix(token.RIGHTSHIFT, p.parseInfixExpression)
+	p.registerInfix(token.OR, p.parseInfixExpression)
+	p.registerInfix(token.AND, p.parseInfixExpression)
+	p.registerInfix(token.BITAND, p.parseInfixExpression)
+	p.registerInfix(token.BITOR, p.parseInfixExpression)
+	p.registerInfix(token.BITXOR, p.parseInfixExpression)
+
 	// no let:
 	p.registerInfix(token.ASSIGN, p.parseInfixExpression)
 
@@ -375,21 +386,28 @@ func (p *Parser) parsePostfixExpression() ast.Node {
 }
 
 var precedences = map[token.Type]Priority{
-	token.ASSIGN:   ASSIGN,
-	token.EQ:       EQUALS,
-	token.NOTEQ:    EQUALS,
-	token.LT:       LESSGREATER,
-	token.GT:       LESSGREATER,
-	token.LTEQ:     LESSGREATER,
-	token.GTEQ:     LESSGREATER,
-	token.PLUS:     SUM,
-	token.MINUS:    SUM,
-	token.SLASH:    PRODUCT,
-	token.ASTERISK: PRODUCT,
-	token.PERCENT:  PRODUCT,
-	token.LPAREN:   CALL,
-	token.LBRACKET: INDEX,
-	token.DOT:      DOTINDEX,
+	token.ASSIGN:     ASSIGN,
+	token.EQ:         EQUALS,
+	token.NOTEQ:      EQUALS,
+	token.LT:         LESSGREATER,
+	token.GT:         LESSGREATER,
+	token.LTEQ:       LESSGREATER,
+	token.GTEQ:       LESSGREATER,
+	token.PLUS:       SUM,
+	token.MINUS:      SUM,
+	token.BITOR:      SUM,
+	token.BITXOR:     SUM,
+	token.BITAND:     PRODUCT,
+	token.SLASH:      PRODUCT,
+	token.ASTERISK:   PRODUCT,
+	token.PERCENT:    PRODUCT,
+	token.LEFTSHIFT:  PRODUCT,
+	token.RIGHTSHIFT: PRODUCT,
+	token.LPAREN:     CALL,
+	token.LBRACKET:   INDEX,
+	token.DOT:        DOTINDEX,
+	token.AND:        AND,
+	token.OR:         OR,
 }
 
 func (p *Parser) peekPrecedence() Priority {

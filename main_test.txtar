@@ -169,6 +169,17 @@ grol -no-auto -quiet -c 'print(int("0xff"), int(PI))'
 stdout '^255 3$'
 !stderr .
 
+# short circuiting
+grol -no-auto -quiet -c 'if true || println("not ran") {println("is true")}'
+stdout '^is true$'
+!stderr .
+!stdout 'not ran'
+
+grol -no-auto -quiet -c 'if false && println("not ran") {true} else {println("is false")}'
+stdout '^is false$'
+!stderr .
+!stdout 'not ran'
+
 -- sample_test.gr --
 // Sample file that our gorepl can interpret
 // <--- comments
