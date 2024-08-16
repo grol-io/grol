@@ -709,6 +709,20 @@ func evalStringInfixExpression(operator token.Type, left, right object.Object) o
 func evalArrayInfixExpression(operator token.Type, left, right object.Object) object.Object {
 	leftVal := left.(object.Array).Elements
 	switch operator { //nolint:exhaustive // we have default.
+	case token.ASTERISK: // repeat
+		if right.Type() != object.INTEGER {
+			return object.Error{Value: "right operand of * on arrays must be an integer"}
+		}
+		// TODO: go1.23 use	slices.Repeat
+		rightVal := right.(object.Integer).Value
+		if rightVal < 0 {
+			return object.Error{Value: "right operand of * on arrays must be a positive integer"}
+		}
+		result := make([]object.Object, 0, len(leftVal)*int(rightVal))
+		for range rightVal {
+			result = append(result, leftVal...)
+		}
+		return object.Array{Elements: result}
 	case token.PLUS: // concat / append
 		if right.Type() != object.ARRAY {
 			return object.Array{Elements: append(leftVal, right)}
