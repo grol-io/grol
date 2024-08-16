@@ -52,7 +52,7 @@ func Init(c *Config) error {
 
 type OneFloatInOutFunc func(float64) float64
 
-func initInternal(c *Config) error {
+func initInternal(c *Config) error { //nolint:funlen // yeah we add a bunch of stuff.
 	unrestrictedIOs = c.UnrestrictedIOs
 	emptyOnly = c.LoadSaveEmptyOnly
 	cmd := object.Extension{
