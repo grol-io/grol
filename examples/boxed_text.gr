@@ -1,0 +1,51 @@
+// Output input string sourounded by rounded corner box
+
+box = {
+	"topLeft": "╭",
+	"topRight": "╮",
+	"bottomLeft": "╰",
+	"bottomRight": "╯",
+	"horizontal": "─",
+	"vertical": "│"
+}
+
+apply = func(f, a) {
+    if (len(a)==0) {
+        return []
+    }
+    return [f(first(a))]+apply(f,rest(a))
+}
+
+
+func boxTextInternal(s, lenFunc) {
+	lines = split(s, "\n")
+	// get max
+	maxLen = max(apply(func(x) {lenFunc(x)}, lines))
+	// Create the top line
+	println(box.topLeft + box.horizontal * maxLen + box.topRight)
+	// Create the middle lines
+	apply(func(x) {
+		pad = maxLen - lenFunc(x)
+		leftPad = pad / 2
+		rightPad = pad - leftPad
+		println(box.vertical + (" "*leftPad) + x +  (" "*rightPad)+ box.vertical)}, lines)
+	// Create the bottom line
+	println(box.bottomLeft + box.horizontal * maxLen + box.bottomRight)
+}
+
+func boxTextTerm(s) {
+	// Get the width of the string (including double width runes)
+	boxTextInternal(s, width)
+}
+
+func boxTextWeb(s) {
+	// Just use rune count for web
+	boxTextInternal(s, rune_len)
+}
+
+testStr = `ABC😀
+Hello World 乒乓
+Shorter text.
+also   short`
+
+boxTextTerm(testStr)

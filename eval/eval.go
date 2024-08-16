@@ -665,7 +665,7 @@ func (s *State) evalInfixExpression(operator token.Type, left, right object.Obje
 		return evalIntegerInfixExpression(operator, left, right)
 	case left.Type() == object.FLOAT || right.Type() == object.FLOAT:
 		return evalFloatInfixExpression(operator, left, right)
-	case left.Type() == object.STRING && right.Type() == object.STRING:
+	case left.Type() == object.STRING:
 		return evalStringInfixExpression(operator, left, right)
 	case left.Type() == object.ARRAY:
 		return evalArrayInfixExpression(operator, left, right)
@@ -678,10 +678,13 @@ func (s *State) evalInfixExpression(operator token.Type, left, right object.Obje
 
 func evalStringInfixExpression(operator token.Type, left, right object.Object) object.Object {
 	leftVal := left.(object.String).Value
-	rightVal := right.(object.String).Value
-	switch operator { //nolint:exhaustive // we have default.
-	case token.PLUS:
+	switch {
+	case operator == token.PLUS && right.Type() == object.STRING:
+		rightVal := right.(object.String).Value
 		return object.String{Value: leftVal + rightVal}
+	case operator == token.ASTERISK && right.Type() == object.INTEGER:
+		rightVal := right.(object.Integer).Value
+		return object.String{Value: strings.Repeat(leftVal, int(rightVal))}
 	default:
 		return object.Error{Value: fmt.Sprintf("unknown operator: %s %s %s",
 			left.Type(), operator, right.Type())}

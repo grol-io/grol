@@ -12,6 +12,8 @@ require (
 	fortio.org/version v1.0.4
 )
 
+require github.com/rivo/uniseg v0.4.7
+
 require (
 	fortio.org/term v0.23.0-fortio-6 // indirect
 	github.com/kortschak/goroutine v1.1.2 // indirect

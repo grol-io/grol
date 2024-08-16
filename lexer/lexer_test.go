@@ -29,7 +29,8 @@ if (5 < 10) {
 "foobar"
 "foo bar"
 "foo\"bar"
-"foo\nbar\t\\"
+"foo\r\nbar\t\\"
+"x\x41y\u263Az\U0001F600"
 [1, 2];
 a2=.3
 {"foo": "bar"}
@@ -123,7 +124,8 @@ a.b
 		{token.STRING, "foobar"},
 		{token.STRING, "foo bar"},
 		{token.STRING, `foo"bar`},
-		{token.STRING, "foo\nbar\t\\"},
+		{token.STRING, "foo\r\nbar\t\\"},
+		{token.STRING, "xAy☺z😀"},
 		{token.LBRACKET, "["},
 		{token.INT, "1"},
 		{token.COMMA, ","},
@@ -322,6 +324,8 @@ func TestReadIntNumber(t *testing.T) {
 		{"5", "5"},
 		{"100abc", "100"},
 		{"1000_000", "1000_000"},
+		{"0xe_f1Ag", "0xe_f1A"},
+		{"0b1010_11112", "0b1010_1111"},
 	}
 
 	for _, tt := range tests {

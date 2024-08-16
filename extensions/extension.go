@@ -8,8 +8,10 @@ import (
 	"math"
 	"os"
 	"strings"
+	"unicode/utf8"
 
 	"fortio.org/log"
+	"github.com/rivo/uniseg"
 	"grol.io/grol/eval"
 	"grol.io/grol/lexer"
 	"grol.io/grol/object"
@@ -50,7 +52,7 @@ func Init(c *Config) error {
 
 type OneFloatInOutFunc func(float64) float64
 
-func initInternal(c *Config) error {
+func initInternal(c *Config) error { //nolint:funlen,gocognit,gocyclo,maintidx // yeah we add a bunch of stuff.
 	unrestrictedIOs = c.UnrestrictedIOs
 	emptyOnly = c.LoadSaveEmptyOnly
 	cmd := object.Extension{
@@ -177,6 +179,117 @@ func initInternal(c *Config) error {
 		if err != nil {
 			return err
 		}
+	}
+	strFn := object.Extension{
+		MinArgs:  1,
+		MaxArgs:  1,
+		ArgTypes: []object.Type{object.STRING},
+	}
+	strFn.Name = "runes" // like explode.gr explodeRunes but go side and not recursive.
+	strFn.Callback = func(_ any, _ string, args []object.Object) object.Object {
+		inp := args[0].(object.String).Value
+		gorunes := []rune(inp)
+		runes := make([]object.Object, len(gorunes))
+		for i, r := range gorunes {
+			runes[i] = object.String{Value: string(r)}
+		}
+		return object.Array{Elements: runes}
+	}
+	err = object.CreateFunction(strFn)
+	if err != nil {
+		return err
+	}
+	strFn.Name = "rune_len"
+	strFn.Callback = func(_ any, _ string, args []object.Object) object.Object {
+		return object.Integer{Value: int64(utf8.RuneCountInString(args[0].(object.String).Value))}
+	}
+	err = object.CreateFunction(strFn)
+	if err != nil {
+		return err
+	}
+	strFn.Name = "width"
+	strFn.Callback = func(_ any, _ string, args []object.Object) object.Object {
+		return object.Integer{Value: int64(uniseg.StringWidth((args[0].(object.String).Value)))}
+	}
+	err = object.CreateFunction(strFn)
+	if err != nil {
+		return err
+	}
+	strFn.Name = "split"
+	strFn.MinArgs = 2
+	strFn.MaxArgs = 2
+	strFn.ArgTypes = []object.Type{object.STRING, object.STRING}
+	strFn.Callback = func(_ any, _ string, args []object.Object) object.Object {
+		inp := args[0].(object.String).Value
+		sep := args[1].(object.String).Value
+		parts := strings.Split(inp, sep)
+		strs := make([]object.Object, len(parts))
+		for i, p := range parts {
+			strs[i] = object.String{Value: p}
+		}
+		return object.Array{Elements: strs}
+	}
+	err = object.CreateFunction(strFn)
+	if err != nil {
+		return err
+	}
+	strFn.Name = "join"
+	strFn.ArgTypes = []object.Type{object.ARRAY, object.STRING}
+	strFn.Callback = func(_ any, _ string, args []object.Object) object.Object {
+		arr := args[0].(object.Array).Elements
+		sep := args[1].(object.String).Value
+		strs := make([]string, len(arr))
+		for i, a := range arr {
+			if a.Type() != object.STRING {
+				strs[i] = a.Inspect()
+			} else {
+				strs[i] = a.(object.String).Value
+			}
+		}
+		return object.String{Value: strings.Join(strs, sep)}
+	}
+	err = object.CreateFunction(strFn)
+	if err != nil {
+		return err
+	}
+	minMaxFn := object.Extension{
+		MinArgs:  1,
+		MaxArgs:  -1,
+		ArgTypes: []object.Type{object.ANY},
+	}
+	minMaxFn.Name = "min"
+	minMaxFn.Callback = func(_ any, _ string, args []object.Object) object.Object {
+		if len(args) == 1 {
+			return args[0]
+		}
+		minV := args[0]
+		for _, a := range args[1:] {
+			if object.Cmp(a, minV) < 0 {
+				minV = a
+			}
+		}
+		return minV
+	}
+	err = object.CreateFunction(minMaxFn)
+	if err != nil {
+		return err
+	}
+	minMaxFn.Name = "max"
+	minMaxFn.Callback = func(_ any, _ string, args []object.Object) object.Object {
+		if len(args) == 1 {
+			return args[0]
+		}
+		maxV := args[0]
+		for _, a := range args[1:] {
+			if object.Cmp(a, maxV) > 0 {
+				maxV = a
+			}
+		}
+		return maxV
+	}
+	err = object.CreateFunction(minMaxFn)
+	if err != nil {
+		return err
 	}
 	return nil
 }
