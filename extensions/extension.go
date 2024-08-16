@@ -52,7 +52,7 @@ func Init(c *Config) error {
 
 type OneFloatInOutFunc func(float64) float64
 
-func initInternal(c *Config) error { //nolint:funlen // yeah we add a bunch of stuff.
+func initInternal(c *Config) error { //nolint:funlen,gocognit,gocyclo,maintidx // yeah we add a bunch of stuff.
 	unrestrictedIOs = c.UnrestrictedIOs
 	emptyOnly = c.LoadSaveEmptyOnly
 	cmd := object.Extension{
@@ -212,6 +212,82 @@ func initInternal(c *Config) error { //nolint:funlen // yeah we add a bunch of s
 		return object.Integer{Value: int64(uniseg.StringWidth((args[0].(object.String).Value)))}
 	}
 	err = object.CreateFunction(strFn)
+	if err != nil {
+		return err
+	}
+	strFn.Name = "split"
+	strFn.MinArgs = 2
+	strFn.MaxArgs = 2
+	strFn.ArgTypes = []object.Type{object.STRING, object.STRING}
+	strFn.Callback = func(_ any, _ string, args []object.Object) object.Object {
+		inp := args[0].(object.String).Value
+		sep := args[1].(object.String).Value
+		parts := strings.Split(inp, sep)
+		strs := make([]object.Object, len(parts))
+		for i, p := range parts {
+			strs[i] = object.String{Value: p}
+		}
+		return object.Array{Elements: strs}
+	}
+	err = object.CreateFunction(strFn)
+	if err != nil {
+		return err
+	}
+	strFn.Name = "join"
+	strFn.ArgTypes = []object.Type{object.ARRAY, object.STRING}
+	strFn.Callback = func(_ any, _ string, args []object.Object) object.Object {
+		arr := args[0].(object.Array).Elements
+		sep := args[1].(object.String).Value
+		strs := make([]string, len(arr))
+		for i, a := range arr {
+			if a.Type() != object.STRING {
+				strs[i] = a.Inspect()
+			} else {
+				strs[i] = a.(object.String).Value
+			}
+		}
+		return object.String{Value: strings.Join(strs, sep)}
+	}
+	err = object.CreateFunction(strFn)
+	if err != nil {
+		return err
+	}
+	minMaxFn := object.Extension{
+		MinArgs:  1,
+		MaxArgs:  -1,
+		ArgTypes: []object.Type{object.ANY},
+	}
+	minMaxFn.Name = "min"
+	minMaxFn.Callback = func(_ any, _ string, args []object.Object) object.Object {
+		if len(args) == 1 {
+			return args[0]
+		}
+		min := args[0]
+		for _, a := range args[1:] {
+			if object.Cmp(a, min) < 0 {
+				min = a
+			}
+		}
+		return min
+	}
+	err = object.CreateFunction(minMaxFn)
+	if err != nil {
+		return err
+	}
+	minMaxFn.Name = "max"
+	minMaxFn.Callback = func(_ any, _ string, args []object.Object) object.Object {
+		if len(args) == 1 {
+			return args[0]
+		}
+		max := args[0]
+		for _, a := range args[1:] {
+			if object.Cmp(a, max) > 0 {
+				max = a
+			}
+		}
+		return max
+	}
+	err = object.CreateFunction(minMaxFn)
 	if err != nil {
 		return err
 	}
