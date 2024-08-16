@@ -101,7 +101,7 @@ func (s *State) evalPostfixExpression(node *ast.PostfixExpression) object.Object
 }
 
 // Doesn't unwrap return - return bubbles up.
-func (s *State) evalInternal(node any) object.Object { //nolint:funlen // quite a lot of cases.
+func (s *State) evalInternal(node any) object.Object { //nolint:funlen,gocyclo // quite a lot of cases.
 	switch node := node.(type) {
 	// Statements
 	case *ast.Statements:
@@ -134,6 +134,13 @@ func (s *State) evalInternal(node any) object.Object { //nolint:funlen // quite 
 		}
 		// Humans expect left to right evaluations.
 		left := s.Eval(node.Left)
+		// Short circuiting for AND and OR:
+		if node.Token.Type() == token.AND && left == object.FALSE {
+			return object.FALSE
+		}
+		if node.Token.Type() == token.OR && left == object.TRUE {
+			return object.TRUE
+		}
 		right := s.Eval(node.Right)
 		return s.evalInfixExpression(node.Type(), left, right)
 
@@ -612,6 +619,11 @@ func (s *State) evalPrefixExpression(operator token.Type, right object.Object) o
 		return s.evalBangOperatorExpression(right)
 	case token.MINUS:
 		return s.evalMinusPrefixOperatorExpression(right)
+	case token.BITNOT, token.BITXOR:
+		if right.Type() == object.INTEGER {
+			return object.Integer{Value: ^right.(object.Integer).Value}
+		}
+		return object.Error{Value: "bitwise not of " + right.Inspect()}
 	case token.PLUS:
 		// nothing do with unary plus, just return the value.
 		return right
@@ -627,7 +639,7 @@ func (s *State) evalBangOperatorExpression(right object.Object) object.Object {
 	case object.FALSE:
 		return object.TRUE
 	case object.NULL:
-		return object.Error{Value: "not of object.NULL"}
+		return object.TRUE // allow !nil == true
 	default:
 		return object.Error{Value: "not of " + right.Inspect()}
 	}
@@ -660,6 +672,10 @@ func (s *State) evalInfixExpression(operator token.Type, left, right object.Obje
 		return object.NativeBoolToBooleanObject(object.Cmp(left, right) >= 0)
 	case operator == token.LTEQ:
 		return object.NativeBoolToBooleanObject(object.Cmp(left, right) <= 0)
+	case operator == token.AND:
+		return object.NativeBoolToBooleanObject(left == object.TRUE && right == object.TRUE)
+	case operator == token.OR:
+		return object.NativeBoolToBooleanObject(left == object.TRUE || right == object.TRUE)
 		// can't use generics :/ see other comment.
 	case left.Type() == object.INTEGER && right.Type() == object.INTEGER:
 		return evalIntegerInfixExpression(operator, left, right)
@@ -736,6 +752,16 @@ func evalIntegerInfixExpression(operator token.Type, left, right object.Object) 
 		return object.Integer{Value: leftVal / rightVal}
 	case token.PERCENT:
 		return object.Integer{Value: leftVal % rightVal}
+	case token.LEFTSHIFT:
+		return object.Integer{Value: leftVal << rightVal}
+	case token.RIGHTSHIFT:
+		return object.Integer{Value: int64(uint64(leftVal) >> rightVal)}
+	case token.BITAND:
+		return object.Integer{Value: leftVal & rightVal}
+	case token.BITOR:
+		return object.Integer{Value: leftVal | rightVal}
+	case token.BITXOR:
+		return object.Integer{Value: leftVal ^ rightVal}
 	default:
 		return object.Error{Value: "unknown operator: " + operator.String()}
 	}

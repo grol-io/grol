@@ -10,19 +10,21 @@ func _() {
 	var x [1]struct{}
 	_ = x[LOWEST-1]
 	_ = x[ASSIGN-2]
-	_ = x[EQUALS-3]
-	_ = x[LESSGREATER-4]
-	_ = x[SUM-5]
-	_ = x[PRODUCT-6]
-	_ = x[PREFIX-7]
-	_ = x[CALL-8]
-	_ = x[INDEX-9]
-	_ = x[DOTINDEX-10]
+	_ = x[OR-3]
+	_ = x[AND-4]
+	_ = x[EQUALS-5]
+	_ = x[LESSGREATER-6]
+	_ = x[SUM-7]
+	_ = x[PRODUCT-8]
+	_ = x[PREFIX-9]
+	_ = x[CALL-10]
+	_ = x[INDEX-11]
+	_ = x[DOTINDEX-12]
 }
 
-const _Priority_name = "LOWESTASSIGNEQUALSLESSGREATERSUMPRODUCTPREFIXCALLINDEXDOTINDEX"
+const _Priority_name = "LOWESTASSIGNORANDEQUALSLESSGREATERSUMPRODUCTPREFIXCALLINDEXDOTINDEX"
 
-var _Priority_index = [...]uint8{0, 6, 12, 18, 29, 32, 39, 45, 49, 54, 62}
+var _Priority_index = [...]uint8{0, 6, 12, 14, 17, 23, 34, 37, 44, 50, 54, 59, 67}
 
 func (i Priority) String() string {
 	i -= 1

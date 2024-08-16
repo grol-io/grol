@@ -79,6 +79,11 @@ const (
 	PERCENT
 	LT
 	GT
+	BITAND
+	BITOR
+	BITXOR
+	BITNOT
+
 	// Delimiters.
 	COMMA
 	SEMICOLON
@@ -105,6 +110,10 @@ const (
 	INCR
 	DECR
 	DOTDOT
+	OR
+	AND
+	LEFTSHIFT
+	RIGHTSHIFT
 
 	endMultiCharTokens
 
@@ -238,6 +247,10 @@ func Init() {
 	assoc(RBRACKET, ']')
 	assoc(COLON, ':')
 	assoc(DOT, '.')
+	assoc(BITAND, '&')
+	assoc(BITOR, '|')
+	assoc(BITXOR, '^')
+	assoc(BITNOT, '~')
 	// Verify we have all of them.
 	for i := startSingleCharTokens + 1; i < endSingleCharTokens; i++ {
 		b, ok := tToChar[i]
@@ -271,6 +284,10 @@ func Init() {
 	assocC2(INCR, "++")
 	assocC2(DECR, "--")
 	assocC2(DOTDOT, "..")
+	assocC2(OR, "||")
+	assocC2(AND, "&&")
+	assocC2(LEFTSHIFT, "<<")
+	assocC2(RIGHTSHIFT, ">>")
 	// Special alias for := to be same as ASSIGN.
 	c2Tokens[[2]byte{':', '='}] = cTokens['=']
 	info.Tokens.Add(":=")
