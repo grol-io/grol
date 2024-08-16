@@ -217,12 +217,15 @@ func initInternal(c *Config) error { //nolint:funlen,gocognit,gocyclo,maintidx /
 		return err
 	}
 	strFn.Name = "split"
-	strFn.MinArgs = 2
+	strFn.MinArgs = 1
 	strFn.MaxArgs = 2
 	strFn.ArgTypes = []object.Type{object.STRING, object.STRING}
 	strFn.Callback = func(_ any, _ string, args []object.Object) object.Object {
 		inp := args[0].(object.String).Value
-		sep := args[1].(object.String).Value
+		sep := ""
+		if len(args) == 2 {
+			sep = args[1].(object.String).Value
+		}
 		parts := strings.Split(inp, sep)
 		strs := make([]object.Object, len(parts))
 		for i, p := range parts {
@@ -238,7 +241,10 @@ func initInternal(c *Config) error { //nolint:funlen,gocognit,gocyclo,maintidx /
 	strFn.ArgTypes = []object.Type{object.ARRAY, object.STRING}
 	strFn.Callback = func(_ any, _ string, args []object.Object) object.Object {
 		arr := args[0].(object.Array).Elements
-		sep := args[1].(object.String).Value
+		sep := ""
+		if len(args) == 2 {
+			sep = args[1].(object.String).Value
+		}
 		strs := make([]string, len(arr))
 		for i, a := range arr {
 			if a.Type() != object.STRING {

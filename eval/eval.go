@@ -416,9 +416,8 @@ func evalArrayIndexExpression(array, index object.Object) object.Object {
 func (s *State) applyExtension(fn object.Extension, args []object.Object) object.Object {
 	l := len(args)
 	log.Debugf("apply extension %s variadic %t : %d args %v", fn.Inspect(), fn.Variadic, l, args)
-	if fn.Variadic {
-		// In theory we should only do that if the last arg was ".." and not any array, but
-		// that could be a useful feature too.
+	if fn.MaxArgs == -1 {
+		// Only do this for true variadic functions (maxargs == -1)
 		if l > 0 && args[l-1].Type() == object.ARRAY {
 			args = append(args[:l-1], args[l-1].(object.Array).Elements...)
 			l = len(args)

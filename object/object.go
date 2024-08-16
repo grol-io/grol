@@ -593,7 +593,7 @@ type Extension struct {
 	MaxArgs  int         // Maximum number of arguments allowed. -1 for unlimited.
 	ArgTypes []Type      // Type of each argument, provided at least up to MinArgs.
 	Callback ExtFunction // The go function or lambda to call when the grol by Name(...) is invoked.
-	Variadic bool        // MaxArgs > MinArgs
+	Variadic bool        // MaxArgs > MinArgs (or MaxArg == -1)
 }
 
 // Adapter for functions that only need the argumants.
@@ -620,22 +620,23 @@ func (e *Extension) Usage(out *strings.Builder) {
 		t := strings.ToLower(e.ArgTypes[i-1].String())
 		out.WriteString(t)
 	}
+	prefix := ", "
+	if e.MinArgs == 0 {
+		prefix = ""
+	}
 	switch {
 	case e.MaxArgs < 0:
 		out.WriteString(", ..")
-	case e.MinArgs == 0 && e.MaxArgs == 1:
+	case e.MaxArgs == e.MinArgs+1: // only 1 extra optional argument.
 		arg := "arg"
-		if len(e.ArgTypes) > 0 {
-			arg = strings.ToLower(e.ArgTypes[0].String())
+		if len(e.ArgTypes) > e.MinArgs {
+			arg = strings.ToLower(e.ArgTypes[e.MinArgs].String())
 		}
+		out.WriteString(prefix)
 		out.WriteString("[") // to indicate optional
 		out.WriteString(arg)
 		out.WriteString("]")
 	case e.MaxArgs > e.MinArgs:
-		prefix := ", "
-		if e.MinArgs == 0 {
-			prefix = ""
-		}
 		out.WriteString(fmt.Sprintf("%sarg%d..arg%d", prefix, e.MinArgs+1, e.MaxArgs))
 	}
 }
