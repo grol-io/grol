@@ -250,14 +250,17 @@ func initInternal(c *Config) error { //nolint:funlen,gocognit,gocyclo,maintidx /
 			sep = args[1].(object.String).Value
 		}
 		strs := make([]string, len(arr))
+		totalLen := 0
+		sepLen := len(sep)
 		for i, a := range arr {
 			if a.Type() != object.STRING {
 				strs[i] = a.Inspect()
 			} else {
 				strs[i] = a.(object.String).Value
 			}
+			totalLen += len(strs[i]) + sepLen
 		}
-		object.MustBeOk((len(strs) * len(sep)) / object.ObjectSize)
+		object.MustBeOk(totalLen / object.ObjectSize) // off by sepLen but that's ok.
 		return object.String{Value: strings.Join(strs, sep)}
 	}
 	err = object.CreateFunction(strFn)
