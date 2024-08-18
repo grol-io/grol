@@ -5,8 +5,10 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"math"
 	"os"
 	"path/filepath"
+	"runtime/debug"
 
 	"fortio.org/cli"
 	"fortio.org/log"
@@ -74,6 +76,10 @@ func Main() int {
 		}
 	}
 	log.Infof("grol %s - welcome!", cli.LongVersion)
+	memlimit := debug.SetMemoryLimit(-1)
+	if memlimit == math.MaxInt64 {
+		log.Warnf("Memory limit not set, please set GOMEMLIMIT=1GiB or similar")
+	}
 	options := repl.Options{
 		ShowParse:   *showParse,
 		ShowEval:    *showEval,

@@ -699,6 +699,8 @@ func evalStringInfixExpression(operator token.Type, left, right object.Object) o
 		return object.String{Value: leftVal + rightVal}
 	case operator == token.ASTERISK && right.Type() == object.INTEGER:
 		rightVal := right.(object.Integer).Value
+		n := len(leftVal) * int(rightVal)
+		object.MustBeOk(n / object.ObjectSize)
 		return object.String{Value: strings.Repeat(leftVal, int(rightVal))}
 	default:
 		return object.Error{Value: fmt.Sprintf("unknown operator: %s %s %s",
@@ -718,7 +720,7 @@ func evalArrayInfixExpression(operator token.Type, left, right object.Object) ob
 		if rightVal < 0 {
 			return object.Error{Value: "right operand of * on arrays must be a positive integer"}
 		}
-		result := make([]object.Object, 0, len(leftVal)*int(rightVal))
+		result := object.MakeObjectSlice(len(leftVal) * int(rightVal))
 		for range rightVal {
 			result = append(result, leftVal...)
 		}
@@ -727,7 +729,9 @@ func evalArrayInfixExpression(operator token.Type, left, right object.Object) ob
 		if right.Type() != object.ARRAY {
 			return object.Array{Elements: append(leftVal, right)}
 		}
-		return object.Array{Elements: append(leftVal, right.(object.Array).Elements...)}
+		rightArr := right.(object.Array).Elements
+		object.MustBeOk(len(leftVal) + len(rightArr))
+		return object.Array{Elements: append(leftVal, rightArr...)}
 	default:
 		return object.Error{Value: fmt.Sprintf("unknown operator: %s %s %s",
 			left.Type(), operator, right.Type())}
