@@ -9,6 +9,7 @@ package main
 
 import (
 	"runtime"
+	"runtime/debug"
 	"strings"
 	"syscall/js"
 
@@ -23,6 +24,9 @@ import (
 // Error: Maximum call stack size exceeded.
 // That means n = 3096 on pi2.gr, off by 4 for some reason
 var WasmMaxDepth = 3_100
+
+// Set a reasonably low memory limit for wasm. 512MiB.
+var WasmMemLimit = int64(512 * 1024 * 1024) // 512MiB
 
 func jsEval(this js.Value, args []js.Value) interface{} {
 	if len(args) != 1 && len(args) != 2 {
@@ -69,7 +73,8 @@ func main() {
 		cli.LongVersion = grolVersion
 		cli.ShortVersion = TinyGoVersion
 	}
-	log.Infof("Grol wasm main %s", grolVersion)
+	prev := debug.SetMemoryLimit(WasmMemLimit)
+	log.Infof("Grol wasm main %s - prev memory limit %d now %d", grolVersion, prev, WasmMemLimit)
 	done := make(chan struct{}, 0)
 	global := js.Global()
 	global.Set("grol", js.FuncOf(jsEval))
