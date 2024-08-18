@@ -97,7 +97,7 @@ Use `info` to see all the available functions, keywords, operators etc... (can b
 
 See also [sample.gr](examples/sample.gr) and others in that folder, that you can run with
 ```
-gorepl examples/*.gr
+grol examples/*.gr
 ```
 
 or copypaste to the online version on [grol.io](https://grol.io)

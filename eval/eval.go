@@ -548,7 +548,7 @@ func extendFunctionEnv(
 }
 
 func (s *State) evalExpressions(exps []ast.Node) ([]object.Object, *object.Error) {
-	result := make([]object.Object, 0, len(exps))
+	result := object.MakeObjectSlice(len(exps)) // not that this one can ever be huge but, for consistency.
 	for _, e := range exps {
 		evaluated := s.evalInternal(e)
 		if rt := evaluated.Type(); rt == object.ERROR {

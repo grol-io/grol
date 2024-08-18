@@ -190,7 +190,9 @@ func initInternal(c *Config) error { //nolint:funlen,gocognit,gocyclo,maintidx /
 	strFn.Callback = func(_ any, _ string, args []object.Object) object.Object {
 		inp := args[0].(object.String).Value
 		gorunes := []rune(inp)
-		runes := make([]object.Object, len(gorunes))
+		l := len(gorunes)
+		object.MustBeOk(l)
+		runes := make([]object.Object, l)
 		for i, r := range gorunes {
 			runes[i] = object.String{Value: string(r)}
 		}
@@ -227,7 +229,9 @@ func initInternal(c *Config) error { //nolint:funlen,gocognit,gocyclo,maintidx /
 			sep = args[1].(object.String).Value
 		}
 		parts := strings.Split(inp, sep)
-		strs := make([]object.Object, len(parts))
+		l := len(parts)
+		object.MustBeOk(l)
+		strs := make([]object.Object, l)
 		for i, p := range parts {
 			strs[i] = object.String{Value: p}
 		}
@@ -253,6 +257,7 @@ func initInternal(c *Config) error { //nolint:funlen,gocognit,gocyclo,maintidx /
 				strs[i] = a.(object.String).Value
 			}
 		}
+		object.MustBeOk((len(strs) * len(sep)) / object.ObjectSize)
 		return object.String{Value: strings.Join(strs, sep)}
 	}
 	err = object.CreateFunction(strFn)
