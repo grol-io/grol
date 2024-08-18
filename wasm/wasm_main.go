@@ -26,7 +26,7 @@ import (
 var WasmMaxDepth = 3_100
 
 // Set a reasonably low memory limit for wasm. 512MiB.
-var WasmMemLimit = int64(512 * 1024 * 1024) // 512MiB
+var WasmMemLimit = int64(512 * 1024 * 1024)
 
 func jsEval(this js.Value, args []js.Value) interface{} {
 	if len(args) != 1 && len(args) != 2 {
