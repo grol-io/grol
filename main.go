@@ -5,8 +5,10 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"math"
 	"os"
 	"path/filepath"
+	"runtime/debug"
 
 	"fortio.org/cli"
 	"fortio.org/log"
@@ -60,6 +62,7 @@ func Main() int {
 	emptyOnly := flag.Bool("empty-only", false, "only allow load()/save() to ./.gr")
 	noAuto := flag.Bool("no-auto", false, "don't auto load/save the state to ./.gr")
 	maxDepth := flag.Int("max-depth", eval.DefaultMaxDepth-1, "Maximum interpreter depth")
+	maxLen := flag.Int("max-save-len", 4000, "Maximum len of saved identifiers, use 0 for unlimited")
 
 	cli.ArgsHelp = "*.gr files to interpret or `-` for stdin without prompt or no arguments for stdin repl..."
 	cli.MaxArgs = -1
@@ -74,6 +77,10 @@ func Main() int {
 		}
 	}
 	log.Infof("grol %s - welcome!", cli.LongVersion)
+	memlimit := debug.SetMemoryLimit(-1)
+	if memlimit == math.MaxInt64 {
+		log.Warnf("Memory limit not set, please set the GOMEMLIMIT env var; e.g. GOMEMLIMIT=1GiB")
+	}
 	options := repl.Options{
 		ShowParse:   *showParse,
 		ShowEval:    *showEval,
@@ -84,6 +91,7 @@ func Main() int {
 		AutoLoad:    !*noAuto,
 		AutoSave:    !*noAuto,
 		MaxDepth:    *maxDepth + 1,
+		MaxValueLen: *maxLen,
 	}
 	if hookBefore != nil {
 		ret := hookBefore()

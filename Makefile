@@ -4,7 +4,7 @@ GO_BUILD_TAGS:=no_net,no_json,no_pprof
 
 run: grol
 	# Interactive debug run: use logger with file and line numbers
-	LOGGER_IGNORE_CLI_MODE=true ./grol -parse -loglevel debug
+	LOGGER_IGNORE_CLI_MODE=true GOMEMLIMIT=1GiB ./grol -parse -loglevel debug
 
 GEN:=object/type_string.go parser/priority_string.go token/type_string.go
 
@@ -74,7 +74,7 @@ wasm/wasm_exec.html:
 
 test: grol
 	CGO_ENABLED=0 go test -tags $(GO_BUILD_TAGS) ./...
-	./grol examples/*.gr
+	GOMEMLIMIT=1GiB ./grol examples/*.gr
 
 check: grol
 	./check_samples_double_format.sh examples/*.gr

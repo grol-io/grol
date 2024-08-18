@@ -1,5 +1,6 @@
 #! /bin/bash
 set -e
+export GOMEMLIMIT=1GiB
 for file in "$@"; do
     echo "---testing double format for $file---"
     ./grol -format $file > /tmp/format1

@@ -26,9 +26,10 @@ type State struct {
 	NoLog      bool // turn log() into println() (for EvalString)
 	// Max depth / recursion level - default DefaultMaxDepth,
 	// note that a simple function consumes at least 2 levels and typically at least 3 or 4.
-	MaxDepth   int
-	depth      int // current depth / recursion level
-	lastNumSet int64
+	MaxDepth    int
+	depth       int // current depth / recursion level
+	lastNumSet  int64
+	MaxValueLen int // max length of value to save in files, <= 0 for unlimited.
 }
 
 func NewState() *State {
@@ -74,7 +75,7 @@ func (s *State) Len() int {
 // Save() saves the current toplevel state (ids and functions) to the writer, forwards to the object store.
 // Saves the top level (global) environment.
 func (s *State) SaveGlobals(w io.Writer) (int, error) {
-	return s.env.SaveGlobals(w)
+	return s.env.SaveGlobals(w, s.MaxValueLen)
 }
 
 // NumSet returns the previous and current cumulative number of set in the toplevel environment, if that

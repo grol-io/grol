@@ -58,7 +58,8 @@ type Options struct {
 	MaxHistory  int
 	AutoLoad    bool
 	AutoSave    bool
-	MaxDepth    int
+	MaxDepth    int // Max depth of recursion, 0 is keeping the default (eval.DefaultMaxDepth).
+	MaxValueLen int // Maximum len of a value when using save()/autosaving, 0 is unlimited.
 }
 
 func AutoLoad(s *eval.State, options Options) error {
@@ -163,6 +164,7 @@ func EvalStringWithOption(o Options, what string) (res string, errs []string, fo
 	if o.MaxDepth > 0 {
 		s.MaxDepth = o.MaxDepth
 	}
+	s.MaxValueLen = o.MaxValueLen // 0 is unlimited so ok to copy as is.
 	out := &strings.Builder{}
 	s.Out = out
 	s.LogOut = out
@@ -191,6 +193,7 @@ func Interactive(options Options) int {
 	options.NilAndErr = true
 	s := eval.NewState()
 	s.MaxDepth = options.MaxDepth
+	s.MaxValueLen = options.MaxValueLen // 0 is unlimited so ok to copy as is.
 	term, err := terminal.Open()
 	if err != nil {
 		return log.FErrf("Error creating readline: %v", err)
