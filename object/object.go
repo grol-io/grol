@@ -249,8 +249,9 @@ func (m *Map) Rest() Object {
 // Creates a new Map appending the right map to the left map.
 func (m *Map) Append(right *Map) *Map {
 	// allocate for case of all unique keys.
-	MustBeOk(2 * (len(m.kv) + len(right.kv))) // KV is 2 Objects.
-	res := &Map{kv: make([]KV, 0, len(m.kv)+len(right.kv))}
+	nl := len(m.kv) + len(right.kv)
+	MustBeOk(2 * nl) // KV is 2 Objects.
+	res := &Map{kv: make([]KV, 0, nl)}
 	res.kv = append(res.kv, m.kv...)
 	for _, kv := range right.kv {
 		res.Set(kv.Key, kv.Value)

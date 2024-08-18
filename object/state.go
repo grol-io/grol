@@ -122,8 +122,8 @@ func (e *Environment) RegisterTrie(t *trie.Trie) {
 	t.Insert("info") // magic extra identifier.
 }
 
-// Returns the number of ids written.
-func (e *Environment) SaveGlobals(to io.Writer) (int, error) {
+// Returns the number of ids written. maxValueLen <= 0 means no limit.
+func (e *Environment) SaveGlobals(to io.Writer, maxValueLen int) (int, error) {
 	for e.outer != nil {
 		e = e.outer
 	}
@@ -154,7 +154,12 @@ func (e *Environment) SaveGlobals(to io.Writer) (int, error) {
 			//   x=func(a,b){a+b}
 			// fallthrough.
 		}
-		_, err := fmt.Fprintf(to, "%s=%s\n", k, v.Inspect())
+		val := v.Inspect()
+		if maxValueLen > 0 && len(val) > maxValueLen {
+			log.Warnf("Skipping %q as it's too long (%d > %d)", k, len(val), maxValueLen)
+			continue
+		}
+		_, err := fmt.Fprintf(to, "%s=%s\n", k, val)
 		if err != nil {
 			return n, err
 		}
