@@ -239,7 +239,12 @@ func (m *BigMap) Rest() Object {
 	if len(m.kv) <= 1 {
 		return NULL
 	}
-	res := &BigMap{kv: m.kv[1:]}
+	nl := len(m.kv) - 1
+	if nl > MaxSmallMap {
+		return &BigMap{kv: m.kv[1:]}
+	}
+	res := SmallMap{len: nl}
+	copy(res.smallKV[:nl], m.kv[1:])
 	return res
 }
 
@@ -311,9 +316,7 @@ func (m SmallMap) Append(right Map) Map {
 	nl := m.len + right.Len()
 	MustBeOk(2 * nl) // KV is 2 Objects.
 	res := &BigMap{kv: make([]keyValuePair, 0, nl)}
-	for i := range m.len {
-		res.Set(m.smallKV[i].Key, m.smallKV[i].Value)
-	}
+	res.kv = append(res.kv, m.smallKV[:m.len]...)
 	for _, kv := range right.mapElements() {
 		res.Set(kv.Key, kv.Value)
 	}
@@ -609,6 +612,8 @@ func Rest(val Object) Object {
 		}
 		return NewArray(v.elements[1:])
 	case *BigMap:
+		return v.Rest()
+	case SmallMap:
 		return v.Rest()
 	}
 	return Error{Value: "rest() not supported on " + val.Type().String()}
