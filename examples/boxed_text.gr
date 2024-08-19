@@ -99,7 +99,7 @@ func maxWidths(widths) {
     }, colIndices)
 }
 
-func printRowArray(row, maxWidths) {
+func createRowArray(row, maxWidths) {
     rowArr = for(len(row), func(colIndex, rowContent) {
         colIndex--
         cell = str(row[colIndex])
@@ -129,7 +129,7 @@ func boxMatrixA(matrix) {
     // Middle content (rows and separators)
     lines = for(len(matrix), func(rowIndex, lines) {
         rowIndex--
-        rowArr = printRowArray(matrix[rowIndex], maxes)
+        rowArr = createRowArray(matrix[rowIndex], maxes)
         lines = lines + rowArr
 
         if rowIndex < len(matrix) - 1 {
