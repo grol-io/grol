@@ -99,48 +99,71 @@ func maxWidths(widths) {
     }, colIndices)
 }
 
-
-func printRow(row, maxWidths) {
+func printRowArray(row, maxWidths) {
     rowArr = for(len(row), func(colIndex, rowContent) {
-		colIndex--
-		cell = str(row[colIndex])
+        colIndex--
+        cell = str(row[colIndex])
         pad = maxWidths[colIndex] - width(cell)
-		leftPad = pad / 2
-		rightPad = pad - leftPad
-        cellContent = " "*leftPad + cell + " " * rightPad
+        leftPad = pad / 2
+        rightPad = pad - leftPad
+        cellContent = " " * leftPad + cell + " " * rightPad
         if colIndex < len(row) - 1 {
             cellContent = cellContent + box.vertical
         }
         return rowContent + cellContent
-	}, []) // use array to disable caching.
-	println(box.vertical + join(rowArr) + box.vertical)
+    }, [])
+    return [box.vertical + join(rowArr) + box.vertical]
+}
+
+func boxMatrixA(matrix) {
+    widths = matrixWidths(matrix)
+    maxes = maxWidths(widths)
+
+    lines = []
+    // Top line
+    topLine = box.topLeft + join(apply(func(w) {
+        return box.horizontal * w
+    }, maxes), box.topT) + box.topRight
+    lines = lines + [topLine]
+
+    // Middle content (rows and separators)
+    lines = for(len(matrix), func(rowIndex, lines) {
+        rowIndex--
+        rowArr = printRowArray(matrix[rowIndex], maxes)
+        lines = lines + rowArr
+
+        if rowIndex < len(matrix) - 1 {
+            separatorLine = box.leftT + join(apply(func(width) {
+                return box.horizontal * width
+            }, maxes), box.middleCross) + box.rightT
+            lines = lines + [separatorLine]
+        }
+        return lines
+    }, lines)
+
+    // Bottom line
+    bottomLine = box.bottomLeft + join(apply(func(width) {
+        return box.horizontal * width
+    }, maxes), box.bottomT) + box.bottomRight
+    lines = lines + [bottomLine]
+    return lines
 }
 
 func boxMatrix(matrix) {
-    widths = matrixWidths(matrix)
-	maxes = maxWidths(widths)
+	lines = boxMatrixA(matrix)
+	println(join(lines, "\n"))
+}
 
-	topLine = box.topLeft + join(apply(func(w) {
-        return box.horizontal * w
-    }, maxes), box.topT) + box.topRight
-    println(topLine)
 
-	for(len(matrix), func(rowIndex, _) {
-		rowIndex--
-        printRow(matrix[rowIndex], maxes)
-
-		// Print the separator line between rows, except for the last row
-		if rowIndex < len(matrix) - 1 {
-		   separatorLine = box.leftT + join(apply(func(width) {
-				return box.horizontal * width
-			}, maxes), box.middleCross) + box.rightT
-			println(separatorLine)
-		}
-    }, "")
-	bottomLine = box.bottomLeft + join(apply(func(width) {
-        return box.horizontal * width
-    }, maxes), box.bottomT) + box.bottomRight
-    println(bottomLine)
+func joinBoxes(boxes) {
+    numRows = len(boxes[0]) // Assuming all boxes have the same number of lines
+    return for(numRows, func(rowIndex, combinedLines) {
+        rowIndex--
+        combinedLine = join(apply(func(box) {
+            return box[rowIndex]
+        }, boxes), "   ") // Add some spacing between boxes
+        return combinedLines + [combinedLine]
+    }, [])
 }
 
 
@@ -150,6 +173,46 @@ matrix = [
 	["xyz","hello","world"]
 ]
 
-println("For", matrix)
+//TODO bug - maxes are cached
 
-boxMatrix(matrix)
+//println("For", matrix)
+
+//boxMatrix(matrix)
+
+// Example usage for tic-tac-toe board
+X = "X"
+O = "O"
+e = " "
+
+game = [
+[
+    [e, e, e],
+    [e, X, e],
+    [e, e, e]
+],
+[
+	[e, e, e],
+    [e, X, e],
+    [e, O, e]
+],
+[
+    [e, e, e],
+    [e, X, e],
+    [e, O, X]
+],
+[
+    [e, O, e],
+    [e, X, e],
+    [e, O, X]
+],
+[
+    [X, O, e],
+    [e, X, e],
+    [e, O, X]
+]]
+
+combinedOutput = joinBoxes(apply(func(board) {
+	boxMatrixA(board)
+}, game))
+
+println(join(combinedOutput, "\n"))
