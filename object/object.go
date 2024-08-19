@@ -175,33 +175,6 @@ func Cmp(ei, ej Object) int {
 	return 1
 }
 
-func ArrayEquals(left, right []Object) bool {
-	if len(left) != len(right) {
-		return false
-	}
-	for i, l := range left {
-		if !Equals(l, right[i]) {
-			return false
-		}
-	}
-	return true
-}
-
-func MapEquals(left, right *BigMap) bool {
-	if len(left.kv) != len(right.kv) {
-		return false
-	}
-	for i, kv := range left.kv {
-		if !Equals(kv.Key, right.kv[i].Key) {
-			return false
-		}
-		if !Equals(kv.Value, right.kv[i].Value) {
-			return false
-		}
-	}
-	return true
-}
-
 func CompareKeys(a, b keyValuePair) int {
 	return Cmp(a.Key, b.Key)
 }
