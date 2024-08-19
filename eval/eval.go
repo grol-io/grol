@@ -199,7 +199,7 @@ func (s *State) evalInternal(node any) object.Object { //nolint:funlen,gocyclo /
 		if oerr != nil {
 			return *oerr
 		}
-		return object.Array{Elements: elements}
+		return object.NewArray(elements)
 	case *ast.MapLiteral:
 		return s.evalMapLiteral(node)
 	case *ast.IndexExpression:
@@ -301,72 +301,18 @@ func (s *State) evalBuiltin(node *ast.Builtin) object.Object {
 	case token.ERROR, token.PRINT, token.PRINTLN, token.LOG:
 		return s.evalPrintLogError(node)
 	case token.FIRST:
-		return evalFirst(val)
+		return object.First(val)
 	case token.REST:
-		return evalRest(val)
+		return object.Rest(val)
 	case token.LEN:
-		switch rt { //nolint:exhaustive // we have default, len doesn't work on many types.
-		case object.STRING:
-			return object.Integer{Value: int64(len(val.(object.String).Value))}
-		case object.ARRAY:
-			return object.Integer{Value: int64(len(val.(object.Array).Elements))}
-		case object.MAP:
-			return object.Integer{Value: int64(val.(*object.Map).Len())}
-		case object.NIL:
-			return object.Integer{Value: 0}
+		l := object.Len(val)
+		if l == -1 {
+			return object.Error{Value: "len: not supported on " + val.Type().String()}
 		}
+		return object.Integer{Value: int64(l)}
 	default:
 		return object.Error{Value: fmt.Sprintf("builtin %s yet implemented", node.Type())}
 	}
-	return object.Error{Value: node.Literal() + ": not supported on " + rt.String()}
-}
-
-func evalFirst(val object.Object) object.Object {
-	rt := val.Type()
-	switch rt { //nolint:exhaustive // falls back to errors.
-	case object.NIL:
-		return object.NULL
-	case object.STRING:
-		str := val.(object.String).Value
-		if len(str) == 0 {
-			return object.NULL
-		}
-		// first rune of str
-		return object.String{Value: string([]rune(str)[:1])}
-	case object.ARRAY:
-		arr := val.(object.Array)
-		if len(arr.Elements) == 0 {
-			return object.NULL
-		}
-		return arr.Elements[0]
-	case object.MAP:
-		return val.(*object.Map).First()
-	}
-	return object.Error{Value: "first() not supported on " + rt.String()}
-}
-
-func evalRest(val object.Object) object.Object {
-	rt := val.Type()
-	switch rt { //nolint:exhaustive // falls back to errors.
-	case object.NIL:
-		return object.NULL
-	case object.STRING:
-		str := val.(object.String).Value
-		if len(str) <= 1 {
-			return object.NULL
-		}
-		// rest of the string
-		return object.String{Value: string([]rune(str)[1:])}
-	case object.ARRAY:
-		arr := val.(object.Array)
-		if len(arr.Elements) <= 1 {
-			return object.NULL
-		}
-		return object.Array{Elements: arr.Elements[1:]}
-	case object.MAP:
-		return val.(*object.Map).Rest()
-	}
-	return object.Error{Value: "rest() not supported on " + rt.String()}
 }
 
 func evalIndexExpression(left, index object.Object) object.Object {
@@ -403,14 +349,13 @@ func evalMapIndexExpression(hash, key object.Object) object.Object {
 }
 
 func evalArrayIndexExpression(array, index object.Object) object.Object {
-	arrayObject := array.(object.Array)
 	idx := index.(object.Integer).Value
-	maxV := int64(len(arrayObject.Elements) - 1)
+	maxV := int64(object.Len(array) - 1)
 
 	if idx < 0 || idx > maxV {
 		return object.NULL
 	}
-	return arrayObject.Elements[idx]
+	return object.Elements(array)[idx]
 }
 
 func (s *State) applyExtension(fn object.Extension, args []object.Object) object.Object {
@@ -419,7 +364,7 @@ func (s *State) applyExtension(fn object.Extension, args []object.Object) object
 	if fn.MaxArgs == -1 {
 		// Only do this for true variadic functions (maxargs == -1)
 		if l > 0 && args[l-1].Type() == object.ARRAY {
-			args = append(args[:l-1], args[l-1].(object.Array).Elements...)
+			args = append(args[:l-1], object.Elements(args[l-1])...)
 			l = len(args)
 			log.Debugf("expending last arg now %d args %v", l, args)
 		}
@@ -515,16 +460,16 @@ func extendFunctionEnv(
 	env, sameFunction := object.NewFunctionEnvironment(fn, currrentEnv)
 	params := fn.Parameters
 	atLeast := ""
-	extra := object.Array{}
+	var extra []object.Object
 	if fn.Variadic {
 		n := len(params) - 1
 		params = params[:n]
 		// Expending the last argument expecting it to be "..", but any other array will do too.
 		if len(args) > 0 && args[len(args)-1].Type() == object.ARRAY {
-			args = append(args[:len(args)-1], args[len(args)-1].(object.Array).Elements...)
+			args = append(args[:len(args)-1], object.Elements(args[len(args)-1])...)
 		}
 		if len(args) >= n {
-			extra.Elements = args[n:]
+			extra = args[n:]
 			args = args[:n]
 		}
 		atLeast = " at least"
@@ -543,7 +488,7 @@ func extendFunctionEnv(
 		}
 	}
 	if fn.Variadic {
-		env.SetNoChecks("..", extra)
+		env.SetNoChecks("..", object.NewArray(extra))
 	}
 	// for recursion in anonymous functions.
 	// TODO: consider not having to keep setting this in the function's env and treating as a keyword.
@@ -717,7 +662,7 @@ func evalStringInfixExpression(operator token.Type, left, right object.Object) o
 }
 
 func evalArrayInfixExpression(operator token.Type, left, right object.Object) object.Object {
-	leftVal := left.(object.Array).Elements
+	leftVal := object.Elements(left)
 	switch operator { //nolint:exhaustive // we have default.
 	case token.ASTERISK: // repeat
 		if right.Type() != object.INTEGER {
@@ -732,14 +677,14 @@ func evalArrayInfixExpression(operator token.Type, left, right object.Object) ob
 		for range rightVal {
 			result = append(result, leftVal...)
 		}
-		return object.Array{Elements: result}
+		return object.NewArray(result)
 	case token.PLUS: // concat / append
 		if right.Type() != object.ARRAY {
-			return object.Array{Elements: append(leftVal, right)}
+			return object.NewArray(append(leftVal, right))
 		}
-		rightArr := right.(object.Array).Elements
+		rightArr := object.Elements(right)
 		object.MustBeOk(len(leftVal) + len(rightArr))
-		return object.Array{Elements: append(leftVal, rightArr...)}
+		return object.NewArray(append(leftVal, rightArr...))
 	default:
 		return object.Error{Value: fmt.Sprintf("unknown operator: %s %s %s",
 			left.Type(), operator, right.Type())}
