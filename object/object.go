@@ -293,9 +293,7 @@ func (m SmallMap) Rest() Object {
 		return NULL
 	}
 	res := SmallMap{len: m.len - 1}
-	for i := 1; i < m.len; i++ {
-		res.smallKV[i-1] = keyValuePair{m.smallKV[i].Key, m.smallKV[i].Value}
-	}
+	copy(res.smallKV[:m.len-1], m.smallKV[1:m.len])
 	return res
 }
 
