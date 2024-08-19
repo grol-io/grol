@@ -1,15 +1,21 @@
 // Output input string sourounded by rounded corner box
 
 box = {
-	"topLeft": "╭",
-	"topRight": "╮",
-	"bottomLeft": "╰",
-	"bottomRight": "╯",
-	"horizontal": "─",
-	"vertical": "│"
+    "topLeft": "╭",
+    "topRight": "╮",
+    "bottomLeft": "╰",
+    "bottomRight": "╯",
+    "horizontal": "─",
+    "vertical": "│",
+
+    "topT": "┬",
+    "bottomT": "┴",
+    "leftT": "├",
+    "rightT": "┤",
+    "middleCross": "┼",
 }
 
-apply = func(f, a) {
+func apply(f, a) {
     if (len(a)==0) {
         return []
     }
@@ -49,3 +55,101 @@ Shorter text.
 also   short`
 
 boxTextTerm(testStr)
+
+// matrix
+
+func str(x) {
+	sprintf("%v", x)
+}
+
+func matrixWidths(matrix) {
+    return apply(func(row) {
+        return apply(func(item) {
+            return width(str(item))
+        }, row)
+    }, matrix)
+}
+
+func for(n, f, start) {
+    l=func(i,f, x) { // internal lambda with the index param and intermediate result
+       r = f(i,x)
+       if (i>=n) {
+           return r
+       }
+       self(i+1, f,r)
+    }
+    l(1,f,start)
+}
+
+func generateIndices(n) {
+	result = []
+	for(n, func(i, result) {
+		return result + [i-1]
+	},[])
+}
+
+func maxWidths(widths) {
+    cols = len(widths[0])
+    colIndices = generateIndices(cols) // Generates [0, 1, 2] for 3 columns
+
+    return apply(func(colIndex) {
+        return max(apply(func(row) {
+            return row[colIndex]
+        }, widths))
+    }, colIndices)
+}
+
+
+func printRow(row, maxWidths) {
+    rowArr = for(len(row), func(colIndex, rowContent) {
+		colIndex--
+		cell = str(row[colIndex])
+        pad = maxWidths[colIndex] - width(cell)
+		leftPad = pad / 2
+		rightPad = pad - leftPad
+        cellContent = " "*leftPad + cell + " " * rightPad
+        if colIndex < len(row) - 1 {
+            cellContent = cellContent + box.vertical
+        }
+        return rowContent + cellContent
+	}, []) // use array to disable caching.
+	println(box.vertical + join(rowArr) + box.vertical)
+}
+
+func boxMatrix(matrix) {
+    widths = matrixWidths(matrix)
+	maxes = maxWidths(widths)
+
+	topLine = box.topLeft + join(apply(func(w) {
+        return box.horizontal * w
+    }, maxes), box.topT) + box.topRight
+    println(topLine)
+
+	for(len(matrix), func(rowIndex, _) {
+		rowIndex--
+        printRow(matrix[rowIndex], maxes)
+
+		// Print the separator line between rows, except for the last row
+		if rowIndex < len(matrix) - 1 {
+		   separatorLine = box.leftT + join(apply(func(width) {
+				return box.horizontal * width
+			}, maxes), box.middleCross) + box.rightT
+			println(separatorLine)
+		}
+    }, "")
+	bottomLine = box.bottomLeft + join(apply(func(width) {
+        return box.horizontal * width
+    }, maxes), box.bottomT) + box.bottomRight
+    println(bottomLine)
+}
+
+
+matrix = [
+	["a", "bcde","😀"],
+	[123, 45,    "6"],
+	["xyz","hello","world"]
+]
+
+println("For", matrix)
+
+boxMatrix(matrix)
