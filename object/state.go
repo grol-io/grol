@@ -42,13 +42,13 @@ func (e *Environment) Len() int {
 	return len(e.store)
 }
 
-var baseInfo Map
+var baseInfo BigMap
 
-func (e *Environment) BaseInfo() *Map {
+func (e *Environment) BaseInfo() *BigMap {
 	if baseInfo.kv != nil {
 		return &baseInfo
 	}
-	baseInfo.kv = make([]KV, 0, 7) // 6 here + all_ids
+	baseInfo.kv = make([]keyValuePair, 0, 7) // 6 here + all_ids
 	tokInfo := token.Info()
 	keys := make([]Object, 0, len(tokInfo.Keywords))
 	for _, v := range sets.Sort(tokInfo.Keywords) {
@@ -82,8 +82,8 @@ func (e *Environment) BaseInfo() *Map {
 func (e *Environment) Info() Object {
 	allKeys := make([]Object, e.depth+1)
 	for {
-		val := &Map{}
-		val.kv = make([]KV, 0, e.Len())
+		val := &BigMap{}
+		val.kv = make([]keyValuePair, 0, e.Len())
 		for k, v := range e.store {
 			val.Set(String{Value: k}, v)
 		}

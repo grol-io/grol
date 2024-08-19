@@ -580,7 +580,7 @@ func TestMapLiterals(t *testing.T) {
     }`
 
 	evaluated := testEval(t, input)
-	result, ok := evaluated.(*object.Map)
+	result, ok := evaluated.(object.Map)
 	if !ok {
 		t.Fatalf("Eval didn't return Map. got=%T (%+v)", evaluated, evaluated)
 	}
@@ -931,6 +931,20 @@ func TestMapAccidentalMutation(t *testing.T) {
 	resStr := res.Inspect()
 	expected := `{1:1,nil:"foo"}`
 	if resStr != expected {
-		t.Fatalf("wrong result, got %q expected %q", resStr, expected)
+		t.Errorf("wrong result, got %q expected %q", resStr, expected)
+	}
+}
+
+func TestSmallMapSorting(t *testing.T) {
+	inp := `m={2:"b"};n={1:"a"};m+n`
+	expected := `{1:"a",2:"b"}`
+	s := eval.NewState()
+	res, err := eval.EvalString(s, inp, false)
+	if err != nil {
+		t.Errorf("should not have errored: %v", err)
+	}
+	resStr := res.Inspect()
+	if resStr != expected {
+		t.Errorf("wrong result, got %q expected %q", resStr, expected)
 	}
 }

@@ -63,6 +63,10 @@ func Hashable(o Object) bool {
 		if _, ok := o.(SmallArray); ok {
 			return true
 		}
+	case MAP:
+		if _, ok := o.(SmallMap); ok {
+			return true
+		}
 	}
 	return false
 }
@@ -109,8 +113,8 @@ func Cmp(ei, ej Object) int {
 	case FUNC:
 		return cmp.Compare(ei.(Function).CacheKey, ej.(Function).CacheKey)
 	case MAP:
-		m1 := ei.(*Map)
-		m2 := ej.(*Map)
+		m1 := ei.(*BigMap)
+		m2 := ej.(*BigMap)
 		if len(m1.kv) < len(m2.kv) {
 			return -1
 		}
@@ -181,7 +185,7 @@ func ArrayEquals(left, right []Object) bool {
 	return true
 }
 
-func MapEquals(left, right *Map) bool {
+func MapEquals(left, right *BigMap) bool {
 	if len(left.kv) != len(right.kv) {
 		return false
 	}
@@ -196,12 +200,12 @@ func MapEquals(left, right *Map) bool {
 	return true
 }
 
-func CompareKeys(a, b KV) int {
+func CompareKeys(a, b keyValuePair) int {
 	return Cmp(a.Key, b.Key)
 }
 
-func (m *Map) Get(key Object) (Object, bool) {
-	kv := KV{Key: key}
+func (m *BigMap) Get(key Object) (Object, bool) {
+	kv := keyValuePair{Key: key}
 	i, ok := slices.BinarySearchFunc(m.kv, kv, CompareKeys) // log(n) search as we keep it sorted.
 	if !ok {
 		return NULL, false
@@ -209,22 +213,19 @@ func (m *Map) Get(key Object) (Object, bool) {
 	return m.kv[i].Value, true
 }
 
-func (m *Map) Set(key, value Object) {
-	kv := KV{Key: key, Value: value}
+func (m *BigMap) Set(key, value Object) Map {
+	kv := keyValuePair{Key: key, Value: value}
 	i, ok := slices.BinarySearchFunc(m.kv, kv, CompareKeys)
 	if ok {
 		m.kv[i].Value = value
-		return
+		return m
 	}
 	m.kv = slices.Insert(m.kv, i, kv)
+	return m
 }
 
-func (m *Map) Len() int {
+func (m *BigMap) Len() int {
 	return len(m.kv)
-}
-
-func (m *Map) KV() []KV {
-	return m.kv
 }
 
 var (
@@ -232,32 +233,128 @@ var (
 	ValueKey = String{Value: "value"}
 )
 
-func (m *Map) First() Object {
+func makeFirst(kv keyValuePair) Map {
+	return MakeQuad(KeyKey, kv.Key, ValueKey, kv.Value)
+}
+
+// Make a (small) map with a single key value pair entry.
+func MakePair(key, value Object) Map {
+	r := SmallMap{len: 1}
+	r.smallKV[0] = keyValuePair{Key: key, Value: value}
+	return r
+}
+
+// Makes a map with 2 key value pairs. Make sure the keys are sorted before calling this.
+// otherwise just use NewMap() + Set() twice.
+func MakeQuad(key1, value1, key2, value2 Object) Map {
+	r := SmallMap{len: 2}
+	r.smallKV[0] = keyValuePair{Key: key1, Value: value1}
+	r.smallKV[1] = keyValuePair{Key: key2, Value: value2}
+	return r
+}
+
+func (m *BigMap) First() Object {
 	if len(m.kv) == 0 {
 		return NULL
 	}
-	return &Map{kv: []KV{
-		{Key: KeyKey, Value: m.kv[0].Key},
-		{Key: ValueKey, Value: m.kv[0].Value},
-	}}
+	return makeFirst(m.kv[0])
 }
 
-func (m *Map) Rest() Object {
+func (m *BigMap) Rest() Object {
 	if len(m.kv) <= 1 {
 		return NULL
 	}
-	res := &Map{kv: m.kv[1:]}
+	res := &BigMap{kv: m.kv[1:]}
+	return res
+}
+
+func NewMapSize(size int) Map {
+	if size <= MaxSmallMap {
+		return SmallMap{}
+	}
+	return &BigMap{kv: make([]keyValuePair, 0, size)}
+}
+
+func (m SmallMap) Get(key Object) (Object, bool) {
+	for i := range m.len {
+		if Cmp(m.smallKV[i].Key, key) == 0 {
+			return m.smallKV[i].Value, true
+		}
+	}
+	return NULL, false
+}
+
+func (m SmallMap) Set(key, value Object) Map {
+	kv := keyValuePair{Key: key, Value: value}
+	i, ok := slices.BinarySearchFunc(m.smallKV[:m.len], kv, CompareKeys)
+	if ok {
+		m.smallKV[i].Value = value
+		return m
+	}
+	r := slices.Insert(m.smallKV[0:m.len:MaxSmallMap], i, kv)
+	if m.len < MaxSmallMap {
+		copy(m.smallKV[0:MaxSmallMap], r)
+		m.len++
+		return m
+	}
+	// We need to switch to a real map.
+	res := &BigMap{kv: r}
+	return res
+}
+
+func (m SmallMap) Len() int {
+	return m.len
+}
+
+func (m SmallMap) First() Object {
+	if m.len == 0 {
+		return NULL
+	}
+	return makeFirst(m.smallKV[0])
+}
+
+func (m SmallMap) Rest() Object {
+	if m.len <= 1 {
+		return NULL
+	}
+	res := SmallMap{len: m.len - 1}
+	for i := 1; i < m.len; i++ {
+		res.smallKV[i-1] = keyValuePair{m.smallKV[i].Key, m.smallKV[i].Value}
+	}
+	return res
+}
+
+func (m SmallMap) Append(right Map) Map {
+	if right.Len() <= MaxSmallMap { // Maybe same keys, try to keep it a SmallMap
+		res := SmallMap{len: m.len}
+		var ires Map = &res
+		copy(res.smallKV[:m.len], m.smallKV[:m.len])
+		for _, kv := range right.mapElements() {
+			ires = ires.Set(kv.Key, kv.Value)
+		}
+		return ires
+	}
+	// allocate for case of all unique keys.
+	nl := m.len + right.Len()
+	MustBeOk(2 * nl) // KV is 2 Objects.
+	res := &BigMap{kv: make([]keyValuePair, 0, nl)}
+	for i := range m.len {
+		res.Set(m.smallKV[i].Key, m.smallKV[i].Value)
+	}
+	for _, kv := range right.mapElements() {
+		res.Set(kv.Key, kv.Value)
+	}
 	return res
 }
 
 // Creates a new Map appending the right map to the left map.
-func (m *Map) Append(right *Map) *Map {
+func (m *BigMap) Append(right Map) Map {
 	// allocate for case of all unique keys.
-	nl := len(m.kv) + len(right.kv)
+	nl := len(m.kv) + right.Len()
 	MustBeOk(2 * nl) // KV is 2 Objects.
-	res := &Map{kv: make([]KV, 0, nl)}
+	res := &BigMap{kv: make([]keyValuePair, 0, nl)}
 	res.kv = append(res.kv, m.kv...)
-	for _, kv := range right.kv {
+	for _, kv := range right.mapElements() {
 		res.Set(kv.Key, kv.Value)
 	}
 	return res
@@ -443,7 +540,7 @@ func (f Function) JSON(w io.Writer) error {
 	return err
 }
 
-const MaxSmallArray = 4
+const MaxSmallArray = 8
 
 type SmallArray struct {
 	smallArr [MaxSmallArray]Object
@@ -482,8 +579,8 @@ func Len(a Object) int {
 		return a.len
 	case Array:
 		return len(a.elements)
-	case *Map:
-		return len(a.kv)
+	case Map:
+		return a.Len()
 	case String:
 		return len(a.Value)
 	case Null:
@@ -506,7 +603,7 @@ func First(a Object) Object {
 			return NULL
 		}
 		return a.elements[0]
-	case *Map:
+	case Map:
 		return a.First()
 	case String:
 		if a.Value == "" {
@@ -538,7 +635,7 @@ func Rest(val Object) Object {
 			return NULL
 		}
 		return NewArray(v.elements[1:])
-	case *Map:
+	case *BigMap:
 		return v.Rest()
 	}
 	return Error{Value: "rest() not supported on " + val.Type().String()}
@@ -550,7 +647,7 @@ func Elements(val Object) []Object {
 		return v.smallArr[:v.len]
 	case Array:
 		return v.elements
-	case *Map:
+	case *BigMap:
 		res := make([]Object, len(v.kv))
 		for i, kv := range v.kv {
 			res[i] = kv.Value
@@ -588,18 +685,36 @@ func (ao Array) JSON(w io.Writer) error {
 }
 
 // KeyValue pairs, what we have inside Map.
-type KV struct {
+type keyValuePair struct {
 	Key   Object
 	Value Object
 }
 
+const MaxSmallMap = 4 // so 2x, so same as MaxSmallArray really.
+
+type SmallMap struct {
+	smallKV [MaxSmallMap]keyValuePair
+	len     int
+}
+
 // Sorted KV pairs, O(n) insert O(log n) access/same key mutations.
-type Map struct {
-	kv []KV
+type BigMap struct {
+	kv []keyValuePair
+}
+
+type Map interface {
+	Object
+	Get(key Object) (Object, bool)
+	Set(key, value Object) Map
+	Len() int
+	First() Object
+	Rest() Object
+	mapElements() []keyValuePair
+	Append(right Map) Map
 }
 
 func NewMap() Map {
-	return Map{kv: make([]KV, 0, 4)}
+	return SmallMap{}
 }
 
 func (ao Array) Len() int {
@@ -620,7 +735,7 @@ func (ao Array) Swap(i, j int) {
 	ao.elements[i], ao.elements[j] = ao.elements[j], ao.elements[i]
 }
 
-func (m *Map) Unwrap() any {
+func (m *BigMap) Unwrap() any {
 	res := make(map[any]any, len(m.kv))
 	for _, kv := range m.kv {
 		res[kv.Key.Unwrap()] = kv.Value.Unwrap()
@@ -628,9 +743,44 @@ func (m *Map) Unwrap() any {
 	return res
 }
 
-func (m *Map) Type() Type { return MAP }
+func (m *BigMap) mapElements() []keyValuePair {
+	return m.kv
+}
 
-func (m *Map) Inspect() string {
+func (m SmallMap) mapElements() []keyValuePair {
+	return m.smallKV[:m.len]
+}
+
+func (m SmallMap) Unwrap() any {
+	res := make(map[any]any, m.len)
+	for _, kv := range m.smallKV[:m.len] {
+		res[kv.Key.Unwrap()] = kv.Value.Unwrap()
+	}
+	return res
+}
+
+func (m SmallMap) Type() Type { return MAP }
+func (m *BigMap) Type() Type  { return MAP }
+
+func (m SmallMap) Inspect() string {
+	if m.len == 0 {
+		return "{}"
+	}
+	out := strings.Builder{}
+	out.WriteString("{")
+	for i := range m.len {
+		if i > 0 {
+			out.WriteString(",")
+		}
+		out.WriteString(m.smallKV[i].Key.Inspect())
+		out.WriteString(":")
+		out.WriteString(m.smallKV[i].Value.Inspect())
+	}
+	out.WriteString("}")
+	return out.String()
+}
+
+func (m *BigMap) Inspect() string {
 	out := strings.Builder{}
 	out.WriteString("{")
 	for i, kv := range m.kv {
@@ -645,7 +795,15 @@ func (m *Map) Inspect() string {
 	return out.String()
 }
 
-func (m *Map) JSON(w io.Writer) error {
+func (m SmallMap) JSON(w io.Writer) error {
+	if m.len == 0 {
+		_, err := w.Write([]byte("{}"))
+		return err
+	}
+	return (&BigMap{kv: m.smallKV[:m.len]}).JSON(w)
+}
+
+func (m *BigMap) JSON(w io.Writer) error {
 	_, _ = w.Write([]byte("{"))
 	for i, kv := range m.kv {
 		if i > 0 {
