@@ -20,6 +20,7 @@ type Environment struct {
 	cacheKey string
 	ids      *trie.Trie
 	numSet   int64
+	getMiss  int64
 }
 
 // Truly empty store suitable for macros storage.
@@ -176,7 +177,13 @@ func (e *Environment) Get(name string) (Object, bool) {
 	if ok || e.outer == nil {
 		return obj, ok
 	}
+	e.getMiss++
 	return e.outer.Get(name) // recurse.
+}
+
+// GetMisses returns the cumulative number of get misses (a function tried to access up stack, so can't be cached).
+func (e *Environment) GetMisses() int64 {
+	return e.getMiss
 }
 
 // Defines constant as all CAPS (with _ ok in the middle) identifiers.

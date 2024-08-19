@@ -474,7 +474,11 @@ func (s *State) applyFunction(name string, fn object.Object, args []object.Objec
 	oldOut := s.Out
 	buf := bytes.Buffer{}
 	s.Out = &buf
-	res := s.Eval(function.Body) // Need to have the return value unwrapped. Fixes bug #46
+	// This is 0 as the env is new, but... we just want to make sure there is
+	// no get() up stack to confirm the function might be cacheable.
+	before := s.env.GetMisses()
+	res := s.Eval(function.Body) // Need to have the return value unwrapped. Fixes bug #46, also need to count recursion.
+	after := s.env.GetMisses()
 	// restore the previous env/state.
 	s.env = curState
 	s.Out = oldOut
@@ -482,6 +486,10 @@ func (s *State) applyFunction(name string, fn object.Object, args []object.Objec
 	_, err := s.Out.Write(output)
 	if err != nil {
 		log.Warnf("output: %v", err)
+	}
+	if after != before {
+		log.Debugf("Cache miss for %s %v, %d get misses", function.CacheKey, args, after-before)
+		return res
 	}
 	// Don't cache errors, as it could be due to binding for instance.
 	if res.Type() == object.ERROR {

@@ -54,6 +54,7 @@ type Number interface {
 */
 
 // Hashable in tem of Go map for cache key.
+// TODO: small arrays/maps should be cacheable by putting them in a fixed array.
 func Hashable(o Object) bool {
 	switch o.Type() { //nolint:exhaustive // We have all the types that are hashable + default for the others.
 	case INTEGER, FLOAT, BOOLEAN, NIL, ERROR, STRING:
