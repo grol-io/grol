@@ -54,24 +54,24 @@ func (e *Environment) BaseInfo() *BigMap {
 	for _, v := range sets.Sort(tokInfo.Keywords) {
 		keys = append(keys, String{Value: v})
 	}
-	baseInfo.Set(String{"keywords"}, Array{elements: keys}) // 1
+	baseInfo.Set(String{"keywords"}, BigArray{elements: keys}) // 1
 	keys = make([]Object, 0, len(tokInfo.Tokens))
 	for _, v := range sets.Sort(tokInfo.Tokens) {
 		keys = append(keys, String{Value: v})
 	}
-	baseInfo.Set(String{"tokens"}, Array{elements: keys}) // 2
+	baseInfo.Set(String{"tokens"}, BigArray{elements: keys}) // 2
 	keys = make([]Object, 0, len(tokInfo.Builtins))
 	for _, v := range sets.Sort(tokInfo.Builtins) {
 		keys = append(keys, String{Value: v})
 	}
-	baseInfo.Set(String{"builtins"}, Array{elements: keys}) // 3
+	baseInfo.Set(String{"builtins"}, BigArray{elements: keys}) // 3
 	// Ditto cache this as it's set for a given environment.
 	ext := ExtraFunctions()
 	keys = make([]Object, 0, len(ext))
 	for k := range ext {
 		keys = append(keys, String{Value: k})
 	}
-	arr := Array{elements: keys}
+	arr := BigArray{elements: keys}
 	sort.Sort(arr)
 	baseInfo.Set(String{"gofuncs"}, arr)                             // 4
 	baseInfo.Set(String{"version"}, String{Value: cli.ShortVersion}) // 5
@@ -94,7 +94,7 @@ func (e *Environment) Info() Object {
 		e = e.outer
 	}
 	info := e.BaseInfo()
-	info.Set(String{"all_ids"}, Array{elements: allKeys}) // 7
+	info.Set(String{"all_ids"}, BigArray{elements: allKeys}) // 7
 	return info
 }
 

@@ -113,19 +113,20 @@ func Cmp(ei, ej Object) int {
 	case FUNC:
 		return cmp.Compare(ei.(Function).CacheKey, ej.(Function).CacheKey)
 	case MAP:
-		m1 := ei.(*BigMap)
-		m2 := ej.(*BigMap)
-		if len(m1.kv) < len(m2.kv) {
+		m1 := ei.(Map)
+		m2 := ej.(Map)
+		if m1.Len() < m2.Len() {
 			return -1
 		}
-		if len(m1.kv) > len(m2.kv) {
+		if m1.Len() > m2.Len() {
 			return 1
 		}
-		for i, kv := range m1.kv {
-			if c := Cmp(kv.Key, m2.kv[i].Key); c != 0 {
+		m2Els := m2.mapElements()
+		for i, kv := range m1.mapElements() {
+			if c := Cmp(kv.Key, m2Els[i].Key); c != 0 {
 				return c
 			}
-			if c := Cmp(kv.Value, m2.kv[i].Value); c != 0 {
+			if c := Cmp(kv.Value, m2Els[i].Value); c != 0 {
 				return c
 			}
 		}
@@ -133,14 +134,15 @@ func Cmp(ei, ej Object) int {
 	case ARRAY:
 		a1 := ei.(Array)
 		a2 := ej.(Array)
-		if len(a1.elements) < len(a2.elements) {
+		if a1.Len() < a2.Len() {
 			return -1
 		}
-		if len(a1.elements) > len(a2.elements) {
+		if a1.Len() > a2.Len() {
 			return 1
 		}
-		for i, l := range a1.elements {
-			if c := Cmp(l, a2.elements[i]); c != 0 {
+		a2Els := a2.Elements()
+		for i, l := range a1.Elements() {
+			if c := Cmp(l, a2Els[i]); c != 0 {
 				return c
 			}
 		}
@@ -549,7 +551,7 @@ type SmallArray struct {
 
 func (sa SmallArray) Type() Type             { return ARRAY }
 func (sa SmallArray) Unwrap() any            { return Unwrap(sa.smallArr[:sa.len]) }
-func (sa SmallArray) JSON(w io.Writer) error { return Array{elements: sa.smallArr[:sa.len]}.JSON(w) }
+func (sa SmallArray) JSON(w io.Writer) error { return BigArray{elements: sa.smallArr[:sa.len]}.JSON(w) }
 func (sa SmallArray) Inspect() string {
 	if sa.len == 0 {
 		return "[]"
@@ -570,14 +572,14 @@ func NewArray(elements []Object) Object {
 		copy(sa.smallArr[:], elements)
 		return sa
 	}
-	return Array{elements: elements}
+	return BigArray{elements: elements}
 }
 
 func Len(a Object) int {
 	switch a := a.(type) {
 	case SmallArray:
 		return a.len
-	case Array:
+	case BigArray:
 		return len(a.elements)
 	case Map:
 		return a.Len()
@@ -598,7 +600,7 @@ func First(a Object) Object {
 			return NULL
 		}
 		return a.smallArr[0]
-	case Array:
+	case BigArray:
 		if len(a.elements) == 0 {
 			return NULL
 		}
@@ -630,7 +632,7 @@ func Rest(val Object) Object {
 			return NULL
 		}
 		return NewArray(v.smallArr[1:v.len])
-	case Array:
+	case BigArray:
 		if len(v.elements) <= 1 {
 			return NULL
 		}
@@ -641,35 +643,57 @@ func Rest(val Object) Object {
 	return Error{Value: "rest() not supported on " + val.Type().String()}
 }
 
+func (ao BigArray) First() Object        { return First(ao) }
+func (ao BigArray) Rest() Object         { return Rest(ao) }
+func (ao BigArray) Elements() []Object   { return ao.elements }
+func (ao BigArray) Len() int             { return len(ao.elements) }
+func (sa SmallArray) First() Object      { return First(sa) }
+func (sa SmallArray) Rest() Object       { return Rest(sa) }
+func (sa SmallArray) Elements() []Object { return sa.smallArr[:sa.len] }
+func (sa SmallArray) Len() int           { return sa.len }
+
+// Elements returns the keys of a map or the elements of an array.
 func Elements(val Object) []Object {
 	switch v := val.(type) {
-	case SmallArray:
-		return v.smallArr[:v.len]
 	case Array:
-		return v.elements
+		return v.Elements()
+	case SmallMap:
+		res := make([]Object, v.len)
+		for i, kv := range v.smallKV[:v.len] {
+			res[i] = kv.Key
+		}
+		return res
 	case *BigMap:
 		res := make([]Object, len(v.kv))
 		for i, kv := range v.kv {
-			res[i] = kv.Value
+			res[i] = kv.Key
 		}
 		return res
 	}
 	return nil
 }
 
-type Array struct {
+type Array interface {
+	Object
+	Len() int
+	First() Object
+	Rest() Object
+	Elements() []Object
+}
+
+type BigArray struct {
 	elements []Object
 }
 
-func (ao Array) Unwrap() any { return Unwrap(ao.elements) }
-func (ao Array) Type() Type  { return ARRAY }
-func (ao Array) Inspect() string {
+func (ao BigArray) Unwrap() any { return Unwrap(ao.elements) }
+func (ao BigArray) Type() Type  { return ARRAY }
+func (ao BigArray) Inspect() string {
 	out := strings.Builder{}
 	WriteStrings(&out, ao.elements, "[", ",", "]")
 	return out.String()
 }
 
-func (ao Array) JSON(w io.Writer) error {
+func (ao BigArray) JSON(w io.Writer) error {
 	_, _ = w.Write([]byte("["))
 	for i, p := range ao.elements {
 		if i > 0 {
@@ -717,21 +741,17 @@ func NewMap() Map {
 	return SmallMap{}
 }
 
-func (ao Array) Len() int {
-	return len(ao.elements)
-}
-
 func areIntFloat(a, b Type) bool {
 	l := min(a, b)
 	h := max(a, b)
 	return l == INTEGER && h == FLOAT
 }
 
-func (ao Array) Less(i, j int) bool {
+func (ao BigArray) Less(i, j int) bool {
 	return Cmp(ao.elements[i], ao.elements[j]) < 0
 }
 
-func (ao Array) Swap(i, j int) {
+func (ao BigArray) Swap(i, j int) {
 	ao.elements[i], ao.elements[j] = ao.elements[j], ao.elements[i]
 }
 
