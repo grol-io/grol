@@ -59,9 +59,12 @@ func Hashable(o Object) bool {
 	switch o.Type() { //nolint:exhaustive // We have all the types that are hashable + default for the others.
 	case INTEGER, FLOAT, BOOLEAN, NIL, ERROR, STRING:
 		return true
-	default:
-		return false
+	case ARRAY:
+		if _, ok := o.(SmallArray); ok {
+			return true
+		}
 	}
+	return false
 }
 
 func NativeBoolToBooleanObject(input bool) Boolean {
@@ -126,14 +129,14 @@ func Cmp(ei, ej Object) int {
 	case ARRAY:
 		a1 := ei.(Array)
 		a2 := ej.(Array)
-		if len(a1.Elements) < len(a2.Elements) {
+		if len(a1.elements) < len(a2.elements) {
 			return -1
 		}
-		if len(a1.Elements) > len(a2.Elements) {
+		if len(a1.elements) > len(a2.elements) {
 			return 1
 		}
-		for i, l := range a1.Elements {
-			if c := Cmp(l, a2.Elements[i]); c != 0 {
+		for i, l := range a1.elements {
+			if c := Cmp(l, a2.elements[i]); c != 0 {
 				return c
 			}
 		}
@@ -440,21 +443,138 @@ func (f Function) JSON(w io.Writer) error {
 	return err
 }
 
-type Array struct {
-	Elements []Object
+const MaxSmallArray = 4
+
+type SmallArray struct {
+	smallArr [MaxSmallArray]Object
+	len      int
 }
 
-func (ao Array) Unwrap() any { return Unwrap(ao.Elements) }
+func (sa SmallArray) Type() Type             { return ARRAY }
+func (sa SmallArray) Unwrap() any            { return Unwrap(sa.smallArr[:sa.len]) }
+func (sa SmallArray) JSON(w io.Writer) error { return Array{elements: sa.smallArr[:sa.len]}.JSON(w) }
+func (sa SmallArray) Inspect() string {
+	if sa.len == 0 {
+		return "[]"
+	}
+	out := strings.Builder{}
+	WriteStrings(&out, sa.smallArr[:sa.len], "[", ",", "]")
+	return out.String()
+}
+
+var EmptyArray = SmallArray{}
+
+func NewArray(elements []Object) Object {
+	if len(elements) == 0 {
+		return EmptyArray
+	}
+	if len(elements) <= MaxSmallArray {
+		sa := SmallArray{len: len(elements)}
+		copy(sa.smallArr[:], elements)
+		return sa
+	}
+	return Array{elements: elements}
+}
+
+func Len(a Object) int {
+	switch a := a.(type) {
+	case SmallArray:
+		return a.len
+	case Array:
+		return len(a.elements)
+	case *Map:
+		return len(a.kv)
+	case String:
+		return len(a.Value)
+	case Null:
+		return 0
+	}
+	return -1
+}
+
+func First(a Object) Object {
+	switch a := a.(type) {
+	case Null:
+		return NULL
+	case SmallArray:
+		if a.len == 0 {
+			return NULL
+		}
+		return a.smallArr[0]
+	case Array:
+		if len(a.elements) == 0 {
+			return NULL
+		}
+		return a.elements[0]
+	case *Map:
+		return a.First()
+	case String:
+		if a.Value == "" {
+			return NULL
+		}
+		// first rune of str
+		return String{Value: string([]rune(a.Value)[:1])}
+	}
+	return Error{Value: "first() not supported on " + a.Type().String()}
+}
+
+func Rest(val Object) Object {
+	switch v := val.(type) {
+	case Null:
+		return NULL
+	case String:
+		if len(v.Value) <= 1 {
+			return NULL
+		}
+		// rest of the string
+		return String{Value: string([]rune(v.Value)[1:])}
+	case SmallArray:
+		if v.len <= 1 {
+			return NULL
+		}
+		return NewArray(v.smallArr[1:v.len])
+	case Array:
+		if len(v.elements) <= 1 {
+			return NULL
+		}
+		return NewArray(v.elements[1:])
+	case *Map:
+		return v.Rest()
+	}
+	return Error{Value: "rest() not supported on " + val.Type().String()}
+}
+
+func Elements(val Object) []Object {
+	switch v := val.(type) {
+	case SmallArray:
+		return v.smallArr[:v.len]
+	case Array:
+		return v.elements
+	case *Map:
+		res := make([]Object, len(v.kv))
+		for i, kv := range v.kv {
+			res[i] = kv.Value
+		}
+		return res
+	}
+	return nil
+}
+
+type Array struct {
+	elements []Object
+}
+
+func (ao Array) Unwrap() any { return Unwrap(ao.elements) }
 func (ao Array) Type() Type  { return ARRAY }
 func (ao Array) Inspect() string {
 	out := strings.Builder{}
-	WriteStrings(&out, ao.Elements, "[", ",", "]")
+	WriteStrings(&out, ao.elements, "[", ",", "]")
 	return out.String()
 }
 
 func (ao Array) JSON(w io.Writer) error {
 	_, _ = w.Write([]byte("["))
-	for i, p := range ao.Elements {
+	for i, p := range ao.elements {
 		if i > 0 {
 			_, _ = w.Write([]byte(","))
 		}
@@ -483,7 +603,7 @@ func NewMap() Map {
 }
 
 func (ao Array) Len() int {
-	return len(ao.Elements)
+	return len(ao.elements)
 }
 
 func areIntFloat(a, b Type) bool {
@@ -493,11 +613,11 @@ func areIntFloat(a, b Type) bool {
 }
 
 func (ao Array) Less(i, j int) bool {
-	return Cmp(ao.Elements[i], ao.Elements[j]) < 0
+	return Cmp(ao.elements[i], ao.elements[j]) < 0
 }
 
 func (ao Array) Swap(i, j int) {
-	ao.Elements[i], ao.Elements[j] = ao.Elements[j], ao.Elements[i]
+	ao.elements[i], ao.elements[j] = ao.elements[j], ao.elements[i]
 }
 
 func (m *Map) Unwrap() any {

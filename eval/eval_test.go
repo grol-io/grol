@@ -495,19 +495,19 @@ func TestArrayLiterals(t *testing.T) {
 	input := "[1, 2 * 2, 3 + 3]"
 
 	evaluated := testEval(t, input)
-	result, ok := evaluated.(object.Array)
+	result, ok := evaluated.(object.SmallArray)
 	if !ok {
 		t.Fatalf("object is not Array. got=%T (%+v)", evaluated, evaluated)
 	}
-
-	if len(result.Elements) != 3 {
+	els := object.Elements(result)
+	if len(els) != 3 {
 		t.Fatalf("array has wrong num of elements. got=%d",
-			len(result.Elements))
+			len(els))
 	}
 
-	testIntegerObject(t, result.Elements[0], 1)
-	testIntegerObject(t, result.Elements[1], 4)
-	testIntegerObject(t, result.Elements[2], 6)
+	testIntegerObject(t, els[0], 1)
+	testIntegerObject(t, els[1], 4)
+	testIntegerObject(t, els[2], 6)
 }
 
 func TestArrayIndexExpressions(t *testing.T) {

@@ -63,6 +63,7 @@ func Main() int {
 	noAuto := flag.Bool("no-auto", false, "don't auto load/save the state to ./.gr")
 	maxDepth := flag.Int("max-depth", eval.DefaultMaxDepth-1, "Maximum interpreter depth")
 	maxLen := flag.Int("max-save-len", 4000, "Maximum len of saved identifiers, use 0 for unlimited")
+	panicOk := flag.Bool("panic", false, "Don't catch panic - only for development/debugging")
 
 	cli.ArgsHelp = "*.gr files to interpret or `-` for stdin without prompt or no arguments for stdin repl..."
 	cli.MaxArgs = -1
@@ -92,6 +93,7 @@ func Main() int {
 		AutoSave:    !*noAuto,
 		MaxDepth:    *maxDepth + 1,
 		MaxValueLen: *maxLen,
+		PanicOk:     *panicOk,
 	}
 	if hookBefore != nil {
 		ret := hookBefore()

@@ -58,8 +58,9 @@ type Options struct {
 	MaxHistory  int
 	AutoLoad    bool
 	AutoSave    bool
-	MaxDepth    int // Max depth of recursion, 0 is keeping the default (eval.DefaultMaxDepth).
-	MaxValueLen int // Maximum len of a value when using save()/autosaving, 0 is unlimited.
+	MaxDepth    int  // Max depth of recursion, 0 is keeping the default (eval.DefaultMaxDepth).
+	MaxValueLen int  // Maximum len of a value when using save()/autosaving, 0 is unlimited.
+	PanicOk     bool // If true, panics are not caught (only for debugging/developing).
 }
 
 func AutoLoad(s *eval.State, options Options) error {
@@ -329,18 +330,20 @@ func EvalOne(s *eval.State, what string, out io.Writer, options Options) (
 	errs []string,
 	formatted string,
 ) {
-	defer func() {
-		if r := recover(); r != nil {
-			panicked = true
-			log.Critf("Caught panic: %v", r)
-			if log.LogDebug() {
-				log.Debugf("Dumping stack trace")
-				debug.PrintStack()
+	if !options.PanicOk {
+		defer func() {
+			if r := recover(); r != nil {
+				panicked = true
+				log.Critf("Caught panic: %v", r)
+				if log.LogDebug() {
+					log.Debugf("Dumping stack trace")
+					debug.PrintStack()
+				}
+				errs = append(errs, fmt.Sprintf("panic: %v", r))
+				return
 			}
-			errs = append(errs, fmt.Sprintf("panic: %v", r))
-			return
-		}
-	}()
+		}()
+	}
 	continuation, errs, formatted = evalOne(s, what, out, options)
 	return
 }

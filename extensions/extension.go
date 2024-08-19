@@ -196,7 +196,7 @@ func initInternal(c *Config) error { //nolint:funlen,gocognit,gocyclo,maintidx /
 		for i, r := range gorunes {
 			runes[i] = object.String{Value: string(r)}
 		}
-		return object.Array{Elements: runes}
+		return object.NewArray(runes)
 	}
 	err = object.CreateFunction(strFn)
 	if err != nil {
@@ -235,7 +235,7 @@ func initInternal(c *Config) error { //nolint:funlen,gocognit,gocyclo,maintidx /
 		for i, p := range parts {
 			strs[i] = object.String{Value: p}
 		}
-		return object.Array{Elements: strs}
+		return object.NewArray(strs)
 	}
 	err = object.CreateFunction(strFn)
 	if err != nil {
@@ -244,7 +244,7 @@ func initInternal(c *Config) error { //nolint:funlen,gocognit,gocyclo,maintidx /
 	strFn.Name = "join"
 	strFn.ArgTypes = []object.Type{object.ARRAY, object.STRING}
 	strFn.Callback = func(_ any, _ string, args []object.Object) object.Object {
-		arr := args[0].(object.Array).Elements
+		arr := object.Elements(args[0])
 		sep := ""
 		if len(args) == 2 {
 			sep = args[1].(object.String).Value
