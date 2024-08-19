@@ -183,29 +183,29 @@ e = " "
 
 game = [
 [
-    [e, e, e],
-    [e, X, e],
-    [e, e, e]
+	[e, e, e],
+	[e, X, e],
+	[e, e, e]
 ],
 [
 	[e, e, e],
-    [e, X, e],
-    [e, O, e]
+	[e, X, e],
+	[e, O, e]
 ],
 [
-    [e, e, e],
-    [e, X, e],
-    [e, O, X]
+	[e, e, e],
+	[e, X, e],
+	[e, O, X]
 ],
 [
-    [e, O, e],
-    [e, X, e],
-    [e, O, X]
+	[e, O, e],
+	[e, X, e],
+	[e, O, X]
 ],
 [
-    [X, O, e],
-    [e, X, e],
-    [e, O, X]
+	[X, O, e],
+	[e, X, e],
+	[e, O, X]
 ]]
 
 combinedOutput = joinBoxes(apply(func(board) {
