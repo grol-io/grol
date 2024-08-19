@@ -173,11 +173,8 @@ matrix = [
 	["xyz","hello","world"]
 ]
 
-//TODO bug - maxes are cached
-
-//println("For", matrix)
-
-//boxMatrix(matrix)
+println("For", matrix)
+boxMatrix(matrix)
 
 // Example usage for tic-tac-toe board
 X = "X"
