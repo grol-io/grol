@@ -42,36 +42,36 @@ func (e *Environment) Len() int {
 	return len(e.store)
 }
 
-var baseInfo Map
+var baseInfo BigMap
 
-func (e *Environment) BaseInfo() *Map {
+func (e *Environment) BaseInfo() *BigMap {
 	if baseInfo.kv != nil {
 		return &baseInfo
 	}
-	baseInfo.kv = make([]KV, 0, 7) // 6 here + all_ids
+	baseInfo.kv = make([]keyValuePair, 0, 7) // 6 here + all_ids
 	tokInfo := token.Info()
 	keys := make([]Object, 0, len(tokInfo.Keywords))
 	for _, v := range sets.Sort(tokInfo.Keywords) {
 		keys = append(keys, String{Value: v})
 	}
-	baseInfo.Set(String{"keywords"}, Array{elements: keys}) // 1
+	baseInfo.Set(String{"keywords"}, BigArray{elements: keys}) // 1
 	keys = make([]Object, 0, len(tokInfo.Tokens))
 	for _, v := range sets.Sort(tokInfo.Tokens) {
 		keys = append(keys, String{Value: v})
 	}
-	baseInfo.Set(String{"tokens"}, Array{elements: keys}) // 2
+	baseInfo.Set(String{"tokens"}, BigArray{elements: keys}) // 2
 	keys = make([]Object, 0, len(tokInfo.Builtins))
 	for _, v := range sets.Sort(tokInfo.Builtins) {
 		keys = append(keys, String{Value: v})
 	}
-	baseInfo.Set(String{"builtins"}, Array{elements: keys}) // 3
+	baseInfo.Set(String{"builtins"}, BigArray{elements: keys}) // 3
 	// Ditto cache this as it's set for a given environment.
 	ext := ExtraFunctions()
 	keys = make([]Object, 0, len(ext))
 	for k := range ext {
 		keys = append(keys, String{Value: k})
 	}
-	arr := Array{elements: keys}
+	arr := BigArray{elements: keys}
 	sort.Sort(arr)
 	baseInfo.Set(String{"gofuncs"}, arr)                             // 4
 	baseInfo.Set(String{"version"}, String{Value: cli.ShortVersion}) // 5
@@ -82,8 +82,8 @@ func (e *Environment) BaseInfo() *Map {
 func (e *Environment) Info() Object {
 	allKeys := make([]Object, e.depth+1)
 	for {
-		val := &Map{}
-		val.kv = make([]KV, 0, e.Len())
+		val := &BigMap{}
+		val.kv = make([]keyValuePair, 0, e.Len())
 		for k, v := range e.store {
 			val.Set(String{Value: k}, v)
 		}
@@ -94,7 +94,7 @@ func (e *Environment) Info() Object {
 		e = e.outer
 	}
 	info := e.BaseInfo()
-	info.Set(String{"all_ids"}, Array{elements: allKeys}) // 7
+	info.Set(String{"all_ids"}, BigArray{elements: allKeys}) // 7
 	return info
 }
 

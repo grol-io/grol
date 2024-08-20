@@ -219,7 +219,7 @@ func (s *State) evalInternal(node any) object.Object { //nolint:funlen,gocyclo /
 }
 
 func (s *State) evalMapLiteral(node *ast.MapLiteral) object.Object {
-	result := object.NewMap()
+	result := object.NewMapSize(len(node.Order))
 
 	for _, keyNode := range node.Order {
 		valueNode := node.Pairs[keyNode]
@@ -229,9 +229,9 @@ func (s *State) evalMapLiteral(node *ast.MapLiteral) object.Object {
 			return object.Error{Value: "key " + key.Inspect() + " is not hashable"}
 		}
 		value := s.evalInternal(valueNode)
-		result.Set(key, value)
+		result = result.Set(key, value)
 	}
-	return &result
+	return result
 }
 
 func (s *State) evalPrintLogError(node *ast.Builtin) object.Object {
@@ -340,7 +340,7 @@ func evalIndexExpression(left, index object.Object) object.Object {
 }
 
 func evalMapIndexExpression(hash, key object.Object) object.Object {
-	m := hash.(*object.Map)
+	m := hash.(object.Map)
 	v, ok := m.Get(key)
 	if !ok {
 		return object.NULL
@@ -692,8 +692,8 @@ func evalArrayInfixExpression(operator token.Type, left, right object.Object) ob
 }
 
 func evalMapInfixExpression(operator token.Type, left, right object.Object) object.Object {
-	leftMap := left.(*object.Map)
-	rightMap := right.(*object.Map)
+	leftMap := left.(object.Map)
+	rightMap := right.(object.Map)
 	switch operator { //nolint:exhaustive // we have default.
 	case token.PLUS: // concat / append
 		return leftMap.Append(rightMap)

@@ -16,7 +16,7 @@ func TestStringMapKey(t *testing.T) {
 	}
 
 	m := object.NewMap()
-	m.Set(hello1, diff1)
+	m = m.Set(hello1, diff1)
 
 	v, ok := m.Get(hello2)
 	if !ok {
