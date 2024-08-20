@@ -114,7 +114,7 @@ func Main() int {
 	}
 	if *commandFlag != "" {
 		res, errs, _ := repl.EvalStringWithOption(options, *commandFlag)
-		// Errors are logged.
+		// Only parsing errors are already logged, eval errors aren't, we (re)log everything:
 		numErrs := len(errs)
 		if numErrs > 0 {
 			log.Errf("Total %d %s:\n%s", numErrs, cli.Plural(numErrs, "error"), strings.Join(errs, "\n"))
