@@ -292,7 +292,7 @@ func (p *Parser) peekError(t token.Type) {
 }
 
 func (p *Parser) noPrefixParseFnError(t token.Type) {
-	msg := fmt.Sprintf("no prefix parse function for `%s` found:\n%s", token.ByType(t).Literal(), p.ErrorContext(false))
+	msg := fmt.Sprintf("no prefix parse function for `%s` found:\n%s", token.ByType(t).Literal(), p.ErrorContext(true))
 	p.errors = append(p.errors, msg)
 }
 
