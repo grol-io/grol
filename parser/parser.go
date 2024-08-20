@@ -282,7 +282,8 @@ func (p *Parser) ErrorContext(prev bool) string {
 	if prev {
 		errPos -= (p.l.Pos() - p.prevPos)
 	}
-	return line + "\n" + strings.Repeat(" ", errPos-1) + "^"
+	repeat := max(0, errPos-1)
+	return line + "\n" + strings.Repeat(" ", repeat) + "^"
 }
 
 func (p *Parser) peekError(t token.Type) {
@@ -291,8 +292,8 @@ func (p *Parser) peekError(t token.Type) {
 	p.errors = append(p.errors, msg)
 }
 
-func (p *Parser) noPrefixParseFnError(t token.Type) {
-	msg := fmt.Sprintf("no prefix parse function for `%s` found:\n%s", token.ByType(t).Literal(), p.ErrorContext(true))
+func (p *Parser) noPrefixParseFnError(t *token.Token) {
+	msg := fmt.Sprintf("no prefix parse function for `%s` found:\n%s", t.Literal(), p.ErrorContext(true))
 	p.errors = append(p.errors, msg)
 }
 
@@ -305,7 +306,7 @@ func (p *Parser) parseExpression(precedence Priority) ast.Node {
 	}
 	prefix := p.prefixParseFns[p.curToken.Type()]
 	if prefix == nil {
-		p.noPrefixParseFnError(p.curToken.Type())
+		p.noPrefixParseFnError(p.curToken)
 		return nil
 	}
 	leftExp := prefix()

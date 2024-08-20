@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime/debug"
+	"strings"
 
 	"fortio.org/cli"
 	"fortio.org/log"
@@ -113,11 +114,13 @@ func Main() int {
 	}
 	if *commandFlag != "" {
 		res, errs, _ := repl.EvalStringWithOption(options, *commandFlag)
-		if len(errs) > 0 {
-			log.Errf("Errors: %v", errs)
+		// Errors are logged.
+		numErrs := len(errs)
+		if numErrs > 0 {
+			log.Errf("Total %d %s:\n%s", numErrs, cli.Plural(numErrs, "error"), strings.Join(errs, "\n"))
 		}
 		fmt.Print(res)
-		return len(errs)
+		return numErrs
 	}
 	if len(flag.Args()) == 0 {
 		return repl.Interactive(options)

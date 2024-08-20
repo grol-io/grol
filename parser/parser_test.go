@@ -364,3 +364,18 @@ func TestIncompleteBlockComment(t *testing.T) {
 		}
 	}
 }
+
+func TestNilToken(t *testing.T) {
+	inp := "@"
+	l := lexer.New(inp)
+	p := parser.New(l)
+	_ = p.ParseProgram()
+	errs := p.Errors()
+	if len(errs) != 1 {
+		t.Fatalf("expecting 1 error, got %d", len(errs))
+	}
+	expected := "no prefix parse function for `@` found:\n@\n^"
+	if errs[0] != expected {
+		t.Errorf("unexpected error: wanted %q got %q", expected, errs[0])
+	}
+}
