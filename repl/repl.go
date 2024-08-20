@@ -33,8 +33,6 @@ func logParserErrors(p *parser.Parser) bool {
 	if len(errs) == 0 {
 		return false
 	}
-
-	log.Critf("parser has %d error(s)", len(errs))
 	for _, msg := range errs {
 		log.Errf("parser error: %s", msg)
 	}

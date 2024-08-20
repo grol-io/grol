@@ -1,6 +1,7 @@
 package lexer
 
 import (
+	"bytes"
 	"strings"
 
 	"grol.io/grol/token"
@@ -12,6 +13,7 @@ type Lexer struct {
 	lineMode      bool
 	hadWhitespace bool
 	hadNewline    bool // newline was seen before current token
+	lastNewLine   int  // position just after most recent newline
 }
 
 // Mode with input expected the be complete (multiline/file).
@@ -33,6 +35,25 @@ func (l *Lexer) EOLEOF() *token.Token {
 		return token.EOLT
 	}
 	return token.EOFT
+}
+
+func (l *Lexer) Pos() int {
+	return l.pos
+}
+
+func (l *Lexer) LastNewLine() int {
+	return l.lastNewLine
+}
+
+// For error handling, somewhat expensive.
+// Returns the current line and the current position relative in that line.
+func (l *Lexer) CurrentLine() (string, int) {
+	p := min(l.pos, len(l.input))
+	nextNewline := bytes.IndexByte(l.input[p:], '\n')
+	if nextNewline == -1 {
+		nextNewline = len(l.input) - p
+	}
+	return string(l.input[l.lastNewLine : p+nextNewline]), p - l.lastNewLine
 }
 
 func (l *Lexer) NextToken() *token.Token {
@@ -135,6 +156,7 @@ func (l *Lexer) skipWhitespace() {
 		}
 		if ch == '\n' {
 			l.hadNewline = true
+			l.lastNewLine = l.pos + 1
 		}
 		l.hadWhitespace = true
 		l.pos++
