@@ -17,7 +17,7 @@ func FreeMemory() int64 {
 	currentAlloc := memStats.HeapAlloc
 	// retrieve the current limit.
 	gomemlimit := debug.SetMemoryLimit(-1)
-	return int64(gomemlimit) - int64(currentAlloc) //nolint:unconvert // necessary, can be negative.
+	return int64(gomemlimit) - int64(currentAlloc) //nolint:unconvert,gosec // necessary, can be negative.
 }
 
 func SizeOk(n int) (bool, int64) {
