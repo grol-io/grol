@@ -109,6 +109,7 @@ make # for stripped down executable including build tags etc to make it minimal
 ```
 
 ### Reading notes
+<details><summary>click for detailed reading notes</summary>
 
 See [Open Issues](https://grol.io/grol/issues) for what's left to do
 
@@ -173,6 +174,7 @@ See [Open Issues](https://grol.io/grol/issues) for what's left to do
 - for loop
 
 - [x] switched to non pointer receivers in Object and (base/integer) Ast so equality checks in maps work without special hashing (big win)
+</details>
 
 ### CLI Usage
 
