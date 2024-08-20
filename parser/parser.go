@@ -45,11 +45,12 @@ type Parser struct {
 	curToken  *token.Token
 	peekToken *token.Token
 
-	prevNewline bool
-	nextNewline bool
-
-	errors             []string
+	prevNewline        bool
+	nextNewline        bool
 	continuationNeeded bool
+	prevPos            int
+
+	errors []string
 
 	prefixParseFns  map[token.Type]prefixParseFn
 	infixParseFns   map[token.Type]infixParseFn
@@ -155,6 +156,7 @@ func (p *Parser) Errors() []string {
 func (p *Parser) nextToken() {
 	p.prevToken = p.curToken
 	p.curToken = p.peekToken
+	p.prevPos = p.l.Pos()
 	p.peekToken = p.l.NextToken()
 	p.prevNewline = p.nextNewline
 	p.nextNewline = p.l.HadNewline()
@@ -273,14 +275,25 @@ func (p *Parser) expectPeek(t token.Type) bool {
 	return false
 }
 
+// ErrorContext returns the current line and a pointer to the error position.
+// If prev is true, the error position is relative to the previous token instead of current one.
+func (p *Parser) ErrorContext(prev bool) string {
+	line, errPos := p.l.CurrentLine()
+	if prev {
+		errPos -= (p.l.Pos() - p.prevPos)
+	}
+	repeat := max(0, errPos-1)
+	return line + "\n" + strings.Repeat(" ", repeat) + "^"
+}
+
 func (p *Parser) peekError(t token.Type) {
-	msg := fmt.Sprintf("expected next token to be %s, got %s (%q) instead",
-		t, p.peekToken.Type(), p.peekToken.Literal())
+	msg := fmt.Sprintf("expected next token to be `%s`, got `%s` instead:\n%s",
+		token.ByType(t).Literal(), p.peekToken.Literal(), p.ErrorContext(false))
 	p.errors = append(p.errors, msg)
 }
 
-func (p *Parser) noPrefixParseFnError(t token.Type) {
-	msg := fmt.Sprintf("no prefix parse function for %s found", t)
+func (p *Parser) noPrefixParseFnError(t *token.Token) {
+	msg := fmt.Sprintf("no prefix parse function for `%s` found:\n%s", t.Literal(), p.ErrorContext(true))
 	p.errors = append(p.errors, msg)
 }
 
@@ -293,7 +306,7 @@ func (p *Parser) parseExpression(precedence Priority) ast.Node {
 	}
 	prefix := p.prefixParseFns[p.curToken.Type()]
 	if prefix == nil {
-		p.noPrefixParseFnError(p.curToken.Type())
+		p.noPrefixParseFnError(p.curToken)
 		return nil
 	}
 	leftExp := prefix()
@@ -343,7 +356,7 @@ func (p *Parser) parseIntegerLiteral() ast.Node {
 func (p *Parser) parseFloatLiteral() ast.Node {
 	value, err := strconv.ParseFloat(p.curToken.Literal(), 64)
 	if err != nil {
-		msg := fmt.Sprintf("could not parse %q as float", p.curToken.Literal())
+		msg := fmt.Sprintf("could not parse %q as float:\n%s", p.curToken.Literal(), p.ErrorContext(true))
 		p.errors = append(p.errors, msg)
 		return nil
 	}

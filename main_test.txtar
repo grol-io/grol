@@ -24,7 +24,7 @@ stderr welcome
 
 # syntax error non mode, stdout doesn't repeat errors
 !grol -c 'foo'
-stderr 'Errors'
+stderr 'Total 1 error'
 stderr 'identifier not found: foo'
 !stdout .
 
@@ -148,37 +148,49 @@ stderr 'Read/evaluated: .gr'
 
 # max depth
 
-!grol -no-auto -max-depth 12 -c 'func foo(n) {if n<=1 {1} else {self(n-1);n}}; foo(13)'
+!grol -max-depth 12 -c 'func foo(n) {if n<=1 {1} else {self(n-1);n}}; foo(13)'
 stderr 'max depth 13 reached'
 
-grol -no-auto -max-depth 12 -c 'func foo(n) {if n<=1 {1} else {self(n-1);n}}; foo(12)'
+grol -max-depth 12 -c 'func foo(n) {if n<=1 {1} else {self(n-1);n}}; foo(12)'
 stdout '^12$'
 !stderr 'max depth.*reached'
 
 # map don't mutate on append
-grol -no-auto -quiet -c 'm={2:"b"};n={1:"a"};println(m+n); println(m)'
+grol -quiet -c 'm={2:"b"};n={1:"a"};println(m+n); println(m)'
 stdout '^{1:"a",2:"b"}\n{2:"b"}$'
 !stderr .
 
-grol -no-auto -quiet -c 'm={1:1, nil:"foo"}; println(m+{nil:"bar"}); m'
+grol -quiet -c 'm={1:1, nil:"foo"}; println(m+{nil:"bar"}); m'
 stdout '^{1:1,nil:"bar"}\n{1:1,nil:"foo"}$'
 !stderr .
 
 # int
-grol -no-auto -quiet -c 'print(int("0xff"), int(PI))'
+grol -quiet -c 'print(int("0xff"), int(PI))'
 stdout '^255 3$'
 !stderr .
 
 # short circuiting
-grol -no-auto -quiet -c 'if true || println("not ran") {println("is true")}'
+grol -quiet -c 'if true || println("not ran") {println("is true")}'
 stdout '^is true$'
 !stderr .
 !stdout 'not ran'
 
-grol -no-auto -quiet -c 'if false && println("not ran") {true} else {println("is false")}'
+grol -quiet -c 'if false && println("not ran") {true} else {println("is false")}'
 stdout '^is false$'
 !stderr .
 !stdout 'not ran'
+
+# parse error context not crashing
+!grol -quiet -panic -c '^&@%%^!%^&^&!%^%^&!'
+stderr 'parser error'
+!stderr panic
+
+!grol -quiet -panic -c '@'
+!stderr panic
+!stderr NIL_TOKEN
+!stderr '\[CRI\]'
+stderr 'parser error'
+stderr '@'
 
 -- sample_test.gr --
 // Sample file that our gorepl can interpret

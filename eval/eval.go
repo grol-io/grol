@@ -327,7 +327,7 @@ func evalIndexExpression(left, index object.Object) object.Object {
 		if idx < 0 || idx >= int64(len(str)) {
 			return object.NULL
 		}
-		return object.Integer{Value: int64(str[idx])}
+		return object.Integer{Value: int64(str[idx])} //nolint:gosec // https://github.com/securego/gosec/issues/1185
 	case left.Type() == object.ARRAY && idxOrZero.Type() == object.INTEGER:
 		return evalArrayIndexExpression(left, idxOrZero)
 	case left.Type() == object.MAP:
@@ -725,7 +725,7 @@ func evalIntegerInfixExpression(operator token.Type, left, right object.Object) 
 	case token.LEFTSHIFT:
 		return object.Integer{Value: leftVal << rightVal}
 	case token.RIGHTSHIFT:
-		return object.Integer{Value: int64(uint64(leftVal) >> rightVal)}
+		return object.Integer{Value: int64(uint64(leftVal) >> rightVal)} //nolint:gosec // we want to be able to shift the hight bit.
 	case token.BITAND:
 		return object.Integer{Value: leftVal & rightVal}
 	case token.BITOR:

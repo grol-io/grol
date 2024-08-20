@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 
+	"fortio.org/log"
 	"fortio.org/sets"
 )
 
@@ -308,12 +309,16 @@ func LookupIdent(ident string) *Token {
 // only have one possible instance/value
 // (ie all the tokens except for the first 4 value tokens).
 // TODO: codegen all the token constants to avoid needing this function.
-// (even though that's better than string comparaisons).
+// (even though that's better than string comparisons).
 func ByType(t Type) *Token {
 	return tToT[t]
 }
 
 func (t *Token) Literal() string {
+	if t == nil {
+		log.Critf("Nil token .Literal() called")
+		return "NIL_TOKEN"
+	}
 	return t.literal
 }
 
