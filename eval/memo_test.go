@@ -8,7 +8,7 @@ import (
 )
 
 func TestBigArrayNotHashable(t *testing.T) {
-	// This test is to make sure that big arrays are no hashable.
+	// This test is to make sure that big arrays are showing as not hashable (so no crash when used later).
 	oSlice := object.MakeObjectSlice(object.MaxSmallArray + 1)
 	for i := range object.MaxSmallArray + 1 {
 		oSlice = append(oSlice, object.Integer{Value: int64(i)})
