@@ -208,7 +208,7 @@ stdout '^\[27,28,29\]$'
 !grol -quiet -c '(x) {1'
 stderr 'Incomplete input'
 !stderr 'panic'
-!stderr 'runtime error: invalid memor'
+!stderr 'runtime error: invalid memory'
 
 -- sample_test.gr --
 // Sample file that our gorepl can interpret
