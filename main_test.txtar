@@ -192,6 +192,11 @@ stderr 'parser error'
 stderr 'parser error'
 stderr '@'
 
+# panic on keys() of large array
+grol -quiet -panic -c 'keys(info.all_ids[0])'
+!stderr panic
+
+
 -- sample_test.gr --
 // Sample file that our gorepl can interpret
 // <--- comments
