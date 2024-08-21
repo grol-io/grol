@@ -334,20 +334,20 @@ func (s *State) evalIndexRangeExpression(left object.Object, leftIdx, rightIdx a
 	}
 	num := object.Len(left)
 	l := leftIndex.(object.Integer).Value
+	if l < 0 { // negative is relative to the end.
+		l = int64(num) + l
+	}
 	var r int64
 	if nilRight {
 		r = int64(num)
 	} else {
 		r = rightIndex.(object.Integer).Value
-	}
-	if r < 0 {
-		r = int64(num) + r
+		if r < 0 {
+			r = int64(num) + r
+		}
 	}
 	if l > r {
 		return object.Error{Value: "range index invalid: left greater then right"}
-	}
-	if l < 0 {
-		return object.Error{Value: "range index invalid: left negative"}
 	}
 	l = min(l, int64(num))
 	r = min(r, int64(num))
@@ -375,6 +375,10 @@ func evalIndexExpression(left, index object.Object) object.Object {
 	case left.Type() == object.STRING && idxOrZero.Type() == object.INTEGER:
 		idx := idxOrZero.(object.Integer).Value
 		str := left.(object.String).Value
+		num := len(str)
+		if idx < 0 { // negative is relative to the end.
+			idx = int64(num) + idx
+		}
 		if idx < 0 || idx >= int64(len(str)) {
 			return object.NULL
 		}
@@ -402,7 +406,9 @@ func evalMapIndexExpression(hash, key object.Object) object.Object {
 func evalArrayIndexExpression(array, index object.Object) object.Object {
 	idx := index.(object.Integer).Value
 	maxV := int64(object.Len(array) - 1)
-
+	if idx < 0 { // negative is relative to the end.
+		idx = maxV + 1 + idx // elsewhere we use len() but here maxV is len-1
+	}
 	if idx < 0 || idx > maxV {
 		return object.NULL
 	}
