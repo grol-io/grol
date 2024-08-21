@@ -447,6 +447,10 @@ func (p *Parser) parseInfixExpression(left ast.Node) ast.Node {
 	expression.Token = p.curToken
 
 	precedence := p.curPrecedence()
+	// handle [n:] case
+	if (expression.Token.Type() == token.COLON) && (p.peekToken.Type() == token.RBRACKET) {
+		return expression
+	}
 	p.nextToken()
 	expression.Right = p.parseExpression(precedence)
 

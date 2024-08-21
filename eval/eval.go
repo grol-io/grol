@@ -210,10 +210,7 @@ func (s *State) evalInternal(node any) object.Object { //nolint:funlen,gocyclo /
 			index = object.String{Value: node.Index.Value().Literal()}
 		} else {
 			if node.Index.Value().Type() == token.COLON {
-				e := node.Index.(*ast.InfixExpression)
-				rangeLeft := s.evalInternal(e.Left)
-				rangeRight := s.evalInternal(e.Right)
-				return evalIndexRangeExpression(left, rangeLeft, rangeRight)
+				return s.evalIndexRangeExpression(node, left)
 			}
 			index = s.evalInternal(node.Index)
 		}
@@ -321,14 +318,30 @@ func (s *State) evalBuiltin(node *ast.Builtin) object.Object {
 	}
 }
 
-func evalIndexRangeExpression(left, leftIndex object.Object, rightIndex object.Object) object.Object {
-	log.Debugf("eval index %s[%s:%s]", left.Inspect(), leftIndex.Inspect(), rightIndex.Inspect())
-	if leftIndex.Type() != object.INTEGER || rightIndex.Type() != object.INTEGER {
+func (s *State) evalIndexRangeExpression(node *ast.IndexExpression, left object.Object) object.Object {
+	e := node.Index.(*ast.InfixExpression)
+	leftIndex := s.evalInternal(e.Left)
+	var rightIndex object.Object
+	if e.Right != nil {
+		rightIndex = s.evalInternal(e.Right)
+	}
+	nilRight := rightIndex == nil
+	if nilRight {
+		log.Debugf("eval index %s[%s:]", left.Inspect(), leftIndex.Inspect())
+	} else {
+		log.Debugf("eval index %s[%s:%s]", left.Inspect(), leftIndex.Inspect(), rightIndex.Inspect())
+	}
+	if leftIndex.Type() != object.INTEGER || (!nilRight && rightIndex.Type() != object.INTEGER) {
 		return object.Error{Value: "range index not integer"}
 	}
-	l := leftIndex.(object.Integer).Value
-	r := rightIndex.(object.Integer).Value
 	num := object.Len(left)
+	l := leftIndex.(object.Integer).Value
+	var r int64
+	if nilRight {
+		r = int64(num)
+	} else {
+		r = rightIndex.(object.Integer).Value
+	}
 	if r < 0 {
 		r = int64(num) + r
 	}
