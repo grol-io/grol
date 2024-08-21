@@ -134,6 +134,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerInfix(token.BITAND, p.parseInfixExpression)
 	p.registerInfix(token.BITOR, p.parseInfixExpression)
 	p.registerInfix(token.BITXOR, p.parseInfixExpression)
+	p.registerInfix(token.COLON, p.parseInfixExpression)
 
 	// no let:
 	p.registerInfix(token.ASSIGN, p.parseInfixExpression)
@@ -407,6 +408,7 @@ var precedences = map[token.Type]Priority{
 	token.GT:         LESSGREATER,
 	token.LTEQ:       LESSGREATER,
 	token.GTEQ:       LESSGREATER,
+	token.COLON:      LESSGREATER, // range operator
 	token.PLUS:       SUM,
 	token.MINUS:      SUM,
 	token.BITOR:      SUM,
@@ -638,14 +640,16 @@ func (p *Parser) parseMapLiteral() ast.Node {
 		if p.continuationNeeded {
 			return nil
 		}
-		key := p.parseExpression(LOWEST)
-
-		if !p.expectPeek(token.COLON) {
+		kv := p.parseExpression(LOWEST)
+		ex, ok := kv.(*ast.InfixExpression)
+		if !ok {
 			return nil
 		}
-
-		p.nextToken()
-		value := p.parseExpression(LOWEST)
+		if ex.Token.Type() != token.COLON {
+			return nil
+		}
+		key := ex.Left
+		value := ex.Right
 
 		mapRes.Pairs[key] = value
 		mapRes.Order = append(mapRes.Order, key)

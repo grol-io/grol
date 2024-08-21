@@ -209,7 +209,14 @@ func (s *State) evalInternal(node any) object.Object { //nolint:funlen,gocyclo /
 			// index is the string value and not an identifier.
 			index = object.String{Value: node.Index.Value().Literal()}
 		} else {
-			index = s.evalInternal(node.Index)
+			if node.Index.Value().Type() == token.COLON {
+				e := node.Index.(*ast.InfixExpression)
+				rangeLeft := s.evalInternal(e.Left)
+				rangeRight := s.evalInternal(e.Right)
+				return evalIndexRangeExpression(left, rangeLeft, rangeRight)
+			} else {
+				index = s.evalInternal(node.Index)
+			}
 		}
 		return evalIndexExpression(left, index)
 	case *ast.Comment:
@@ -312,6 +319,41 @@ func (s *State) evalBuiltin(node *ast.Builtin) object.Object {
 		return object.Integer{Value: int64(l)}
 	default:
 		return object.Error{Value: fmt.Sprintf("builtin %s yet implemented", node.Type())}
+	}
+}
+
+func evalIndexRangeExpression(left, leftIndex object.Object, rightIndex object.Object) object.Object {
+	log.Debugf("eval index %s[%s:%s]", left.Inspect(), leftIndex.Inspect(), rightIndex.Inspect())
+	if leftIndex.Type() != object.INTEGER || rightIndex.Type() != object.INTEGER {
+		return object.Error{Value: "range index not integer"}
+	}
+	l := leftIndex.(object.Integer).Value
+	r := rightIndex.(object.Integer).Value
+	switch {
+	case left.Type() == object.STRING:
+		str := left.(object.String).Value
+		if r < 0 {
+			r = int64(len(str)) + r
+		}
+		if l > r {
+			return object.Error{Value: "range index invalid: left greater then right"}
+		}
+		if l < 0 {
+			return object.Error{Value: "range index invalid: left negative"}
+		}
+		l = min(l, int64(len(str)))
+		r = min(r, int64(len(str)))
+		return object.String{Value: str[l:r]}
+		/*
+			case left.Type() == object.ARRAY:
+				return evalArrayIndexExpression(left, idxOrZero)
+			case left.Type() == object.MAP:
+				return evalMapIndexExpression(left, index)
+		*/
+	case left.Type() == object.NIL:
+		return object.NULL
+	default:
+		return object.Error{Value: "range index operator not supported: " + left.Type().String()}
 	}
 }
 
