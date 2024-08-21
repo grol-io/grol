@@ -214,9 +214,8 @@ func (s *State) evalInternal(node any) object.Object { //nolint:funlen,gocyclo /
 				rangeLeft := s.evalInternal(e.Left)
 				rangeRight := s.evalInternal(e.Right)
 				return evalIndexRangeExpression(left, rangeLeft, rangeRight)
-			} else {
-				index = s.evalInternal(node.Index)
 			}
+			index = s.evalInternal(node.Index)
 		}
 		return evalIndexExpression(left, index)
 	case *ast.Comment:
@@ -329,27 +328,26 @@ func evalIndexRangeExpression(left, leftIndex object.Object, rightIndex object.O
 	}
 	l := leftIndex.(object.Integer).Value
 	r := rightIndex.(object.Integer).Value
+	num := object.Len(left)
+	if r < 0 {
+		r = int64(num) + r
+	}
+	if l > r {
+		return object.Error{Value: "range index invalid: left greater then right"}
+	}
+	if l < 0 {
+		return object.Error{Value: "range index invalid: left negative"}
+	}
+	l = min(l, int64(num))
+	r = min(r, int64(num))
 	switch {
 	case left.Type() == object.STRING:
 		str := left.(object.String).Value
-		if r < 0 {
-			r = int64(len(str)) + r
-		}
-		if l > r {
-			return object.Error{Value: "range index invalid: left greater then right"}
-		}
-		if l < 0 {
-			return object.Error{Value: "range index invalid: left negative"}
-		}
-		l = min(l, int64(len(str)))
-		r = min(r, int64(len(str)))
 		return object.String{Value: str[l:r]}
-		/*
-			case left.Type() == object.ARRAY:
-				return evalArrayIndexExpression(left, idxOrZero)
-			case left.Type() == object.MAP:
-				return evalMapIndexExpression(left, index)
-		*/
+	case left.Type() == object.ARRAY:
+		return object.NewArray(object.Elements(left)[l:r])
+	case left.Type() == object.MAP:
+		return object.Range(left, l, r) // could call that one for all of them...
 	case left.Type() == object.NIL:
 		return object.NULL
 	default:
@@ -774,6 +772,16 @@ func evalIntegerInfixExpression(operator token.Type, left, right object.Object) 
 		return object.Integer{Value: leftVal | rightVal}
 	case token.BITXOR:
 		return object.Integer{Value: leftVal ^ rightVal}
+	case token.COLON:
+		lg := rightVal - leftVal
+		if lg < 0 {
+			return object.Error{Value: "range index invalid: left greater then right"}
+		}
+		arr := object.MakeObjectSlice(int(lg))
+		for i := leftVal; i < rightVal; i++ {
+			arr = append(arr, object.Integer{Value: i})
+		}
+		return object.NewArray(arr)
 	default:
 		return object.Error{Value: "unknown operator: " + operator.String()}
 	}

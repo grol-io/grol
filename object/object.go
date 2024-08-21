@@ -257,6 +257,16 @@ func (m *BigMap) Rest() Object {
 	return res
 }
 
+func (m *BigMap) Range(l, r int64) Object {
+	nl := r - l
+	if nl > MaxSmallMap {
+		return &BigMap{kv: m.kv[l:r]}
+	}
+	res := SmallMap{len: int(nl)}
+	copy(res.smallKV[:nl], m.kv[l:r])
+	return res
+}
+
 func NewMapSize(size int) Map {
 	if size <= MaxSmallMap {
 		return SmallMap{}
@@ -308,6 +318,12 @@ func (m SmallMap) Rest() Object {
 	}
 	res := SmallMap{len: m.len - 1}
 	copy(res.smallKV[:m.len-1], m.smallKV[1:m.len])
+	return res
+}
+
+func (m SmallMap) Range(l, r int64) Object {
+	res := SmallMap{len: int(r - l)}
+	copy(res.smallKV[:], m.smallKV[l:r])
 	return res
 }
 
@@ -626,6 +642,32 @@ func Rest(val Object) Object {
 		return v.Rest()
 	}
 	return Error{Value: "rest() not supported on " + val.Type().String()}
+}
+
+func Range(val Object, l, r int64) Object {
+	switch v := val.(type) {
+	case SmallArray:
+		if l < 0 || r > int64(v.len) {
+			return Error{Value: "range() out of bounds"}
+		}
+		return NewArray(v.smallArr[l:r])
+	case BigArray:
+		if l < 0 || r > int64(len(v.elements)) {
+			return Error{Value: "range() out of bounds"}
+		}
+		return NewArray(v.elements[l:r])
+	case String:
+		rs := []rune(v.Value)
+		if l < 0 || r > int64(len(rs)) {
+			return Error{Value: "range() out of bounds"}
+		}
+		return String{Value: string(rs[l:r])}
+	case *BigMap:
+		return v.Range(l, r)
+	case SmallMap:
+		return v.Range(l, r)
+	}
+	return Error{Value: "range() not supported on " + val.Type().String()}
 }
 
 func (ao BigArray) First() Object        { return First(ao) }
