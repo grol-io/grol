@@ -170,7 +170,11 @@ func EvalStringWithOption(o Options, what string) (res string, errs []string, fo
 	s.NoLog = true
 	_ = AutoLoad(s, o) // errors already logged
 	panicked := false
-	_, panicked, errs, formatted = EvalOne(s, what, out, o)
+	incomplete := false
+	incomplete, panicked, errs, formatted = EvalOne(s, what, out, o)
+	if incomplete && len(errs) == 0 {
+		errs = append(errs, "Incomplete input")
+	}
 	res = out.String()
 	if !panicked {
 		_ = AutoSave(s, o)

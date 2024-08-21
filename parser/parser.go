@@ -135,6 +135,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerInfix(token.BITOR, p.parseInfixExpression)
 	p.registerInfix(token.BITXOR, p.parseInfixExpression)
 	p.registerInfix(token.COLON, p.parseInfixExpression)
+	p.registerInfix(token.LAMBDA, p.parseLambdaExpression)
 
 	// no let:
 	p.registerInfix(token.ASSIGN, p.parseInfixExpression)
@@ -169,6 +170,9 @@ func (p *Parser) ParseProgram() *ast.Statements {
 
 	for p.curToken.Type() != token.EOF && p.curToken.Type() != token.EOL {
 		stmt := p.parseStatement()
+		if stmt == nil {
+			return program
+		}
 		program.Statements = append(program.Statements, stmt)
 		p.nextToken()
 	}
@@ -277,11 +281,11 @@ func (p *Parser) expectPeek(t token.Type) bool {
 }
 
 // ErrorLine returns the current line and a pointer to the error position.
-// If prev is true, the error position is relative to the previous token instead of current one.
-func (p *Parser) ErrorLine(prev bool) string {
+// If forPreviousToken is true, the error position is relative to the previous token instead of current one.
+func (p *Parser) ErrorLine(forPreviousToken bool) string {
 	line, errPos := p.l.CurrentLine()
-	if prev {
-		// When the error about the previous tokem, adjust the position accordingly.
+	if forPreviousToken {
+		// When the error is about the previous token, adjust the position accordingly.
 		// (note this doesn't work when the previous token in on a different line -- TODO: improve)
 		errPos -= (p.l.Pos() - p.prevPos)
 	}
@@ -406,6 +410,7 @@ var precedences = map[token.Type]Priority{
 	token.ASSIGN:     ASSIGN,
 	token.EQ:         EQUALS,
 	token.NOTEQ:      EQUALS,
+	token.LAMBDA:     EQUALS,
 	token.LT:         LESSGREATER,
 	token.GT:         LESSGREATER,
 	token.LTEQ:       LESSGREATER,
@@ -440,6 +445,17 @@ func (p *Parser) curPrecedence() Priority {
 		return p
 	}
 	return LOWEST
+}
+
+func (p *Parser) parseLambdaExpression(left ast.Node) ast.Node {
+	lambda := &ast.FunctionLiteral{IsLambda: true}
+	lambda.Token = p.curToken
+	lambda.Parameters = []ast.Node{left}
+	precedence := p.curPrecedence()
+	p.nextToken()
+	body := p.parseExpression(precedence)
+	lambda.Body = &ast.Statements{Statements: []ast.Node{body}}
+	return lambda
 }
 
 func (p *Parser) parseInfixExpression(left ast.Node) ast.Node {
@@ -648,10 +664,12 @@ func (p *Parser) parseMapLiteral() ast.Node {
 		}
 		kv := p.parseExpression(LOWEST)
 		ex, ok := kv.(*ast.InfixExpression)
-		if !ok {
-			return nil
-		}
-		if ex.Token.Type() != token.COLON {
+		if !ok || ex.Token.Type() != token.COLON {
+			if p.peekTokenIs(token.EOL) {
+				p.continuationNeeded = true
+			} else {
+				p.peekError(token.COLON)
+			}
 			return nil
 		}
 		key := ex.Left

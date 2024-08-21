@@ -362,14 +362,25 @@ func (b Builtin) PrettyPrint(out *PrintState) *PrintState {
 }
 
 type FunctionLiteral struct {
-	Base       // The 'func' token
+	Base       // The 'func' or '=>' token
 	Name       *Identifier
 	Parameters []Node // last one might be `..` for variadic.
 	Body       *Statements
 	Variadic   bool
+	IsLambda   bool
 }
 
 func (fl FunctionLiteral) PrettyPrint(out *PrintState) *PrintState {
+	if fl.IsLambda {
+		fl.Parameters[0].PrettyPrint(out)
+		if out.Compact {
+			out.Print("=>")
+		} else {
+			out.Print(" => ")
+		}
+		fl.Body.Statements[0].PrettyPrint(out)
+		return out
+	}
 	out.Print(fl.Literal())
 	if fl.Name != nil {
 		out.Print(" ")

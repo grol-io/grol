@@ -489,6 +489,7 @@ type Function struct {
 	Body       *ast.Statements
 	Env        *Environment
 	Variadic   bool
+	Lambda     bool // no name, 1 param, 1 statement.
 }
 
 func WriteStrings(out *strings.Builder, list []Object, before, sep, after string) {
@@ -510,19 +511,28 @@ func (f Function) Type() Type  { return FUNC }
 // so it's not part of the cache key.
 func (f *Function) SetCacheKey() string {
 	out := strings.Builder{}
-	out.WriteString("func")
+	if !f.Lambda {
+		out.WriteString("func ")
+	}
 	f.CacheKey = f.finishFuncOutput(&out)
 	return f.CacheKey
 }
 
 // Common part of Inspect and SetCacheKey. Outputs the rest of the function.
 func (f *Function) finishFuncOutput(out *strings.Builder) string {
-	out.WriteString("(")
+	if !f.Lambda {
+		out.WriteString("(")
+	}
 	ps := &ast.PrintState{Out: out, Compact: true}
 	ps.ComaList(f.Parameters)
-	out.WriteString("){")
-	f.Body.PrettyPrint(ps)
-	out.WriteString("}")
+	if f.Lambda {
+		out.WriteString("=>")
+		f.Body.PrettyPrint(ps)
+	} else {
+		out.WriteString("){")
+		f.Body.PrettyPrint(ps)
+		out.WriteString("}")
+	}
 	return out.String()
 }
 

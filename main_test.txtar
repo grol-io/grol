@@ -204,6 +204,12 @@ stdout '^\[27,28,29,30\]$'
 grol -quiet -c '(23:31)[5-1:23-24]'
 stdout '^\[27,28,29\]$'
 
+# crash on weird half function body
+!grol -quiet -c '(x) {1'
+stderr 'Incomplete input'
+!stderr 'panic'
+!stderr 'runtime error: invalid memor'
+
 -- sample_test.gr --
 // Sample file that our gorepl can interpret
 // <--- comments
