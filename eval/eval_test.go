@@ -559,6 +559,10 @@ func TestArrayIndexExpressions(t *testing.T) {
 			"[1, 2, 3][-4]",
 			nil,
 		},
+		{
+			"len([1, 2, 3, 4][2:])",
+			2,
+		},
 	}
 
 	for _, tt := range tests {
