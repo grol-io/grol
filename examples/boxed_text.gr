@@ -81,16 +81,9 @@ func for(n, f, start) {
     l(1,f,start)
 }
 
-func generateIndices(n) {
-	result = []
-	for(n, func(i, result) {
-		return result + [i-1]
-	},[])
-}
-
 func maxWidths(widths) {
     cols = len(widths[0])
-    colIndices = generateIndices(cols) // Generates [0, 1, 2] for 3 columns
+    colIndices = 0:cols // Generates [0, 1, 2] for 3 columns
 
     return apply(func(colIndex) {
         return max(apply(func(row) {

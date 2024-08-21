@@ -282,7 +282,11 @@ func (i InfixExpression) PrettyPrint(out *PrintState) *PrintState {
 	} else {
 		out.Print(" ", i.Literal(), " ")
 	}
-	i.Right.PrettyPrint(out)
+	if i.Right == nil {
+		out.Print("nil")
+	} else {
+		i.Right.PrettyPrint(out)
+	}
 	if !isAssign {
 		out.ExpressionLevel--
 	}

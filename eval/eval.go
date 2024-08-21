@@ -209,6 +209,10 @@ func (s *State) evalInternal(node any) object.Object { //nolint:funlen,gocyclo /
 			// index is the string value and not an identifier.
 			index = object.String{Value: node.Index.Value().Literal()}
 		} else {
+			if node.Index.Value().Type() == token.COLON {
+				rangeExp := node.Index.(*ast.InfixExpression)
+				return s.evalIndexRangeExpression(left, rangeExp.Left, rangeExp.Right)
+			}
 			index = s.evalInternal(node.Index)
 		}
 		return evalIndexExpression(left, index)
@@ -315,6 +319,53 @@ func (s *State) evalBuiltin(node *ast.Builtin) object.Object {
 	}
 }
 
+func (s *State) evalIndexRangeExpression(left object.Object, leftIdx, rightIdx ast.Node) object.Object {
+	leftIndex := s.evalInternal(leftIdx)
+	nilRight := (rightIdx == nil)
+	var rightIndex object.Object
+	if nilRight {
+		log.Debugf("eval index %s[%s:]", left.Inspect(), leftIndex.Inspect())
+	} else {
+		rightIndex = s.evalInternal(rightIdx)
+		log.Debugf("eval index %s[%s:%s]", left.Inspect(), leftIndex.Inspect(), rightIndex.Inspect())
+	}
+	if leftIndex.Type() != object.INTEGER || (!nilRight && rightIndex.Type() != object.INTEGER) {
+		return object.Error{Value: "range index not integer"}
+	}
+	num := object.Len(left)
+	l := leftIndex.(object.Integer).Value
+	if l < 0 { // negative is relative to the end.
+		l = int64(num) + l
+	}
+	var r int64
+	if nilRight {
+		r = int64(num)
+	} else {
+		r = rightIndex.(object.Integer).Value
+		if r < 0 {
+			r = int64(num) + r
+		}
+	}
+	if l > r {
+		return object.Error{Value: "range index invalid: left greater then right"}
+	}
+	l = min(l, int64(num))
+	r = min(r, int64(num))
+	switch {
+	case left.Type() == object.STRING:
+		str := left.(object.String).Value
+		return object.String{Value: str[l:r]}
+	case left.Type() == object.ARRAY:
+		return object.NewArray(object.Elements(left)[l:r])
+	case left.Type() == object.MAP:
+		return object.Range(left, l, r) // could call that one for all of them...
+	case left.Type() == object.NIL:
+		return object.NULL
+	default:
+		return object.Error{Value: "range index operator not supported: " + left.Type().String()}
+	}
+}
+
 func evalIndexExpression(left, index object.Object) object.Object {
 	idxOrZero := index
 	if idxOrZero.Type() == object.NIL {
@@ -324,6 +375,10 @@ func evalIndexExpression(left, index object.Object) object.Object {
 	case left.Type() == object.STRING && idxOrZero.Type() == object.INTEGER:
 		idx := idxOrZero.(object.Integer).Value
 		str := left.(object.String).Value
+		num := len(str)
+		if idx < 0 { // negative is relative to the end.
+			idx = int64(num) + idx
+		}
 		if idx < 0 || idx >= int64(len(str)) {
 			return object.NULL
 		}
@@ -351,7 +406,9 @@ func evalMapIndexExpression(hash, key object.Object) object.Object {
 func evalArrayIndexExpression(array, index object.Object) object.Object {
 	idx := index.(object.Integer).Value
 	maxV := int64(object.Len(array) - 1)
-
+	if idx < 0 { // negative is relative to the end.
+		idx = maxV + 1 + idx // elsewhere we use len() but here maxV is len-1
+	}
 	if idx < 0 || idx > maxV {
 		return object.NULL
 	}
@@ -732,6 +789,16 @@ func evalIntegerInfixExpression(operator token.Type, left, right object.Object) 
 		return object.Integer{Value: leftVal | rightVal}
 	case token.BITXOR:
 		return object.Integer{Value: leftVal ^ rightVal}
+	case token.COLON:
+		lg := rightVal - leftVal
+		if lg < 0 {
+			return object.Error{Value: "range index invalid: left greater then right"}
+		}
+		arr := object.MakeObjectSlice(int(lg))
+		for i := leftVal; i < rightVal; i++ {
+			arr = append(arr, object.Integer{Value: i})
+		}
+		return object.NewArray(arr)
 	default:
 		return object.Error{Value: "unknown operator: " + operator.String()}
 	}

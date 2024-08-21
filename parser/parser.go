@@ -134,6 +134,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerInfix(token.BITAND, p.parseInfixExpression)
 	p.registerInfix(token.BITOR, p.parseInfixExpression)
 	p.registerInfix(token.BITXOR, p.parseInfixExpression)
+	p.registerInfix(token.COLON, p.parseInfixExpression)
 
 	// no let:
 	p.registerInfix(token.ASSIGN, p.parseInfixExpression)
@@ -275,11 +276,13 @@ func (p *Parser) expectPeek(t token.Type) bool {
 	return false
 }
 
-// ErrorContext returns the current line and a pointer to the error position.
+// ErrorLine returns the current line and a pointer to the error position.
 // If prev is true, the error position is relative to the previous token instead of current one.
-func (p *Parser) ErrorContext(prev bool) string {
+func (p *Parser) ErrorLine(prev bool) string {
 	line, errPos := p.l.CurrentLine()
 	if prev {
+		// When the error about the previous tokem, adjust the position accordingly.
+		// (note this doesn't work when the previous token in on a different line -- TODO: improve)
 		errPos -= (p.l.Pos() - p.prevPos)
 	}
 	repeat := max(0, errPos-1)
@@ -288,12 +291,12 @@ func (p *Parser) ErrorContext(prev bool) string {
 
 func (p *Parser) peekError(t token.Type) {
 	msg := fmt.Sprintf("expected next token to be `%s`, got `%s` instead:\n%s",
-		token.ByType(t).Literal(), p.peekToken.Literal(), p.ErrorContext(false))
+		token.ByType(t).Literal(), p.peekToken.Literal(), p.ErrorLine(false))
 	p.errors = append(p.errors, msg)
 }
 
 func (p *Parser) noPrefixParseFnError(t *token.Token) {
-	msg := fmt.Sprintf("no prefix parse function for `%s` found:\n%s", t.Literal(), p.ErrorContext(true))
+	msg := fmt.Sprintf("no prefix parse function for `%s` found:\n%s", t.Literal(), p.ErrorLine(true))
 	p.errors = append(p.errors, msg)
 }
 
@@ -356,7 +359,7 @@ func (p *Parser) parseIntegerLiteral() ast.Node {
 func (p *Parser) parseFloatLiteral() ast.Node {
 	value, err := strconv.ParseFloat(p.curToken.Literal(), 64)
 	if err != nil {
-		msg := fmt.Sprintf("could not parse %q as float:\n%s", p.curToken.Literal(), p.ErrorContext(true))
+		msg := fmt.Sprintf("could not parse %q as float:\n%s", p.curToken.Literal(), p.ErrorLine(true))
 		p.errors = append(p.errors, msg)
 		return nil
 	}
@@ -407,6 +410,7 @@ var precedences = map[token.Type]Priority{
 	token.GT:         LESSGREATER,
 	token.LTEQ:       LESSGREATER,
 	token.GTEQ:       LESSGREATER,
+	token.COLON:      LESSGREATER, // range operator
 	token.PLUS:       SUM,
 	token.MINUS:      SUM,
 	token.BITOR:      SUM,
@@ -445,6 +449,10 @@ func (p *Parser) parseInfixExpression(left ast.Node) ast.Node {
 	expression.Token = p.curToken
 
 	precedence := p.curPrecedence()
+	// handle [n:] case
+	if (expression.Token.Type() == token.COLON) && (p.peekToken.Type() == token.RBRACKET) {
+		return expression
+	}
 	p.nextToken()
 	expression.Right = p.parseExpression(precedence)
 
@@ -638,14 +646,16 @@ func (p *Parser) parseMapLiteral() ast.Node {
 		if p.continuationNeeded {
 			return nil
 		}
-		key := p.parseExpression(LOWEST)
-
-		if !p.expectPeek(token.COLON) {
+		kv := p.parseExpression(LOWEST)
+		ex, ok := kv.(*ast.InfixExpression)
+		if !ok {
 			return nil
 		}
-
-		p.nextToken()
-		value := p.parseExpression(LOWEST)
+		if ex.Token.Type() != token.COLON {
+			return nil
+		}
+		key := ex.Left
+		value := ex.Right
 
 		mapRes.Pairs[key] = value
 		mapRes.Order = append(mapRes.Order, key)
