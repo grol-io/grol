@@ -450,6 +450,10 @@ func (p *Parser) curPrecedence() Priority {
 func (p *Parser) parseLambdaExpression(left ast.Node) ast.Node {
 	lambda := &ast.FunctionLiteral{IsLambda: true}
 	lambda.Token = p.curToken
+	if left.Value().Type() != token.IDENT {
+		p.errors = append(p.errors, "Lambda parameter must be an identifier:\n"+p.ErrorLine(true))
+		return nil
+	}
 	lambda.Parameters = []ast.Node{left}
 	precedence := p.curPrecedence()
 	p.nextToken()
