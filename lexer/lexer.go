@@ -68,7 +68,7 @@ func (l *Lexer) NextToken() *token.Token {
 			// so we normalize := like it didn't exist.
 			return token.ConstantTokenChar2(ch, nextChar)
 		}
-		if nextChar == '>' && ch == '=' {
+		if nextChar == '>' && ch == '=' { // => lambda
 			l.pos++
 			return token.ConstantTokenChar2(ch, nextChar)
 		}
