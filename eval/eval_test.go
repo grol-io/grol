@@ -948,3 +948,12 @@ func TestSmallMapSorting(t *testing.T) {
 		t.Errorf("wrong result, got %q expected %q", resStr, expected)
 	}
 }
+
+func TestCrashKeys(t *testing.T) {
+	inp := `keys(info.all_ids[0])`
+	s := eval.NewState()
+	_, err := eval.EvalString(s, inp, false)
+	if err != nil {
+		t.Errorf("should not have errored: %v", err)
+	}
+}
