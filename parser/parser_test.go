@@ -365,7 +365,10 @@ func TestIncompleteBlockComment(t *testing.T) {
 	}
 }
 
-func TestNilToken(t *testing.T) {
+func TestInvalidToken(t *testing.T) {
+	// This turns into the invalid token which in turn can't be found in prefix map,
+	// it used to crash in earlier versions, this is the regression for that crash.
+	// it also checks the error message in first line + first column case.
 	inp := "@"
 	l := lexer.New(inp)
 	p := parser.New(l)

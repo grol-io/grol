@@ -9,7 +9,6 @@ import (
 	"strconv"
 	"strings"
 
-	"fortio.org/log"
 	"fortio.org/sets"
 )
 
@@ -315,10 +314,6 @@ func ByType(t Type) *Token {
 }
 
 func (t *Token) Literal() string {
-	if t == nil {
-		log.Critf("Nil token .Literal() called")
-		return "NIL_TOKEN"
-	}
 	return t.literal
 }
 
