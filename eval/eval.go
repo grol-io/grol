@@ -321,14 +321,12 @@ func (s *State) evalBuiltin(node *ast.Builtin) object.Object {
 func (s *State) evalIndexRangeExpression(node *ast.IndexExpression, left object.Object) object.Object {
 	e := node.Index.(*ast.InfixExpression)
 	leftIndex := s.evalInternal(e.Left)
+	nilRight := (e.Right == nil)
 	var rightIndex object.Object
-	if e.Right != nil {
-		rightIndex = s.evalInternal(e.Right)
-	}
-	nilRight := rightIndex == nil
 	if nilRight {
 		log.Debugf("eval index %s[%s:]", left.Inspect(), leftIndex.Inspect())
 	} else {
+		rightIndex = s.evalInternal(e.Right)
 		log.Debugf("eval index %s[%s:%s]", left.Inspect(), leftIndex.Inspect(), rightIndex.Inspect())
 	}
 	if leftIndex.Type() != object.INTEGER || (!nilRight && rightIndex.Type() != object.INTEGER) {

@@ -196,6 +196,13 @@ stderr '@'
 grol -quiet -panic -c 'keys(info.all_ids[0])'
 !stderr panic
 
+# range
+grol -quiet -c '(23:31)[4:]'
+stdout '^\[27,28,29,30\]$'
+
+# range
+grol -quiet -c '(23:31)[5-1:23-24]'
+stdout '^\[27,28,29\]$'
 
 -- sample_test.gr --
 // Sample file that our gorepl can interpret
