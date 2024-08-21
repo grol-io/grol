@@ -174,7 +174,7 @@ func (s *State) evalInternal(node any) object.Object { //nolint:funlen,gocyclo /
 			Lambda:     node.IsLambda,
 		}
 		if !fn.Lambda && len(fn.Parameters) == 1 && len(fn.Body.Statements) == 1 && fn.Name == nil {
-			log.LogVf("Normalizing non short lambda form to => lambda")
+			log.LogVf("Normalizing non-short lambda form to => lambda")
 			fn.Lambda = true
 		}
 		fn.SetCacheKey() // sets cache key
