@@ -1,0 +1,3 @@
+/* Fibonacci using the lambda short form */
+fib =  x => if (x <= 1) {x} else {self(x - 1) + self(x - 2)}
+log("fib(35) =", fib(35))
