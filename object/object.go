@@ -489,6 +489,7 @@ type Function struct {
 	Body       *ast.Statements
 	Env        *Environment
 	Variadic   bool
+	Lambda     bool // i.e. has no name.
 }
 
 func WriteStrings(out *strings.Builder, list []Object, before, sep, after string) {
@@ -510,16 +511,40 @@ func (f Function) Type() Type  { return FUNC }
 // so it's not part of the cache key.
 func (f *Function) SetCacheKey() string {
 	out := strings.Builder{}
-	out.WriteString("func")
+	if !f.Lambda {
+		out.WriteString("func ")
+	}
 	f.CacheKey = f.finishFuncOutput(&out)
 	return f.CacheKey
 }
 
+func (f *Function) lambdaPrint(ps *ast.PrintState, out *strings.Builder) string {
+	if len(f.Parameters) != 1 {
+		out.WriteString(")=>")
+	} else {
+		out.WriteString("=>")
+	}
+	if len(f.Body.Statements) != 1 {
+		out.WriteString("{")
+	}
+	f.Body.PrettyPrint(ps)
+	if len(f.Body.Statements) != 1 {
+		out.WriteString("}")
+	}
+	return out.String()
+}
+
 // Common part of Inspect and SetCacheKey. Outputs the rest of the function.
 func (f *Function) finishFuncOutput(out *strings.Builder) string {
-	out.WriteString("(")
+	needParen := !f.Lambda || len(f.Parameters) != 1
+	if needParen {
+		out.WriteString("(")
+	}
 	ps := &ast.PrintState{Out: out, Compact: true}
 	ps.ComaList(f.Parameters)
+	if f.Lambda {
+		return f.lambdaPrint(ps, out)
+	}
 	out.WriteString("){")
 	f.Body.PrettyPrint(ps)
 	out.WriteString("}")

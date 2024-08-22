@@ -3,7 +3,7 @@
  Define and immediately call factorial
  (IIFE: Immediately Invoked Function Expression)
  */
- func(n) {
+ func(n) { // or n => { ... } for short lambda form
 	if n <= 1 {
 		return 1
 	}

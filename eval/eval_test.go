@@ -949,7 +949,7 @@ func TestSmallMapSorting(t *testing.T) {
 	s := eval.NewState()
 	res, err := eval.EvalString(s, inp, false)
 	if err != nil {
-		t.Errorf("should not have errored: %v", err)
+		t.Fatalf("should not have errored: %v", err)
 	}
 	resStr := res.Inspect()
 	if resStr != expected {

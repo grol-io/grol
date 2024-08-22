@@ -114,6 +114,7 @@ const (
 	AND
 	LEFTSHIFT
 	RIGHTSHIFT
+	LAMBDA // => lambda short cut: `a,b => a+b` alias for `func(a,b) {a+b}`
 
 	endMultiCharTokens
 
@@ -288,6 +289,7 @@ func Init() {
 	assocC2(AND, "&&")
 	assocC2(LEFTSHIFT, "<<")
 	assocC2(RIGHTSHIFT, ">>")
+	assocC2(LAMBDA, "=>")
 	// Special alias for := to be same as ASSIGN.
 	c2Tokens[[2]byte{':', '='}] = cTokens['=']
 	info.Tokens.Add(":=")

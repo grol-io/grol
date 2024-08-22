@@ -58,12 +58,22 @@ stderr 'I] All done'
 # Bug repro, return aborts the whole program
 grol -c 'f=func(){return 1;2};log(f());f();3'
 stdout '^1\n3$'
-!stderr 'Errors'
+!stderr '\[E\]'
+
+# lambda version of previous
+grol -c 'f=()=>{return 1;2};log(f());f();3'
+stdout '^1\n3$'
+!stderr '\[E\]'
 
 # same one more level
 grol -c 'f=func(n){if (n==5) {return 1};2};log(f(5));f(5);3'
 stdout '^1\n3$'
-!stderr 'Errors'
+!stderr '\[E\]'
+
+# lambda version of previous
+grol -c 'f=n=>{if (n==5) {return 1};2};log(f(5));f(5);3'
+stdout '^1\n3$'
+!stderr '\[E\]'
 
 # test bad macro as well as indirectly the error() builtin
 !grol -c 'm=macro(){};m()'
@@ -71,6 +81,12 @@ stderr '<err: macro should return Quote. got=object.Null \({}\)>'
 
 # quiet mode and fast fibbonaci (log won't show)
 grol -quiet -c 'fib=func(x){log("fib",x);if x<=1 {x} else {fib(x-1)+fib(x-2)}}; fib(92)'
+stdout '^7540113804746346429\n$'
+!stdout '\n\n'
+!stderr .
+
+# lambda version
+grol -quiet -c 'fib= x => if x<=1 {x} else {self(x-1)+self(x-2)}; fib(92)'
 stdout '^7540113804746346429\n$'
 !stdout '\n\n'
 !stderr .
@@ -116,6 +132,11 @@ stdout '^\[1,2,3,\["a","b"],4]$'
 
 # dot notation and priority with functions
 grol -quiet -c 'n1={"f1":func(){println("f1")},"f2":func(x){x+1}}n1.f1()n1.f2(41)'
+stdout '^f1\n42$'
+!stderr .
+
+# lambda version
+grol -quiet -c 'n1={"f1":()=>println("f1"),"f2":(x)=>x+1}n1.f1()n1.f2(41)'
 stdout '^f1\n42$'
 !stderr .
 
@@ -204,6 +225,16 @@ stdout '^\[27,28,29,30\]$'
 grol -quiet -c '(23:31)[5-1:23-24]'
 stdout '^\[27,28,29\]$'
 
+# crash on weird half function body
+!grol -quiet -c '(x) {1'
+stderr 'Incomplete input'
+!stderr 'panic'
+!stderr 'runtime error: invalid memory'
+
+# no crash on empty param list in lambda short form.
+grol -quiet -c '(()=>1)()'
+stdout '^1$'
+
 -- sample_test.gr --
 // Sample file that our gorepl can interpret
 // <--- comments
@@ -219,7 +250,7 @@ unless = macro(cond, iffalse, iftrue) {
 
 unless(10 > 5, print("BUG: not greater\n"), print("macro test: greater\n"))
 
-fact=func(n) { // function
+fact= n => { // could be func(n) instead of n => short lambda form
     log("called fact", n) // log (timestamped stderr output)
     if (n<=1) {
         return 1

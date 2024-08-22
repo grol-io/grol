@@ -382,3 +382,22 @@ func TestInvalidToken(t *testing.T) {
 		t.Errorf("unexpected error: wanted %q got %q", expected, errs[0])
 	}
 }
+
+// Happened through accidental paste of fib body, panic/crashed.
+func TestOddPanic(t *testing.T) {
+	inp := `(x) {1`
+	l := lexer.New(inp)
+	p := parser.New(l)
+	statements := p.ParseProgram()
+	errs := p.Errors()
+	if len(errs) != 1 {
+		t.Fatalf("expecting 1 error, got %v", errs)
+	}
+	out := ast.NewPrintState()
+	statements.PrettyPrint(out)
+	expected := "x\n"
+	actual := out.String()
+	if actual != expected {
+		t.Errorf("expected %q got %q", expected, actual)
+	}
+}

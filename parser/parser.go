@@ -135,6 +135,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerInfix(token.BITOR, p.parseInfixExpression)
 	p.registerInfix(token.BITXOR, p.parseInfixExpression)
 	p.registerInfix(token.COLON, p.parseInfixExpression)
+	p.registerInfix(token.LAMBDA, p.parseLambdaExpression)
 
 	// no let:
 	p.registerInfix(token.ASSIGN, p.parseInfixExpression)
@@ -169,6 +170,9 @@ func (p *Parser) ParseProgram() *ast.Statements {
 
 	for p.curToken.Type() != token.EOF && p.curToken.Type() != token.EOL {
 		stmt := p.parseStatement()
+		if stmt == nil {
+			return program
+		}
 		program.Statements = append(program.Statements, stmt)
 		p.nextToken()
 	}
@@ -277,11 +281,11 @@ func (p *Parser) expectPeek(t token.Type) bool {
 }
 
 // ErrorLine returns the current line and a pointer to the error position.
-// If prev is true, the error position is relative to the previous token instead of current one.
-func (p *Parser) ErrorLine(prev bool) string {
+// If forPreviousToken is true, the error position is relative to the previous token instead of current one.
+func (p *Parser) ErrorLine(forPreviousToken bool) string {
 	line, errPos := p.l.CurrentLine()
-	if prev {
-		// When the error about the previous tokem, adjust the position accordingly.
+	if forPreviousToken {
+		// When the error is about the previous token, adjust the position accordingly.
 		// (note this doesn't work when the previous token in on a different line -- TODO: improve)
 		errPos -= (p.l.Pos() - p.prevPos)
 	}
@@ -290,12 +294,14 @@ func (p *Parser) ErrorLine(prev bool) string {
 }
 
 func (p *Parser) peekError(t token.Type) {
+	log.Debugf("peekError: %s", t)
 	msg := fmt.Sprintf("expected next token to be `%s`, got `%s` instead:\n%s",
 		token.ByType(t).Literal(), p.peekToken.Literal(), p.ErrorLine(false))
 	p.errors = append(p.errors, msg)
 }
 
 func (p *Parser) noPrefixParseFnError(t *token.Token) {
+	log.Debugf("Adding noPrefixParseFnError: %s", t.DebugString())
 	msg := fmt.Sprintf("no prefix parse function for `%s` found:\n%s", t.Literal(), p.ErrorLine(true))
 	p.errors = append(p.errors, msg)
 }
@@ -309,7 +315,9 @@ func (p *Parser) parseExpression(precedence Priority) ast.Node {
 	}
 	prefix := p.prefixParseFns[p.curToken.Type()]
 	if prefix == nil {
-		p.noPrefixParseFnError(p.curToken)
+		if !p.peekTokenIs(token.LAMBDA) { // To make () => { ... } without errors.
+			p.noPrefixParseFnError(p.curToken)
+		}
 		return nil
 	}
 	leftExp := prefix()
@@ -378,6 +386,22 @@ func (p *Parser) parseBoolean() ast.Node {
 func (p *Parser) parseGroupedExpression() ast.Node {
 	p.nextToken()
 	exp := p.parseExpression(LOWEST)
+	log.Debugf("parseGroupedExpression: %#v", exp)
+	if p.peekTokenIs(token.LAMBDA) { // () => { ... } case
+		p.nextToken()
+		return p.parseLambdaMulti(exp)
+	}
+	if p.peekTokenIs(token.COMMA) { // (a,b,,.) => { ... } case
+		p.nextToken()
+		el := p.parseExpressionList(token.RPAREN)
+		if el == nil {
+			return nil
+		}
+		if !p.expectPeek(token.LAMBDA) {
+			return nil
+		}
+		return p.parseLambdaMulti(exp, el...)
+	}
 	if !p.expectPeek(token.RPAREN) {
 		return nil
 	}
@@ -404,13 +428,16 @@ func (p *Parser) parsePostfixExpression() ast.Node {
 
 var precedences = map[token.Type]Priority{
 	token.ASSIGN:     ASSIGN,
+	token.OR:         OR,
+	token.AND:        AND,
+	token.COLON:      AND, // range operator and maps (lower than lambda)
 	token.EQ:         EQUALS,
 	token.NOTEQ:      EQUALS,
+	token.LAMBDA:     EQUALS,
 	token.LT:         LESSGREATER,
 	token.GT:         LESSGREATER,
 	token.LTEQ:       LESSGREATER,
 	token.GTEQ:       LESSGREATER,
-	token.COLON:      LESSGREATER, // range operator
 	token.PLUS:       SUM,
 	token.MINUS:      SUM,
 	token.BITOR:      SUM,
@@ -424,8 +451,6 @@ var precedences = map[token.Type]Priority{
 	token.LPAREN:     CALL,
 	token.LBRACKET:   INDEX,
 	token.DOT:        DOTINDEX,
-	token.AND:        AND,
-	token.OR:         OR,
 }
 
 func (p *Parser) peekPrecedence() Priority {
@@ -440,6 +465,60 @@ func (p *Parser) curPrecedence() Priority {
 		return p
 	}
 	return LOWEST
+}
+
+func (p *Parser) parseLambdaExpression(left ast.Node) ast.Node {
+	return p.parseLambdaMulti(left)
+}
+
+func okParamList(nodes []ast.Node) (*token.Token, bool) {
+	l := len(nodes)
+	log.Debugf("okParamList: %d: %#v", l, nodes)
+	for i, n := range nodes {
+		last := i == l-1
+		t := n.Value()
+		if last && t.Type() == token.DOTDOT {
+			return t, true
+		}
+		if t.Type() != token.IDENT {
+			return t, false
+		}
+	}
+	return nil, true
+}
+
+func (p *Parser) parseLambdaMulti(left ast.Node, more ...ast.Node) ast.Node {
+	lambda := &ast.FunctionLiteral{IsLambda: true}
+	lambda.Token = p.curToken
+	if left == nil {
+		lambda.Parameters = more
+	} else {
+		lambda.Parameters = append([]ast.Node{left}, more...)
+	}
+	t, ok := okParamList(lambda.Parameters)
+	if !ok {
+		p.errors = append(p.errors, "Lambda parameters must be identifiers, not "+
+			t.Literal()+":\n"+p.ErrorLine(true))
+		return nil
+	}
+	if t != nil {
+		lambda.Variadic = true
+	}
+	log.Debugf("parseLambdaMulti: %#v", lambda)
+	if p.peekTokenIs(token.LBRACE) {
+		p.nextToken()
+		lambda.Body = p.parseBlockStatement()
+		if p.continuationNeeded {
+			return nil
+		}
+		log.Debugf("parseLambdaMulti: body: %#v", lambda.Body)
+		return lambda
+	}
+	precedence := p.curPrecedence()
+	p.nextToken()
+	body := p.parseExpression(precedence)
+	lambda.Body = &ast.Statements{Statements: []ast.Node{body}}
+	return lambda
 }
 
 func (p *Parser) parseInfixExpression(left ast.Node) ast.Node {
@@ -648,10 +727,12 @@ func (p *Parser) parseMapLiteral() ast.Node {
 		}
 		kv := p.parseExpression(LOWEST)
 		ex, ok := kv.(*ast.InfixExpression)
-		if !ok {
-			return nil
-		}
-		if ex.Token.Type() != token.COLON {
+		if !ok || ex.Token.Type() != token.COLON {
+			if p.peekTokenIs(token.EOL) {
+				p.continuationNeeded = true
+			} else {
+				p.peekError(token.COLON)
+			}
 			return nil
 		}
 		key := ex.Left

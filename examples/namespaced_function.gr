@@ -1,11 +1,7 @@
 // A map is basically defining a namespace thanks to the DOT access syntax.
 n1 = {
-	"f1": func() {
-		println("f1")
-	},
-	"f2": func(x) {
-		x+1
-	},
+	"f1": () => println("f1"),
+	"f2": x => x+1
 }
 
 n1.f1()
