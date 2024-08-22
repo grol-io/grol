@@ -250,7 +250,7 @@ unless = macro(cond, iffalse, iftrue) {
 
 unless(10 > 5, print("BUG: not greater\n"), print("macro test: greater\n"))
 
-fact=func(n) { // function
+fact= n => { // could be func(n) instead of n => short lambda form
     log("called fact", n) // log (timestamped stderr output)
     if (n<=1) {
         return 1

@@ -17,16 +17,17 @@ box = {
 
 func apply(f, a) {
     if (len(a)==0) {
-        return []
+        []
+    } else {
+        [f(first(a))]+apply(f,rest(a))
     }
-    return [f(first(a))]+apply(f,rest(a))
 }
 
 
 func boxTextInternal(s, lenFunc) {
 	lines = split(s, "\n")
 	// get max
-	maxLen = max(apply(func(x) {lenFunc(x)}, lines))
+	maxLen = max(apply(x => lenFunc(x), lines))
 	// Create the top line
 	println(box.topLeft + box.horizontal * maxLen + box.topRight)
 	// Create the middle lines
@@ -63,33 +64,23 @@ func str(x) {
 }
 
 func matrixWidths(matrix) {
-    return apply(func(row) {
-        return apply(func(item) {
-            return width(str(item))
-        }, row)
-    }, matrix)
+    apply(row => apply(item => width(str(item)), row), matrix)
 }
 
 func for(n, f, start) {
-    l=func(i,f, x) { // internal lambda with the index param and intermediate result
+    (i,f,x) => { // internal lambda with the index param and intermediate result
        r = f(i,x)
        if (i>=n) {
            return r
        }
        self(i+1, f,r)
-    }
-    l(1,f,start)
+    }(1,f,start)
 }
 
 func maxWidths(widths) {
     cols = len(widths[0])
     colIndices = 0:cols // Generates [0, 1, 2] for 3 columns
-
-    return apply(func(colIndex) {
-        return max(apply(func(row) {
-            return row[colIndex]
-        }, widths))
-    }, colIndices)
+    apply(colIndex => max(apply( row => row[colIndex], widths)), colIndices)
 }
 
 func createRowArray(row, maxWidths) {
@@ -103,7 +94,7 @@ func createRowArray(row, maxWidths) {
         if colIndex < len(row) - 1 {
             cellContent = cellContent + box.vertical
         }
-        return rowContent + cellContent
+        rowContent + cellContent
     }, [])
     return [box.vertical + join(rowArr) + box.vertical]
 }
@@ -114,9 +105,8 @@ func boxMatrixA(matrix) {
 
     lines = []
     // Top line
-    topLine = box.topLeft + join(apply(func(w) {
-        return box.horizontal * w
-    }, maxes), box.topT) + box.topRight
+    topLine = box.topLeft + join(apply(w => box.horizontal * w,
+        maxes), box.topT) + box.topRight
     lines = lines + [topLine]
 
     // Middle content (rows and separators)
@@ -126,20 +116,17 @@ func boxMatrixA(matrix) {
         lines = lines + rowArr
 
         if rowIndex < len(matrix) - 1 {
-            separatorLine = box.leftT + join(apply(func(width) {
-                return box.horizontal * width
-            }, maxes), box.middleCross) + box.rightT
+            separatorLine = box.leftT + join(apply( width => box.horizontal * width,
+                maxes), box.middleCross) + box.rightT
             lines = lines + [separatorLine]
         }
-        return lines
+        lines
     }, lines)
 
     // Bottom line
-    bottomLine = box.bottomLeft + join(apply(func(width) {
-        return box.horizontal * width
-    }, maxes), box.bottomT) + box.bottomRight
-    lines = lines + [bottomLine]
-    return lines
+    bottomLine = box.bottomLeft + join(apply(width => box.horizontal * width,
+        maxes), box.bottomT) + box.bottomRight
+    lines + [bottomLine]
 }
 
 func boxMatrix(matrix) {
@@ -150,12 +137,11 @@ func boxMatrix(matrix) {
 
 func joinBoxes(boxes) {
     numRows = len(boxes[0]) // Assuming all boxes have the same number of lines
-    return for(numRows, func(rowIndex, combinedLines) {
+    for(numRows, func(rowIndex, combinedLines) {
         rowIndex--
-        combinedLine = join(apply(func(box) {
-            return box[rowIndex]
-        }, boxes), "   ") // Add some spacing between boxes
-        return combinedLines + [combinedLine]
+        combinedLine = join(apply(box => box[rowIndex],
+            boxes), "  ") // Add some spacing between boxes
+        combinedLines + [combinedLine]
     }, [])
 }
 
@@ -201,8 +187,6 @@ game = [
 	[e, O, X]
 ]]
 
-combinedOutput = joinBoxes(apply(func(board) {
-	boxMatrixA(board)
-}, game))
+combinedOutput = joinBoxes(apply(board=>boxMatrixA(board), game))
 
 println(join(combinedOutput, "\n"))
