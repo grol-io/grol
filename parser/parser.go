@@ -294,6 +294,7 @@ func (p *Parser) ErrorLine(forPreviousToken bool) string {
 }
 
 func (p *Parser) peekError(t token.Type) {
+	log.Debugf("peekError: %s", t)
 	msg := fmt.Sprintf("expected next token to be `%s`, got `%s` instead:\n%s",
 		token.ByType(t).Literal(), p.peekToken.Literal(), p.ErrorLine(false))
 	p.errors = append(p.errors, msg)
@@ -505,6 +506,15 @@ func (p *Parser) parseLambdaMulti(left ast.Node, more ...ast.Node) ast.Node {
 		lambda.Variadic = true
 	}
 	log.Debugf("parseLambdaMulti: %#v", lambda)
+	if p.peekTokenIs(token.LBRACE) {
+		p.nextToken()
+		lambda.Body = p.parseBlockStatement()
+		if p.continuationNeeded {
+			return nil
+		}
+		log.Debugf("parseLambdaMulti: body: %#v", lambda.Body)
+		return lambda
+	}
 	precedence := p.curPrecedence()
 	p.nextToken()
 	body := p.parseExpression(precedence)

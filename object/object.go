@@ -518,6 +518,22 @@ func (f *Function) SetCacheKey() string {
 	return f.CacheKey
 }
 
+func (f *Function) lambdaPrint(ps *ast.PrintState, out *strings.Builder) string {
+	if len(f.Parameters) != 1 {
+		out.WriteString(")=>")
+	} else {
+		out.WriteString("=>")
+	}
+	if len(f.Body.Statements) != 1 {
+		out.WriteString("{")
+	}
+	f.Body.PrettyPrint(ps)
+	if len(f.Body.Statements) != 1 {
+		out.WriteString("}")
+	}
+	return out.String()
+}
+
 // Common part of Inspect and SetCacheKey. Outputs the rest of the function.
 func (f *Function) finishFuncOutput(out *strings.Builder) string {
 	needParen := !f.Lambda || len(f.Parameters) != 1
@@ -527,17 +543,11 @@ func (f *Function) finishFuncOutput(out *strings.Builder) string {
 	ps := &ast.PrintState{Out: out, Compact: true}
 	ps.ComaList(f.Parameters)
 	if f.Lambda {
-		if needParen {
-			out.WriteString(")=>")
-		} else {
-			out.WriteString("=>")
-		}
-		f.Body.PrettyPrint(ps)
-	} else {
-		out.WriteString("){")
-		f.Body.PrettyPrint(ps)
-		out.WriteString("}")
+		return f.lambdaPrint(ps, out)
 	}
+	out.WriteString("){")
+	f.Body.PrettyPrint(ps)
+	out.WriteString("}")
 	return out.String()
 }
 

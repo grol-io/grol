@@ -384,7 +384,7 @@ func (fl FunctionLiteral) lambdaPrint(out *PrintState) *PrintState {
 	} else {
 		out.Print(" => ")
 	}
-	fl.Body.Statements[0].PrettyPrint(out)
+	fl.Body.PrettyPrint(out)
 	return out
 }
 
