@@ -300,6 +300,7 @@ func (p *Parser) peekError(t token.Type) {
 }
 
 func (p *Parser) noPrefixParseFnError(t *token.Token) {
+	log.Debugf("Adding noPrefixParseFnError: %s", t.DebugString())
 	msg := fmt.Sprintf("no prefix parse function for `%s` found:\n%s", t.Literal(), p.ErrorLine(true))
 	p.errors = append(p.errors, msg)
 }
@@ -313,7 +314,9 @@ func (p *Parser) parseExpression(precedence Priority) ast.Node {
 	}
 	prefix := p.prefixParseFns[p.curToken.Type()]
 	if prefix == nil {
-		p.noPrefixParseFnError(p.curToken)
+		if !p.peekTokenIs(token.LAMBDA) { // To make () => { ... } without errors.
+			p.noPrefixParseFnError(p.curToken)
+		}
 		return nil
 	}
 	leftExp := prefix()
@@ -382,7 +385,12 @@ func (p *Parser) parseBoolean() ast.Node {
 func (p *Parser) parseGroupedExpression() ast.Node {
 	p.nextToken()
 	exp := p.parseExpression(LOWEST)
-	if p.peekTokenIs(token.COMMA) {
+	log.Debugf("parseGroupedExpression: %#v", exp)
+	if p.peekTokenIs(token.LAMBDA) { // () => { ... } case
+		p.nextToken()
+		return p.parseLambdaMulti(exp)
+	}
+	if p.peekTokenIs(token.COMMA) { // (a,b,,.) => { ... } case
 		p.nextToken()
 		el := p.parseExpressionList(token.RPAREN)
 		if el == nil {
@@ -465,9 +473,10 @@ func (p *Parser) parseLambdaExpression(left ast.Node) ast.Node {
 
 func okParamList(nodes []ast.Node) (*token.Token, bool) {
 	l := len(nodes)
+	log.Debugf("okParamList: %d: %#v", l, nodes)
 	for i, n := range nodes {
-		t := n.Value()
 		last := i == l-1
+		t := n.Value()
 		if last && t.Type() == token.DOTDOT {
 			return t, true
 		}
@@ -481,7 +490,11 @@ func okParamList(nodes []ast.Node) (*token.Token, bool) {
 func (p *Parser) parseLambdaMulti(left ast.Node, more ...ast.Node) ast.Node {
 	lambda := &ast.FunctionLiteral{IsLambda: true}
 	lambda.Token = p.curToken
-	lambda.Parameters = append([]ast.Node{left}, more...)
+	if left == nil {
+		lambda.Parameters = more
+	} else {
+		lambda.Parameters = append([]ast.Node{left}, more...)
+	}
 	t, ok := okParamList(lambda.Parameters)
 	if !ok {
 		p.errors = append(p.errors, "Lambda parameters must be identifiers, not "+
@@ -491,6 +504,7 @@ func (p *Parser) parseLambdaMulti(left ast.Node, more ...ast.Node) ast.Node {
 	if t != nil {
 		lambda.Variadic = true
 	}
+	log.Debugf("parseLambdaMulti: %#v", lambda)
 	precedence := p.curPrecedence()
 	p.nextToken()
 	body := p.parseExpression(precedence)

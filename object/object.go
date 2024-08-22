@@ -520,7 +520,7 @@ func (f *Function) SetCacheKey() string {
 
 // Common part of Inspect and SetCacheKey. Outputs the rest of the function.
 func (f *Function) finishFuncOutput(out *strings.Builder) string {
-	needParen := !f.Lambda || len(f.Parameters) > 1
+	needParen := !f.Lambda || len(f.Parameters) != 1
 	if needParen {
 		out.WriteString("(")
 	}

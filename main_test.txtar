@@ -210,6 +210,10 @@ stderr 'Incomplete input'
 !stderr 'panic'
 !stderr 'runtime error: invalid memory'
 
+# no crash on empty param list in lambda short form.
+grol -quiet -c '(()=>1)()'
+stdout '^1$'
+
 -- sample_test.gr --
 // Sample file that our gorepl can interpret
 // <--- comments
