@@ -173,7 +173,7 @@ func (s *State) evalInternal(node any) object.Object { //nolint:funlen,gocyclo /
 			Variadic:   node.Variadic,
 			Lambda:     node.IsLambda,
 		}
-		if !fn.Lambda && len(fn.Body.Statements) == 1 && fn.Name == nil {
+		if !fn.Lambda && fn.Name == nil {
 			log.LogVf("Normalizing non-short lambda form to => lambda")
 			fn.Lambda = true
 		}
