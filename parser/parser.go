@@ -430,15 +430,14 @@ var precedences = map[token.Type]Priority{
 	token.ASSIGN:     ASSIGN,
 	token.OR:         OR,
 	token.AND:        AND,
+	token.COLON:      AND, // range operator and maps (lower than lambda)
 	token.EQ:         EQUALS,
 	token.NOTEQ:      EQUALS,
 	token.LAMBDA:     EQUALS,
-	token.COMMA:      ASSIGN, // tbd ?
 	token.LT:         LESSGREATER,
 	token.GT:         LESSGREATER,
 	token.LTEQ:       LESSGREATER,
 	token.GTEQ:       LESSGREATER,
-	token.COLON:      LESSGREATER, // range operator
 	token.PLUS:       SUM,
 	token.MINUS:      SUM,
 	token.BITOR:      SUM,

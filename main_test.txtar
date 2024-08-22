@@ -58,12 +58,22 @@ stderr 'I] All done'
 # Bug repro, return aborts the whole program
 grol -c 'f=func(){return 1;2};log(f());f();3'
 stdout '^1\n3$'
-!stderr 'Errors'
+!stderr '\[E\]'
+
+# lambda version of previous
+grol -c 'f=()=>{return 1;2};log(f());f();3'
+stdout '^1\n3$'
+!stderr '\[E\]'
 
 # same one more level
 grol -c 'f=func(n){if (n==5) {return 1};2};log(f(5));f(5);3'
 stdout '^1\n3$'
-!stderr 'Errors'
+!stderr '\[E\]'
+
+# lambda version of previous
+grol -c 'f=n=>{if (n==5) {return 1};2};log(f(5));f(5);3'
+stdout '^1\n3$'
+!stderr '\[E\]'
 
 # test bad macro as well as indirectly the error() builtin
 !grol -c 'm=macro(){};m()'
@@ -71,6 +81,12 @@ stderr '<err: macro should return Quote. got=object.Null \({}\)>'
 
 # quiet mode and fast fibbonaci (log won't show)
 grol -quiet -c 'fib=func(x){log("fib",x);if x<=1 {x} else {fib(x-1)+fib(x-2)}}; fib(92)'
+stdout '^7540113804746346429\n$'
+!stdout '\n\n'
+!stderr .
+
+# lambda version
+grol -quiet -c 'fib= x => if x<=1 {x} else {self(x-1)+self(x-2)}; fib(92)'
 stdout '^7540113804746346429\n$'
 !stdout '\n\n'
 !stderr .
@@ -116,6 +132,11 @@ stdout '^\[1,2,3,\["a","b"],4]$'
 
 # dot notation and priority with functions
 grol -quiet -c 'n1={"f1":func(){println("f1")},"f2":func(x){x+1}}n1.f1()n1.f2(41)'
+stdout '^f1\n42$'
+!stderr .
+
+# lambda version
+grol -quiet -c 'n1={"f1":()=>println("f1"),"f2":(x)=>x+1}n1.f1()n1.f2(41)'
 stdout '^f1\n42$'
 !stderr .
 
