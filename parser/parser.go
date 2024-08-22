@@ -382,6 +382,17 @@ func (p *Parser) parseBoolean() ast.Node {
 func (p *Parser) parseGroupedExpression() ast.Node {
 	p.nextToken()
 	exp := p.parseExpression(LOWEST)
+	if p.peekTokenIs(token.COMMA) {
+		p.nextToken()
+		el := p.parseExpressionList(token.RPAREN)
+		if el == nil {
+			return nil
+		}
+		if !p.expectPeek(token.LAMBDA) {
+			return nil
+		}
+		return p.parseLambdaMulti(exp, el...)
+	}
 	if !p.expectPeek(token.RPAREN) {
 		return nil
 	}
@@ -408,9 +419,12 @@ func (p *Parser) parsePostfixExpression() ast.Node {
 
 var precedences = map[token.Type]Priority{
 	token.ASSIGN:     ASSIGN,
+	token.OR:         OR,
+	token.AND:        AND,
 	token.EQ:         EQUALS,
 	token.NOTEQ:      EQUALS,
 	token.LAMBDA:     EQUALS,
+	token.COMMA:      ASSIGN, // tbd ?
 	token.LT:         LESSGREATER,
 	token.GT:         LESSGREATER,
 	token.LTEQ:       LESSGREATER,
@@ -429,8 +443,6 @@ var precedences = map[token.Type]Priority{
 	token.LPAREN:     CALL,
 	token.LBRACKET:   INDEX,
 	token.DOT:        DOTINDEX,
-	token.AND:        AND,
-	token.OR:         OR,
 }
 
 func (p *Parser) peekPrecedence() Priority {
@@ -448,13 +460,37 @@ func (p *Parser) curPrecedence() Priority {
 }
 
 func (p *Parser) parseLambdaExpression(left ast.Node) ast.Node {
+	return p.parseLambdaMulti(left)
+}
+
+func okParamList(nodes []ast.Node) (*token.Token, bool) {
+	l := len(nodes)
+	for i, n := range nodes {
+		t := n.Value()
+		last := i == l-1
+		if last && t.Type() == token.DOTDOT {
+			return t, true
+		}
+		if t.Type() != token.IDENT {
+			return t, false
+		}
+	}
+	return nil, true
+}
+
+func (p *Parser) parseLambdaMulti(left ast.Node, more ...ast.Node) ast.Node {
 	lambda := &ast.FunctionLiteral{IsLambda: true}
 	lambda.Token = p.curToken
-	if left.Value().Type() != token.IDENT {
-		p.errors = append(p.errors, "Lambda parameter must be an identifier:\n"+p.ErrorLine(true))
+	lambda.Parameters = append([]ast.Node{left}, more...)
+	t, ok := okParamList(lambda.Parameters)
+	if !ok {
+		p.errors = append(p.errors, "Lambda parameters must be identifiers, not "+
+			t.Literal()+":\n"+p.ErrorLine(true))
 		return nil
 	}
-	lambda.Parameters = []ast.Node{left}
+	if t != nil {
+		lambda.Variadic = true
+	}
 	precedence := p.curPrecedence()
 	p.nextToken()
 	body := p.parseExpression(precedence)
