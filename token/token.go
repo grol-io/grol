@@ -114,7 +114,7 @@ const (
 	AND
 	LEFTSHIFT
 	RIGHTSHIFT
-	LAMBDA // => lambda short cut: `a,b => a+b`` alias for `func(a,b) {a+b}``
+	LAMBDA // => lambda short cut: `a,b => a+b` alias for `func(a,b) {a+b}`
 
 	endMultiCharTokens
 
