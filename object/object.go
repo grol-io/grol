@@ -489,7 +489,7 @@ type Function struct {
 	Body       *ast.Statements
 	Env        *Environment
 	Variadic   bool
-	Lambda     bool // no name, 1 param, 1 statement.
+	Lambda     bool // i.e. has no name.
 }
 
 func WriteStrings(out *strings.Builder, list []Object, before, sep, after string) {
