@@ -235,6 +235,14 @@ stderr 'Incomplete input'
 grol -quiet -c '(()=>1)()'
 stdout '^1$'
 
+# no crash on map unwraps
+grol -quiet -c 'printf("%v\n", {"abc":42,"def":62, "x": {[3]:122, true:false} })'
+stdout '^map\[abc:42 def:62 x:map\[\[3\]:122 true:false\]\]$'
+
+# json despite non string keys
+grol -quiet -c 'println(json_go({"abc":42, 63:63, "x": {[3]:122, true:false} }))'
+stdout '^{"63":63,"abc":42,"x":{"\[3\]":122,"true":false}}$'
+
 -- sample_test.gr --
 // Sample file that our gorepl can interpret
 // <--- comments
