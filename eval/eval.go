@@ -387,7 +387,7 @@ func evalIndexExpression(left, index object.Object) object.Object {
 		if idx < 0 || idx >= int64(len(str)) {
 			return object.NULL
 		}
-		return object.Integer{Value: int64(str[idx])} //nolint:gosec // https://github.com/securego/gosec/issues/1185
+		return object.Integer{Value: int64(str[idx])}
 	case left.Type() == object.ARRAY && idxOrZero.Type() == object.INTEGER:
 		return evalArrayIndexExpression(left, idxOrZero)
 	case left.Type() == object.MAP:
