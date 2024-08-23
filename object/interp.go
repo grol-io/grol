@@ -76,10 +76,10 @@ func initialIdentifiersCopy() map[string]Object {
 	return copied
 }
 
-func Unwrap(objs []Object) []any {
+func Unwrap(objs []Object, forceStringKeys bool) []any {
 	res := make([]any, len(objs))
 	for i, o := range objs {
-		res[i] = o.Unwrap()
+		res[i] = o.Unwrap(forceStringKeys)
 	}
 	return res
 }

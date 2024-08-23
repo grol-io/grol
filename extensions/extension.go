@@ -3,6 +3,7 @@
 package extensions
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"math"
@@ -142,6 +143,17 @@ func initInternal(c *Config) error { //nolint:funlen,gocognit,gocyclo,maintidx /
 		MaxArgs:  1,
 		ArgTypes: []object.Type{object.ANY},
 		Callback: object.ShortCallback(jsonSer),
+	}
+	err = object.CreateFunction(jsonFn)
+	if err != nil {
+		return err
+	}
+	jsonFn = object.Extension{
+		Name:     "json_go",
+		MinArgs:  1,
+		MaxArgs:  2,
+		ArgTypes: []object.Type{object.ANY, object.STRING},
+		Callback: object.ShortCallback(jsonSerGo),
 	}
 	err = object.CreateFunction(jsonFn)
 	if err != nil {
@@ -314,7 +326,7 @@ func initInternal(c *Config) error { //nolint:funlen,gocognit,gocyclo,maintidx /
 		ArgTypes: []object.Type{object.ANY},
 		Callback: func(_ any, _ string, args []object.Object) object.Object {
 			o := args[0]
-			switch o.Type() { //nolint:exhaustive // that's what default is for.
+			switch o.Type() {
 			case object.INTEGER:
 				return o
 			case object.NIL:
@@ -354,7 +366,7 @@ func pow(args []object.Object) object.Object {
 }
 
 func sprintf(args []object.Object) object.Object {
-	res := fmt.Sprintf(args[0].(object.String).Value, object.Unwrap(args[1:])...)
+	res := fmt.Sprintf(args[0].(object.String).Value, object.Unwrap(args[1:], false)...)
 	return object.String{Value: res}
 }
 
@@ -365,6 +377,21 @@ func jsonSer(args []object.Object) object.Object {
 		return object.Error{Value: err.Error()}
 	}
 	return object.String{Value: w.String()}
+}
+
+func jsonSerGo(args []object.Object) object.Object {
+	v := args[0].Unwrap(true)
+	var err error
+	var bytes []byte
+	if len(args) == 1 {
+		bytes, err = json.Marshal(v)
+	} else {
+		bytes, err = json.MarshalIndent(v, "", args[1].(object.String).Value)
+	}
+	if err != nil {
+		return object.Error{Value: err.Error()}
+	}
+	return object.String{Value: string(bytes)}
 }
 
 func evalFunc(env any, name string, args []object.Object) object.Object {

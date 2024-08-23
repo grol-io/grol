@@ -1,6 +1,6 @@
 all: generate lint check test run
 
-GO_BUILD_TAGS:=no_net,no_json,no_pprof
+GO_BUILD_TAGS:=no_net,no_pprof
 
 run: grol
 	# Interactive debug run: use logger with file and line numbers
