@@ -16,7 +16,9 @@ type Type uint8
 type Object interface {
 	Type() Type
 	Inspect() string
-	Unwrap() any
+	// ForceStringMapKeys makes maps[string]any instead of map[any]any irrespective of the key type.
+	// This is used for go marshaler based JSON for instance.
+	Unwrap(forceStringMapKeys bool) any
 	JSON(out io.Writer) error
 }
 
@@ -78,6 +80,15 @@ func Hashable(o Object) bool {
 		}
 	}
 	return false
+}
+
+func UnwrapHashable(o Object) any {
+	switch o.Type() { //nolint:exhaustive // getting a bit tired of this linter, why does it trigger when you have a default?
+	case INTEGER, FLOAT, BOOLEAN, NIL, ERROR, STRING:
+		return o.Unwrap(false)
+	default:
+		return o.Inspect()
+	}
 }
 
 func NativeBoolToBooleanObject(input bool) Boolean {
@@ -374,7 +385,7 @@ func (i Integer) Inspect() string {
 	return strconv.FormatInt(i.Value, 10)
 }
 
-func (i Integer) Unwrap() any {
+func (i Integer) Unwrap(_ bool) any {
 	return i.Value
 }
 
@@ -391,7 +402,7 @@ func (f Float) JSON(w io.Writer) error {
 	return err
 }
 
-func (f Float) Unwrap() any {
+func (f Float) Unwrap(_ bool) any {
 	return f.Value
 }
 
@@ -412,7 +423,7 @@ func (b Boolean) JSON(w io.Writer) error {
 	return err
 }
 
-func (b Boolean) Unwrap() any {
+func (b Boolean) Unwrap(_ bool) any {
 	return b.Value
 }
 
@@ -433,7 +444,7 @@ func (s String) JSON(w io.Writer) error {
 	return err
 }
 
-func (s String) Unwrap() any {
+func (s String) Unwrap(_ bool) any {
 	return s.Value
 }
 
@@ -451,9 +462,9 @@ func (n Null) JSON(w io.Writer) error {
 	_, err := w.Write([]byte("null"))
 	return err
 }
-func (n Null) Unwrap() any     { return nil }
-func (n Null) Type() Type      { return NIL }
-func (n Null) Inspect() string { return "nil" }
+func (n Null) Unwrap(_ bool) any { return nil }
+func (n Null) Type() Type        { return NIL }
+func (n Null) Inspect() string   { return "nil" }
 
 type Error struct {
 	Value string // message
@@ -463,10 +474,10 @@ func (e Error) JSON(w io.Writer) error {
 	_, err := fmt.Fprintf(w, `{"err":%q}`, e.Value)
 	return err
 }
-func (e Error) Unwrap() any     { return e }
-func (e Error) Error() string   { return e.Value }
-func (e Error) Type() Type      { return ERROR }
-func (e Error) Inspect() string { return "<err: " + e.Value + ">" }
+func (e Error) Unwrap(_ bool) any { return e }
+func (e Error) Error() string     { return e.Value }
+func (e Error) Type() Type        { return ERROR }
+func (e Error) Inspect() string   { return "<err: " + e.Value + ">" }
 
 type ReturnValue struct {
 	Value Object
@@ -478,9 +489,9 @@ func (rv ReturnValue) JSON(w io.Writer) error {
 	_, _ = w.Write([]byte("}"))
 	return err
 }
-func (rv ReturnValue) Unwrap() any     { return rv.Value }
-func (rv ReturnValue) Type() Type      { return RETURN }
-func (rv ReturnValue) Inspect() string { return rv.Value.Inspect() }
+func (rv ReturnValue) Unwrap(_ bool) any { return rv.Value }
+func (rv ReturnValue) Type() Type        { return RETURN }
+func (rv ReturnValue) Inspect() string   { return rv.Value.Inspect() }
 
 type Function struct {
 	Parameters []ast.Node
@@ -503,8 +514,8 @@ func WriteStrings(out *strings.Builder, list []Object, before, sep, after string
 	out.WriteString(after)
 }
 
-func (f Function) Unwrap() any { return f }
-func (f Function) Type() Type  { return FUNC }
+func (f Function) Unwrap(_ bool) any { return f }
+func (f Function) Type() Type        { return FUNC }
 
 // Must be called after the function is fully initialized.
 // Whether a function result should be cached doesn't depend on the Name,
@@ -573,8 +584,10 @@ type SmallArray struct {
 	len      int
 }
 
-func (sa SmallArray) Type() Type             { return ARRAY }
-func (sa SmallArray) Unwrap() any            { return Unwrap(sa.smallArr[:sa.len]) }
+func (sa SmallArray) Type() Type { return ARRAY }
+func (sa SmallArray) Unwrap(forceStringKeys bool) any {
+	return Unwrap(sa.smallArr[:sa.len], forceStringKeys)
+}
 func (sa SmallArray) JSON(w io.Writer) error { return BigArray{elements: sa.smallArr[:sa.len]}.JSON(w) }
 func (sa SmallArray) Inspect() string {
 	if sa.len == 0 {
@@ -737,8 +750,8 @@ type BigArray struct {
 	elements []Object
 }
 
-func (ao BigArray) Unwrap() any { return Unwrap(ao.elements) }
-func (ao BigArray) Type() Type  { return ARRAY }
+func (ao BigArray) Unwrap(forceStringKeys bool) any { return Unwrap(ao.elements, forceStringKeys) }
+func (ao BigArray) Type() Type                      { return ARRAY }
 func (ao BigArray) Inspect() string {
 	out := strings.Builder{}
 	WriteStrings(&out, ao.elements, "[", ",", "]")
@@ -807,10 +820,13 @@ func (ao BigArray) Swap(i, j int) {
 	ao.elements[i], ao.elements[j] = ao.elements[j], ao.elements[i]
 }
 
-func (m *BigMap) Unwrap() any {
+func (m *BigMap) Unwrap(forceStringKeys bool) any {
+	if res, ok := UnwrapStringKeys(m, forceStringKeys); ok {
+		return res
+	}
 	res := make(map[any]any, len(m.kv))
 	for _, kv := range m.kv {
-		res[kv.Key.Unwrap()] = kv.Value.Unwrap()
+		res[UnwrapHashable(kv.Key)] = kv.Value.Unwrap(forceStringKeys)
 	}
 	return res
 }
@@ -823,10 +839,29 @@ func (m SmallMap) mapElements() []keyValuePair {
 	return m.smallKV[:m.len]
 }
 
-func (m SmallMap) Unwrap() any {
+func UnwrapStringKeys(m Map, forceStringKeys bool) (map[string]any, bool) {
+	res := make(map[string]any, m.Len())
+	for _, kv := range m.mapElements() {
+		s, ok := kv.Key.(String)
+		if !ok {
+			if forceStringKeys {
+				res[kv.Key.Inspect()] = kv.Value.Unwrap(true)
+				continue
+			}
+			return nil, false
+		}
+		res[s.Value] = kv.Value.Unwrap(forceStringKeys)
+	}
+	return res, true
+}
+
+func (m SmallMap) Unwrap(forceStringKeys bool) any {
+	if res, ok := UnwrapStringKeys(m, forceStringKeys); ok {
+		return res
+	}
 	res := make(map[any]any, m.len)
 	for _, kv := range m.smallKV[:m.len] {
-		res[kv.Key.Unwrap()] = kv.Value.Unwrap()
+		res[UnwrapHashable(kv.Key)] = kv.Value.Unwrap(forceStringKeys)
 	}
 	return res
 }
@@ -900,8 +935,8 @@ type Quote struct {
 	Node ast.Node
 }
 
-func (q Quote) Unwrap() any { return q.Node }
-func (q Quote) Type() Type  { return QUOTE }
+func (q Quote) Unwrap(_ bool) any { return q.Node }
+func (q Quote) Type() Type        { return QUOTE }
 func (q Quote) Inspect() string {
 	out := strings.Builder{}
 	out.WriteString("quote(")
@@ -921,8 +956,8 @@ type Macro struct {
 	Env        *Environment
 }
 
-func (m Macro) Unwrap() any { return m }
-func (m Macro) Type() Type  { return MACRO }
+func (m Macro) Unwrap(_ bool) any { return m }
+func (m Macro) Type() Type        { return MACRO }
 func (m Macro) Inspect() string {
 	out := strings.Builder{}
 	out.WriteString("macro(")
@@ -994,8 +1029,8 @@ func (e *Extension) Usage(out *strings.Builder) {
 	}
 }
 
-func (e Extension) Unwrap() any { return e }
-func (e Extension) Type() Type  { return EXTENSION }
+func (e Extension) Unwrap(_ bool) any { return e }
+func (e Extension) Type() Type        { return EXTENSION }
 func (e Extension) Inspect() string {
 	out := strings.Builder{}
 	out.WriteString(e.Name)

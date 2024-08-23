@@ -3,6 +3,7 @@
 package extensions
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"math"
@@ -137,6 +138,17 @@ func initInternal(c *Config) error { //nolint:funlen,gocognit,gocyclo,maintidx /
 	object.AddIdentifier("PI", object.Float{Value: math.Pi})
 	object.AddIdentifier("E", object.Float{Value: math.E}) // using uppercase so "e" isn't taken/shadowed.
 	jsonFn := object.Extension{
+		Name:     "json_go",
+		MinArgs:  1,
+		MaxArgs:  1,
+		ArgTypes: []object.Type{object.ANY},
+		Callback: object.ShortCallback(jsonSerGo),
+	}
+	err = object.CreateFunction(jsonFn)
+	if err != nil {
+		return err
+	}
+	jsonFn = object.Extension{
 		Name:     "json",
 		MinArgs:  1,
 		MaxArgs:  1,
@@ -354,7 +366,7 @@ func pow(args []object.Object) object.Object {
 }
 
 func sprintf(args []object.Object) object.Object {
-	res := fmt.Sprintf(args[0].(object.String).Value, object.Unwrap(args[1:])...)
+	res := fmt.Sprintf(args[0].(object.String).Value, object.Unwrap(args[1:], false)...)
 	return object.String{Value: res}
 }
 
@@ -365,6 +377,15 @@ func jsonSer(args []object.Object) object.Object {
 		return object.Error{Value: err.Error()}
 	}
 	return object.String{Value: w.String()}
+}
+
+func jsonSerGo(args []object.Object) object.Object {
+	v := args[0].Unwrap(true)
+	bytes, err := json.Marshal(v)
+	if err != nil {
+		return object.Error{Value: err.Error()}
+	}
+	return object.String{Value: string(bytes)}
 }
 
 func evalFunc(env any, name string, args []object.Object) object.Object {
