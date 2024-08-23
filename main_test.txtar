@@ -247,6 +247,10 @@ stdout '^{"63":63,"abc":42,"x":{"\[3\]":122,"true":false}}$'
 grol -quiet -c 'println(json_go({"abc":42, 63:63, "x": {[3]:122, true:false} }, "  "))'
 cmp stdout json_output
 
+# returning a map in lambda shouldn't lose needed extra {} despite being solo argument
+grol -quiet -c '()=>{{"a":1,"b":2}}'
+stdout '^\(\)=>{{"a":1,"b":2}}$'
+
 -- json_output --
 {
   "63": 63,

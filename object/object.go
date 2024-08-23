@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"grol.io/grol/ast"
+	"grol.io/grol/token"
 )
 
 type Type uint8
@@ -535,11 +536,12 @@ func (f *Function) lambdaPrint(ps *ast.PrintState, out *strings.Builder) string 
 	} else {
 		out.WriteString("=>")
 	}
-	if len(f.Body.Statements) != 1 {
+	needBraces := len(f.Body.Statements) != 1 || f.Body.Statements[0].Value().Type() == token.LBRACE
+	if needBraces {
 		out.WriteString("{")
 	}
 	f.Body.PrettyPrint(ps)
-	if len(f.Body.Statements) != 1 {
+	if needBraces {
 		out.WriteString("}")
 	}
 	return out.String()
