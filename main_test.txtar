@@ -249,7 +249,7 @@ cmp stdout json_output
 
 # returning a map in lambda shouldn't lose needed extra {} despite being solo argument
 grol -quiet -c '()=>{{"a":1,"b":2}}'
-stdout '^()=>{{"a":1,"b":2}}$'
+stdout '^\(\)=>{{"a":1,"b":2}}$'
 
 -- json_output --
 {
