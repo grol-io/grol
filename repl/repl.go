@@ -59,6 +59,9 @@ type Options struct {
 	MaxDepth    int  // Max depth of recursion, 0 is keeping the default (eval.DefaultMaxDepth).
 	MaxValueLen int  // Maximum len of a value when using save()/autosaving, 0 is unlimited.
 	PanicOk     bool // If true, panics are not caught (only for debugging/developing).
+	// Hook to call before running the input (lets you for instance change the ClientData of some object.Extension,
+	// remove some functions, etc).
+	PreInput func(*eval.State)
 }
 
 func AutoLoad(s *eval.State, options Options) error {
@@ -136,6 +139,9 @@ func EvalAll(s *eval.State, in io.Reader, out io.Writer, options Options) []stri
 		log.Fatalf("%v", err)
 	}
 	what := string(b)
+	if options.PreInput != nil {
+		options.PreInput(s)
+	}
 	_, _, errs, _ := EvalOne(s, what, out, options) //nolint:dogsled // as mentioned we should refactor EvalOne.
 	return errs
 }
@@ -169,6 +175,9 @@ func EvalStringWithOption(o Options, what string) (res string, errs []string, fo
 	s.LogOut = out
 	s.NoLog = true
 	_ = AutoLoad(s, o) // errors already logged
+	if o.PreInput != nil {
+		o.PreInput(s)
+	}
 	panicked := false
 	incomplete := false
 	incomplete, panicked, errs, formatted = EvalOne(s, what, out, o)
@@ -223,7 +232,9 @@ func Interactive(options Options) int {
 	term.NewHistory(options.MaxHistory)
 	_ = term.SetHistoryFile(options.HistoryFile)
 	_ = AutoLoad(s, options) // errors already logged
-	// Regular expression for "!nn" to run history command nn.
+	if options.PreInput != nil {
+		options.PreInput(s)
+	}
 	prev := ""
 	for {
 		rd, err := term.ReadLine()

@@ -2,6 +2,7 @@ package object
 
 import (
 	"errors"
+	"maps"
 )
 
 var (
@@ -40,8 +41,10 @@ func CreateFunction(cmd Extension) error {
 	return nil
 }
 
+// Returns a copy of the table of extended functions.
+// (so multiple interpreters in a process have their own copy that can have ClientData mutated).
 func ExtraFunctions() map[string]Extension {
-	return extraFunctions
+	return maps.Clone(extraFunctions)
 }
 
 // Add values to top level environment, e.g "pi" -> 3.14159...

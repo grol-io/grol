@@ -456,6 +456,9 @@ func (s *State) applyExtension(fn object.Extension, args []object.Object) object
 				arg.Type(), fn.Inspect())}
 		}
 	}
+	if fn.ClientData != nil {
+		return fn.Callback(fn.ClientData, fn.Name, args)
+	}
 	return fn.Callback(s, fn.Name, args)
 }
 
@@ -581,7 +584,7 @@ func (s *State) evalIdentifier(node *ast.Identifier) object.Object {
 	if ok {
 		return val
 	}
-	val, ok = s.extensions[node.Literal()]
+	val, ok = s.Extensions[node.Literal()]
 	if !ok {
 		return object.Error{Value: "identifier not found: " + node.Literal()}
 	}

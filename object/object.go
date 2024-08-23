@@ -978,12 +978,14 @@ func (m Macro) JSON(w io.Writer) error {
 
 // Extensions are functions implemented in go and exposed to grol.
 type Extension struct {
-	Name     string      // Name to make the function available as in grol.
-	MinArgs  int         // Minimum number of arguments required.
-	MaxArgs  int         // Maximum number of arguments allowed. -1 for unlimited.
-	ArgTypes []Type      // Type of each argument, provided at least up to MinArgs.
-	Callback ExtFunction // The go function or lambda to call when the grol by Name(...) is invoked.
-	Variadic bool        // MaxArgs > MinArgs (or MaxArg == -1)
+	Name       string      // Name to make the function available as in grol.
+	MinArgs    int         // Minimum number of arguments required.
+	MaxArgs    int         // Maximum number of arguments allowed. -1 for unlimited.
+	ArgTypes   []Type      // Type of each argument, provided at least up to MinArgs.
+	Callback   ExtFunction // The go function or lambda to call when the grol by Name(...) is invoked.
+	Variadic   bool        // MaxArgs > MinArgs (or MaxArg == -1)
+	ClientData any         // Opaque data that the extension can use instead of the global state.
+	Help       string      // Help text for the function.
 }
 
 // Adapter for functions that only need the argumants.
@@ -1039,6 +1041,10 @@ func (e Extension) Inspect() string {
 	out.WriteString("(")
 	e.Usage(&out)
 	out.WriteString(")")
+	if e.Help != "" {
+		out.WriteString(" // ")
+		out.WriteString(e.Help)
+	}
 	return out.String()
 }
 
