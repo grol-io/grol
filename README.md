@@ -109,9 +109,9 @@ make # for stripped down executable including build tags etc to make it minimal
 ```
 
 ### Reading notes
-<details><summary>click for detailed reading notes</summary>
-
 See [Open Issues](https://grol.io/grol/issues) for what's left to do
+
+<details><summary>Click for detailed reading notes</summary>
 
 - See the commit history for improvements/changes (e.g redundant state in lexer etc)
 
