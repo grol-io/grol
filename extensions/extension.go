@@ -138,22 +138,22 @@ func initInternal(c *Config) error { //nolint:funlen,gocognit,gocyclo,maintidx /
 	object.AddIdentifier("PI", object.Float{Value: math.Pi})
 	object.AddIdentifier("E", object.Float{Value: math.E}) // using uppercase so "e" isn't taken/shadowed.
 	jsonFn := object.Extension{
-		Name:     "json_go",
+		Name:     "json",
 		MinArgs:  1,
 		MaxArgs:  1,
 		ArgTypes: []object.Type{object.ANY},
-		Callback: object.ShortCallback(jsonSerGo),
+		Callback: object.ShortCallback(jsonSer),
 	}
 	err = object.CreateFunction(jsonFn)
 	if err != nil {
 		return err
 	}
 	jsonFn = object.Extension{
-		Name:     "json",
+		Name:     "json_go",
 		MinArgs:  1,
-		MaxArgs:  1,
-		ArgTypes: []object.Type{object.ANY},
-		Callback: object.ShortCallback(jsonSer),
+		MaxArgs:  2,
+		ArgTypes: []object.Type{object.ANY, object.STRING},
+		Callback: object.ShortCallback(jsonSerGo),
 	}
 	err = object.CreateFunction(jsonFn)
 	if err != nil {
@@ -381,7 +381,13 @@ func jsonSer(args []object.Object) object.Object {
 
 func jsonSerGo(args []object.Object) object.Object {
 	v := args[0].Unwrap(true)
-	bytes, err := json.Marshal(v)
+	var err error
+	var bytes []byte
+	if len(args) == 1 {
+		bytes, err = json.Marshal(v)
+	} else {
+		bytes, err = json.MarshalIndent(v, "", args[1].(object.String).Value)
+	}
 	if err != nil {
 		return object.Error{Value: err.Error()}
 	}
