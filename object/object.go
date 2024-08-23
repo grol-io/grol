@@ -83,7 +83,7 @@ func Hashable(o Object) bool {
 }
 
 func UnwrapHashable(o Object) any {
-	switch o.Type() { //nolint:exhaustive // getting a bit tired of this linter, why does it trigger when you have a default?
+	switch o.Type() {
 	case INTEGER, FLOAT, BOOLEAN, NIL, ERROR, STRING:
 		return o.Unwrap(false)
 	default:

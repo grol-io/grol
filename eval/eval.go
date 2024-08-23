@@ -77,7 +77,7 @@ func (s *State) evalPostfixExpression(node *ast.PostfixExpression) object.Object
 		return object.Error{Value: "identifier not found: " + id}
 	}
 	var toAdd int64
-	switch node.Type() { //nolint:exhaustive // we have default.
+	switch node.Type() {
 	case token.INCR:
 		toAdd = 1
 	case token.DECR:
@@ -117,7 +117,7 @@ func (s *State) evalInternal(node any) object.Object { //nolint:funlen,gocyclo /
 		return s.evalIdentifier(node)
 	case *ast.PrefixExpression:
 		log.LogVf("eval prefix %s", node.DebugString())
-		switch node.Type() { //nolint:exhaustive // we have default.
+		switch node.Type() {
 		case token.INCR, token.DECR:
 			return s.evalPrefixIncrDecr(node.Type(), node.Right)
 		default:
@@ -306,7 +306,7 @@ func (s *State) evalBuiltin(node *ast.Builtin) object.Object {
 			return val
 		}
 	}
-	switch t { //nolint:exhaustive // we have defaults and covering all the builtins.
+	switch t {
 	case token.ERROR, token.PRINT, token.PRINTLN, token.LOG:
 		return s.evalPrintLogError(node)
 	case token.FIRST:
@@ -625,7 +625,7 @@ func (s *State) evalStatements(stmts []ast.Node) object.Object {
 }
 
 func (s *State) evalPrefixExpression(operator token.Type, right object.Object) object.Object {
-	switch operator { //nolint:exhaustive // we have default.
+	switch operator {
 	case token.BLOCKCOMMENT:
 		// /* comment */ treated as identity operator. TODO: implement in parser.
 		return right
@@ -660,7 +660,7 @@ func (s *State) evalBangOperatorExpression(right object.Object) object.Object {
 }
 
 func (s *State) evalMinusPrefixOperatorExpression(right object.Object) object.Object {
-	switch right.Type() { //nolint:exhaustive // we have default which is errors.
+	switch right.Type() {
 	case object.INTEGER:
 		value := right.(object.Integer).Value
 		return object.Integer{Value: -value}
@@ -725,7 +725,7 @@ func evalStringInfixExpression(operator token.Type, left, right object.Object) o
 
 func evalArrayInfixExpression(operator token.Type, left, right object.Object) object.Object {
 	leftVal := object.Elements(left)
-	switch operator { //nolint:exhaustive // we have default.
+	switch operator {
 	case token.ASTERISK: // repeat
 		if right.Type() != object.INTEGER {
 			return object.Error{Value: "right operand of * on arrays must be an integer"}
@@ -756,7 +756,7 @@ func evalArrayInfixExpression(operator token.Type, left, right object.Object) ob
 func evalMapInfixExpression(operator token.Type, left, right object.Object) object.Object {
 	leftMap := left.(object.Map)
 	rightMap := right.(object.Map)
-	switch operator { //nolint:exhaustive // we have default.
+	switch operator {
 	case token.PLUS: // concat / append
 		return leftMap.Append(rightMap)
 	default:
@@ -773,7 +773,7 @@ func evalIntegerInfixExpression(operator token.Type, left, right object.Object) 
 	leftVal := left.(object.Integer).Value
 	rightVal := right.(object.Integer).Value
 
-	switch operator { //nolint:exhaustive // we have default.
+	switch operator {
 	case token.PLUS:
 		return object.Integer{Value: leftVal + rightVal}
 	case token.MINUS:
@@ -810,7 +810,7 @@ func evalIntegerInfixExpression(operator token.Type, left, right object.Object) 
 }
 
 func getFloatValue(o object.Object) (float64, *object.Error) {
-	switch o.Type() { //nolint:exhaustive // we handle the others in default.
+	switch o.Type() {
 	case object.INTEGER:
 		return float64(o.(object.Integer).Value), nil
 	case object.FLOAT:
@@ -830,7 +830,7 @@ func evalFloatInfixExpression(operator token.Type, left, right object.Object) ob
 	if oerr != nil {
 		return *oerr
 	}
-	switch operator { //nolint:exhaustive // we have default.
+	switch operator {
 	case token.PLUS:
 		return object.Float{Value: leftVal + rightVal}
 	case token.MINUS:

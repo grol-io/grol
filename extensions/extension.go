@@ -326,7 +326,7 @@ func initInternal(c *Config) error { //nolint:funlen,gocognit,gocyclo,maintidx /
 		ArgTypes: []object.Type{object.ANY},
 		Callback: func(_ any, _ string, args []object.Object) object.Object {
 			o := args[0]
-			switch o.Type() { //nolint:exhaustive // that's what default is for.
+			switch o.Type() {
 			case object.INTEGER:
 				return o
 			case object.NIL:
