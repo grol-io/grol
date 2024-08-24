@@ -163,7 +163,7 @@ func TestPreInputHook(t *testing.T) {
 					intVal := cdata.(int64)
 					return &object.Integer{Value: intVal}
 				},
-				ClientData: int64(43),
+				ClientData: int64(42),
 			}
 		},
 	}
