@@ -44,18 +44,19 @@ func logParserErrors(p *parser.Parser) bool {
 const AutoSaveFile = extensions.GrolFileExtension
 
 type Options struct {
-	ShowParse   bool
-	ShowEval    bool
-	All         bool
-	NoColor     bool // color controlled by log package, unless this is set to true.
-	FormatOnly  bool
-	Compact     bool
-	DualFormat  bool // Want both non Compact (Compact=false) printed yet compact version returned by EvalOne for history.
-	NilAndErr   bool // Show nil and errors in normal output.
+	ShowParse  bool // Whether to show the result of the parsing phase (formatting of which depends on Compact).
+	ShowEval   bool // Whether to show the result of the evaluation phase (needed for EvalString to be useful and report errors).
+	All        bool // Whether the input might be an incomplete line (line mode vs all mode).
+	NoColor    bool // Unless this forces it off, color mode is controlled by the logger (depends on stderr being a terminal or not).
+	FormatOnly bool // Don't eval, just format the input.
+	Compact    bool // Compact mode for formatting.
+	DualFormat bool // Want both non Compact (Compact=false) printed yet compact version returned by EvalOne for history.
+	NilAndErr  bool // Show nil and errors in normal output (otherwise nil eval is ignored and errors are returned separately).
+	// Which filename to use for history, empty means no history load/save.
 	HistoryFile string
-	MaxHistory  int
-	AutoLoad    bool
-	AutoSave    bool
+	MaxHistory  int  // Maximum number of history lines to keep. 0 also disables history saving/loading (but not in memory history).
+	AutoLoad    bool // Autoload the .gr state file before eval or repl loop.
+	AutoSave    bool // Autosave the .gr state file at the end of successful eval or exit of repl loop.
 	MaxDepth    int  // Max depth of recursion, 0 is keeping the default (eval.DefaultMaxDepth).
 	MaxValueLen int  // Maximum len of a value when using save()/autosaving, 0 is unlimited.
 	PanicOk     bool // If true, panics are not caught (only for debugging/developing).
