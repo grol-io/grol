@@ -3,6 +3,8 @@ package repl_test
 import (
 	"testing"
 
+	"grol.io/grol/eval"
+	"grol.io/grol/object"
 	"grol.io/grol/repl"
 )
 
@@ -145,5 +147,30 @@ func TestEvalStringPrintNoNil(t *testing.T) {
 	expected = "print(\"ab\\nc\")\n"
 	if formatted != expected {
 		t.Errorf("EvalString() formatted %q unexpected vs %q", formatted, expected)
+	}
+}
+
+func TestPreInputHook(t *testing.T) {
+	opts := repl.Options{
+		All:      true,
+		ShowEval: true,
+		NoColor:  true,
+		PanicOk:  true,
+		PreInput: func(s *eval.State) {
+			s.Extensions["testHook"] = object.Extension{
+				Name: "testHook",
+				Callback: func(cdata any, _ string, _ []object.Object) object.Object {
+					intVal := cdata.(int64)
+					return &object.Integer{Value: intVal}
+				},
+				ClientData: int64(43),
+			}
+		},
+	}
+	inp := `testHook()`
+	expected := "42\n"
+	res, errs, _ := repl.EvalStringWithOption(opts, inp)
+	if res != expected || len(errs) > 0 {
+		t.Errorf("EvalString() got %v\n---\n%s\n---want---\n%s\n---", errs, res, expected)
 	}
 }
