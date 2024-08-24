@@ -982,10 +982,10 @@ type Extension struct {
 	MinArgs    int         // Minimum number of arguments required.
 	MaxArgs    int         // Maximum number of arguments allowed. -1 for unlimited.
 	ArgTypes   []Type      // Type of each argument, provided at least up to MinArgs.
+	Help       string      // Help text for the function. Appended as a comment when printing the function.
 	Callback   ExtFunction // The go function or lambda to call when the grol by Name(...) is invoked.
+	ClientData any         // Opaque data that will be passed as first argument of Callback if set (state is, if nil).
 	Variadic   bool        // MaxArgs > MinArgs (or MaxArg == -1)
-	ClientData any         // Opaque data that the extension can use instead of the global state.
-	Help       string      // Help text for the function.
 }
 
 // Adapter for functions that only need the argumants.
