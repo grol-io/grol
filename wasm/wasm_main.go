@@ -37,16 +37,16 @@ func jsEval(this js.Value, args []js.Value) interface{} {
 	if len(args) == 2 {
 		compact = args[1].Bool()
 	}
-	res, errs, formatted := repl.EvalStringWithOption(
-		// For tinygo until recover is implemented, we would set a large value for MaxDepth to get
-		// Error: Maximum call stack size exceeded.
-		// instead of failing to handle our panic (!)
-		// https://tinygo.org/docs/reference/lang-support/#recover-builtin
-		// But enough is enough... switched back to big go for now, way too many troubles with tinygo as well
-		// as not exactly responsive to PRs nor issues folks (everyone trying their best yet...).
-		repl.Options{All: true, ShowEval: true, NoColor: true, Compact: compact, MaxDepth: WasmMaxDepth},
-		input,
-	)
+	opts := repl.EvalStringOptions()
+	opts.Compact = compact
+	// For tinygo until recover is implemented, we would set a large value for MaxDepth to get
+	// Error: Maximum call stack size exceeded.
+	// instead of failing to handle our panic (!)
+	// https://tinygo.org/docs/reference/lang-support/#recover-builtin
+	// But enough is enough... switched back to big go for now, way too many troubles with tinygo as well
+	// as not exactly responsive to PRs nor issues folks (everyone trying their best yet...).
+	opts.MaxDepth = WasmMaxDepth
+	res, errs, formatted := repl.EvalStringWithOption(opts, input)
 	result := make(map[string]any)
 	result["result"] = strings.TrimSuffix(res, "\n")
 	// transfer errors to []any (!)

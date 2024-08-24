@@ -151,21 +151,17 @@ func TestEvalStringPrintNoNil(t *testing.T) {
 }
 
 func TestPreInputHook(t *testing.T) {
-	opts := repl.Options{
-		All:      true,
-		ShowEval: true,
-		NoColor:  true,
-		PanicOk:  true,
-		PreInput: func(s *eval.State) {
-			s.Extensions["testHook"] = object.Extension{
-				Name: "testHook",
-				Callback: func(cdata any, _ string, _ []object.Object) object.Object {
-					intVal := cdata.(int64)
-					return &object.Integer{Value: intVal}
-				},
-				ClientData: int64(42),
-			}
-		},
+	opts := repl.EvalStringOptions()
+	opts.PanicOk = true
+	opts.PreInput = func(s *eval.State) {
+		s.Extensions["testHook"] = object.Extension{
+			Name: "testHook",
+			Callback: func(cdata any, _ string, _ []object.Object) object.Object {
+				intVal := cdata.(int64)
+				return &object.Integer{Value: intVal}
+			},
+			ClientData: int64(42),
+		}
 	}
 	inp := `testHook()`
 	expected := "42\n"

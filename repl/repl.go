@@ -156,7 +156,7 @@ func EvalStringOptions() Options {
 // returns the eval errors and an array of errors if any.
 // also returns the normalized/reformatted input if no parsing errors
 // occurred.
-// Default options are Options{All: true, ShowEval: true, NoColor: true, Compact: CompactEvalString}.
+// Default options are EvalStringOptions()'s.
 func EvalString(what string) (string, []string, string) {
 	return EvalStringWithOption(EvalStringOptions(), what)
 }
@@ -165,11 +165,9 @@ func EvalString(what string) (string, []string, string) {
 // returns the eval errors and an array of errors if any.
 // also returns the normalized/reformatted input if no parsing errors
 // occurred.
-// Following options should be set (like in EvalString/EvalStringOptions) to control the behavior:
-//
-//	All: true. ShowEval: true, NoColor: true.
-//
-// Options to set AutoLoad and AutoSave and Compact.
+// Following options should be set (starting from EvalStringOptions()) to
+// additionally control the behavior:
+// AutoLoad, AutoSave, Compact.
 func EvalStringWithOption(o Options, what string) (res string, errs []string, formatted string) {
 	s := eval.NewState()
 	if o.MaxDepth > 0 {
