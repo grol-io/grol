@@ -40,8 +40,7 @@ func CreateFunction(cmd Extension) error {
 	return nil
 }
 
-// Returns a copy of the table of extended functions.
-// (so multiple interpreters in a process have their own copy that can have ClientData mutated).
+// Returns the table of extended functions to seed the state of an eval.
 func ExtraFunctions() map[string]Extension {
 	return extraFunctions // no need to make a copy as each value need to be set to be changed (map of structs, not pointers).
 }
