@@ -146,20 +146,25 @@ func EvalAll(s *eval.State, in io.Reader, out io.Writer, options Options) []stri
 	return errs
 }
 
+// EvalStringOptions returns the default options needed for EvalString.
+func EvalStringOptions() Options {
+	return Options{All: true, ShowEval: true, NoColor: true}
+}
+
 // EvalString can be used from playground etc for single eval.
 // returns the eval errors and an array of errors if any.
 // also returns the normalized/reformatted input if no parsing errors
 // occurred.
 // Default options are Options{All: true, ShowEval: true, NoColor: true, Compact: CompactEvalString}.
 func EvalString(what string) (string, []string, string) {
-	return EvalStringWithOption(Options{All: true, ShowEval: true, NoColor: true, Compact: false}, what)
+	return EvalStringWithOption(EvalStringOptions(), what)
 }
 
 // EvalStringWithOption can be used from playground etc for single eval.
 // returns the eval errors and an array of errors if any.
 // also returns the normalized/reformatted input if no parsing errors
 // occurred.
-// Following options should be set (like in EvalString) to control the behavior:
+// Following options should be set (like in EvalString/EvalStringOptions) to control the behavior:
 //
 //	All: true. ShowEval: true, NoColor: true.
 //
