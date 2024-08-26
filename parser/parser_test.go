@@ -119,15 +119,15 @@ func Test_OperatorPrecedenceParsing(t *testing.T) {
 	}{
 		{
 			"1+2 + 3",
-			"(1 + 2) + 3",
+			"1 + 2 + 3",
 		},
 		{
 			"   1+2*3   ",
-			"1 + (2 * 3)",
+			"1 + 2 * 3",
 		},
 		{
 			"-a * b",
-			"(-a) * b",
+			"-a * b",
 		},
 		{
 			"!-a",
@@ -143,43 +143,43 @@ func Test_OperatorPrecedenceParsing(t *testing.T) {
 		},
 		{
 			"a + b + c",
-			"(a + b) + c",
+			"a + b + c",
 		},
 		{
 			"a + b - c",
-			"(a + b) - c",
+			"a + b - c",
 		},
 		{
 			"a * b * c",
-			"(a * b) * c",
+			"a * b * c",
 		},
 		{
 			"a * b / c",
-			"(a * b) / c",
+			"a * b / c",
 		},
 		{
 			"a + b / c",
-			"a + (b / c)",
+			"a + b / c",
 		},
 		{
 			"a + b * c + d / e - f",
-			"((a + (b * c)) + (d / e)) - f",
+			"a + b * c + d / e - f",
 		},
 		{
 			"3 + 4; -5 * 5",
-			"3 + 4\n(-5) * 5", // fixed from the original in the book that was missing the newline
+			"3 + 4\n-5 * 5", // fixed from the original in the book that was missing the newline
 		},
 		{
 			"5 > 4 == 3 < 4",
-			"(5 > 4) == (3 < 4)",
+			"5 > 4 == 3 < 4",
 		},
 		{
 			"5 < 4 != 3 > 4",
-			"(5 < 4) != (3 > 4)",
+			"5 < 4 != 3 > 4",
 		},
 		{
 			"3 + 4 * 5 == 3 * 1 + 4 * 5",
-			"(3 + (4 * 5)) == ((3 * 1) + (4 * 5))",
+			"3 + 4 * 5 == 3 * 1 + 4 * 5",
 		},
 		{
 			"x = 41 * 6",
