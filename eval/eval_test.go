@@ -965,3 +965,18 @@ func TestCrashKeys(t *testing.T) {
 		t.Errorf("should not have errored: %v", err)
 	}
 }
+
+func TestParenInIf(t *testing.T) {
+	inp := `x=1; y=1; if (x)==y {42}`
+	s := eval.NewState()
+	res, err := eval.EvalString(s, inp, false)
+	if err != nil {
+		t.Fatalf("should not have errored: %v", err)
+	}
+	if res.Type() != object.INTEGER {
+		t.Fatalf("should have returned an integer, got %#v", res)
+	}
+	if res.Inspect() != "42" {
+		t.Errorf("wrong result, got %q", res.Inspect())
+	}
+}
