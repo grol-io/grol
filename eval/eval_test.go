@@ -673,6 +673,10 @@ func TestMapIndexExpressions(t *testing.T) {
 			`m={"bar":42}; m["foo"]=7; m.bar+m.foo`,
 			42 + 7,
 		},
+		{
+			`m={"foo": 37, "bar":42}; m.bar=7; m["bar"]`,
+			7,
+		},
 	}
 
 	for _, tt := range tests {
