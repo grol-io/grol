@@ -308,6 +308,11 @@ e = "f"`,
 			"func fact(n) {\n\tif n <= 1 {\n\t\treturn 1\n\t}\n\tn * fact(n - 1)\n}",
 			"func fact(n){if n<=1{return 1}n*fact(n-1)}",
 		},
+		{
+			"1+2+3+4*5==a[i+2]",
+			"1 + 2 + 3 + 4 * 5 == a[i + 2]",
+			"1+2+3+4*5==a[i+2]",
+		},
 	}
 	for i, tt := range tests {
 		l := lexer.New(tt.input)
