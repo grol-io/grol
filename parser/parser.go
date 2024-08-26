@@ -542,18 +542,8 @@ func (p *Parser) parseIfExpression() ast.Node {
 	expression := &ast.IfExpression{}
 	expression.Token = p.curToken
 
-	needCloseParen := false
-	if p.peekTokenIs(token.LPAREN) {
-		needCloseParen = true
-		p.nextToken()
-	}
-
 	p.nextToken()
 	expression.Condition = p.parseExpression(LOWEST)
-
-	if needCloseParen && !p.expectPeek(token.RPAREN) {
-		return nil
-	}
 
 	if !p.expectPeek(token.LBRACE) {
 		return nil

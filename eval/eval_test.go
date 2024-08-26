@@ -967,7 +967,7 @@ func TestCrashKeys(t *testing.T) {
 }
 
 func TestParenInIf(t *testing.T) {
-	inp := `x=1; y=1; if (x)==y {42}`
+	inp := `if (1+2)==3 {42}`
 	s := eval.NewState()
 	res, err := eval.EvalString(s, inp, false)
 	if err != nil {
