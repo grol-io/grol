@@ -154,11 +154,13 @@ func initInternal(c *Config) error { //nolint:funlen,gocognit,gocyclo,maintidx /
 		MaxArgs:  2,
 		ArgTypes: []object.Type{object.ANY, object.STRING},
 		Callback: object.ShortCallback(jsonSerGo),
+		Help:     `optional indent e.g json_go(m, "  ")`,
 	}
 	err = object.CreateFunction(jsonFn)
 	if err != nil {
 		return err
 	}
+	jsonFn.Help = ""
 	jsonFn.Name = "eval"
 	jsonFn.Callback = evalFunc
 	jsonFn.ArgTypes = []object.Type{object.STRING}
@@ -176,6 +178,7 @@ func initInternal(c *Config) error { //nolint:funlen,gocognit,gocyclo,maintidx /
 		MinArgs:  0, // empty only case - ie ".gr" save file.
 		MaxArgs:  1,
 		ArgTypes: []object.Type{object.STRING},
+		Help:     "filename (.gr)",
 	}
 	if c.HasSave {
 		loadSaveFn.Name = "save"

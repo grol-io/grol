@@ -44,21 +44,25 @@ func logParserErrors(p *parser.Parser) bool {
 const AutoSaveFile = extensions.GrolFileExtension
 
 type Options struct {
-	ShowParse   bool
-	ShowEval    bool
-	All         bool
-	NoColor     bool // color controlled by log package, unless this is set to true.
-	FormatOnly  bool
-	Compact     bool
-	DualFormat  bool // Want both non Compact (Compact=false) printed yet compact version returned by EvalOne for history.
-	NilAndErr   bool // Show nil and errors in normal output.
+	ShowParse  bool // Whether to show the result of the parsing phase (formatting of which depends on Compact).
+	ShowEval   bool // Whether to show the result of the evaluation phase (needed for EvalString to be useful and report errors).
+	All        bool // Whether the input might be an incomplete line (line mode vs all mode).
+	NoColor    bool // Unless this forces it off, color mode is controlled by the logger (depends on stderr being a terminal or not).
+	FormatOnly bool // Don't eval, just format the input.
+	Compact    bool // Compact mode for formatting.
+	DualFormat bool // Want both non Compact (Compact=false) printed yet compact version returned by EvalOne for history.
+	NilAndErr  bool // Show nil and errors in normal output (otherwise nil eval is ignored and errors are returned separately).
+	// Which filename to use for history, empty means no history load/save.
 	HistoryFile string
-	MaxHistory  int
-	AutoLoad    bool
-	AutoSave    bool
+	MaxHistory  int  // Maximum number of history lines to keep. 0 also disables history saving/loading (but not in memory history).
+	AutoLoad    bool // Autoload the .gr state file before eval or repl loop.
+	AutoSave    bool // Autosave the .gr state file at the end of successful eval or exit of repl loop.
 	MaxDepth    int  // Max depth of recursion, 0 is keeping the default (eval.DefaultMaxDepth).
 	MaxValueLen int  // Maximum len of a value when using save()/autosaving, 0 is unlimited.
 	PanicOk     bool // If true, panics are not caught (only for debugging/developing).
+	// Hook to call before running the input (lets you for instance change the ClientData of some object.Extension,
+	// remove some functions, etc).
+	PreInput func(*eval.State)
 }
 
 func AutoLoad(s *eval.State, options Options) error {
@@ -136,28 +140,34 @@ func EvalAll(s *eval.State, in io.Reader, out io.Writer, options Options) []stri
 		log.Fatalf("%v", err)
 	}
 	what := string(b)
+	if options.PreInput != nil {
+		options.PreInput(s)
+	}
 	_, _, errs, _ := EvalOne(s, what, out, options) //nolint:dogsled // as mentioned we should refactor EvalOne.
 	return errs
+}
+
+// EvalStringOptions returns the default options needed for EvalString.
+func EvalStringOptions() Options {
+	return Options{All: true, ShowEval: true, NoColor: true}
 }
 
 // EvalString can be used from playground etc for single eval.
 // returns the eval errors and an array of errors if any.
 // also returns the normalized/reformatted input if no parsing errors
 // occurred.
-// Default options are Options{All: true, ShowEval: true, NoColor: true, Compact: CompactEvalString}.
+// Default options are EvalStringOptions()'s.
 func EvalString(what string) (string, []string, string) {
-	return EvalStringWithOption(Options{All: true, ShowEval: true, NoColor: true, Compact: false}, what)
+	return EvalStringWithOption(EvalStringOptions(), what)
 }
 
 // EvalStringWithOption can be used from playground etc for single eval.
 // returns the eval errors and an array of errors if any.
 // also returns the normalized/reformatted input if no parsing errors
 // occurred.
-// Following options should be set (like in EvalString) to control the behavior:
-//
-//	All: true. ShowEval: true, NoColor: true.
-//
-// Options to set AutoLoad and AutoSave and Compact.
+// Following options should be set (starting from EvalStringOptions()) to
+// additionally control the behavior:
+// AutoLoad, AutoSave, Compact.
 func EvalStringWithOption(o Options, what string) (res string, errs []string, formatted string) {
 	s := eval.NewState()
 	if o.MaxDepth > 0 {
@@ -169,6 +179,9 @@ func EvalStringWithOption(o Options, what string) (res string, errs []string, fo
 	s.LogOut = out
 	s.NoLog = true
 	_ = AutoLoad(s, o) // errors already logged
+	if o.PreInput != nil {
+		o.PreInput(s)
+	}
 	panicked := false
 	incomplete := false
 	incomplete, panicked, errs, formatted = EvalOne(s, what, out, o)
@@ -223,7 +236,9 @@ func Interactive(options Options) int {
 	term.NewHistory(options.MaxHistory)
 	_ = term.SetHistoryFile(options.HistoryFile)
 	_ = AutoLoad(s, options) // errors already logged
-	// Regular expression for "!nn" to run history command nn.
+	if options.PreInput != nil {
+		options.PreInput(s)
+	}
 	prev := ""
 	for {
 		rd, err := term.ReadLine()

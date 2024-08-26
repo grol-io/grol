@@ -40,8 +40,9 @@ func CreateFunction(cmd Extension) error {
 	return nil
 }
 
+// Returns the table of extended functions to seed the state of an eval.
 func ExtraFunctions() map[string]Extension {
-	return extraFunctions
+	return extraFunctions // no need to make a copy as each value need to be set to be changed (map of structs, not pointers).
 }
 
 // Add values to top level environment, e.g "pi" -> 3.14159...

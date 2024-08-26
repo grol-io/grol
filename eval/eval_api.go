@@ -22,7 +22,7 @@ type State struct {
 	macroState *object.Environment
 	env        *object.Environment
 	cache      Cache
-	extensions map[string]object.Extension
+	Extensions map[string]object.Extension
 	NoLog      bool // turn log() into println() (for EvalString)
 	// Max depth / recursion level - default DefaultMaxDepth,
 	// note that a simple function consumes at least 2 levels and typically at least 3 or 4.
@@ -38,7 +38,7 @@ func NewState() *State {
 		Out:        os.Stdout,
 		LogOut:     os.Stdout,
 		cache:      NewCache(),
-		extensions: object.ExtraFunctions(),
+		Extensions: object.ExtraFunctions(),
 		macroState: object.NewMacroEnvironment(),
 		MaxDepth:   DefaultMaxDepth,
 		depth:      0,
@@ -51,7 +51,7 @@ func NewBlankState() *State {
 		Out:        io.Discard,
 		LogOut:     io.Discard,
 		cache:      NewCache(),
-		extensions: make(map[string]object.Extension),
+		Extensions: make(map[string]object.Extension),
 		macroState: object.NewMacroEnvironment(),
 		MaxDepth:   DefaultMaxDepth,
 	}

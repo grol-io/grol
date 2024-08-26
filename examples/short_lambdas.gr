@@ -1,0 +1,9 @@
+
+// smallest
+println("No arg lambda, expecting 1:", (()=>1)())
+
+// 1 arg
+println("One arg lambda expecting 1:", (x=>1)(2))
+
+// varargs
+println("Variable args lambda expecting 3:", (..=>len(..))(2,3,4))
