@@ -563,6 +563,10 @@ func TestArrayIndexExpressions(t *testing.T) {
 			"len([1, 2, 3, 4][2:])",
 			2,
 		},
+		{
+			`a=[1,2,3,4]; a[-1]=-4; a[-1]`,
+			-4,
+		},
 	}
 
 	for _, tt := range tests {
@@ -660,6 +664,10 @@ func TestMapIndexExpressions(t *testing.T) {
 		{
 			`{false: 5}[false]`,
 			5,
+		},
+		{
+			`m={"bar":42}; m["foo"]=7; m.bar+m.foo`,
+			42 + 7,
 		},
 	}
 
