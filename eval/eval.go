@@ -19,16 +19,68 @@ var unquoteToken = token.ByType(token.UNQUOTE)
 
 func (s *State) evalAssignment(right object.Object, node *ast.InfixExpression) object.Object {
 	// let free assignments.
-	id, ok := node.Left.(*ast.Identifier)
-	if !ok {
-		return object.Error{Value: "assignment to non identifier: " + node.Left.Value().DebugString()}
-	}
 	if rt := right.Type(); rt == object.ERROR {
-		log.Warnf("can't assign %q: %v", right.Inspect(), right)
+		log.Warnf("Not assigning %q", right.Inspect())
 		return right
 	}
-	log.LogVf("eval assign %#v to %#v", right, id.Value())
-	return s.env.Set(id.Literal(), right) // Propagate possible error (constant setting).
+	switch node.Left.Value().Type() {
+	case token.DOT:
+		idxE := node.Left.(*ast.IndexExpression)
+		index := object.String{Value: idxE.Index.Value().Literal()}
+		return s.evalIndexAssigment(idxE.Left, index, right)
+	case token.LBRACKET:
+		idxE := node.Left.(*ast.IndexExpression)
+		index := s.evalInternal(idxE.Index)
+		return s.evalIndexAssigment(idxE.Left, index, right)
+	case token.IDENT:
+		id, _ := node.Left.(*ast.Identifier)
+		log.LogVf("eval assign %#v to %#v", right, id.Value())
+		return s.env.Set(id.Literal(), right) // Propagate possible error (constant setting).
+	default:
+		return object.Error{Value: "assignment to non identifier: " + node.Left.Value().DebugString()}
+	}
+}
+
+func (s *State) evalIndexAssigment(which ast.Node, index, value object.Object) object.Object {
+	if which.Value().Type() != token.IDENT {
+		return object.Error{Value: "index assignment to non identifier: " + which.Value().DebugString()}
+	}
+	id, _ := which.(*ast.Identifier)
+	val, ok := s.env.Get(id.Literal())
+	if !ok {
+		return object.Error{Value: "identifier not found: " + id.Literal()}
+	}
+	switch val.Type() {
+	case object.ARRAY:
+		if index.Type() != object.INTEGER {
+			return object.Error{Value: "index assignment to array with non integer index: " + index.Inspect()}
+		}
+		idx := index.(object.Integer).Value
+		if idx < 0 {
+			idx = int64(object.Len(val)) + idx
+		}
+		if idx < 0 || idx >= int64(object.Len(val)) {
+			return object.Error{Value: "index assignment out of bounds: " + index.Inspect()}
+		}
+		elements := object.Elements(val)
+		elements[idx] = value
+		oerr := s.env.Set(id.Literal(), object.NewArray(elements))
+		if oerr.Type() == object.ERROR {
+			return oerr
+		}
+		return value
+	case object.MAP:
+		m := val.(object.Map)
+		m = m.Set(index, value)
+		oerr := s.env.Set(id.Literal(), m)
+		if oerr.Type() == object.ERROR {
+			return oerr
+		}
+		return value
+	default:
+		return object.Error{Value: fmt.Sprintf("index assignment to %s of unexpected type %s",
+			id.Literal(), val.Type().String())}
+	}
 }
 
 func argCheck[T any](msg string, n int, vararg bool, args []T) *object.Error {
