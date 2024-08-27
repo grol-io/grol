@@ -255,6 +255,10 @@ stdout '^\(\)=>if 1\+2==3\{4\}$'
 grol -quiet -c '(()=> if 1+2==3 {4})()'
 stdout '^4$'
 
+# stack trace in errors
+!grol -quiet -c 'func level1(){1+"x"}; func level2(){level1()}; func level3(){level2()}; level3()'
+stderr 'Total 1 error'
+stderr '^<err: no PLUS on left=1 right="x" \[func level1\(\){1\+"x"} func level2\(\){level1\(\)} func level3\(\){level2\(\)}\]>$'
 
 -- json_output --
 {

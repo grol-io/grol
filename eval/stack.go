@@ -19,7 +19,7 @@ func (s *State) Stack() []string {
 		if n != "" {
 			stack = append(stack, e.Name())
 		}
-		e = e.Parent()
+		e = e.StackParent()
 	}
 	log.Debugf("Stack() len %d, depth %d returning %v", len(stack), s.depth, stack)
 	return stack

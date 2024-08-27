@@ -16,11 +16,13 @@ import (
 type Environment struct {
 	store    map[string]Object
 	outer    *Environment
+	stack    *Environment // Different from outer when we attach to top level lambdas. see logic in NewFunctionEnvironment.
 	depth    int
 	cacheKey string
 	ids      *trie.Trie
 	numSet   int64
 	getMiss  int64
+	function *Function
 }
 
 // Truly empty store suitable for macros storage.
@@ -255,17 +257,27 @@ func NewFunctionEnvironment(fn Function, current *Environment) (*Environment, bo
 	if !sameFunction {
 		parent = fn.Env
 	}
-	env := &Environment{store: make(map[string]Object), outer: parent, cacheKey: fn.CacheKey, depth: parent.depth + 1}
+	env := &Environment{
+		store:    make(map[string]Object),
+		stack:    current,
+		outer:    parent,
+		cacheKey: fn.CacheKey,
+		depth:    parent.depth + 1,
+		function: &fn,
+	}
 	return env, sameFunction
 }
 
 // Frame/stack name.
 func (e *Environment) Name() string {
-	return e.cacheKey
+	if e.function == nil {
+		return ""
+	}
+	return e.function.Inspect()
 }
 
 // Allows eval and others to walk up the stack of envs themselves
 // (using Name() to produce a stack trace for instance).
-func (e *Environment) Parent() *Environment {
-	return e.outer
+func (e *Environment) StackParent() *Environment {
+	return e.stack
 }
