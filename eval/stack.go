@@ -37,7 +37,7 @@ func (s *State) Errorf(format string, args ...interface{}) object.Error {
 	return s.Error(fmt.Sprintf(format, args...))
 }
 
-// ErrToError converts from a go error to an object.Error.
-func (s *State) ErrToError(err error) object.Error {
+// ConvertError converts from a go error to an object.Error.
+func (s *State) ConvertError(err error) object.Error {
 	return s.Error(err.Error())
 }

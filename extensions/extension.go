@@ -347,7 +347,7 @@ func initInternal(c *Config) error { //nolint:funlen,gocognit,gocyclo,maintidx /
 			case object.STRING:
 				i, serr := strconv.ParseInt(o.(object.String).Value, 0, 64)
 				if serr != nil {
-					return s.ErrToError(serr)
+					return s.ConvertError(serr)
 				}
 				return object.Integer{Value: i}
 			default:
@@ -381,7 +381,7 @@ func jsonSer(env any, _ string, args []object.Object) object.Object {
 	w := strings.Builder{}
 	err := args[0].JSON(&w)
 	if err != nil {
-		return s.ErrToError(err)
+		return s.ConvertError(err)
 	}
 	return object.String{Value: w.String()}
 }
@@ -399,7 +399,7 @@ func jsonSerGo(env any, _ string, args []object.Object) object.Object {
 	encoder.SetEscapeHTML(false)
 	err = encoder.Encode(v)
 	if err != nil {
-		return s.ErrToError(err)
+		return s.ConvertError(err)
 	}
 	return object.String{Value: buf.String()}
 }
@@ -409,7 +409,7 @@ func evalFunc(env any, name string, args []object.Object) object.Object {
 	s := env.(*eval.State)
 	res, err := eval.EvalString(s, str, name == "unjson" /* empty env */)
 	if err != nil {
-		return s.ErrToError(err)
+		return s.ConvertError(err)
 	}
 	return res
 }
@@ -441,17 +441,17 @@ func saveFunc(env any, _ string, args []object.Object) object.Object {
 	s := env.(*eval.State)
 	file, err := sanitizeFileName(args)
 	if err != nil {
-		return s.ErrToError(err)
+		return s.ConvertError(err)
 	}
 	f, err := os.Create(file)
 	if err != nil {
-		return s.ErrToError(err)
+		return s.ConvertError(err)
 	}
 	defer f.Close()
 	// Write to file.
 	n, err := s.SaveGlobals(f)
 	if err != nil {
-		return s.ErrToError(err)
+		return s.ConvertError(err)
 	}
 	log.Infof("Saved %d ids/fns to: %s", n, file)
 	return object.MakeQuad(
@@ -463,21 +463,21 @@ func loadFunc(env any, _ string, args []object.Object) object.Object {
 	file, err := sanitizeFileName(args)
 	s := env.(*eval.State)
 	if err != nil {
-		return s.ErrToError(err)
+		return s.ConvertError(err)
 	}
 	f, err := os.Open(file)
 	if err != nil {
-		return s.ErrToError(err)
+		return s.ConvertError(err)
 	}
 	defer f.Close()
 	all, err := io.ReadAll(f)
 	if err != nil {
-		return s.ErrToError(err)
+		return s.ConvertError(err)
 	}
 	// Eval the content.
 	res, err := eval.EvalString(env, string(all), false)
 	if err != nil {
-		return s.ErrToError(err)
+		return s.ConvertError(err)
 	}
 	log.Infof("Read/evaluated: %s", file)
 	return res
