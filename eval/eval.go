@@ -37,30 +37,30 @@ func (s *State) evalAssignment(right object.Object, node *ast.InfixExpression) o
 		log.LogVf("eval assign %#v to %#v", right, id.Value())
 		return s.env.Set(id.Literal(), right) // Propagate possible error (constant setting).
 	default:
-		return s.Error("assignment to non identifier: " + node.Left.Value().DebugString())
+		return s.NewError("assignment to non identifier: " + node.Left.Value().DebugString())
 	}
 }
 
 func (s *State) evalIndexAssigment(which ast.Node, index, value object.Object) object.Object {
 	if which.Value().Type() != token.IDENT {
-		return s.Error("index assignment to non identifier: " + which.Value().DebugString())
+		return s.NewError("index assignment to non identifier: " + which.Value().DebugString())
 	}
 	id, _ := which.(*ast.Identifier)
 	val, ok := s.env.Get(id.Literal())
 	if !ok {
-		return s.Error("identifier not found: " + id.Literal())
+		return s.NewError("identifier not found: " + id.Literal())
 	}
 	switch val.Type() {
 	case object.ARRAY:
 		if index.Type() != object.INTEGER {
-			return s.Error("index assignment to array with non integer index: " + index.Inspect())
+			return s.NewError("index assignment to array with non integer index: " + index.Inspect())
 		}
 		idx := index.(object.Integer).Value
 		if idx < 0 {
 			idx = int64(object.Len(val)) + idx
 		}
 		if idx < 0 || idx >= int64(object.Len(val)) {
-			return s.Error("index assignment out of bounds: " + index.Inspect())
+			return s.NewError("index assignment out of bounds: " + index.Inspect())
 		}
 		elements := object.Elements(val)
 		elements[idx] = value
@@ -102,12 +102,12 @@ func (s *State) evalPrefixIncrDecr(operator token.Type, node ast.Node) object.Ob
 	log.LogVf("eval prefix %s", ast.DebugString(node))
 	nv := node.Value()
 	if nv.Type() != token.IDENT {
-		return s.Error("can't increment/decrement " + nv.DebugString())
+		return s.NewError("can't increment/decrement " + nv.DebugString())
 	}
 	id := nv.Literal()
 	val, ok := s.env.Get(id)
 	if !ok {
-		return s.Error("identifier not found: " + id)
+		return s.NewError("identifier not found: " + id)
 	}
 	toAdd := int64(1)
 	if operator == token.DECR {
@@ -119,7 +119,7 @@ func (s *State) evalPrefixIncrDecr(operator token.Type, node ast.Node) object.Ob
 	case object.Float:
 		return s.env.Set(id, object.Float{Value: val.Value + float64(toAdd)}) // So PI++ fails not silently.
 	default:
-		return s.Error("can't increment/decrement " + val.Type().String())
+		return s.NewError("can't increment/decrement " + val.Type().String())
 	}
 }
 
@@ -128,7 +128,7 @@ func (s *State) evalPostfixExpression(node *ast.PostfixExpression) object.Object
 	id := node.Prev.Literal()
 	val, ok := s.env.Get(id)
 	if !ok {
-		return s.Error("identifier not found: " + id)
+		return s.NewError("identifier not found: " + id)
 	}
 	var toAdd int64
 	switch node.Type() {
@@ -137,7 +137,7 @@ func (s *State) evalPostfixExpression(node *ast.PostfixExpression) object.Object
 	case token.DECR:
 		toAdd = -1
 	default:
-		return s.Error("unknown postfix operator: " + node.Type().String())
+		return s.NewError("unknown postfix operator: " + node.Type().String())
 	}
 	var oerr object.Object
 	switch val := val.(type) {
@@ -146,7 +146,7 @@ func (s *State) evalPostfixExpression(node *ast.PostfixExpression) object.Object
 	case object.Float:
 		oerr = s.env.Set(id, object.Float{Value: val.Value + float64(toAdd)}) // So PI++ fails not silently.
 	default:
-		return s.Error("can't increment/decrement " + val.Type().String())
+		return s.NewError("can't increment/decrement " + val.Type().String())
 	}
 	if oerr.Type() == object.ERROR {
 		return oerr
@@ -295,7 +295,7 @@ func (s *State) evalMapLiteral(node *ast.MapLiteral) object.Object {
 		key := s.evalInternal(keyNode)
 		if !object.Equals(key, key) {
 			log.Warnf("key %s is not hashable", key.Inspect())
-			return s.Error("key " + key.Inspect() + " is not hashable")
+			return s.NewError("key " + key.Inspect() + " is not hashable")
 		}
 		value := s.evalInternal(valueNode)
 		result = result.Set(key, value)
@@ -314,6 +314,10 @@ func (s *State) evalPrintLogError(node *ast.Builtin) object.Object {
 			buf.WriteString(" ")
 		}
 		r := s.evalInternal(v)
+		// If what we print/println is an error, return it instead. log can log errors.
+		if r.Type() == object.ERROR && !doLog {
+			return r
+		}
 		if isString := r.Type() == object.STRING; isString {
 			buf.WriteString(r.(object.String).Value)
 		} else {
@@ -321,7 +325,7 @@ func (s *State) evalPrintLogError(node *ast.Builtin) object.Object {
 		}
 	}
 	if node.Type() == token.ERROR {
-		return s.Error(buf.String())
+		return s.NewError(buf.String())
 	}
 	if (s.NoLog && doLog) || node.Type() == token.PRINTLN {
 		buf.WriteRune('\n') // log() has a implicit newline when using log.Xxx, print() doesn't, println() does.
@@ -362,7 +366,7 @@ func (s *State) evalBuiltin(node *ast.Builtin) object.Object {
 	if minV > 0 {
 		val = s.evalInternal(node.Parameters[0])
 		rt = val.Type()
-		if rt == object.ERROR {
+		if rt == object.ERROR && t != token.LOG { // log can log (and thus catch) errors.
 			return val
 		}
 	}
@@ -376,7 +380,7 @@ func (s *State) evalBuiltin(node *ast.Builtin) object.Object {
 	case token.LEN:
 		l := object.Len(val)
 		if l == -1 {
-			return s.Error("len: not supported on " + val.Type().String())
+			return s.NewError("len: not supported on " + val.Type().String())
 		}
 		return object.Integer{Value: int64(l)}
 	default:
@@ -395,7 +399,7 @@ func (s *State) evalIndexRangeExpression(left object.Object, leftIdx, rightIdx a
 		log.Debugf("eval index %s[%s:%s]", left.Inspect(), leftIndex.Inspect(), rightIndex.Inspect())
 	}
 	if leftIndex.Type() != object.INTEGER || (!nilRight && rightIndex.Type() != object.INTEGER) {
-		return s.Error("range index not integer")
+		return s.NewError("range index not integer")
 	}
 	num := object.Len(left)
 	l := leftIndex.(object.Integer).Value
@@ -412,7 +416,7 @@ func (s *State) evalIndexRangeExpression(left object.Object, leftIdx, rightIdx a
 		}
 	}
 	if l > r {
-		return s.Error("range index invalid: left greater then right")
+		return s.NewError("range index invalid: left greater then right")
 	}
 	l = min(l, int64(num))
 	r = min(r, int64(num))
@@ -427,7 +431,7 @@ func (s *State) evalIndexRangeExpression(left object.Object, leftIdx, rightIdx a
 	case left.Type() == object.NIL:
 		return object.NULL
 	default:
-		return s.Error("range index operator not supported: " + left.Type().String())
+		return s.NewError("range index operator not supported: " + left.Type().String())
 	}
 }
 
@@ -455,7 +459,7 @@ func (s *State) evalIndexExpression(left, index object.Object) object.Object {
 	case left.Type() == object.NIL:
 		return object.NULL
 	default:
-		return s.Error("index operator not supported: " + left.Type().String() + "[" + index.Type().String() + "]")
+		return s.NewError("index operator not supported: " + left.Type().String() + "[" + index.Type().String() + "]")
 	}
 }
 
@@ -525,7 +529,7 @@ func (s *State) applyExtension(fn object.Extension, args []object.Object) object
 func (s *State) applyFunction(name string, fn object.Object, args []object.Object) object.Object {
 	function, ok := fn.(object.Function)
 	if !ok {
-		return s.Error("not a function: " + fn.Type().String() + ":" + fn.Inspect())
+		return s.NewError("not a function: " + fn.Type().String() + ":" + fn.Inspect())
 	}
 	if v, output, ok := s.cache.Get(function.CacheKey, args); ok {
 		log.Debugf("Cache hit for %s %v", function.CacheKey, args)
@@ -646,7 +650,7 @@ func (s *State) evalIdentifier(node *ast.Identifier) object.Object {
 	}
 	val, ok = s.Extensions[node.Literal()]
 	if !ok {
-		return s.Error("identifier not found: " + node.Literal())
+		return s.NewError("identifier not found: " + node.Literal())
 	}
 	return val
 }
@@ -661,7 +665,7 @@ func (s *State) evalIfExpression(ie *ast.IfExpression) object.Object {
 		log.LogVf("if %s is object.FALSE, picking else branch", ie.Condition.Value().DebugString())
 		return s.evalInternal(ie.Alternative)
 	default:
-		return s.Error("condition is not a boolean: " + condition.Inspect())
+		return s.NewError("condition is not a boolean: " + condition.Inspect())
 	}
 }
 
@@ -700,12 +704,12 @@ func (s *State) evalPrefixExpression(operator token.Type, right object.Object) o
 		if right.Type() == object.INTEGER {
 			return object.Integer{Value: ^right.(object.Integer).Value}
 		}
-		return s.Error("bitwise not of " + right.Inspect())
+		return s.NewError("bitwise not of " + right.Inspect())
 	case token.PLUS:
 		// nothing do with unary plus, just return the value.
 		return right
 	default:
-		return s.Error("unknown operator: " + operator.String())
+		return s.NewError("unknown operator: " + operator.String())
 	}
 }
 
@@ -718,7 +722,7 @@ func (s *State) evalBangOperatorExpression(right object.Object) object.Object {
 	case object.NULL:
 		return object.TRUE // allow !nil == true
 	default:
-		return s.Error("not of " + right.Inspect())
+		return s.NewError("not of " + right.Inspect())
 	}
 }
 
@@ -731,7 +735,7 @@ func (s *State) evalMinusPrefixOperatorExpression(right object.Object) object.Ob
 		value := right.(object.Float).Value
 		return object.Float{Value: -value}
 	default:
-		return s.Error("minus of " + right.Inspect())
+		return s.NewError("minus of " + right.Inspect())
 	}
 }
 
@@ -765,7 +769,7 @@ func (s *State) evalInfixExpression(operator token.Type, left, right object.Obje
 	case left.Type() == object.MAP && right.Type() == object.MAP:
 		return evalMapInfixExpression(operator, left, right)
 	default:
-		return s.Error("no " + operator.String() + " on left=" + left.Inspect() + " right=" + right.Inspect())
+		return s.NewError("no " + operator.String() + " on left=" + left.Inspect() + " right=" + right.Inspect())
 	}
 }
 
@@ -791,12 +795,12 @@ func (s *State) evalArrayInfixExpression(operator token.Type, left, right object
 	switch operator {
 	case token.ASTERISK: // repeat
 		if right.Type() != object.INTEGER {
-			return s.Error("right operand of * on arrays must be an integer")
+			return s.NewError("right operand of * on arrays must be an integer")
 		}
 		// TODO: go1.23 use	slices.Repeat
 		rightVal := right.(object.Integer).Value
 		if rightVal < 0 {
-			return s.Error("right operand of * on arrays must be a positive integer")
+			return s.NewError("right operand of * on arrays must be a positive integer")
 		}
 		result := object.MakeObjectSlice(len(leftVal) * int(rightVal))
 		for range rightVal {
@@ -860,7 +864,7 @@ func (s *State) evalIntegerInfixExpression(operator token.Type, left, right obje
 	case token.COLON:
 		lg := rightVal - leftVal
 		if lg < 0 {
-			return s.Error("range index invalid: left greater then right")
+			return s.NewError("range index invalid: left greater then right")
 		}
 		arr := object.MakeObjectSlice(int(lg))
 		for i := leftVal; i < rightVal; i++ {
@@ -868,7 +872,7 @@ func (s *State) evalIntegerInfixExpression(operator token.Type, left, right obje
 		}
 		return object.NewArray(arr)
 	default:
-		return s.Error("unknown operator: " + operator.String())
+		return s.NewError("unknown operator: " + operator.String())
 	}
 }
 
@@ -879,7 +883,7 @@ func (s *State) getFloatValue(o object.Object) (float64, *object.Error) {
 	case object.FLOAT:
 		return o.(object.Float).Value, nil
 	default:
-		e := s.Error("not converting to float: " + o.Type().String())
+		e := s.NewError("not converting to float: " + o.Type().String())
 		return math.NaN(), &e
 	}
 }
@@ -906,6 +910,6 @@ func (s *State) evalFloatInfixExpression(operator token.Type, left, right object
 	case token.PERCENT:
 		return object.Float{Value: math.Mod(leftVal, rightVal)}
 	default:
-		return s.Error("unknown operator: " + operator.String())
+		return s.NewError("unknown operator: " + operator.String())
 	}
 }
