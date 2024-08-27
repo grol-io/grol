@@ -24,7 +24,7 @@ func (s *State) Stack() []string {
 }
 
 // NewError creates a new error object from a plain string.
-// NewError will attach the stack trace to the NewError object.
+// NewError will attach the stack trace to the Error object.
 func (s *State) NewError(msg string) object.Error {
 	if log.LogVerbose() {
 		log.LogVf("Error %q called", msg)
@@ -32,7 +32,7 @@ func (s *State) NewError(msg string) object.Error {
 	return object.Error{Value: msg, Stack: s.Stack()}
 }
 
-// Errorf formats an object.Error with the given format and args.
+// Errorf formats and create an object.Error using given format and args.
 func (s *State) Errorf(format string, args ...interface{}) object.Error {
 	return s.NewError(fmt.Sprintf(format, args...))
 }
