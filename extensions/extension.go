@@ -97,6 +97,7 @@ func initInternal(c *Config) error { //nolint:funlen,gocognit,gocyclo,maintidx /
 		return err
 	}
 	object.AddIdentifier("nil", object.NULL)
+	object.AddIdentifier("null", object.NULL)
 	object.AddIdentifier("NaN", object.Float{Value: math.NaN()})
 	object.AddIdentifier("Inf", object.Float{Value: math.Inf(0)}) // Works for both -Inf and +Inf (thanks to noop unary +).
 
