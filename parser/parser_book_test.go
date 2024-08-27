@@ -583,7 +583,7 @@ func TestCallExpressionParameterParsing(t *testing.T) {
 		{
 			input:         "add(1, 2 * 3, 4 + 5);",
 			expectedIdent: "add",
-			expectedArgs:  []string{"1", "2*3", "4+5"},
+			expectedArgs:  []string{"1", "(2*3)", "(4+5)"}, // Debug string is fully ()ized.
 		},
 	}
 
