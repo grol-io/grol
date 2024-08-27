@@ -259,29 +259,31 @@ func (p *Parser) expectPeek(t token.Type) bool {
 	return false
 }
 
-// ErrorLine returns the current line and a pointer to the error position.
+// ErrorLine returns the current line followed by a newline with a marker to the error position and the line number.
 // If forPreviousToken is true, the error position is relative to the previous token instead of current one.
-func (p *Parser) ErrorLine(forPreviousToken bool) string {
-	line, errPos := p.l.CurrentLine()
+func (p *Parser) ErrorLine(forPreviousToken bool) (string, int) {
+	line, errPos, lineNum := p.l.CurrentLine()
 	if forPreviousToken {
 		// When the error is about the previous token, adjust the position accordingly.
 		// (note this doesn't work when the previous token in on a different line -- TODO: improve)
 		errPos -= (p.l.Pos() - p.prevPos)
 	}
 	repeat := max(0, errPos-1)
-	return line + "\n" + strings.Repeat(" ", repeat) + "^"
+	return line + "\n" + strings.Repeat(" ", repeat) + "^", lineNum
 }
 
 func (p *Parser) peekError(t token.Type) {
 	log.Debugf("peekError: %s", t)
-	msg := fmt.Sprintf("expected next token to be `%s`, got `%s` instead:\n%s",
-		token.ByType(t).Literal(), p.peekToken.Literal(), p.ErrorLine(false))
+	errLine, lineNum := p.ErrorLine(false)
+	msg := fmt.Sprintf("%d: expected next token to be `%s`, got `%s` instead:\n%s",
+		lineNum, token.ByType(t).Literal(), p.peekToken.Literal(), errLine)
 	p.errors = append(p.errors, msg)
 }
 
 func (p *Parser) noPrefixParseFnError(t *token.Token) {
 	log.Debugf("Adding noPrefixParseFnError: %s", t.DebugString())
-	msg := fmt.Sprintf("no prefix parse function for `%s` found:\n%s", t.Literal(), p.ErrorLine(true))
+	errLine, lineNum := p.ErrorLine(true)
+	msg := fmt.Sprintf("%d: no prefix parse function for `%s` found:\n%s", lineNum, t.Literal(), errLine)
 	p.errors = append(p.errors, msg)
 }
 
@@ -346,7 +348,8 @@ func (p *Parser) parseIntegerLiteral() ast.Node {
 func (p *Parser) parseFloatLiteral() ast.Node {
 	value, err := strconv.ParseFloat(p.curToken.Literal(), 64)
 	if err != nil {
-		msg := fmt.Sprintf("could not parse %q as float:\n%s", p.curToken.Literal(), p.ErrorLine(true))
+		errLine, lineNum := p.ErrorLine(false)
+		msg := fmt.Sprintf("%d: could not parse %q as float:\n%s", lineNum, p.curToken.Literal(), errLine)
 		p.errors = append(p.errors, msg)
 		return nil
 	}
@@ -449,8 +452,9 @@ func (p *Parser) parseLambdaMulti(left ast.Node, more ...ast.Node) ast.Node {
 	}
 	t, ok := okParamList(lambda.Parameters)
 	if !ok {
-		p.errors = append(p.errors, "Lambda parameters must be identifiers, not "+
-			t.Literal()+":\n"+p.ErrorLine(true))
+		errLine, lineNum := p.ErrorLine(false)
+		p.errors = append(p.errors, fmt.Sprintf("%d: lambda parameters must be identifiers, not %s\n%s",
+			lineNum, t.Literal(), errLine))
 		return nil
 	}
 	if t != nil {

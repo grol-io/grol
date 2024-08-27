@@ -378,7 +378,7 @@ func TestInvalidToken(t *testing.T) {
 	// This turns into the invalid token which in turn can't be found in prefix map,
 	// it used to crash in earlier versions, this is the regression for that crash.
 	// it also checks the error message in first line + first column case.
-	inp := "@"
+	inp := "\n\n@" // 3rd line.
 	l := lexer.New(inp)
 	p := parser.New(l)
 	_ = p.ParseProgram()
@@ -386,7 +386,7 @@ func TestInvalidToken(t *testing.T) {
 	if len(errs) != 1 {
 		t.Fatalf("expecting 1 error, got %d", len(errs))
 	}
-	expected := "no prefix parse function for `@` found:\n@\n^"
+	expected := "3: no prefix parse function for `@` found:\n@\n^"
 	if errs[0] != expected {
 		t.Errorf("unexpected error: wanted %q got %q", expected, errs[0])
 	}

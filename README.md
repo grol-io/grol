@@ -193,7 +193,7 @@ flags:
   -eval
     	show eval results (default true)
   -format
-    	don't execute, just parse and re format the input
+    	don't execute, just parse and reformat the input
   -history file
     	history file to use (default "~/.grol_history")
   -max-depth int

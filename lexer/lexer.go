@@ -14,6 +14,7 @@ type Lexer struct {
 	hadWhitespace bool
 	hadNewline    bool // newline was seen before current token
 	lastNewLine   int  // position just after most recent newline
+	lineNumber    int
 }
 
 // Mode with input expected the be complete (multiline/file).
@@ -21,13 +22,14 @@ func New(input string) *Lexer {
 	return NewBytes([]byte(input))
 }
 
+// Line by line mode, with possible continuation needed.
 func NewLineMode(input string) *Lexer {
-	return &Lexer{input: []byte(input), lineMode: true}
+	return &Lexer{input: []byte(input), lineMode: true, lineNumber: 1}
 }
 
 // Bytes based full input mode.
 func NewBytes(input []byte) *Lexer {
-	return &Lexer{input: input}
+	return &Lexer{input: input, lineNumber: 1}
 }
 
 func (l *Lexer) EOLEOF() *token.Token {
@@ -46,14 +48,15 @@ func (l *Lexer) LastNewLine() int {
 }
 
 // For error handling, somewhat expensive.
-// Returns the current line and the current position relative in that line.
-func (l *Lexer) CurrentLine() (string, int) {
+// Returns the current line, the current position relative in that line
+// and the current line number.
+func (l *Lexer) CurrentLine() (string, int, int) {
 	p := min(l.pos, len(l.input))
 	nextNewline := bytes.IndexByte(l.input[p:], '\n')
 	if nextNewline == -1 {
 		nextNewline = len(l.input) - p
 	}
-	return string(l.input[l.lastNewLine : p+nextNewline]), p - l.lastNewLine
+	return string(l.input[l.lastNewLine : p+nextNewline]), p - l.lastNewLine, l.lineNumber
 }
 
 func (l *Lexer) NextToken() *token.Token {
@@ -161,6 +164,7 @@ func (l *Lexer) skipWhitespace() {
 		if ch == '\n' {
 			l.hadNewline = true
 			l.lastNewLine = l.pos + 1
+			l.lineNumber++
 		}
 		l.hadWhitespace = true
 		l.pos++
