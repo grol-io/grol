@@ -3,6 +3,7 @@
 package extensions
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -389,16 +390,18 @@ func jsonSerGo(env any, _ string, args []object.Object) object.Object {
 	s := env.(*eval.State)
 	v := args[0].Unwrap(true)
 	var err error
-	var bytes []byte
-	if len(args) == 1 {
-		bytes, err = json.Marshal(v)
-	} else {
-		bytes, err = json.MarshalIndent(v, "", args[1].(object.String).Value)
+	var buf bytes.Buffer
+	encoder := json.NewEncoder(&buf)
+	if len(args) == 2 {
+		encoder.SetIndent("", args[1].(object.String).Value)
 	}
+	// Disable HTML escaping
+	encoder.SetEscapeHTML(false)
+	err = encoder.Encode(v)
 	if err != nil {
 		return s.ErrToError(err)
 	}
-	return object.String{Value: string(bytes)}
+	return object.String{Value: buf.String()}
 }
 
 func evalFunc(env any, name string, args []object.Object) object.Object {

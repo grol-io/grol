@@ -240,7 +240,7 @@ grol -quiet -c 'println(json_go({"abc":42, 63:63, "x": {[3]:122, true:false} }))
 stdout '^{"63":63,"abc":42,"x":{"\[3\]":122,"true":false}}$'
 
 # pretty print variant
-grol -quiet -c 'println(json_go({"abc":42, 63:63, "x": {[3]:122, true:false} }, "  "))'
+grol -quiet -c 'print(json_go({"abc":42, 63:63, "x": {[3]:122, true:false} }, "  "))'
 cmp stdout json_output
 
 # returning a map in lambda shouldn't lose needed extra {} despite being solo argument
@@ -271,7 +271,7 @@ stderr '^<err: no PLUS on left=1 right="x" in func level1\(\){1\+"x"}>$'
 grol -quiet -c 'f=()=>{{"k":"v"}}; println(json_go(f))'
 !stderr 'json: unsupported type'
 !stdout 'json: unsupported type'
-stdout '"()=>{{\"k\":\"v\"}"'
+stdout '^"\(\)=>{{\\"k\\":\\"v\\"}}"$'
 
 -- json_output --
 {

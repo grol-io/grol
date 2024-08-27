@@ -2,6 +2,7 @@ package object
 
 import (
 	"cmp"
+	"errors"
 	"fmt"
 	"io"
 	"slices"
@@ -478,9 +479,15 @@ func (e Error) JSON(w io.Writer) error {
 	_, err := fmt.Fprintf(w, `{"err":%q}`, e.Value)
 	return err
 }
-func (e Error) Unwrap(_ bool) any { return e }
-func (e Error) Error() string     { return e.Value }
-func (e Error) Type() Type        { return ERROR }
+
+func (e Error) Unwrap(forceStringKeys bool) any {
+	if forceStringKeys {
+		return e.Value
+	}
+	return errors.New(e.Value)
+}
+func (e Error) Error() string { return e.Value }
+func (e Error) Type() Type    { return ERROR }
 func (e Error) Inspect() string {
 	if len(e.Stack) == 0 {
 		return fmt.Sprintf("<err: %s>", e.Value)
@@ -534,8 +541,13 @@ func WriteStrings(out *strings.Builder, list []Object, before, sep, after string
 	out.WriteString(after)
 }
 
-func (f Function) Unwrap(_ bool) any { return f }
-func (f Function) Type() Type        { return FUNC }
+func (f Function) Unwrap(forceStringKeys bool) any {
+	if forceStringKeys {
+		return f.Inspect()
+	}
+	return f
+}
+func (f Function) Type() Type { return FUNC }
 
 // Must be called after the function is fully initialized.
 // Whether a function result should be cached doesn't depend on the Name,
