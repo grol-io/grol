@@ -16,11 +16,13 @@ import (
 type Environment struct {
 	store    map[string]Object
 	outer    *Environment
+	stack    *Environment // Different from outer when we attach to top level lambdas. see logic in NewFunctionEnvironment.
 	depth    int
 	cacheKey string
 	ids      *trie.Trie
 	numSet   int64
 	getMiss  int64
+	function *Function
 }
 
 // Truly empty store suitable for macros storage.
@@ -82,12 +84,16 @@ func (e *Environment) BaseInfo() *BigMap {
 func (e *Environment) Info() Object {
 	allKeys := make([]Object, e.depth+1)
 	for {
-		val := &BigMap{}
-		val.kv = make([]keyValuePair, 0, e.Len())
-		for k, v := range e.store {
-			val.Set(String{Value: k}, v)
+		keys := make([]string, 0, len(e.store))
+		for k := range e.store {
+			keys = append(keys, k)
 		}
-		allKeys[e.depth] = val
+		slices.Sort(keys)
+		arr := MakeObjectSlice(len(keys))
+		for _, k := range keys {
+			arr = append(arr, String{Value: k})
+		}
+		allKeys[e.depth] = NewArray(arr)
 		if e.outer == nil {
 			break
 		}
@@ -120,7 +126,7 @@ func (e *Environment) RegisterTrie(t *trie.Trie) {
 	for k, v := range e.store {
 		record(t, k, v.Type())
 	}
-	t.Insert("info") // magic extra identifier.
+	t.Insert("info ") // magic extra identifier (need the space).
 }
 
 // Returns the number of ids written. maxValueLen <= 0 means no limit.
@@ -251,6 +257,27 @@ func NewFunctionEnvironment(fn Function, current *Environment) (*Environment, bo
 	if !sameFunction {
 		parent = fn.Env
 	}
-	env := &Environment{store: make(map[string]Object), outer: parent, cacheKey: fn.CacheKey, depth: parent.depth + 1}
+	env := &Environment{
+		store:    make(map[string]Object),
+		stack:    current,
+		outer:    parent,
+		cacheKey: fn.CacheKey,
+		depth:    parent.depth + 1,
+		function: &fn,
+	}
 	return env, sameFunction
+}
+
+// Frame/stack name.
+func (e *Environment) Name() string {
+	if e.function == nil {
+		return ""
+	}
+	return e.function.Inspect()
+}
+
+// Allows eval and others to walk up the stack of envs themselves
+// (using Name() to produce a stack trace for instance).
+func (e *Environment) StackParent() *Environment {
+	return e.stack
 }

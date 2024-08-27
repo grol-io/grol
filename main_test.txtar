@@ -122,7 +122,7 @@ stdout '^3$'
 
 # eval() runs in the same context as when called
 grol -quiet -c 'func foo(x) {eval("info")};foo(42)["all_ids"][1]'
-stdout '^{"self":func foo\(x\){eval\("info"\)},"x":42}$'
+stdout '^\["self","x"\]$'
 !stderr .
 
 # json of (nested) arrays
@@ -213,10 +213,6 @@ stderr 'parser error'
 stderr 'parser error'
 stderr '@'
 
-# panic on keys() of large array
-grol -quiet -panic -c 'keys(info.all_ids[0])'
-!stderr panic
-
 # range
 grol -quiet -c '(23:31)[4:]'
 stdout '^\[27,28,29,30\]$'
@@ -259,6 +255,17 @@ stdout '^\(\)=>if 1\+2==3\{4\}$'
 grol -quiet -c '(()=> if 1+2==3 {4})()'
 stdout '^4$'
 
+# stack trace in errors
+!grol -quiet -c 'func level1(){1+"x"}; func level2(){level1()}; func level3(){level2()}; level3()'
+stderr 'Total 1 error'
+stderr '^<err: no PLUS on left=1 right="x", stack below:>$'
+stderr '^func level1\(\){1\+"x"}$'
+stderr '^func level2\(\){level1\(\)}$'
+stderr '^func level3\(\){level2\(\)}$'
+
+!grol -quiet -c 'func level1(){1+"x"}; level1()'
+stderr 'Total 1 error'
+stderr '^<err: no PLUS on left=1 right="x" in func level1\(\){1\+"x"}>$'
 
 -- json_output --
 {

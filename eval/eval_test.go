@@ -291,11 +291,11 @@ func TestErrorHandling(t *testing.T) {
 		},
 		{
 			"5 + true;",
-			"operation on non integers left=5 right=true",
+			"no PLUS on left=5 right=true",
 		},
 		{
 			"5 + true; 5;",
-			"operation on non integers left=5 right=true",
+			"no PLUS on left=5 right=true",
 		},
 		{
 			"-true",
@@ -303,15 +303,15 @@ func TestErrorHandling(t *testing.T) {
 		},
 		{
 			"true + false;",
-			"operation on non integers left=true right=false",
+			"no PLUS on left=true right=false",
 		},
 		{
 			"5; true + false; 5",
-			"operation on non integers left=true right=false",
+			"no PLUS on left=true right=false",
 		},
 		{
 			"if (10 > 1) { true + false; }",
-			"operation on non integers left=true right=false",
+			"no PLUS on left=true right=false",
 		},
 		{
 			`
@@ -323,7 +323,7 @@ if (10 > 1) {
   return 1;
 }
 `,
-			"operation on non integers left=true right=false",
+			"no PLUS on left=true right=false",
 		},
 		{
 			"foobar",
@@ -974,7 +974,7 @@ func TestSmallMapSorting(t *testing.T) {
 }
 
 func TestCrashKeys(t *testing.T) {
-	inp := `keys(info.all_ids[0])`
+	inp := `keys({1:1,2:2,3:3,4:4,5:5,6:6,7:7,8:8,9:9})` // Big map and big array (>8 elements).
 	s := eval.NewState()
 	_, err := eval.EvalString(s, inp, false)
 	if err != nil {

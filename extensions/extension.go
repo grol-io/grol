@@ -327,7 +327,8 @@ func initInternal(c *Config) error { //nolint:funlen,gocognit,gocyclo,maintidx /
 		MinArgs:  1,
 		MaxArgs:  1,
 		ArgTypes: []object.Type{object.ANY},
-		Callback: func(_ any, _ string, args []object.Object) object.Object {
+		Callback: func(st any, _ string, args []object.Object) object.Object {
+			s := st.(*eval.State)
 			o := args[0]
 			switch o.Type() {
 			case object.INTEGER:
@@ -344,11 +345,11 @@ func initInternal(c *Config) error { //nolint:funlen,gocognit,gocyclo,maintidx /
 			case object.STRING:
 				i, serr := strconv.ParseInt(o.(object.String).Value, 0, 64)
 				if serr != nil {
-					return object.Error{Value: serr.Error()}
+					return s.Error(serr.Error())
 				}
 				return object.Integer{Value: i}
 			default:
-				return object.Error{Value: fmt.Sprintf("cannot convert %s to int", o.Type())}
+				return s.Errorf("cannot convert %s to int", o.Type())
 			}
 		},
 	}
@@ -398,10 +399,11 @@ func jsonSerGo(args []object.Object) object.Object {
 }
 
 func evalFunc(env any, name string, args []object.Object) object.Object {
-	s := args[0].(object.String).Value
-	res, err := eval.EvalString(env, s, name == "unjson" /* empty env */)
+	str := args[0].(object.String).Value
+	s := env.(*eval.State)
+	res, err := eval.EvalString(s, str, name == "unjson" /* empty env */)
 	if err != nil {
-		return object.Error{Value: err.Error()}
+		return s.Error(err.Error())
 	}
 	return res
 }
@@ -430,20 +432,20 @@ func sanitizeFileName(args []object.Object) (string, error) {
 }
 
 func saveFunc(env any, _ string, args []object.Object) object.Object {
-	ev := env.(*eval.State)
+	s := env.(*eval.State)
 	file, err := sanitizeFileName(args)
 	if err != nil {
-		return object.Error{Value: err.Error()}
+		return s.Error(err.Error())
 	}
 	f, err := os.Create(file)
 	if err != nil {
-		return object.Error{Value: err.Error()}
+		return s.Error(err.Error())
 	}
 	defer f.Close()
 	// Write to file.
-	n, err := ev.SaveGlobals(f)
+	n, err := s.SaveGlobals(f)
 	if err != nil {
-		return object.Error{Value: err.Error()}
+		return s.Error(err.Error())
 	}
 	log.Infof("Saved %d ids/fns to: %s", n, file)
 	return object.MakeQuad(
@@ -453,22 +455,23 @@ func saveFunc(env any, _ string, args []object.Object) object.Object {
 
 func loadFunc(env any, _ string, args []object.Object) object.Object {
 	file, err := sanitizeFileName(args)
+	s := env.(*eval.State)
 	if err != nil {
-		return object.Error{Value: err.Error()}
+		return s.Error(err.Error())
 	}
 	f, err := os.Open(file)
 	if err != nil {
-		return object.Error{Value: err.Error()}
+		return s.Error(err.Error())
 	}
 	defer f.Close()
 	all, err := io.ReadAll(f)
 	if err != nil {
-		return object.Error{Value: err.Error()}
+		return s.Error(err.Error())
 	}
 	// Eval the content.
 	res, err := eval.EvalString(env, string(all), false)
 	if err != nil {
-		return object.Error{Value: err.Error()}
+		return s.Error(err.Error())
 	}
 	log.Infof("Read/evaluated: %s", file)
 	return res
