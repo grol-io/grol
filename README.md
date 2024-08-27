@@ -179,11 +179,10 @@ See [Open Issues](https://grol.io/grol/issues) for what's left to do
 ### CLI Usage
 
 ```
-grol 0.38.0 usage:
-	grol [flags] *.gr files to interpret or `-` for stdin without prompt
-  or no arguments for stdin repl...
+grol 0.58.0 usage:
+	grol [flags] *.gr files to interpret or `-` for stdin without prompt or no arguments for stdin repl...
 or 1 of the special arguments
-	grol {help|envhelp|version|buildinfo}
+	./grol {help|envhelp|version|buildinfo}
 flags:
   -c string
     	command/inline script to run instead of interactive mode
@@ -198,15 +197,21 @@ flags:
   -history file
     	history file to use (default "~/.grol_history")
   -max-depth int
-    	Maximum interpreter depth (default 250000)
+    	Maximum interpreter depth (default 249999)
   -max-history size
     	max history size, use 0 to disable. (default 99)
+  -max-save-len int
+    	Maximum len of saved identifiers, use 0 for unlimited (default 4000)
   -no-auto
     	don't auto load/save the state to ./.gr
   -no-load-save
     	disable load/save of history
+  -panic
+    	Don't catch panic - only for development/debugging
   -parse
     	show parse tree
+  -parse-debug
+    	show all parenthesis in parse tree (default is to simplify using precedence)
   -quiet
     	Quiet mode, sets loglevel to Error (quietly) to reduces the output
   -shared-state

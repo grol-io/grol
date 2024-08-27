@@ -289,7 +289,9 @@ func (ps *PrintState) needParen(t *token.Token) (bool, Priority) {
 }
 
 func (p PrefixExpression) PrettyPrint(out *PrintState) *PrintState {
-	needParen, oldPrecedence := out.needParen(p.Token)
+	oldPrecedence := out.ExpressionPrecedence
+	out.ExpressionPrecedence = PREFIX
+	needParen := out.AllParens || PREFIX < oldPrecedence
 	if needParen {
 		out.Print("(")
 	}
@@ -498,12 +500,13 @@ type IndexExpression struct {
 }
 
 func (ie IndexExpression) PrettyPrint(out *PrintState) *PrintState {
-	needParen, _ := out.needParen(ie.Token)
+	needParen, oldExpressionPrecedence := out.needParen(ie.Token)
 	if needParen {
 		out.Print("(")
 	}
 	ie.Left.PrettyPrint(out)
 	out.Print(ie.Literal())
+	out.ExpressionPrecedence = LOWEST
 	ie.Index.PrettyPrint(out)
 	if ie.Token.Type() == token.LBRACKET {
 		out.Print("]")
@@ -511,6 +514,7 @@ func (ie IndexExpression) PrettyPrint(out *PrintState) *PrintState {
 	if needParen {
 		out.Print(")")
 	}
+	out.ExpressionPrecedence = oldExpressionPrecedence
 	return out
 }
 
