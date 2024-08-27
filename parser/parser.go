@@ -11,27 +11,6 @@ import (
 	"grol.io/grol/token"
 )
 
-type Priority int8
-
-const (
-	_ Priority = iota
-	LOWEST
-	ASSIGN      // =
-	OR          // ||
-	AND         // &&
-	EQUALS      // ==
-	LESSGREATER // > or <
-	SUM         // +
-	PRODUCT     // *
-	PREFIX      // -X or !X
-	CALL        // myFunction(X)
-	INDEX       // array[index]
-	DOTINDEX    // map.str access
-)
-
-//go:generate stringer -type=Priority
-var _ = CALL.String() // force compile error if go generate is missing.
-
 type (
 	prefixParseFn  func() ast.Node
 	infixParseFn   func(ast.Node) ast.Node
@@ -220,7 +199,7 @@ func (p *Parser) parseStatement() ast.Node {
 	if p.curToken.Type() == token.RETURN {
 		return p.parseReturnStatement()
 	}
-	stmt := p.parseExpression(LOWEST)
+	stmt := p.parseExpression(ast.LOWEST)
 	if p.peekTokenIs(token.SEMICOLON) {
 		p.nextToken()
 	}
@@ -240,7 +219,7 @@ func (p *Parser) parseReturnStatement() ast.Node {
 
 	p.nextToken()
 
-	stmt.ReturnValue = p.parseExpression(LOWEST)
+	stmt.ReturnValue = p.parseExpression(ast.LOWEST)
 
 	if p.peekTokenIs(token.SEMICOLON) {
 		p.nextToken()
@@ -306,7 +285,7 @@ func (p *Parser) noPrefixParseFnError(t *token.Token) {
 	p.errors = append(p.errors, msg)
 }
 
-func (p *Parser) parseExpression(precedence Priority) ast.Node {
+func (p *Parser) parseExpression(precedence ast.Priority) ast.Node {
 	log.Debugf("parseExpression: %s precedence %s", p.curToken.DebugString(), precedence)
 	if p.curToken.Type() == token.EOL {
 		log.Debugf("parseExpression: EOL")
@@ -385,7 +364,7 @@ func (p *Parser) parseBoolean() ast.Node {
 
 func (p *Parser) parseGroupedExpression() ast.Node {
 	p.nextToken()
-	exp := p.parseExpression(LOWEST)
+	exp := p.parseExpression(ast.LOWEST)
 	log.Debugf("parseGroupedExpression: %#v", exp)
 	if p.peekTokenIs(token.LAMBDA) { // () => { ... } case
 		p.nextToken()
@@ -414,7 +393,7 @@ func (p *Parser) parsePrefixExpression() ast.Node {
 
 	p.nextToken()
 
-	expression.Right = p.parseExpression(PREFIX)
+	expression.Right = p.parseExpression(ast.PREFIX)
 
 	return expression
 }
@@ -426,45 +405,18 @@ func (p *Parser) parsePostfixExpression() ast.Node {
 	return expression
 }
 
-var precedences = map[token.Type]Priority{
-	token.ASSIGN:     ASSIGN,
-	token.OR:         OR,
-	token.AND:        AND,
-	token.COLON:      AND, // range operator and maps (lower than lambda)
-	token.EQ:         EQUALS,
-	token.NOTEQ:      EQUALS,
-	token.LAMBDA:     EQUALS,
-	token.LT:         LESSGREATER,
-	token.GT:         LESSGREATER,
-	token.LTEQ:       LESSGREATER,
-	token.GTEQ:       LESSGREATER,
-	token.PLUS:       SUM,
-	token.MINUS:      SUM,
-	token.BITOR:      SUM,
-	token.BITXOR:     SUM,
-	token.BITAND:     PRODUCT,
-	token.SLASH:      PRODUCT,
-	token.ASTERISK:   PRODUCT,
-	token.PERCENT:    PRODUCT,
-	token.LEFTSHIFT:  PRODUCT,
-	token.RIGHTSHIFT: PRODUCT,
-	token.LPAREN:     CALL,
-	token.LBRACKET:   INDEX,
-	token.DOT:        DOTINDEX,
-}
-
-func (p *Parser) peekPrecedence() Priority {
-	if p, ok := precedences[p.peekToken.Type()]; ok {
+func (p *Parser) peekPrecedence() ast.Priority {
+	if p, ok := ast.Precedences[p.peekToken.Type()]; ok {
 		return p
 	}
-	return LOWEST
+	return ast.LOWEST
 }
 
-func (p *Parser) curPrecedence() Priority {
-	if p, ok := precedences[p.curToken.Type()]; ok {
+func (p *Parser) curPrecedence() ast.Priority {
+	if p, ok := ast.Precedences[p.curToken.Type()]; ok {
 		return p
 	}
-	return LOWEST
+	return ast.LOWEST
 }
 
 func (p *Parser) parseLambdaExpression(left ast.Node) ast.Node {
@@ -543,7 +495,7 @@ func (p *Parser) parseIfExpression() ast.Node {
 	expression.Token = p.curToken
 
 	p.nextToken()
-	expression.Condition = p.parseExpression(LOWEST)
+	expression.Condition = p.parseExpression(ast.LOWEST)
 
 	if !p.expectPeek(token.LBRACE) {
 		return nil
@@ -671,11 +623,11 @@ func (p *Parser) parseExpressionList(end token.Type) []ast.Node {
 		return args
 	}
 	p.nextToken()
-	args = append(args, p.parseExpression(LOWEST))
+	args = append(args, p.parseExpression(ast.LOWEST))
 	for p.peekTokenIs(token.COMMA) {
 		p.nextToken()
 		p.nextToken()
-		args = append(args, p.parseExpression(LOWEST))
+		args = append(args, p.parseExpression(ast.LOWEST))
 	}
 	if !p.expectPeek(end) {
 		return nil
@@ -689,9 +641,9 @@ func (p *Parser) parseIndexExpression(left ast.Node) ast.Node {
 	isDot := p.curToken.Type() == token.DOT
 
 	p.nextToken()
-	prec := LOWEST
+	prec := ast.LOWEST
 	if isDot {
-		prec = DOTINDEX
+		prec = ast.DOTINDEX
 	}
 	exp.Index = p.parseExpression(prec)
 	if isDot {
@@ -715,7 +667,7 @@ func (p *Parser) parseMapLiteral() ast.Node {
 		if p.continuationNeeded {
 			return nil
 		}
-		kv := p.parseExpression(LOWEST)
+		kv := p.parseExpression(ast.LOWEST)
 		ex, ok := kv.(*ast.InfixExpression)
 		if !ok || ex.Token.Type() != token.COLON {
 			if p.peekTokenIs(token.EOL) {

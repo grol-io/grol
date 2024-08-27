@@ -388,7 +388,7 @@ func TestFunctionObject(t *testing.T) {
 	if ast.DebugString(fn.Parameters[0]) != "x" {
 		t.Fatalf("parameter is not 'x'. got=%q", fn.Parameters[0])
 	}
-	expectedBody := "x+2"
+	expectedBody := "(x+2)" // DebugString adds parens.
 	got := ast.DebugString(fn.Body)
 	if got != expectedBody {
 		t.Fatalf("body is not %q. got=%q", expectedBody, got)
@@ -701,7 +701,7 @@ func TestQuote(t *testing.T) {
 		},
 		{
 			`quote(5 + 8)`,
-			`5+8`,
+			`(5+8)`,
 		},
 		{
 			`quote(foobar)`,
@@ -709,7 +709,7 @@ func TestQuote(t *testing.T) {
 		},
 		{
 			`quote(foobar + barfoo)`,
-			`foobar+barfoo`,
+			`(foobar+barfoo)`,
 		},
 	}
 
@@ -747,11 +747,11 @@ func TestQuoteUnquote(t *testing.T) {
 		},
 		{
 			`quote(8 + unquote(4 + 4))`,
-			`8+8`,
+			`(8+8)`, // DebugString adds parens.
 		},
 		{
 			`quote(unquote(4 + 4) + 8)`,
-			`8+8`,
+			`(8+8)`,
 		},
 		{
 			`foobar = 8;
@@ -773,12 +773,12 @@ func TestQuoteUnquote(t *testing.T) {
 		},
 		{
 			`quote(unquote(quote(4 + 4)))`,
-			`4+4`,
+			`(4+4)`,
 		},
 		{
 			`quotedInfixExpression = quote(4 + 4);
             quote(unquote(4 + 4) + unquote(quotedInfixExpression))`,
-			`8+(4+4)`,
+			`(8+(4+4))`,
 		},
 	}
 	for _, tt := range tests {

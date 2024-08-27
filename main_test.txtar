@@ -252,8 +252,13 @@ grol -quiet -c '()=>{{"a":1,"b":2}}'
 stdout '^\(\)=>{{"a":1,"b":2}}$'
 
 # if extra paren are needed (like for a[x] in the left part of if condition) it should still parse.
-grol -quiet -c '()=> if 1+2==3 {4}'
-stdout '^\(\)=>if \(1\+2\)==3\{4}$'
+# note: no extra paren anymore.
+grol -quiet -c '()=> if 1+2 == 3 {4}'
+stdout '^\(\)=>if 1\+2==3\{4\}$'
+
+grol -quiet -c '(()=> if 1+2==3 {4})()'
+stdout '^4$'
+
 
 -- json_output --
 {

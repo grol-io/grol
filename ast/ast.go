@@ -12,19 +12,72 @@ import (
 	"grol.io/grol/token"
 )
 
+type Priority int8
+
+const (
+	_ Priority = iota
+	LOWEST
+	ASSIGN      // =
+	OR          // ||
+	AND         // &&
+	EQUALS      // ==
+	LESSGREATER // > or <
+	SUM         // +
+	PRODUCT     // *
+	DIVIDE      // /
+	PREFIX      // -X or !X
+	CALL        // myFunction(X)
+	INDEX       // array[index]
+	DOTINDEX    // map.str access
+)
+
+var Precedences = map[token.Type]Priority{
+	token.ASSIGN:     ASSIGN,
+	token.OR:         OR,
+	token.AND:        AND,
+	token.COLON:      AND, // range operator and maps (lower than lambda)
+	token.EQ:         EQUALS,
+	token.NOTEQ:      EQUALS,
+	token.LAMBDA:     EQUALS,
+	token.LT:         LESSGREATER,
+	token.GT:         LESSGREATER,
+	token.LTEQ:       LESSGREATER,
+	token.GTEQ:       LESSGREATER,
+	token.PLUS:       SUM,
+	token.MINUS:      SUM,
+	token.BITOR:      SUM,
+	token.BITXOR:     SUM,
+	token.BITAND:     PRODUCT,
+	token.ASTERISK:   PRODUCT,
+	token.PERCENT:    PRODUCT,
+	token.LEFTSHIFT:  PRODUCT,
+	token.RIGHTSHIFT: PRODUCT,
+	token.SLASH:      DIVIDE,
+	token.INCR:       PREFIX,
+	token.DECR:       PREFIX,
+	token.LPAREN:     CALL,
+	token.LBRACKET:   INDEX,
+	token.DOT:        DOTINDEX,
+}
+
+//go:generate stringer -type=Priority
+var _ = DOTINDEX.String() // force compile error if go generate is missing.
+
 type PrintState struct {
-	Out             io.Writer
-	IndentLevel     int
-	ExpressionLevel int
-	IndentationDone bool // already put N number of tabs, reset on each new line
-	Compact         bool // don't indent at all (compact mode), no newlines, fewer spaces, no comments
-	prev            Node
-	last            string
+	Out                  io.Writer
+	IndentLevel          int
+	ExpressionPrecedence Priority
+	IndentationDone      bool // already put N number of tabs, reset on each new line
+	Compact              bool // don't indent at all (compact mode), no newlines, fewer spaces, no comments
+	AllParens            bool // print all expressions fully parenthesized.
+	prev                 Node
+	last                 string
 }
 
 func DebugString(n Node) string {
 	ps := NewPrintState()
 	ps.Compact = true
+	ps.AllParens = true
 	n.PrettyPrint(ps)
 	return ps.String()
 }
@@ -158,12 +211,12 @@ func prettyPrintLongForm(ps *PrintState, s Node, i int) {
 }
 
 func (p Statements) PrettyPrint(ps *PrintState) *PrintState {
-	oldExpressionLevel := ps.ExpressionLevel
+	oldExpressionPrecedence := ps.ExpressionPrecedence
 	if ps.IndentLevel > 0 {
 		ps.Print("{") // first statement might be a comment on same line.
 	}
 	ps.IndentLevel++
-	ps.ExpressionLevel = 0
+	ps.ExpressionPrecedence = LOWEST
 	var i int
 	for _, s := range p.Statements {
 		if ps.Compact {
@@ -179,7 +232,7 @@ func (p Statements) PrettyPrint(ps *PrintState) *PrintState {
 	}
 	ps.Println()
 	ps.IndentLevel--
-	ps.ExpressionLevel = oldExpressionLevel
+	ps.ExpressionPrecedence = oldExpressionPrecedence
 	if ps.IndentLevel > 0 {
 		ps.Print("}")
 	}
@@ -231,15 +284,27 @@ type PrefixExpression struct {
 	Right Node
 }
 
+func (ps *PrintState) needParen(t *token.Token) (bool, Priority) {
+	newPrecedence, ok := Precedences[t.Type()]
+	if !ok {
+		panic("precedence not found for " + t.Literal())
+	}
+	oldPrecedence := ps.ExpressionPrecedence
+	ps.ExpressionPrecedence = newPrecedence
+	return ps.AllParens || newPrecedence < oldPrecedence, oldPrecedence
+}
+
 func (p PrefixExpression) PrettyPrint(out *PrintState) *PrintState {
-	if out.ExpressionLevel > 0 {
+	oldPrecedence := out.ExpressionPrecedence
+	out.ExpressionPrecedence = PREFIX
+	needParen := out.AllParens || PREFIX <= oldPrecedence // double prefix like -(-a) needs parens to not become --a prefix.
+	if needParen {
 		out.Print("(")
 	}
 	out.Print(p.Literal())
-	out.ExpressionLevel++ // comment out for !(-a) to normalize to !-a
 	p.Right.PrettyPrint(out)
-	out.ExpressionLevel--
-	if out.ExpressionLevel > 0 {
+	out.ExpressionPrecedence = oldPrecedence
+	if needParen {
 		out.Print(")")
 	}
 	return out
@@ -251,14 +316,16 @@ type PostfixExpression struct {
 }
 
 func (p PostfixExpression) PrettyPrint(out *PrintState) *PrintState {
-	if out.ExpressionLevel > 0 {
+	needParen, oldPrecedence := out.needParen(p.Token)
+	if needParen {
 		out.Print("(")
 	}
 	out.Print(p.Prev.Literal())
 	out.Print(p.Literal())
-	if out.ExpressionLevel > 0 {
+	if needParen {
 		out.Print(")")
 	}
+	out.ExpressionPrecedence = oldPrecedence
 	return out
 }
 
@@ -269,12 +336,9 @@ type InfixExpression struct {
 }
 
 func (i InfixExpression) PrettyPrint(out *PrintState) *PrintState {
-	if out.ExpressionLevel > 0 { // TODO only add parens if precedence requires it.
+	needParen, oldPrecedence := out.needParen(i.Token)
+	if needParen {
 		out.Print("(")
-	}
-	isAssign := (i.Token.Type() == token.ASSIGN)
-	if !isAssign {
-		out.ExpressionLevel++
 	}
 	i.Left.PrettyPrint(out)
 	if out.Compact {
@@ -287,12 +351,10 @@ func (i InfixExpression) PrettyPrint(out *PrintState) *PrintState {
 	} else {
 		i.Right.PrettyPrint(out)
 	}
-	if !isAssign {
-		out.ExpressionLevel--
-	}
-	if out.ExpressionLevel > 0 {
+	if needParen {
 		out.Print(")")
 	}
+	out.ExpressionPrecedence = oldPrecedence
 	return out
 }
 
@@ -417,10 +479,10 @@ type CallExpression struct {
 func (ce CallExpression) PrettyPrint(out *PrintState) *PrintState {
 	ce.Function.PrettyPrint(out)
 	out.Print("(")
-	oldExpressionLevel := out.ExpressionLevel
-	out.ExpressionLevel = 0
+	oldExpressionPrecedence := out.ExpressionPrecedence
+	out.ExpressionPrecedence = LOWEST
 	out.ComaList(ce.Arguments)
-	out.ExpressionLevel = oldExpressionLevel
+	out.ExpressionPrecedence = oldExpressionPrecedence
 	out.Print(")")
 	return out
 }
@@ -444,18 +506,21 @@ type IndexExpression struct {
 }
 
 func (ie IndexExpression) PrettyPrint(out *PrintState) *PrintState {
-	if out.ExpressionLevel > 0 { // TODO only add parens if precedence requires it.
+	needParen, oldExpressionPrecedence := out.needParen(ie.Token)
+	if needParen {
 		out.Print("(")
 	}
 	ie.Left.PrettyPrint(out)
 	out.Print(ie.Literal())
+	out.ExpressionPrecedence = LOWEST
 	ie.Index.PrettyPrint(out)
 	if ie.Token.Type() == token.LBRACKET {
 		out.Print("]")
 	}
-	if out.ExpressionLevel > 0 {
+	if needParen {
 		out.Print(")")
 	}
+	out.ExpressionPrecedence = oldExpressionPrecedence
 	return out
 }
 

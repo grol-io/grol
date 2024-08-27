@@ -118,16 +118,20 @@ func Test_OperatorPrecedenceParsing(t *testing.T) {
 		expected string
 	}{
 		{
+			"(1+2)*3",
+			"(1 + 2) * 3",
+		},
+		{
 			"1+2 + 3",
-			"(1 + 2) + 3",
+			"1 + 2 + 3",
 		},
 		{
 			"   1+2*3   ",
-			"1 + (2 * 3)",
+			"1 + 2 * 3",
 		},
 		{
 			"-a * b",
-			"(-a) * b",
+			"-a * b",
 		},
 		{
 			"!-a",
@@ -143,43 +147,43 @@ func Test_OperatorPrecedenceParsing(t *testing.T) {
 		},
 		{
 			"a + b + c",
-			"(a + b) + c",
+			"a + b + c",
 		},
 		{
 			"a + b - c",
-			"(a + b) - c",
+			"a + b - c",
 		},
 		{
 			"a * b * c",
-			"(a * b) * c",
+			"a * b * c",
 		},
 		{
 			"a * b / c",
-			"(a * b) / c",
+			"a * b / c",
 		},
 		{
 			"a + b / c",
-			"a + (b / c)",
+			"a + b / c",
 		},
 		{
 			"a + b * c + d / e - f",
-			"((a + (b * c)) + (d / e)) - f",
+			"a + b * c + d / e - f",
 		},
 		{
 			"3 + 4; -5 * 5",
-			"3 + 4\n(-5) * 5", // fixed from the original in the book that was missing the newline
+			"3 + 4\n-5 * 5", // fixed from the original in the book that was missing the newline
 		},
 		{
 			"5 > 4 == 3 < 4",
-			"(5 > 4) == (3 < 4)",
+			"5 > 4 == 3 < 4",
 		},
 		{
 			"5 < 4 != 3 > 4",
-			"(5 < 4) != (3 > 4)",
+			"5 < 4 != 3 > 4",
 		},
 		{
 			"3 + 4 * 5 == 3 * 1 + 4 * 5",
-			"(3 + (4 * 5)) == ((3 * 1) + (4 * 5))",
+			"3 + 4 * 5 == 3 * 1 + 4 * 5",
 		},
 		{
 			"x = 41 * 6",
@@ -307,6 +311,11 @@ e = "f"`,
 			`func fact(n) {if (n<=1) {return 1} n*fact(n-1)}`,
 			"func fact(n) {\n\tif n <= 1 {\n\t\treturn 1\n\t}\n\tn * fact(n - 1)\n}",
 			"func fact(n){if n<=1{return 1}n*fact(n-1)}",
+		},
+		{
+			"1+2+3+4*5==a[i+2]",
+			"1 + 2 + 3 + 4 * 5 == a[i + 2]",
+			"1+2+3+4*5==a[i+2]",
 		},
 	}
 	for i, tt := range tests {
