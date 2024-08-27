@@ -267,6 +267,10 @@ stderr '^func level3\(\){level2\(\)}$'
 stderr 'Total 1 error'
 stderr '^<err: no PLUS on left=1 right="x" in func level1\(\){1\+"x"}>$'
 
+# json with some functions
+grol -quiet -c 'f=()=>{{"k":"v"}}; println(json_go(f))'
+!stderr 'json: unsupported type'
+
 -- json_output --
 {
   "63": 63,
