@@ -23,7 +23,8 @@ func (s *State) Stack() []string {
 	return stack
 }
 
-// Creates a new error object with the given message and stack.
+// Error creates a new error object and sets its value to the given message string.
+// Error will attach the stack trace to the Error object.
 func (s *State) Error(msg string) object.Error {
 	if log.LogVerbose() {
 		log.LogVf("Error %q called", msg)
@@ -31,10 +32,12 @@ func (s *State) Error(msg string) object.Error {
 	return object.Error{Value: msg, Stack: s.Stack()}
 }
 
+// Errorf formats an object.Error with the given format and args.
 func (s *State) Errorf(format string, args ...interface{}) object.Error {
 	return s.Error(fmt.Sprintf(format, args...))
 }
 
+// ErrToError converts from a go error to an object.Error.
 func (s *State) ErrToError(err error) object.Error {
 	return s.Error(err.Error())
 }
