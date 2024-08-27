@@ -82,12 +82,16 @@ func (e *Environment) BaseInfo() *BigMap {
 func (e *Environment) Info() Object {
 	allKeys := make([]Object, e.depth+1)
 	for {
-		val := &BigMap{}
-		val.kv = make([]keyValuePair, 0, e.Len())
-		for k, v := range e.store {
-			val.Set(String{Value: k}, v)
+		keys := make([]string, 0, len(e.store))
+		for k := range e.store {
+			keys = append(keys, k)
 		}
-		allKeys[e.depth] = val
+		slices.Sort(keys)
+		arr := MakeObjectSlice(len(keys))
+		for _, k := range keys {
+			arr = append(arr, String{Value: k})
+		}
+		allKeys[e.depth] = NewArray(arr)
 		if e.outer == nil {
 			break
 		}

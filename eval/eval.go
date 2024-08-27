@@ -186,6 +186,9 @@ func (s *State) evalInternal(node any) object.Object { //nolint:funlen,gocyclo /
 		}
 		// Humans expect left to right evaluations.
 		left := s.Eval(node.Left)
+		if left.Type() == object.ERROR {
+			return left
+		}
 		// Short circuiting for AND and OR:
 		if node.Token.Type() == token.AND && left == object.FALSE {
 			return object.FALSE
@@ -194,6 +197,9 @@ func (s *State) evalInternal(node any) object.Object { //nolint:funlen,gocyclo /
 			return object.TRUE
 		}
 		right := s.Eval(node.Right)
+		if right.Type() == object.ERROR {
+			return right
+		}
 		return s.evalInfixExpression(node.Type(), left, right)
 
 	case *ast.IntegerLiteral:
@@ -757,7 +763,7 @@ func (s *State) evalInfixExpression(operator token.Type, left, right object.Obje
 	case left.Type() == object.MAP && right.Type() == object.MAP:
 		return evalMapInfixExpression(operator, left, right)
 	default:
-		return object.Error{Value: "operation on non integers left=" + left.Inspect() + " right=" + right.Inspect()}
+		return object.Error{Value: "no " + operator.String() + " on left=" + left.Inspect() + " right=" + right.Inspect()}
 	}
 }
 

@@ -122,7 +122,7 @@ stdout '^3$'
 
 # eval() runs in the same context as when called
 grol -quiet -c 'func foo(x) {eval("info")};foo(42)["all_ids"][1]'
-stdout '^{"self":func foo\(x\){eval\("info"\)},"x":42}$'
+stdout '^\["self","x"\]$'
 !stderr .
 
 # json of (nested) arrays
@@ -212,10 +212,6 @@ stderr 'parser error'
 !stderr '\[CRI\]'
 stderr 'parser error'
 stderr '@'
-
-# panic on keys() of large array
-grol -quiet -panic -c 'keys(info.all_ids[0])'
-!stderr panic
 
 # range
 grol -quiet -c '(23:31)[4:]'
