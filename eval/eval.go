@@ -314,6 +314,10 @@ func (s *State) evalPrintLogError(node *ast.Builtin) object.Object {
 			buf.WriteString(" ")
 		}
 		r := s.evalInternal(v)
+		// If what we print/println is an error, return it instead. log can log errors.
+		if r.Type() == object.ERROR && !doLog {
+			return r
+		}
 		if isString := r.Type() == object.STRING; isString {
 			buf.WriteString(r.(object.String).Value)
 		} else {
@@ -362,7 +366,7 @@ func (s *State) evalBuiltin(node *ast.Builtin) object.Object {
 	if minV > 0 {
 		val = s.evalInternal(node.Parameters[0])
 		rt = val.Type()
-		if rt == object.ERROR {
+		if rt == object.ERROR && t != token.LOG { // log can log (and thus catch) errors.
 			return val
 		}
 	}

@@ -25,7 +25,7 @@ func (s *State) Stack() []string {
 
 // Creates a new error object with the given message and stack.
 func (s *State) Error(msg string) object.Error {
-	if log.LogDebug() {
+	if log.LogVerbose() {
 		log.LogVf("Error %q called", msg)
 	}
 	return object.Error{Value: msg, Stack: s.Stack()}
@@ -33,4 +33,8 @@ func (s *State) Error(msg string) object.Error {
 
 func (s *State) Errorf(format string, args ...interface{}) object.Error {
 	return s.Error(fmt.Sprintf(format, args...))
+}
+
+func (s *State) ErrToError(err error) object.Error {
+	return s.Error(err.Error())
 }

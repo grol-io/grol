@@ -270,6 +270,8 @@ stderr '^<err: no PLUS on left=1 right="x" in func level1\(\){1\+"x"}>$'
 # json with some functions
 grol -quiet -c 'f=()=>{{"k":"v"}}; println(json_go(f))'
 !stderr 'json: unsupported type'
+!stdout 'json: unsupported type'
+stdout '"()=>{{\"k\":\"v\"}"'
 
 -- json_output --
 {
