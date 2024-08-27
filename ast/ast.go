@@ -24,6 +24,7 @@ const (
 	LESSGREATER // > or <
 	SUM         // +
 	PRODUCT     // *
+	DIVIDE      // /
 	PREFIX      // -X or !X
 	CALL        // myFunction(X)
 	INDEX       // array[index]
@@ -47,11 +48,13 @@ var Precedences = map[token.Type]Priority{
 	token.BITOR:      SUM,
 	token.BITXOR:     SUM,
 	token.BITAND:     PRODUCT,
-	token.SLASH:      PRODUCT,
 	token.ASTERISK:   PRODUCT,
 	token.PERCENT:    PRODUCT,
 	token.LEFTSHIFT:  PRODUCT,
 	token.RIGHTSHIFT: PRODUCT,
+	token.SLASH:      DIVIDE,
+	token.INCR:       PREFIX,
+	token.DECR:       PREFIX,
 	token.LPAREN:     CALL,
 	token.LBRACKET:   INDEX,
 	token.DOT:        DOTINDEX,
@@ -282,7 +285,10 @@ type PrefixExpression struct {
 }
 
 func (ps *PrintState) needParen(t *token.Token) (bool, Priority) {
-	newPrecedence := Precedences[t.Type()]
+	newPrecedence, ok := Precedences[t.Type()]
+	if !ok {
+		panic("precedence not found for " + t.Literal())
+	}
 	oldPrecedence := ps.ExpressionPrecedence
 	ps.ExpressionPrecedence = newPrecedence
 	return ps.AllParens || newPrecedence < oldPrecedence, oldPrecedence
@@ -291,7 +297,7 @@ func (ps *PrintState) needParen(t *token.Token) (bool, Priority) {
 func (p PrefixExpression) PrettyPrint(out *PrintState) *PrintState {
 	oldPrecedence := out.ExpressionPrecedence
 	out.ExpressionPrecedence = PREFIX
-	needParen := out.AllParens || PREFIX < oldPrecedence
+	needParen := out.AllParens || PREFIX <= oldPrecedence // double prefix like -(-a) needs parens to not become --a prefix.
 	if needParen {
 		out.Print("(")
 	}

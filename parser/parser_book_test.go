@@ -230,6 +230,14 @@ func TestOperatorPrecedenceParsing(t *testing.T) {
 		expected string
 	}{
 		{
+			"1/(a*b)",
+			"1 / (a * b)", // not 1 / a * b (!)
+		},
+		{
+			"a--",
+			"a--",
+		},
+		{
 			"-(5*5)",
 			"-(5 * 5)",
 		},
@@ -243,7 +251,7 @@ func TestOperatorPrecedenceParsing(t *testing.T) {
 		},
 		{
 			"!-a",
-			"!-a",
+			"!(-a)",
 		},
 		{
 			"true",
