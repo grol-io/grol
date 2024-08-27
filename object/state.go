@@ -258,3 +258,14 @@ func NewFunctionEnvironment(fn Function, current *Environment) (*Environment, bo
 	env := &Environment{store: make(map[string]Object), outer: parent, cacheKey: fn.CacheKey, depth: parent.depth + 1}
 	return env, sameFunction
 }
+
+// Frame/stack name.
+func (e *Environment) Name() string {
+	return e.cacheKey
+}
+
+// Allows eval and others to walk up the stack of envs themselves
+// (using Name() to produce a stack trace for instance).
+func (e *Environment) Parent() *Environment {
+	return e.outer
+}

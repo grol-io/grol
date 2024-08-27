@@ -469,6 +469,7 @@ func (n Null) Inspect() string   { return "nil" }
 
 type Error struct {
 	Value string // message
+	Stack []string
 }
 
 func (e Error) JSON(w io.Writer) error {
@@ -478,7 +479,12 @@ func (e Error) JSON(w io.Writer) error {
 func (e Error) Unwrap(_ bool) any { return e }
 func (e Error) Error() string     { return e.Value }
 func (e Error) Type() Type        { return ERROR }
-func (e Error) Inspect() string   { return "<err: " + e.Value + ">" }
+func (e Error) Inspect() string {
+	if len(e.Stack) == 0 {
+		return fmt.Sprintf("<err: %s>", e.Value)
+	}
+	return fmt.Sprintf("<err: %s %v>", e.Value, e.Stack)
+}
 
 type ReturnValue struct {
 	Value Object
