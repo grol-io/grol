@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	"fortio.org/log"
 	"grol.io/grol/ast"
 	"grol.io/grol/token"
 )
@@ -59,7 +60,7 @@ type Number interface {
 // Hashable in tem of Go map for cache key.
 func Hashable(o Object) bool {
 	switch o.Type() { //nolint:exhaustive // We have all the types that are hashable + default for the others.
-	case INTEGER, FLOAT, BOOLEAN, NIL, ERROR, STRING:
+	case INTEGER, FLOAT, BOOLEAN, NIL, STRING:
 		return true
 	case ARRAY:
 		if sa, ok := o.(SmallArray); ok {
@@ -80,6 +81,7 @@ func Hashable(o Object) bool {
 			return true
 		}
 	}
+	log.Debugf("Not hashable: %#v", o)
 	return false
 }
 

@@ -14,7 +14,11 @@ import (
 
 // Exported part of the eval package.
 
-const DefaultMaxDepth = 250_000
+// Approximate maximum depth of recursion to avoid:
+// runtime: goroutine stack exceeds 1000000000-byte limit
+// fatal error: stack overflow. Was 250k but adding a log
+// in Error() makes it go over that (somehow).
+const DefaultMaxDepth = 195_000
 
 type State struct {
 	Out        io.Writer
