@@ -62,7 +62,8 @@ type Options struct {
 	PanicOk     bool // If true, panics are not caught (only for debugging/developing).
 	// Hook to call before running the input (lets you for instance change the ClientData of some object.Extension,
 	// remove some functions, etc).
-	PreInput func(*eval.State)
+	PreInput  func(*eval.State)
+	AllParens bool // Show all parens in parse tree (default is to simplify using precedence).
 }
 
 func AutoLoad(s *eval.State, options Options) error {
@@ -382,6 +383,7 @@ func evalOne(s *eval.State, what string, out io.Writer, options Options) (bool, 
 	}
 	printer := ast.NewPrintState()
 	printer.Compact = options.Compact
+	printer.AllParens = options.AllParens
 	if options.DualFormat && !options.ShowParse {
 		// We won't print the long form, so do the compact for directly
 		printer.Compact = true

@@ -118,6 +118,10 @@ func Test_OperatorPrecedenceParsing(t *testing.T) {
 		expected string
 	}{
 		{
+			"(1+2)*3",
+			"(1 + 2) * 3",
+		},
+		{
 			"1+2 + 3",
 			"1 + 2 + 3",
 		},

@@ -66,6 +66,7 @@ type PrintState struct {
 	ExpressionPrecedence Priority
 	IndentationDone      bool // already put N number of tabs, reset on each new line
 	Compact              bool // don't indent at all (compact mode), no newlines, fewer spaces, no comments
+	AllParens            bool // print all expressions fully parenthesized.
 	prev                 Node
 	last                 string
 }
@@ -73,6 +74,7 @@ type PrintState struct {
 func DebugString(n Node) string {
 	ps := NewPrintState()
 	ps.Compact = true
+	ps.AllParens = true
 	n.PrettyPrint(ps)
 	return ps.String()
 }
@@ -282,7 +284,8 @@ type PrefixExpression struct {
 func (ps *PrintState) needParen(t *token.Token) (bool, Priority) {
 	newPrecedence := Precedences[t.Type()]
 	oldPrecedence := ps.ExpressionPrecedence
-	return newPrecedence < oldPrecedence, oldPrecedence
+	ps.ExpressionPrecedence = newPrecedence
+	return ps.AllParens || newPrecedence < oldPrecedence, oldPrecedence
 }
 
 func (p PrefixExpression) PrettyPrint(out *PrintState) *PrintState {

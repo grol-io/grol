@@ -42,6 +42,7 @@ var hookBefore, hookAfter func() int
 func Main() int {
 	commandFlag := flag.String("c", "", "command/inline script to run instead of interactive mode")
 	showParse := flag.Bool("parse", false, "show parse tree")
+	allParens := flag.Bool("parse-debug", false, "show all parenthesis in parse tree (default is to simplify using precedence)")
 	format := flag.Bool("format", false, "don't execute, just parse and re format the input")
 	compact := flag.Bool("compact", false, "When printing code, use no indentation and most compact form")
 	showEval := flag.Bool("eval", true, "show eval results")
@@ -95,6 +96,7 @@ func Main() int {
 		MaxDepth:    *maxDepth + 1,
 		MaxValueLen: *maxLen,
 		PanicOk:     *panicOk,
+		AllParens:   *allParens,
 	}
 	if hookBefore != nil {
 		ret := hookBefore()
