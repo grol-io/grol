@@ -228,6 +228,7 @@ func Interactive(options Options) int {
 	for k := range object.ExtraFunctions() {
 		autoComplete.Trie.Insert(k + "(")
 	}
+	autoComplete.Trie.Insert("history") // add this one as it's not in the language but handled here.
 	// Initial ids and functions.
 	s.RegisterTrie(autoComplete.Trie)
 	term.SetAutoCompleteCallback(autoComplete.AutoComplete())
