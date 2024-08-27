@@ -483,7 +483,18 @@ func (e Error) Inspect() string {
 	if len(e.Stack) == 0 {
 		return fmt.Sprintf("<err: %s>", e.Value)
 	}
-	return fmt.Sprintf("<err: %s %v>", e.Value, e.Stack)
+	if len(e.Stack) == 1 {
+		return fmt.Sprintf("<err: %s in %s>", e.Value, e.Stack[0])
+	}
+	out := strings.Builder{}
+	out.WriteString("<err: ")
+	out.WriteString(e.Value)
+	out.WriteString(", stack below:>")
+	for _, s := range e.Stack {
+		out.WriteByte('\n')
+		out.WriteString(s)
+	}
+	return out.String()
 }
 
 type ReturnValue struct {

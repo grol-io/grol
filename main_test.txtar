@@ -258,7 +258,14 @@ stdout '^4$'
 # stack trace in errors
 !grol -quiet -c 'func level1(){1+"x"}; func level2(){level1()}; func level3(){level2()}; level3()'
 stderr 'Total 1 error'
-stderr '^<err: no PLUS on left=1 right="x" \[func level1\(\){1\+"x"} func level2\(\){level1\(\)} func level3\(\){level2\(\)}\]>$'
+stderr '^<err: no PLUS on left=1 right="x", stack below:>$'
+stderr '^func level1\(\){1\+"x"}$'
+stderr '^func level2\(\){level1\(\)}$'
+stderr '^func level3\(\){level2\(\)}$'
+
+!grol -quiet -c 'func level1(){1+"x"}; level1()'
+stderr 'Total 1 error'
+stderr '^<err: no PLUS on left=1 right="x" in func level1\(\){1\+"x"}>$'
 
 -- json_output --
 {
