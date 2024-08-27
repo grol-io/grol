@@ -124,7 +124,7 @@ func (e *Environment) RegisterTrie(t *trie.Trie) {
 	for k, v := range e.store {
 		record(t, k, v.Type())
 	}
-	t.Insert("info ") // magic extra identifier (need the space)
+	t.Insert("info ") // magic extra identifier (need the space).
 }
 
 // Returns the number of ids written. maxValueLen <= 0 means no limit.
