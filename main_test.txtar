@@ -273,6 +273,11 @@ grol -quiet -c 'f=()=>{{"k":"v"}}; println(json_go(f))'
 !stdout 'json: unsupported type'
 stdout '^"\(\)=>{{\\"k\\":\\"v\\"}}"$'
 
+# prefix operator single error (used to be <err: bitwise not of <err: bitwise not of <err: bitwise not of 1.1>>>)
+!grol -quiet -c '~~~1.1'
+stderr 'Total 1 error'
+stderr '^<err: bitwise not of 1.1>$'
+
 -- json_output --
 {
   "63": 63,

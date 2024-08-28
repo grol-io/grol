@@ -155,7 +155,7 @@ func (s *State) evalPostfixExpression(node *ast.PostfixExpression) object.Object
 }
 
 // Doesn't unwrap return - return bubbles up.
-func (s *State) evalInternal(node any) object.Object { //nolint:funlen,gocyclo // quite a lot of cases.
+func (s *State) evalInternal(node any) object.Object { //nolint:funlen,gocyclo,gocognit // quite a lot of cases.
 	switch node := node.(type) {
 	// Statements
 	case *ast.Statements:
@@ -176,6 +176,9 @@ func (s *State) evalInternal(node any) object.Object { //nolint:funlen,gocyclo /
 			return s.evalPrefixIncrDecr(node.Type(), node.Right)
 		default:
 			right := s.evalInternal(node.Right)
+			if right.Type() == object.ERROR {
+				return right
+			}
 			return s.evalPrefixExpression(node.Type(), right)
 		}
 	case *ast.PostfixExpression:
