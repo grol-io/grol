@@ -7,15 +7,15 @@
 */
 
 func triangle(n) {
-	i => {
-		if i >= n {
-			return
-		}
+	i = 0
+	res = []
+	for i < n {
 		sp = n - i - 1
 		st = 2 * i + 1
-		println("|" + " " * sp + "*" * st + " " * sp + "|")
-		self(i + 1)
-	}(0)
+		res = res + ["|" + " " * sp + "*" * st + " " * sp + "|"]
+		i++
+	}
+	res
 }
 
-triangle(5)
+println(join(triangle(5),"\n"))

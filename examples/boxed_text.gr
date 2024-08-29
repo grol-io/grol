@@ -67,7 +67,7 @@ func matrixWidths(matrix) {
     apply(row => apply(item => width(str(item)), row), matrix)
 }
 
-func for(n, f, start) {
+func forRecursive(n, f, start) {
     (i,f,x) => { // internal lambda with the index param and intermediate result
        r = f(i,x)
        if (i>=n) {
@@ -84,7 +84,7 @@ func maxWidths(widths) {
 }
 
 func createRowArray(row, maxWidths) {
-    rowArr = for(len(row), func(colIndex, rowContent) {
+    rowArr = forRecursive(len(row), func(colIndex, rowContent) {
         colIndex--
         cell = str(row[colIndex])
         pad = maxWidths[colIndex] - width(cell)
@@ -110,7 +110,7 @@ func boxMatrixA(matrix) {
     lines = lines + [topLine]
 
     // Middle content (rows and separators)
-    lines = for(len(matrix), func(rowIndex, lines) {
+    lines = forRecursive(len(matrix), func(rowIndex, lines) {
         rowIndex--
         rowArr = createRowArray(matrix[rowIndex], maxes)
         lines = lines + rowArr
@@ -137,7 +137,7 @@ func boxMatrix(matrix) {
 
 func joinBoxes(boxes) {
     numRows = len(boxes[0]) // Assuming all boxes have the same number of lines
-    for(numRows, func(rowIndex, combinedLines) {
+    forRecursive(numRows, func(rowIndex, combinedLines) {
         rowIndex--
         combinedLine = join(apply(box => box[rowIndex],
             boxes), "  ") // Add some spacing between boxes

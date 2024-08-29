@@ -166,6 +166,8 @@ func (s *State) evalInternal(node any) object.Object { //nolint:funlen,gocyclo,g
 		return s.evalStatements(node.Statements)
 	case *ast.IfExpression:
 		return s.evalIfExpression(node)
+	case *ast.ForExpression:
+		return s.evalForExpression(node)
 		// Expressions
 	case *ast.Identifier:
 		return s.evalIdentifier(node)
@@ -669,6 +671,32 @@ func (s *State) evalIfExpression(ie *ast.IfExpression) object.Object {
 		return s.evalInternal(ie.Alternative)
 	default:
 		return s.NewError("condition is not a boolean: " + condition.Inspect())
+	}
+}
+
+func (s *State) evalForExpression(fe *ast.ForExpression) object.Object {
+	var lastEval object.Object
+	lastEval = object.NULL
+	count := 0
+	for {
+		count++
+		condition := s.evalInternal(fe.Condition)
+		switch condition {
+		case object.TRUE:
+			log.LogVf("for %s is object.TRUE, running body", fe.Condition.Value().DebugString())
+			lastEval = s.evalInternal(fe.Body)
+			if rt := lastEval.Type(); rt == object.RETURN || rt == object.ERROR {
+				return lastEval
+			}
+		case object.FALSE:
+			log.LogVf("for %s is object.FALSE, done", fe.Condition.Value().DebugString())
+			return lastEval
+		default:
+			return s.NewError("condition is not a boolean: " + condition.Inspect())
+		}
+		if s.depth+count > s.MaxDepth {
+			return s.NewError("too many for loop iterations")
+		}
 	}
 }
 

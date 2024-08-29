@@ -363,6 +363,22 @@ type Boolean struct {
 	Val bool
 }
 
+type ForExpression struct {
+	Base
+	Condition Node
+	Body      *Statements
+}
+
+func (fe ForExpression) PrettyPrint(out *PrintState) *PrintState {
+	out.Print("for ")
+	fe.Condition.PrettyPrint(out)
+	if !out.Compact {
+		out.Print(" ")
+	}
+	fe.Body.PrettyPrint(out)
+	return out
+}
+
 type IfExpression struct {
 	Base
 	Condition   Node
