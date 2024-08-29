@@ -100,7 +100,9 @@ See also [sample.gr](examples/sample.gr) and others in that folder, that you can
 GOMEMLIMIT=1GiB grol examples/*.gr
 ```
 
-or copypaste to the online version on [grol.io](https://grol.io)
+or copypaste to the online version on [grol.io](https://grol.io).
+
+There is also more involved code in [grol-io/grol-discord-bot/discord.gr](https://github.com/grol-io/grol-discord-bot/blob/main/discord.gr).
 
 ## Dev mode:
 ```shell
