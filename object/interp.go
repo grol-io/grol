@@ -45,6 +45,11 @@ func ExtraFunctions() map[string]Extension {
 	return extraFunctions // no need to make a copy as each value need to be set to be changed (map of structs, not pointers).
 }
 
+func IsExtraFunction(name string) bool {
+	_, ok := extraFunctions[name]
+	return ok
+}
+
 // Add values to top level environment, e.g "pi" -> 3.14159...
 // or "printf(){print(sprintf(%s, args...))}".
 func AddIdentifier(name string, value Object) {

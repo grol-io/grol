@@ -33,8 +33,9 @@ func (s *State) evalAssignment(right object.Object, node *ast.InfixExpression) o
 		return s.evalIndexAssigment(idxE.Left, index, right)
 	case token.IDENT:
 		id, _ := node.Left.(*ast.Identifier)
-		log.LogVf("eval assign %#v to %#v", right, id.Value())
-		return s.env.Set(id.Literal(), right) // Propagate possible error (constant setting).
+		name := id.Literal()
+		log.LogVf("eval assign %#v to %s", right, name)
+		return s.env.Set(name, right) // Propagate possible error (constant setting).
 	default:
 		return s.NewError("assignment to non identifier: " + node.Left.Value().DebugString())
 	}
@@ -647,12 +648,13 @@ func (s *State) evalExpressions(exps []ast.Node) ([]object.Object, *object.Error
 }
 
 func (s *State) evalIdentifier(node *ast.Identifier) object.Object {
-	// local var can shadow extensions.
-	val, ok := s.env.Get(node.Literal())
+	name := node.Literal()
+	// initially we had that local var can shadow extensions - well no that makes everything a cache miss.
+	ext, ok := s.Extensions[name]
 	if ok {
-		return val
+		return ext
 	}
-	val, ok = s.Extensions[node.Literal()]
+	val, ok := s.env.Get(name)
 	if !ok {
 		return s.NewError("identifier not found: " + node.Literal())
 	}

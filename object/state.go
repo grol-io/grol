@@ -183,8 +183,16 @@ func (e *Environment) Get(name string) (Object, bool) {
 	if ok || e.outer == nil {
 		return obj, ok
 	}
+	log.Debugf("Get miss (%s) called at %d %v", name, e.depth, e.cacheKey)
 	e.getMiss++
 	return e.outer.Get(name) // recurse.
+}
+
+// TriggerNoCache is used prevent this call stack from caching.
+// Meant to be used by extensions that for instance return random numbers or change state.
+func (e *Environment) TriggerNoCache() {
+	log.Debugf("TriggerNoCache() called at %d %v", e.depth, e.cacheKey)
+	e.getMiss++
 }
 
 // GetMisses returns the cumulative number of get misses (a function tried to access up stack, so can't be cached).
@@ -233,6 +241,9 @@ func (e *Environment) Set(name string, val Object) Object {
 				return Error{Value: fmt.Sprintf("attempt to change constant %s from %s to %s", name, old.Inspect(), val.Inspect())}
 			}
 		}
+	}
+	if IsExtraFunction(name) {
+		return Error{Value: fmt.Sprintf("attempt to change internal function %s to %s", name, val.Inspect())}
 	}
 	return e.SetNoChecks(name, val)
 }
