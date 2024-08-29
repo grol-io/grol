@@ -9,5 +9,5 @@ f = func(i, n, prod) {
 	}
 	self(i+1, n, prod*(1-1./(2*i)))
 }
-n = 194_990 // close to 195_000 default limit.
+n = 149_990 // close to 150_000 default limit.
 f(1, n, 1)

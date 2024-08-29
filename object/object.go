@@ -507,7 +507,8 @@ func (e Error) Inspect() string {
 }
 
 type ReturnValue struct {
-	Value Object
+	Value       Object
+	ControlType token.Type
 }
 
 func (rv ReturnValue) JSON(w io.Writer) error {

@@ -128,6 +128,8 @@ const (
 	ELSE
 	RETURN
 	FOR
+	BREAK
+	CONTINUE
 	// Macro magic.
 	MACRO
 	QUOTE

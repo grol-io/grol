@@ -14,7 +14,8 @@
 
 for 3 {println("this will be printed 3 times")}
 
-for i = -2:5 {println("i is",i)}
+// Also demonstrates break, loop ends when i > 3 instead of continuing to 36
+for i = -2:37 {println("i is",i); if i > 3 {break}}
 
 // like first() iterating over maps produces key-value pairs (maps with keys `key` and `value`)
 for kv = {"c":3,"a":1,"b":2} {println("key",kv.key,"value",kv.value)}
@@ -22,5 +23,5 @@ for kv = {"c":3,"a":1,"b":2} {println("key",kv.key,"value",kv.value)}
 // iterating over arrays
 for v = [2,-5,7] {println("v",v)}
 
-// For strings iterations is on runes
-for c = "ab😀" {println("rune",c)}
+// For strings iterations is on runes - demonstrate continue (skip the "b")
+for c = "ab😀" {if c=="b" {continue} println("rune",c)}

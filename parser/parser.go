@@ -75,6 +75,8 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.LPAREN, p.parseGroupedExpression)
 	p.registerPrefix(token.IF, p.parseIfExpression)
 	p.registerPrefix(token.FOR, p.parseForExpression)
+	p.registerPrefix(token.BREAK, p.parseControlExpression)
+	p.registerPrefix(token.CONTINUE, p.parseControlExpression)
 	p.registerPrefix(token.FUNC, p.parseFunctionLiteral)
 	p.registerPrefix(token.STRING, p.parseStringLiteral)
 	p.registerPrefix(token.LEN, p.parseBuiltin)
@@ -497,6 +499,12 @@ func (p *Parser) parseInfixExpression(left ast.Node) ast.Node {
 	p.nextToken()
 	expression.Right = p.parseExpression(precedence)
 
+	return expression
+}
+
+func (p *Parser) parseControlExpression() ast.Node {
+	expression := &ast.ControlExpression{}
+	expression.Token = p.curToken
 	return expression
 }
 
