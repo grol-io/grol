@@ -187,8 +187,8 @@ func prettyPrintCompact(ps *PrintState, s Node, i int) bool {
 		return true
 	}
 	_, prevIsExpr := ps.prev.(*InfixExpression)
-	// _, curIsID := s.(*Identifier)
-	if prevIsExpr && ps.last != "}" && ps.last != "]" {
+	_, curIsArray := s.(*ArrayLiteral)
+	if (prevIsExpr && ps.last != "}" && ps.last != "]") || curIsArray {
 		if i > 0 {
 			_, _ = ps.Out.Write([]byte{' '})
 		}

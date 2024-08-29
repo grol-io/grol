@@ -314,6 +314,11 @@ func (p *Parser) parseExpression(precedence ast.Priority) ast.Node {
 			log.LogVf("parseExpression: call expression with whitespace")
 			return leftExp
 		}
+		// same for a [n] that's the [n] literal array.
+		if t == token.LBRACKET && p.l.HadWhitespace() {
+			log.LogVf("parseExpression: index expression with whitespace")
+			return leftExp
+		}
 
 		p.nextToken()
 
