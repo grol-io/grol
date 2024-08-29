@@ -8,7 +8,7 @@
 
 func triangle(n) {
 	i => {
-		if i == n {
+		if i >= n {
 			return
 		}
 		sp = n - i - 1
