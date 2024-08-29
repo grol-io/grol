@@ -15,7 +15,7 @@
 for 3 {println("this will be printed 3 times")}
 
 // Also demonstrates break, loop ends when i > 3 instead of continuing to 36
-for i = -2:37 {println("i is",i); if i > 3 {break}}
+for i = -2:37 {println("i is",i); if i >= 3 {break}}
 
 // like first() iterating over maps produces key-value pairs (maps with keys `key` and `value`)
 for kv = {"c":3,"a":1,"b":2} {println("key",kv.key,"value",kv.value)}
