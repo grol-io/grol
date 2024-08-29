@@ -1,20 +1,26 @@
-// Recursive for loop example, functional style
-// executes with 1..n passed to the function parameter.
-// there is a more useful version in boxed_text.gr
-// and we now have for as a keyword/language feature.
+/*
+ Grol now has `for` loops.
+ There are 2 basic forms:
 
-forRec = func(n, f) {
-	l = func(i, f) { // internal lambda with the index param
-		r = f(i)
-		if i >= n {
-			return r
-		}
-		l(i+1, f)
-	}
-	l(1, f)
-}
+ 1. `for` with stop condition (like C's while, or go's single clause for):
+     for cond { body }
+ 2. `for` iterating over iteratable tyoes which is grol are strings, maps and arrays:
+     for v = iterable { body }
+ 3. fixed number of iterations:
+     for 10 { body }
+ 4. `for` with integer range:
+     for i = -2:7 { body }
+*/
 
-forRec(5, func(n) {
-	log("n is", n)
-	n // return value at the end
-})
+for 3 {println("this will be printed 3 times")}
+
+for i = -2:5 {println("i is",i)}
+
+// like first() iterating over maps produces key-value pairs (maps with keys `key` and `value`)
+for kv = {"c":3,"a":1,"b":2} {println("key",kv.key,"value",kv.value)}
+
+// iterating over arrays
+for v = [2,-5,7] {println("v",v)}
+
+// For strings iterations is on runes
+for c = "ab😀" {println("rune",c)}
