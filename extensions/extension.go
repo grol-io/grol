@@ -162,10 +162,20 @@ func initInternal(c *Config) error { //nolint:funlen,gocognit,gocyclo,maintidx /
 	if err != nil {
 		return err
 	}
+	jsonFn.MaxArgs = 1
 	jsonFn.Help = ""
 	jsonFn.Name = "eval"
 	jsonFn.Callback = evalFunc
 	jsonFn.ArgTypes = []object.Type{object.STRING}
+	err = object.CreateFunction(jsonFn)
+	if err != nil {
+		return err
+	}
+	jsonFn.Name = "type"
+	jsonFn.Callback = object.ShortCallback(func(args []object.Object) object.Object {
+		return object.String{Value: args[0].Type().String()}
+	})
+	jsonFn.ArgTypes = []object.Type{object.ANY}
 	err = object.CreateFunction(jsonFn)
 	if err != nil {
 		return err
