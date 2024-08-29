@@ -9,6 +9,7 @@ import (
 	"grol.io/grol/lexer"
 	"grol.io/grol/object"
 	"grol.io/grol/parser"
+	"grol.io/grol/token"
 	"grol.io/grol/trie"
 )
 
@@ -18,7 +19,7 @@ import (
 // runtime: goroutine stack exceeds 1000000000-byte limit
 // fatal error: stack overflow. Was 250k but adding a log
 // in Error() makes it go over that (somehow).
-const DefaultMaxDepth = 195_000
+const DefaultMaxDepth = 150_000
 
 type State struct {
 	Out        io.Writer
@@ -114,6 +115,9 @@ func (s *State) Eval(node any) object.Object {
 	s.depth--
 	// unwrap return values only at the top.
 	if returnValue, ok := result.(object.ReturnValue); ok {
+		if returnValue.ControlType != token.RETURN {
+			return s.Errorf("unexpected control type %v outside of for loops", returnValue.ControlType)
+		}
 		return returnValue.Value
 	}
 	return result

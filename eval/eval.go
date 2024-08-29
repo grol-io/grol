@@ -220,12 +220,14 @@ func (s *State) evalInternal(node any) object.Object { //nolint:funlen,gocyclo,g
 	case *ast.StringLiteral:
 		return object.String{Value: node.Literal()}
 
+	case *ast.ControlExpression:
+		return object.ReturnValue{Value: object.NULL, ControlType: node.Type()}
 	case *ast.ReturnStatement:
 		if node.ReturnValue == nil {
-			return object.ReturnValue{Value: object.NULL}
+			return object.ReturnValue{Value: object.NULL, ControlType: token.RETURN}
 		}
 		val := s.evalInternal(node.ReturnValue)
-		return object.ReturnValue{Value: val}
+		return object.ReturnValue{Value: val, ControlType: token.RETURN}
 	case *ast.Builtin:
 		return s.evalBuiltin(node)
 	case *ast.FunctionLiteral:
@@ -694,9 +696,24 @@ func (s *State) evalForInteger(fe *ast.ForExpression, start *object.Integer, end
 		if name != "" {
 			s.env.Set(name, object.Integer{Value: int64(i)})
 		}
-		lastEval = s.evalInternal(fe.Body)
-		if rt := lastEval.Type(); rt == object.RETURN || rt == object.ERROR {
-			return lastEval
+		nextEval := s.evalInternal(fe.Body)
+		switch nextEval.Type() {
+		case object.ERROR:
+			return nextEval
+		case object.RETURN:
+			r := nextEval.(object.ReturnValue)
+			switch r.ControlType {
+			case token.BREAK:
+				return lastEval
+			case token.CONTINUE:
+				continue
+			case token.RETURN:
+				return r
+			default:
+				return s.Errorf("for loop unexpected control type %s", r.ControlType.String())
+			}
+		default:
+			lastEval = nextEval
 		}
 	}
 	return lastEval
@@ -750,9 +767,25 @@ func (s *State) evalForList(fe *ast.ForExpression, list object.Object, name stri
 			return s.NewError("for list element is nil")
 		}
 		s.env.Set(name, v)
-		lastEval = s.evalInternal(fe.Body)
-		if rt := lastEval.Type(); rt == object.RETURN || rt == object.ERROR {
-			return lastEval
+		// Copy pasta from evalForInteger. hard to share control flow.
+		nextEval := s.evalInternal(fe.Body)
+		switch nextEval.Type() {
+		case object.ERROR:
+			return nextEval
+		case object.RETURN:
+			r := nextEval.(object.ReturnValue)
+			switch r.ControlType {
+			case token.BREAK:
+				return lastEval
+			case token.CONTINUE:
+				continue
+			case token.RETURN:
+				return r
+			default:
+				return s.Errorf("for loop unexpected control type %s", r.ControlType.String())
+			}
+		default:
+			lastEval = nextEval
 		}
 	}
 	return lastEval
