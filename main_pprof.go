@@ -32,12 +32,14 @@ func pprofBeforeHook() int {
 			return log.FErrf("can't start cpu profile: %v", err)
 		}
 		log.Infof("Writing cpu profile to %s", *cpuprofile)
-		defer pprof.StopCPUProfile()
 	}
 	return 0
 }
 
 func pprofAfterHook() int {
+	if *cpuprofile != "" {
+		pprof.StopCPUProfile()
+	}
 	if *memprofile != "" {
 		f, err := os.Create(*memprofile)
 		if err != nil {

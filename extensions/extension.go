@@ -246,6 +246,7 @@ func initInternal(c *Config) error { //nolint:funlen,gocognit,gocyclo,maintidx /
 		return err
 	}
 	strFn.Name = "split"
+	strFn.Help = "optional separator"
 	strFn.MinArgs = 1
 	strFn.MaxArgs = 2
 	strFn.ArgTypes = []object.Type{object.STRING, object.STRING}
@@ -269,6 +270,7 @@ func initInternal(c *Config) error { //nolint:funlen,gocognit,gocyclo,maintidx /
 		return err
 	}
 	strFn.Name = "join"
+	strFn.Help = "joins an array of string with the optional separator"
 	strFn.ArgTypes = []object.Type{object.ARRAY, object.STRING}
 	strFn.Callback = func(_ any, _ string, args []object.Object) object.Object {
 		arr := object.Elements(args[0])

@@ -25,6 +25,7 @@ type State struct {
 	LogOut     io.Writer
 	macroState *object.Environment
 	env        *object.Environment
+	rootEnv    *object.Environment // same as ancestor of env but used for reset in panic recovery.
 	cache      Cache
 	Extensions map[string]object.Extension
 	NoLog      bool // turn log() into println() (for EvalString)
@@ -37,7 +38,7 @@ type State struct {
 }
 
 func NewState() *State {
-	return &State{
+	st := &State{
 		env:        object.NewRootEnvironment(),
 		Out:        os.Stdout,
 		LogOut:     os.Stdout,
@@ -47,10 +48,12 @@ func NewState() *State {
 		MaxDepth:   DefaultMaxDepth,
 		depth:      0,
 	}
+	st.rootEnv = st.env
+	return st
 }
 
 func NewBlankState() *State {
-	return &State{
+	st := &State{
 		env:        object.NewMacroEnvironment(), // to get empty store
 		Out:        io.Discard,
 		LogOut:     io.Discard,
@@ -59,6 +62,14 @@ func NewBlankState() *State {
 		macroState: object.NewMacroEnvironment(),
 		MaxDepth:   DefaultMaxDepth,
 	}
+	st.rootEnv = st.env
+	return st
+}
+
+// Reset post panic recovery.
+func (s *State) Reset() {
+	s.env = s.rootEnv
+	s.depth = 0
 }
 
 // RegisterTrie sets up the Trie to record all top level ids and functions.
@@ -95,8 +106,7 @@ func (s *State) UpdateNumSet() (oldvalue, newvalue int64) {
 func (s *State) Eval(node any) object.Object {
 	if s.depth > s.MaxDepth {
 		log.LogVf("max depth %d reached", s.MaxDepth) // will be logged by the panic handler.
-		// reset the state so the interpreter can continue post catching the panic (avoids putting s.depth-- in a defer)
-		s.depth = 0
+		// State must be reset using s.Reset() to reuse the evaluator post panic (not just for depth but for s.env)
 		panic(fmt.Sprintf("max depth %d reached", s.MaxDepth))
 	}
 	s.depth++
