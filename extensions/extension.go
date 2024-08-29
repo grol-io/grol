@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"math"
+	"math/rand/v2"
 	"os"
 	"strconv"
 	"strings"
@@ -136,6 +137,28 @@ func initInternal(c *Config) error { //nolint:funlen,gocognit,gocyclo,maintidx /
 		if err != nil {
 			return err
 		}
+	}
+	// rand() and rand(n) functions.
+	randFn := object.Extension{
+		Name:     "rand",
+		MinArgs:  0,
+		MaxArgs:  1,
+		ArgTypes: []object.Type{object.INTEGER},
+		Callback: func(env any, _ string, args []object.Object) object.Object {
+			eval.TriggerNoCache(env)
+			if len(args) == 0 {
+				return object.Float{Value: rand.Float64()} //nolint:gosec // no need for crypto/rand here.
+			}
+			n := args[0].(object.Integer).Value
+			if n <= 0 {
+				return object.Error{Value: "argument to rand() if given must be > 0, >=2 for something useful"}
+			}
+			return object.Integer{Value: rand.Int64N(n)} //nolint:gosec // no need for crypto/rand here.
+		},
+	}
+	err = object.CreateFunction(randFn)
+	if err != nil {
+		return err
 	}
 	object.AddIdentifier("PI", object.Float{Value: math.Pi})
 	object.AddIdentifier("E", object.Float{Value: math.E}) // using uppercase so "e" isn't taken/shadowed.

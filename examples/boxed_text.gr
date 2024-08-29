@@ -116,7 +116,7 @@ func boxMatrixA(matrix) {
         lines = lines + rowArr
 
         if rowIndex < len(matrix) - 1 {
-            separatorLine = box.leftT + join(apply( width => box.horizontal * width,
+            separatorLine = box.leftT + join(apply( w => box.horizontal * w,
                 maxes), box.middleCross) + box.rightT
             lines = lines + [separatorLine]
         }
@@ -124,7 +124,7 @@ func boxMatrixA(matrix) {
     }, lines)
 
     // Bottom line
-    bottomLine = box.bottomLeft + join(apply(width => box.horizontal * width,
+    bottomLine = box.bottomLeft + join(apply(w => box.horizontal * w,
         maxes), box.bottomT) + box.bottomRight
     lines + [bottomLine]
 }
@@ -152,7 +152,7 @@ matrix = [
 	["xyz","hello","world"]
 ]
 
-println("For", matrix)
+    println("For", matrix)
 boxMatrix(matrix)
 
 // Example usage for tic-tac-toe board
