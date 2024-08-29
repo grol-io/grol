@@ -766,7 +766,7 @@ func (s *State) evalInfixExpression(operator token.Type, left, right object.Obje
 	case left.Type() == object.FLOAT || right.Type() == object.FLOAT:
 		return s.evalFloatInfixExpression(operator, left, right)
 	case left.Type() == object.STRING:
-		return evalStringInfixExpression(operator, left, right)
+		return s.evalStringInfixExpression(operator, left, right)
 	case left.Type() == object.ARRAY:
 		return s.evalArrayInfixExpression(operator, left, right)
 	case left.Type() == object.MAP && right.Type() == object.MAP:
@@ -776,7 +776,7 @@ func (s *State) evalInfixExpression(operator token.Type, left, right object.Obje
 	}
 }
 
-func evalStringInfixExpression(operator token.Type, left, right object.Object) object.Object {
+func (s *State) evalStringInfixExpression(operator token.Type, left, right object.Object) object.Object {
 	leftVal := left.(object.String).Value
 	switch {
 	case operator == token.PLUS && right.Type() == object.STRING:
@@ -785,6 +785,9 @@ func evalStringInfixExpression(operator token.Type, left, right object.Object) o
 	case operator == token.ASTERISK && right.Type() == object.INTEGER:
 		rightVal := right.(object.Integer).Value
 		n := len(leftVal) * int(rightVal)
+		if rightVal < 0 {
+			return s.NewError("right operand of * on strings must be a positive integer")
+		}
 		object.MustBeOk(n / object.ObjectSize)
 		return object.String{Value: strings.Repeat(leftVal, int(rightVal))}
 	default:

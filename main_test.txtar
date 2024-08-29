@@ -278,6 +278,10 @@ stdout '^"\(\)=>{{\\"k\\":\\"v\\"}}"$'
 stderr 'Total 1 error'
 stderr '^<err: bitwise not of 1.1>$'
 
+# negative repeat of string shouldn't panic
+!grol -quiet -c '"abc" * -3'
+!stderr 'panic'
+
 -- json_output --
 {
   "63": 63,
