@@ -39,7 +39,7 @@ func EnvHelp(w io.Writer) {
 
 var hookBefore, hookAfter func() int
 
-func Main() int {
+func Main() (retcode int) {
 	commandFlag := flag.String("c", "", "command/inline script to run instead of interactive mode")
 	showParse := flag.Bool("parse", false, "show parse tree")
 	allParens := flag.Bool("parse-debug", false, "show all parenthesis in parse tree (default is to simplify using precedence)")
@@ -99,11 +99,17 @@ func Main() int {
 		AllParens:   *allParens,
 	}
 	if hookBefore != nil {
-		ret := hookBefore()
-		if ret != 0 {
-			return ret
+		retcode = hookBefore()
+		if retcode != 0 {
+			return retcode
 		}
 	}
+	defer func() {
+		if hookAfter != nil {
+			retcode = hookAfter()
+		}
+		log.Infof("All done")
+	}()
 	c := extensions.Config{
 		HasLoad:           !*disableLoadSave,
 		HasSave:           !*disableLoadSave,
@@ -137,10 +143,6 @@ func Main() int {
 		if !*sharedState {
 			s = eval.NewState()
 		}
-	}
-	log.Infof("All done")
-	if hookAfter != nil {
-		return hookAfter()
 	}
 	return 0
 }

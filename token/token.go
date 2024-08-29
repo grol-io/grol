@@ -127,6 +127,7 @@ const (
 	IF
 	ELSE
 	RETURN
+	FOR
 	// Macro magic.
 	MACRO
 	QUOTE

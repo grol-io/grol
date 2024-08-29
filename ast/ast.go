@@ -188,7 +188,7 @@ func prettyPrintCompact(ps *PrintState, s Node, i int) bool {
 	}
 	_, prevIsExpr := ps.prev.(*InfixExpression)
 	_, curIsArray := s.(*ArrayLiteral)
-	if (prevIsExpr && ps.last != "}" && ps.last != "]") || curIsArray {
+	if curIsArray || (prevIsExpr && ps.last != "}" && ps.last != "]") {
 		if i > 0 {
 			_, _ = ps.Out.Write([]byte{' '})
 		}
@@ -361,6 +361,22 @@ func (i InfixExpression) PrettyPrint(out *PrintState) *PrintState {
 type Boolean struct {
 	Base
 	Val bool
+}
+
+type ForExpression struct {
+	Base
+	Condition Node
+	Body      *Statements
+}
+
+func (fe ForExpression) PrettyPrint(out *PrintState) *PrintState {
+	out.Print("for ")
+	fe.Condition.PrettyPrint(out)
+	if !out.Compact {
+		out.Print(" ")
+	}
+	fe.Body.PrettyPrint(out)
+	return out
 }
 
 type IfExpression struct {

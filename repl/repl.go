@@ -358,6 +358,9 @@ func EvalOne(s *eval.State, what string, out io.Writer, options Options) (
 					log.Debugf("Dumping stack trace")
 					debug.PrintStack()
 				}
+				// reset the state so the interpreter can continue post catching the panic (avoids putting s.depth-- in a defer) but
+				// also resets to top level root env.
+				s.Reset()
 				errs = append(errs, fmt.Sprintf("panic: %v", r))
 				return
 			}

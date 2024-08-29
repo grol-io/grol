@@ -1,0 +1,20 @@
+// Recursive for loop example, functional style
+// executes with 1..n passed to the function parameter.
+// there is a more useful version in boxed_text.gr
+// and we now have for as a keyword/language feature.
+
+forRec = func(n, f) {
+	l = func(i, f) { // internal lambda with the index param
+		r = f(i)
+		if i >= n {
+			return r
+		}
+		l(i+1, f)
+	}
+	l(1, f)
+}
+
+forRec(5, func(n) {
+	log("n is", n)
+	n // return value at the end
+})

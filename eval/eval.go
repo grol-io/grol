@@ -18,7 +18,6 @@ import (
 var unquoteToken = token.ByType(token.UNQUOTE)
 
 func (s *State) evalAssignment(right object.Object, node *ast.InfixExpression) object.Object {
-	// let free assignments.
 	if rt := right.Type(); rt == object.ERROR {
 		log.Warnf("Not assigning %q", right.Inspect())
 		return right
@@ -166,6 +165,8 @@ func (s *State) evalInternal(node any) object.Object { //nolint:funlen,gocyclo,g
 		return s.evalStatements(node.Statements)
 	case *ast.IfExpression:
 		return s.evalIfExpression(node)
+	case *ast.ForExpression:
+		return s.evalForExpression(node)
 		// Expressions
 	case *ast.Identifier:
 		return s.evalIdentifier(node)
@@ -669,6 +670,124 @@ func (s *State) evalIfExpression(ie *ast.IfExpression) object.Object {
 		return s.evalInternal(ie.Alternative)
 	default:
 		return s.NewError("condition is not a boolean: " + condition.Inspect())
+	}
+}
+
+func (s *State) evalForInteger(fe *ast.ForExpression, start *object.Integer, end object.Integer, name string) object.Object {
+	var lastEval object.Object
+	lastEval = object.NULL
+	startValue := 0
+	if start != nil {
+		startValue = int(start.Value)
+	}
+	endValue := int(end.Value)
+	num := endValue - startValue
+	if num < 0 {
+		return s.Errorf("for loop with negative count [%d,%d[", startValue, endValue)
+	}
+	for i := startValue; i < endValue; i++ {
+		if name != "" {
+			s.env.Set(name, object.Integer{Value: int64(i)})
+		}
+		lastEval = s.evalInternal(fe.Body)
+		if rt := lastEval.Type(); rt == object.RETURN || rt == object.ERROR {
+			return lastEval
+		}
+	}
+	return lastEval
+}
+
+func (s *State) evalForSpecialForms(fe *ast.ForExpression) (object.Object, bool) {
+	ie, ok := fe.Condition.(*ast.InfixExpression)
+	if !ok {
+		return object.NULL, false
+	}
+	if ie.Token.Type() != token.ASSIGN {
+		return object.NULL, false
+	}
+	if ie.Left.Value().Type() != token.IDENT {
+		return s.Errorf("for var = ... not a var %s", ie.Left.Value().DebugString()), true
+	}
+	name := ie.Left.Value().Literal()
+	if ie.Right.Value().Type() == token.COLON {
+		start := s.evalInternal(ie.Right.(*ast.InfixExpression).Left)
+		if start.Type() != object.INTEGER {
+			return s.NewError("for var = n:m n not an integer: " + start.Inspect()), true
+		}
+		end := s.evalInternal(ie.Right.(*ast.InfixExpression).Right)
+		if end.Type() != object.INTEGER {
+			return s.NewError("for var = n:m m not an integer: " + end.Inspect()), true
+		}
+		startInt := start.(object.Integer)
+		return s.evalForInteger(fe, &startInt, end.(object.Integer), name), true
+	}
+	// Evaluate:
+	v := s.Eval(ie.Right)
+	switch v.Type() {
+	case object.INTEGER:
+		return s.evalForInteger(fe, nil, v.(object.Integer), name), true
+	case object.ERROR:
+		return v, true
+	case object.ARRAY, object.MAP, object.STRING:
+		return s.evalForList(fe, v, name), true
+	default:
+		return object.NULL, false
+	}
+}
+
+func (s *State) evalForList(fe *ast.ForExpression, list object.Object, name string) object.Object {
+	var lastEval object.Object
+	lastEval = object.NULL
+	for object.Len(list) > 0 {
+		v := object.First(list)
+		list = object.Rest(list)
+		if v == nil {
+			return s.NewError("for list element is nil")
+		}
+		s.env.Set(name, v)
+		lastEval = s.evalInternal(fe.Body)
+		if rt := lastEval.Type(); rt == object.RETURN || rt == object.ERROR {
+			return lastEval
+		}
+	}
+	return lastEval
+}
+
+func (s *State) evalForExpression(fe *ast.ForExpression) object.Object {
+	// Check if it's form of var = ...
+	if v, ok := s.evalForSpecialForms(fe); ok {
+		return v
+	}
+	// Other: condition or number of iterations for loop.
+	var lastEval object.Object
+	lastEval = object.NULL
+	count := 0
+	for {
+		condition := s.evalInternal(fe.Condition)
+		switch condition {
+		case object.TRUE:
+			log.LogVf("for %s is object.TRUE, running body", fe.Condition.Value().DebugString())
+			lastEval = s.evalInternal(fe.Body)
+			if rt := lastEval.Type(); rt == object.RETURN || rt == object.ERROR {
+				return lastEval
+			}
+		case object.FALSE, object.NULL:
+			log.LogVf("for %s is object.FALSE, done", fe.Condition.Value().DebugString())
+			return lastEval
+		default:
+			switch condition.Type() {
+			case object.ERROR:
+				return condition
+			case object.INTEGER:
+				return s.evalForInteger(fe, nil, condition.(object.Integer), "")
+			default:
+				return s.NewError("for condition is not a boolean nor integer nor assignment: " + condition.Inspect())
+			}
+		}
+		count++
+		if s.depth+count > s.MaxDepth {
+			return s.NewError("too many for loop iterations")
+		}
 	}
 }
 
