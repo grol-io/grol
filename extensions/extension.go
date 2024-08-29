@@ -150,8 +150,8 @@ func initInternal(c *Config) error { //nolint:funlen,gocognit,gocyclo,maintidx /
 				return object.Float{Value: rand.Float64()} //nolint:gosec // no need for crypto/rand here.
 			}
 			n := args[0].(object.Integer).Value
-			if n < 0 {
-				return object.Error{Value: "negative argument to rand()"}
+			if n <= 0 {
+				return object.Error{Value: "argument to rand() if given must be > 0, >=2 for something useful"}
 			}
 			return object.Integer{Value: rand.Int64N(n)} //nolint:gosec // no need for crypto/rand here.
 		},

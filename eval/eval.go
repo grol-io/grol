@@ -35,7 +35,7 @@ func (s *State) evalAssignment(right object.Object, node *ast.InfixExpression) o
 		id, _ := node.Left.(*ast.Identifier)
 		name := id.Literal()
 		log.LogVf("eval assign %#v to %s", right, name)
-		return s.env.Set(name, right) // Propagate possible error (constant setting).
+		return s.env.Set(name, right) // Propagate possible error (constant, extension names setting).
 	default:
 		return s.NewError("assignment to non identifier: " + node.Left.Value().DebugString())
 	}
@@ -649,7 +649,10 @@ func (s *State) evalExpressions(exps []ast.Node) ([]object.Object, *object.Error
 
 func (s *State) evalIdentifier(node *ast.Identifier) object.Object {
 	name := node.Literal()
-	// initially we had that local var can shadow extensions - well no that makes everything a cache miss.
+	// initially we had that local var can shadow extensions - but no that makes everything a cache miss.
+	// also much faster to look here first than failing to find say max() all the way looking up stack
+	// and only then looking in extensions like we did at first. (possible compromise: look in local level
+	// only, then extensions, then up the stack).
 	ext, ok := s.Extensions[name]
 	if ok {
 		return ext
