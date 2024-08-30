@@ -12,6 +12,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 	"unicode/utf8"
 
 	"fortio.org/log"
@@ -157,6 +158,20 @@ func initInternal(c *Config) error { //nolint:funlen,gocognit,gocyclo,maintidx /
 		},
 	}
 	err = object.CreateFunction(randFn)
+	if err != nil {
+		return err
+	}
+	timeFn := object.Extension{
+		Name:    "time",
+		MinArgs: 0,
+		MaxArgs: 0,
+		Help:    "Date/time in seconds since epoch",
+		Callback: func(env any, _ string, _ []object.Object) object.Object {
+			eval.TriggerNoCache(env)
+			return object.Float{Value: float64(time.Now().UnixMicro()) / 1e6}
+		},
+	}
+	err = object.CreateFunction(timeFn)
 	if err != nil {
 		return err
 	}
