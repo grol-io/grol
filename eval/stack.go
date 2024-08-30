@@ -59,22 +59,3 @@ func (s *State) Error(err error) object.Object {
 	}
 	return s.NewError(err.Error())
 }
-
-/*
-// IsNilError checks if an error is nil, including if it's a non-nil interface wrapping a nil value.
-func IsNilError(err error) bool {
-	if err == nil {
-		return true
-	}
-	// Get the reflected value of the error
-	val := reflect.ValueOf(err)
-
-	// Check if the error is a pointer or interface and if it is nil
-	switch val.Kind() {
-	case reflect.Ptr, reflect.Interface:
-		return val.IsNil()
-	default:
-		return false
-	}
-}
-*/

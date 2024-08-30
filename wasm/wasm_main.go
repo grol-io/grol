@@ -12,6 +12,7 @@ import (
 	"runtime/debug"
 	"strings"
 	"syscall/js"
+	"time"
 
 	"fortio.org/cli"
 	"fortio.org/log"
@@ -20,13 +21,18 @@ import (
 	"grol.io/grol/repl"
 )
 
-// Can do 10k on safari but only ~3.5k on chrome before
-// Error: Maximum call stack size exceeded.
-// That means n = 3096 on pi2.gr, off by 4 for some reason
-var WasmMaxDepth = 3_100
+var (
+	// Can do 10k on safari but only ~3.5k on chrome before
+	// Error: Maximum call stack size exceeded.
+	// That means n = 3096 on pi2.gr, off by 4 for some reason
+	WasmMaxDepth = 3_100
 
-// Set a reasonably low memory limit for wasm. 512MiB.
-var WasmMemLimit = int64(512 * 1024 * 1024)
+	// Set a reasonably low memory limit for wasm. 512MiB.
+	WasmMemLimit = int64(512 * 1024 * 1024)
+
+	// Low limit for page to not appear dead for too long
+	WasmMaxDuration = 3 * time.Second
+)
 
 func jsEval(this js.Value, args []js.Value) interface{} {
 	if len(args) != 1 && len(args) != 2 {
@@ -46,6 +52,7 @@ func jsEval(this js.Value, args []js.Value) interface{} {
 	// But enough is enough... switched back to big go for now, way too many troubles with tinygo as well
 	// as not exactly responsive to PRs nor issues folks (everyone trying their best yet...).
 	opts.MaxDepth = WasmMaxDepth
+	opts.MaxDuration = WasmMaxDuration
 	res, errs, formatted := repl.EvalStringWithOption(opts, input)
 	result := make(map[string]any)
 	result["result"] = strings.TrimSuffix(res, "\n")
