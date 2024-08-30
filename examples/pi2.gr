@@ -13,4 +13,5 @@ n = 149_990 // close to 150_000 default limit.
 now = time()
 pi = f(1, n, 1)
 elapsed = time() - now
-println("calculated pi = ", pi, " in ", elapsed, " seconds")
+log("calculated pi = ", pi, " in ", elapsed, " seconds")
+pi

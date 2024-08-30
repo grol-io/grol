@@ -1,9 +1,11 @@
 package eval
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
+	"time"
 
 	"fortio.org/log"
 	"grol.io/grol/lexer"
@@ -15,11 +17,14 @@ import (
 
 // Exported part of the eval package.
 
-// Approximate maximum depth of recursion to avoid:
-// runtime: goroutine stack exceeds 1000000000-byte limit
-// fatal error: stack overflow. Was 250k but adding a log
-// in Error() makes it go over that (somehow).
-const DefaultMaxDepth = 150_000
+const (
+	// Approximate maximum depth of recursion to avoid:
+	// runtime: goroutine stack exceeds 1000000000-byte limit
+	// fatal error: stack overflow. Was 250k but adding a log
+	// in Error() makes it go over that (somehow).
+	DefaultMaxDepth    = 150_000
+	DefaultMaxDuration = 10 * time.Second
+)
 
 type State struct {
 	Out        io.Writer
@@ -36,6 +41,9 @@ type State struct {
 	depth       int // current depth / recursion level
 	lastNumSet  int64
 	MaxValueLen int // max length of value to save in files, <= 0 for unlimited.
+	// To enforce a max duration or cancel evals.
+	Context context.Context //nolint:containedctx // we need a context for callbacks from extensions and to set it without API change.
+	Cancel  context.CancelFunc
 }
 
 func NewState() *State {
@@ -101,6 +109,19 @@ func (s *State) UpdateNumSet() (oldvalue, newvalue int64) {
 	newvalue = s.env.NumSet()
 	s.lastNumSet = newvalue
 	return
+}
+
+func (s *State) SetContext(ctx context.Context, d time.Duration) {
+	if d <= 0 {
+		log.LogVf("SetContext with unlimited duration")
+		s.Context, s.Cancel = context.WithCancel(ctx)
+	} else {
+		s.Context, s.Cancel = context.WithTimeout(ctx, d)
+	}
+}
+
+func (s *State) SetDefaultContext() {
+	s.SetContext(context.Background(), DefaultMaxDuration)
 }
 
 // Does unwrap (so stop bubbling up) return values.

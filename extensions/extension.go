@@ -4,6 +4,7 @@ package extensions
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -142,11 +143,11 @@ func initInternal(c *Config) error {
 		{math.Ceil, "ceil"},
 		{math.Log10, "log10"},
 	} {
-		oneFloat.Callback = func(_ any, _ string, args []object.Object) object.Object {
+		oneFloat.Callback = object.ShortCallback(func(args []object.Object) object.Object {
 			// Arg len check already done through MinArgs=MaxArgs=1 and
 			// type through ArgTypes: []object.Type{object.FLOAT}.
 			return object.Float{Value: function.fn(args[0].(object.Float).Value)}
-		}
+		})
 		oneFloat.Name = function.name
 		MustCreate(oneFloat)
 	}
@@ -375,9 +376,37 @@ func createMisc() {
 			return object.Float{Value: float64(time.Now().UnixMicro()) / 1e6}
 		},
 	})
+	MustCreate(object.Extension{
+		Name:     "sleep",
+		MinArgs:  1,
+		MaxArgs:  1,
+		ArgTypes: []object.Type{object.FLOAT},
+		Help:     "in seconds",
+		Callback: func(st any, _ string, args []object.Object) object.Object {
+			s := st.(*eval.State)
+			durSec := args[0].(object.Float).Value
+			if durSec < 0 {
+				return s.NewError("negative sleep duration")
+			}
+			durDur := time.Duration(durSec * 1e9)
+			log.Infof("Sleeping for %v", durDur)
+			return s.Error(SleepWithContext(s.Context, durDur))
+		},
+	})
 }
 
 // --- implementation of the functions that aren't inlined in lambdas above.
+
+func SleepWithContext(ctx context.Context, duration time.Duration) error {
+	select {
+	case <-time.After(duration):
+		// Completed the sleep duration
+		return nil
+	case <-ctx.Done():
+		// Context was canceled
+		return ctx.Err()
+	}
+}
 
 func pow(args []object.Object) object.Object {
 	// Arg len check already done through MinArgs and MaxArgs

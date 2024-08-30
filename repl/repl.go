@@ -2,6 +2,7 @@ package repl
 
 import (
 	"bufio"
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -10,6 +11,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"time"
 
 	"fortio.org/cli"
 	"fortio.org/log"
@@ -62,8 +64,9 @@ type Options struct {
 	PanicOk     bool // If true, panics are not caught (only for debugging/developing).
 	// Hook to call before running the input (lets you for instance change the ClientData of some object.Extension,
 	// remove some functions, etc).
-	PreInput  func(*eval.State)
-	AllParens bool // Show all parens in parse tree (default is to simplify using precedence).
+	PreInput    func(*eval.State)
+	AllParens   bool // Show all parens in parse tree (default is to simplify using precedence).
+	MaxDuration time.Duration
 }
 
 func AutoLoad(s *eval.State, options Options) error {
@@ -366,6 +369,7 @@ func EvalOne(s *eval.State, what string, out io.Writer, options Options) (
 			}
 		}()
 	}
+	s.SetContext(context.Background(), options.MaxDuration)
 	continuation, errs, formatted = evalOne(s, what, out, options)
 	return
 }
