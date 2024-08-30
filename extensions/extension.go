@@ -4,6 +4,7 @@ package extensions
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -12,6 +13,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 	"unicode/utf8"
 
 	"fortio.org/log"
@@ -54,35 +56,25 @@ func Init(c *Config) error {
 	return errInInit
 }
 
+func MustCreate(ext object.Extension) {
+	err := object.CreateFunction(ext)
+	if err != nil {
+		panic(err)
+	}
+}
+
 type OneFloatInOutFunc func(float64) float64
 
-func initInternal(c *Config) error { //nolint:funlen,gocognit,gocyclo,maintidx // yeah we add a bunch of stuff.
+func initInternal(c *Config) error {
 	unrestrictedIOs = c.UnrestrictedIOs
 	emptyOnly = c.LoadSaveEmptyOnly
-	cmd := object.Extension{
-		Name:     "pow",
-		MinArgs:  2,
-		MaxArgs:  2,
-		ArgTypes: []object.Type{object.FLOAT, object.FLOAT},
-		Callback: object.ShortCallback(pow),
-	}
-	err := object.CreateFunction(cmd)
-	if err != nil {
-		return err
-	}
-	err = object.CreateFunction(object.Extension{
-		Name:     "sprintf",
-		MinArgs:  1,
-		MaxArgs:  -1,
-		ArgTypes: []object.Type{object.STRING},
-		Callback: object.ShortCallback(sprintf),
-	})
-	if err != nil {
-		return err
-	}
+
+	// -- These AddEvalResult should probably be like for discord bot,
+	// a separate grol library file embedded in the binary and read/saved in state instead.
+
 	// for printf, we could expose current eval "Out", but instead let's use new variadic support and define
 	// printf as print(snprintf(format,..)) that way the memoization of output also works out of the box.
-	err = eval.AddEvalResult("printf", "func(format, ..){print(sprintf(format, ..))}")
+	err := eval.AddEvalResult("printf", "func(format, ..){print(sprintf(format, ..))}")
 	if err != nil {
 		return err
 	}
@@ -102,6 +94,30 @@ func initInternal(c *Config) error { //nolint:funlen,gocognit,gocyclo,maintidx /
 	object.AddIdentifier("null", object.NULL)
 	object.AddIdentifier("NaN", object.Float{Value: math.NaN()})
 	object.AddIdentifier("Inf", object.Float{Value: math.Inf(0)}) // Works for both -Inf and +Inf (thanks to noop unary +).
+	object.AddIdentifier("PI", object.Float{Value: math.Pi})
+	object.AddIdentifier("E", object.Float{Value: math.E}) // using uppercase so "e" isn't taken/shadowed.
+
+	// --- Real extension section starts here.
+
+	// First one we don't use MustCreate in case it'd error out and we want to return that error.
+	err = object.CreateFunction(object.Extension{
+		Name:     "pow",
+		MinArgs:  2,
+		MaxArgs:  2,
+		ArgTypes: []object.Type{object.FLOAT, object.FLOAT},
+		Callback: object.ShortCallback(pow),
+	})
+	if err != nil {
+		return err
+	}
+	// Next ones we don't want to keep adding if err != nil ..., so we use MustCreate.
+	MustCreate(object.Extension{
+		Name:     "sprintf",
+		MinArgs:  1,
+		MaxArgs:  -1,
+		ArgTypes: []object.Type{object.STRING},
+		Callback: object.ShortCallback(sprintf),
+	})
 
 	oneFloat := object.Extension{
 		MinArgs:  1,
@@ -127,19 +143,16 @@ func initInternal(c *Config) error { //nolint:funlen,gocognit,gocyclo,maintidx /
 		{math.Ceil, "ceil"},
 		{math.Log10, "log10"},
 	} {
-		oneFloat.Callback = func(_ any, _ string, args []object.Object) object.Object {
+		oneFloat.Callback = object.ShortCallback(func(args []object.Object) object.Object {
 			// Arg len check already done through MinArgs=MaxArgs=1 and
 			// type through ArgTypes: []object.Type{object.FLOAT}.
 			return object.Float{Value: function.fn(args[0].(object.Float).Value)}
-		}
+		})
 		oneFloat.Name = function.name
-		err = object.CreateFunction(oneFloat)
-		if err != nil {
-			return err
-		}
+		MustCreate(oneFloat)
 	}
 	// rand() and rand(n) functions.
-	randFn := object.Extension{
+	MustCreate(object.Extension{
 		Name:     "rand",
 		MinArgs:  0,
 		MaxArgs:  1,
@@ -155,13 +168,22 @@ func initInternal(c *Config) error { //nolint:funlen,gocognit,gocyclo,maintidx /
 			}
 			return object.Integer{Value: rand.Int64N(n)} //nolint:gosec // no need for crypto/rand here.
 		},
-	}
-	err = object.CreateFunction(randFn)
-	if err != nil {
-		return err
-	}
-	object.AddIdentifier("PI", object.Float{Value: math.Pi})
-	object.AddIdentifier("E", object.Float{Value: math.E}) // using uppercase so "e" isn't taken/shadowed.
+	})
+	createJSONAndEvalFunctions(c)
+	createStrFunctions()
+	createMisc()
+	return nil
+}
+
+func createJSONAndEvalFunctions(c *Config) {
+	MustCreate(object.Extension{
+		Name:     "json_go",
+		MinArgs:  1,
+		MaxArgs:  2,
+		ArgTypes: []object.Type{object.ANY, object.STRING},
+		Callback: jsonSerGo,
+		Help:     `optional indent e.g json_go(m, "  ")`,
+	})
 	jsonFn := object.Extension{
 		Name:     "json",
 		MinArgs:  1,
@@ -169,46 +191,20 @@ func initInternal(c *Config) error { //nolint:funlen,gocognit,gocyclo,maintidx /
 		ArgTypes: []object.Type{object.ANY},
 		Callback: jsonSer,
 	}
-	err = object.CreateFunction(jsonFn)
-	if err != nil {
-		return err
-	}
-	jsonFn = object.Extension{
-		Name:     "json_go",
-		MinArgs:  1,
-		MaxArgs:  2,
-		ArgTypes: []object.Type{object.ANY, object.STRING},
-		Callback: jsonSerGo,
-		Help:     `optional indent e.g json_go(m, "  ")`,
-	}
-	err = object.CreateFunction(jsonFn)
-	if err != nil {
-		return err
-	}
-	jsonFn.MaxArgs = 1
-	jsonFn.Help = ""
-	jsonFn.Name = "eval"
-	jsonFn.Callback = evalFunc
-	jsonFn.ArgTypes = []object.Type{object.STRING}
-	err = object.CreateFunction(jsonFn)
-	if err != nil {
-		return err
-	}
+	MustCreate(jsonFn)
 	jsonFn.Name = "type"
 	jsonFn.Callback = object.ShortCallback(func(args []object.Object) object.Object {
 		return object.String{Value: args[0].Type().String()}
 	})
-	jsonFn.ArgTypes = []object.Type{object.ANY}
-	err = object.CreateFunction(jsonFn)
-	if err != nil {
-		return err
-	}
+	MustCreate(jsonFn)
+	jsonFn.Name = "eval"
+	jsonFn.Callback = evalFunc
+	jsonFn.ArgTypes = []object.Type{object.STRING}
+	MustCreate(jsonFn)
 	jsonFn.Name = "unjson"
 	jsonFn.Callback = evalFunc // unjson at the moment is just (like) eval hoping that json is map/array/...
-	err = object.CreateFunction(jsonFn)
-	if err != nil {
-		return err
-	}
+	MustCreate(jsonFn)
+
 	loadSaveFn := object.Extension{
 		MinArgs:  0, // empty only case - ie ".gr" save file.
 		MaxArgs:  1,
@@ -218,19 +214,16 @@ func initInternal(c *Config) error { //nolint:funlen,gocognit,gocyclo,maintidx /
 	if c.HasSave {
 		loadSaveFn.Name = "save"
 		loadSaveFn.Callback = saveFunc // save to file.
-		err = object.CreateFunction(loadSaveFn)
-		if err != nil {
-			return err
-		}
+		MustCreate(loadSaveFn)
 	}
 	if c.HasLoad {
 		loadSaveFn.Name = "load"
 		loadSaveFn.Callback = loadFunc // eval a file.
-		err = object.CreateFunction(loadSaveFn)
-		if err != nil {
-			return err
-		}
+		MustCreate(loadSaveFn)
 	}
+}
+
+func createStrFunctions() {
 	strFn := object.Extension{
 		MinArgs:  1,
 		MaxArgs:  1,
@@ -248,26 +241,17 @@ func initInternal(c *Config) error { //nolint:funlen,gocognit,gocyclo,maintidx /
 		}
 		return object.NewArray(runes)
 	}
-	err = object.CreateFunction(strFn)
-	if err != nil {
-		return err
-	}
+	MustCreate(strFn)
 	strFn.Name = "rune_len"
 	strFn.Callback = func(_ any, _ string, args []object.Object) object.Object {
 		return object.Integer{Value: int64(utf8.RuneCountInString(args[0].(object.String).Value))}
 	}
-	err = object.CreateFunction(strFn)
-	if err != nil {
-		return err
-	}
+	MustCreate(strFn)
 	strFn.Name = "width"
 	strFn.Callback = func(_ any, _ string, args []object.Object) object.Object {
 		return object.Integer{Value: int64(uniseg.StringWidth((args[0].(object.String).Value)))}
 	}
-	err = object.CreateFunction(strFn)
-	if err != nil {
-		return err
-	}
+	MustCreate(strFn)
 	strFn.Name = "split"
 	strFn.Help = "optional separator"
 	strFn.MinArgs = 1
@@ -288,10 +272,7 @@ func initInternal(c *Config) error { //nolint:funlen,gocognit,gocyclo,maintidx /
 		}
 		return object.NewArray(strs)
 	}
-	err = object.CreateFunction(strFn)
-	if err != nil {
-		return err
-	}
+	MustCreate(strFn)
 	strFn.Name = "join"
 	strFn.Help = "joins an array of string with the optional separator"
 	strFn.ArgTypes = []object.Type{object.ARRAY, object.STRING}
@@ -315,10 +296,10 @@ func initInternal(c *Config) error { //nolint:funlen,gocognit,gocyclo,maintidx /
 		object.MustBeOk(totalLen / object.ObjectSize) // off by sepLen but that's ok.
 		return object.String{Value: strings.Join(strs, sep)}
 	}
-	err = object.CreateFunction(strFn)
-	if err != nil {
-		return err
-	}
+	MustCreate(strFn)
+}
+
+func createMisc() {
 	minMaxFn := object.Extension{
 		MinArgs:  1,
 		MaxArgs:  -1,
@@ -337,10 +318,7 @@ func initInternal(c *Config) error { //nolint:funlen,gocognit,gocyclo,maintidx /
 		}
 		return minV
 	}
-	err = object.CreateFunction(minMaxFn)
-	if err != nil {
-		return err
-	}
+	MustCreate(minMaxFn)
 	minMaxFn.Name = "max"
 	minMaxFn.Callback = func(_ any, _ string, args []object.Object) object.Object {
 		if len(args) == 1 {
@@ -354,10 +332,7 @@ func initInternal(c *Config) error { //nolint:funlen,gocognit,gocyclo,maintidx /
 		}
 		return maxV
 	}
-	err = object.CreateFunction(minMaxFn)
-	if err != nil {
-		return err
-	}
+	MustCreate(minMaxFn)
 
 	intFn := object.Extension{
 		Name:     "int",
@@ -390,11 +365,47 @@ func initInternal(c *Config) error { //nolint:funlen,gocognit,gocyclo,maintidx /
 			}
 		},
 	}
-	err = object.CreateFunction(intFn)
-	if err != nil {
-		return err
+	MustCreate(intFn)
+	MustCreate(object.Extension{
+		Name:    "time",
+		MinArgs: 0,
+		MaxArgs: 0,
+		Help:    "Date/time in seconds since epoch",
+		Callback: func(env any, _ string, _ []object.Object) object.Object {
+			eval.TriggerNoCache(env)
+			return object.Float{Value: float64(time.Now().UnixMicro()) / 1e6}
+		},
+	})
+	MustCreate(object.Extension{
+		Name:     "sleep",
+		MinArgs:  1,
+		MaxArgs:  1,
+		ArgTypes: []object.Type{object.FLOAT},
+		Help:     "in seconds",
+		Callback: func(st any, _ string, args []object.Object) object.Object {
+			s := st.(*eval.State)
+			durSec := args[0].(object.Float).Value
+			if durSec < 0 {
+				return s.NewError("negative sleep duration")
+			}
+			durDur := time.Duration(durSec * 1e9)
+			log.Infof("Sleeping for %v", durDur)
+			return s.Error(SleepWithContext(s.Context, durDur))
+		},
+	})
+}
+
+// --- implementation of the functions that aren't inlined in lambdas above.
+
+func SleepWithContext(ctx context.Context, duration time.Duration) error {
+	select {
+	case <-time.After(duration):
+		// Completed the sleep duration
+		return nil
+	case <-ctx.Done():
+		// Context was canceled
+		return ctx.Err()
 	}
-	return nil
 }
 
 func pow(args []object.Object) object.Object {

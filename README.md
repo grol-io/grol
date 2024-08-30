@@ -202,6 +202,8 @@ flags:
     	history file to use (default "~/.grol_history")
   -max-depth int
     	Maximum interpreter depth (default 194999)
+  -max-duration duration
+    	Maximum duration for a script to run. 0 for unlimited. (default 10s)
   -max-history size
     	max history size, use 0 to disable. (default 99)
   -max-save-len int

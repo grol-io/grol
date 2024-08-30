@@ -156,6 +156,9 @@ func (s *State) evalPostfixExpression(node *ast.PostfixExpression) object.Object
 
 // Doesn't unwrap return - return bubbles up.
 func (s *State) evalInternal(node any) object.Object { //nolint:funlen,gocyclo,gocognit // quite a lot of cases.
+	if s.Context != nil && s.Context.Err() != nil {
+		return s.Error(s.Context.Err())
+	}
 	switch node := node.(type) {
 	// Statements
 	case *ast.Statements:

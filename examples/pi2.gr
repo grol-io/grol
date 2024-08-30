@@ -10,4 +10,8 @@ f = func(i, n, prod) {
 	self(i+1, n, prod*(1-1./(2*i)))
 }
 n = 149_990 // close to 150_000 default limit.
-f(1, n, 1)
+now = time()
+pi = f(1, n, 1)
+elapsed = time() - now
+log("calculated pi = ", pi, " in ", elapsed, " seconds")
+pi
