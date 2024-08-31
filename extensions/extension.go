@@ -393,6 +393,43 @@ func createMisc() {
 			return s.Error(SleepWithContext(s.Context, durDur))
 		},
 	})
+	MustCreate(object.Extension{
+		Name:     "time_info",
+		MinArgs:  1,
+		MaxArgs:  2,
+		ArgTypes: []object.Type{object.FLOAT, object.STRING},
+		Help:     "As returned by time(), in seconds since epoch, and optional TimeZone/location",
+		Callback: func(st any, _ string, args []object.Object) object.Object {
+			s := st.(*eval.State)
+			timeUsec := math.Round(args[0].(object.Float).Value * 1e6)
+			t := time.UnixMicro(int64(timeUsec))
+			if len(args) == 2 {
+				timeZone := args[1].(object.String).Value
+				location, err := time.LoadLocation(timeZone)
+				if err != nil {
+					return s.Error(err)
+				}
+				t = t.In(location)
+			}
+			usec := int64(timeUsec) % 1e6
+			formattedTime := t.Format("2006-01-02 15:04:05.999999")
+			log.Debugf("Time is for %v", t)
+			m := &object.BigMap{}
+			m.Set(object.String{Value: "str"}, object.String{Value: formattedTime})
+			m.Set(object.String{Value: "year"}, object.Integer{Value: int64(t.Year())})
+			m.Set(object.String{Value: "month"}, object.Integer{Value: int64(t.Month())})
+			m.Set(object.String{Value: "day"}, object.Integer{Value: int64(t.Day())})
+			m.Set(object.String{Value: "hour"}, object.Integer{Value: int64(t.Hour())})
+			m.Set(object.String{Value: "minute"}, object.Integer{Value: int64(t.Minute())})
+			m.Set(object.String{Value: "second"}, object.Integer{Value: int64(t.Second())})
+			m.Set(object.String{Value: "weekday"}, object.Integer{Value: int64(t.Weekday())})
+			name, offset := t.Zone()
+			m.Set(object.String{Value: "tz"}, object.String{Value: name})
+			m.Set(object.String{Value: "offset"}, object.Integer{Value: int64(offset)})
+			m.Set(object.String{Value: "usec"}, object.Integer{Value: usec})
+			return m
+		},
+	})
 }
 
 // --- implementation of the functions that aren't inlined in lambdas above.
