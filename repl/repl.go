@@ -209,12 +209,13 @@ func extractHistoryNumber(input string) (int, bool) {
 	return 0, false
 }
 
-func Interactive(options Options) int {
+func Interactive(options Options) int { //nolint:funlen // it's a repl, it's supposed to be long.
 	options.NilAndErr = true
 	s := eval.NewState()
 	s.MaxDepth = options.MaxDepth
 	s.MaxValueLen = options.MaxValueLen // 0 is unlimited so ok to copy as is.
 	term, err := terminal.Open(context.Background())
+	ctx := term.Context
 	if err != nil {
 		return log.FErrf("Error creating readline: %v", err)
 	}
@@ -254,7 +255,7 @@ func Interactive(options Options) int {
 		}
 		if errors.Is(err, terminal.ErrInterrupted) {
 			log.Debugf("Interrupted error")
-			term.ResetInterrupts(context.Background())
+			ctx, _ = term.ResetInterrupts(context.Background()) //nolint:fatcontext // we only get a new one after the previous one is done.
 			continue
 		}
 		if err != nil {
@@ -292,7 +293,7 @@ func Interactive(options Options) int {
 		}
 		// normal errors are already logged but not the panic recoveries
 		// Note this is the only case that can get contNeeded (EOL instead of EOF mode)
-		contNeeded, _, _, formatted := EvalOne(term.Context, s, l, term.Out, options)
+		contNeeded, _, _, formatted := EvalOne(ctx, s, l, term.Out, options)
 		if contNeeded {
 			prev = l + "\n"
 			term.SetPrompt(CONTINUATION)
