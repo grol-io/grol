@@ -147,7 +147,7 @@ func EvalAll(s *eval.State, in io.Reader, out io.Writer, options Options) []stri
 	if options.PreInput != nil {
 		options.PreInput(s)
 	}
-	_, _, errs, _ := EvalOne(s, what, out, options) //nolint:dogsled // as mentioned we should refactor EvalOne.
+	_, _, errs, _ := EvalOne(context.Background(), s, what, out, options) //nolint:dogsled // as mentioned we should refactor EvalOne.
 	return errs
 }
 
@@ -162,7 +162,7 @@ func EvalStringOptions() Options {
 // occurred.
 // Default options are EvalStringOptions()'s.
 func EvalString(what string) (string, []string, string) {
-	return EvalStringWithOption(EvalStringOptions(), what)
+	return EvalStringWithOption(context.Background(), EvalStringOptions(), what)
 }
 
 // EvalStringWithOption can be used from playground etc for single eval.
@@ -172,7 +172,7 @@ func EvalString(what string) (string, []string, string) {
 // Following options should be set (starting from EvalStringOptions()) to
 // additionally control the behavior:
 // AutoLoad, AutoSave, Compact.
-func EvalStringWithOption(o Options, what string) (res string, errs []string, formatted string) {
+func EvalStringWithOption(ctx context.Context, o Options, what string) (res string, errs []string, formatted string) {
 	s := eval.NewState()
 	if o.MaxDepth > 0 {
 		s.MaxDepth = o.MaxDepth
@@ -188,7 +188,7 @@ func EvalStringWithOption(o Options, what string) (res string, errs []string, fo
 	}
 	panicked := false
 	incomplete := false
-	incomplete, panicked, errs, formatted = EvalOne(s, what, out, o)
+	incomplete, panicked, errs, formatted = EvalOne(ctx, s, what, out, o)
 	if incomplete && len(errs) == 0 {
 		errs = append(errs, "Incomplete input")
 	}
@@ -214,7 +214,7 @@ func Interactive(options Options) int {
 	s := eval.NewState()
 	s.MaxDepth = options.MaxDepth
 	s.MaxValueLen = options.MaxValueLen // 0 is unlimited so ok to copy as is.
-	term, err := terminal.Open()
+	term, err := terminal.Open(context.Background())
 	if err != nil {
 		return log.FErrf("Error creating readline: %v", err)
 	}
@@ -248,9 +248,14 @@ func Interactive(options Options) int {
 	for {
 		rd, err := term.ReadLine()
 		if errors.Is(err, io.EOF) {
-			log.Infof("Exit requested") // Don't say EOF as ^C comes through as EOF as well.
+			log.Infof("EOF, exiting")
 			_ = AutoSave(s, options)
 			return 0
+		}
+		if errors.Is(err, terminal.ErrInterrupted) {
+			log.Debugf("Interrupted error")
+			term.ResetInterrupts(context.Background())
+			continue
 		}
 		if err != nil {
 			return log.FErrf("Error reading line: %v", err)
@@ -280,10 +285,14 @@ func Interactive(options Options) int {
 			fmt.Fprintln(term.Out,
 				"Type 'history' to see history, '!n' to repeat history n, 'info' for language builtins, use <tab> for completion.")
 			continue
+		case l == "exit":
+			log.Infof("Exit requested")
+			_ = AutoSave(s, options)
+			return 0
 		}
 		// normal errors are already logged but not the panic recoveries
 		// Note this is the only case that can get contNeeded (EOL instead of EOF mode)
-		contNeeded, _, _, formatted := EvalOne(s, l, term.Out, options)
+		contNeeded, _, _, formatted := EvalOne(term.Context, s, l, term.Out, options)
 		if contNeeded {
 			prev = l + "\n"
 			term.SetPrompt(CONTINUATION)
@@ -347,7 +356,7 @@ func (g *Grol) Run(out io.Writer) error {
 // errs is the list of errors, formatted is the normalized input.
 // If a panic occurs, panicked is true and errs contains the one panic message.
 // TODO: this one size fits 3 different calls (file, interactive, bot) is getting spaghetti.
-func EvalOne(s *eval.State, what string, out io.Writer, options Options) (
+func EvalOne(ctx context.Context, s *eval.State, what string, out io.Writer, options Options) (
 	continuation, panicked bool,
 	errs []string,
 	formatted string,
@@ -369,7 +378,7 @@ func EvalOne(s *eval.State, what string, out io.Writer, options Options) (
 			}
 		}()
 	}
-	s.SetContext(context.Background(), options.MaxDuration)
+	s.SetContext(ctx, options.MaxDuration)
 	continuation, errs, formatted = evalOne(s, what, out, options)
 	return
 }
