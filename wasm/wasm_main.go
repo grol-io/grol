@@ -8,6 +8,7 @@ Web assembly main for grol, exposing grol (repl.EvalString for now) to JS
 package main
 
 import (
+	"context"
 	"runtime"
 	"runtime/debug"
 	"strings"
@@ -53,7 +54,7 @@ func jsEval(this js.Value, args []js.Value) interface{} {
 	// as not exactly responsive to PRs nor issues folks (everyone trying their best yet...).
 	opts.MaxDepth = WasmMaxDepth
 	opts.MaxDuration = WasmMaxDuration
-	res, errs, formatted := repl.EvalStringWithOption(opts, input)
+	res, errs, formatted := repl.EvalStringWithOption(context.Background(), opts, input)
 	result := make(map[string]any)
 	result["result"] = strings.TrimSuffix(res, "\n")
 	// transfer errors to []any (!)

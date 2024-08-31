@@ -4,7 +4,6 @@ package extensions
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -17,6 +16,7 @@ import (
 	"unicode/utf8"
 
 	"fortio.org/log"
+	"fortio.org/terminal"
 	"github.com/rivo/uniseg"
 	"grol.io/grol/eval"
 	"grol.io/grol/lexer"
@@ -390,7 +390,7 @@ func createMisc() {
 			}
 			durDur := time.Duration(durSec * 1e9)
 			log.Infof("Sleeping for %v", durDur)
-			return s.Error(SleepWithContext(s.Context, durDur))
+			return s.Error(terminal.SleepWithContext(s.Context, durDur))
 		},
 	})
 	MustCreate(object.Extension{
@@ -433,17 +433,6 @@ func createMisc() {
 }
 
 // --- implementation of the functions that aren't inlined in lambdas above.
-
-func SleepWithContext(ctx context.Context, duration time.Duration) error {
-	select {
-	case <-time.After(duration):
-		// Completed the sleep duration
-		return nil
-	case <-ctx.Done():
-		// Context was canceled
-		return ctx.Err()
-	}
-}
 
 func pow(args []object.Object) object.Object {
 	// Arg len check already done through MinArgs and MaxArgs

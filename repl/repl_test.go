@@ -1,6 +1,7 @@
 package repl_test
 
 import (
+	"context"
 	"testing"
 
 	"grol.io/grol/eval"
@@ -165,7 +166,7 @@ func TestPreInputHook(t *testing.T) {
 	}
 	inp := `testHook()`
 	expected := "42\n"
-	res, errs, _ := repl.EvalStringWithOption(opts, inp)
+	res, errs, _ := repl.EvalStringWithOption(context.Background(), opts, inp)
 	if res != expected || len(errs) > 0 {
 		t.Errorf("EvalString() got %v\n---\n%s\n---want---\n%s\n---", errs, res, expected)
 	}

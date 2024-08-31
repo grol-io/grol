@@ -2,6 +2,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"io"
@@ -123,7 +124,7 @@ func Main() (retcode int) {
 		return log.FErrf("Error initializing extensions: %v", err)
 	}
 	if *commandFlag != "" {
-		res, errs, _ := repl.EvalStringWithOption(options, *commandFlag)
+		res, errs, _ := repl.EvalStringWithOption(context.Background(), options, *commandFlag)
 		// Only parsing errors are already logged, eval errors aren't, we (re)log everything:
 		numErrs := len(errs)
 		if numErrs > 0 {
