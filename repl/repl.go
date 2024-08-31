@@ -209,7 +209,7 @@ func extractHistoryNumber(input string) (int, bool) {
 	return 0, false
 }
 
-func Interactive(options Options) int { //nolint:funlen // it's a repl, it's supposed to be long.
+func Interactive(options Options) int { //nolint:funlen // we do have quite a few cases.
 	options.NilAndErr = true
 	s := eval.NewState()
 	s.MaxDepth = options.MaxDepth
