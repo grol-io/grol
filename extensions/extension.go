@@ -413,7 +413,7 @@ func createMisc() {
 			}
 			usec := int64(timeUsec) % 1e6
 			formattedTime := t.Format("2006-01-02 15:04:05.999999")
-			log.Infof("Time is for %v", t)
+			log.Debugf("Time is for %v", t)
 			m := &object.BigMap{}
 			m.Set(object.String{Value: "str"}, object.String{Value: formattedTime})
 			m.Set(object.String{Value: "year"}, object.Integer{Value: int64(t.Year())})
