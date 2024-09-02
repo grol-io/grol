@@ -195,7 +195,11 @@ func createJSONAndEvalFunctions(c *Config) {
 	MustCreate(jsonFn)
 	jsonFn.Name = "type"
 	jsonFn.Callback = object.ShortCallback(func(args []object.Object) object.Object {
-		return object.String{Value: args[0].Type().String()}
+		obj := args[0]
+		if r, ok := obj.(object.Reference); ok {
+			return object.String{Value: "&" + r.Name + ".(" + r.Value().Type().String() + ")"}
+		}
+		return object.String{Value: obj.Type().String()}
 	})
 	MustCreate(jsonFn)
 	jsonFn.Name = "eval"
@@ -290,7 +294,7 @@ func createStrFunctions() {
 			if a.Type() != object.STRING {
 				strs[i] = a.Inspect()
 			} else {
-				strs[i] = a.(object.String).Value
+				strs[i] = object.Value(a).(object.String).Value
 			}
 			totalLen += len(strs[i]) + sepLen
 		}
@@ -349,14 +353,14 @@ func createMisc() {
 			case object.NIL:
 				return object.Integer{Value: 0}
 			case object.BOOLEAN:
-				if o.(object.Boolean).Value {
+				if object.Value(o).(object.Boolean).Value {
 					return object.Integer{Value: 1}
 				}
 				return object.Integer{Value: 0}
 			case object.FLOAT:
-				return object.Integer{Value: int64(o.(object.Float).Value)}
+				return object.Integer{Value: int64(object.Value(o).(object.Float).Value)}
 			case object.STRING:
-				i, serr := strconv.ParseInt(o.(object.String).Value, 0, 64)
+				i, serr := strconv.ParseInt(object.Value(o).(object.String).Value, 0, 64)
 				if serr != nil {
 					return s.Error(serr)
 				}
