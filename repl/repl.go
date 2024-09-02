@@ -253,8 +253,8 @@ func Interactive(options Options) int { //nolint:funlen // we do have quite a fe
 			_ = AutoSave(s, options)
 			return 0
 		}
-		if errors.Is(err, terminal.ErrInterrupted) {
-			log.Debugf("Interrupted error")
+		if errors.Is(err, terminal.ErrUserInterrupt) {
+			log.Debugf("^C from user")
 			ctx, _ = term.ResetInterrupts(context.Background()) //nolint:fatcontext // we only get a new one after the previous one is done.
 			continue
 		}
