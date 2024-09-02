@@ -16,3 +16,7 @@ func binary(v) {
 		return binary(v>>1) + bit2str(v&1)
 	}
 }
+b = binary(~0)
+println(b)
+
+len(b) == 64
