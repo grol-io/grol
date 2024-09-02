@@ -23,7 +23,7 @@ stderr welcome
 !stderr 'rror' # no Errors or other case/singular/plural
 
 # syntax error non mode, stdout doesn't repeat errors
-!grol -c 'foo'
+!grol -no-auto -c 'foo'
 stderr 'Total 1 error'
 stderr 'identifier not found: foo'
 !stdout .

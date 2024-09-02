@@ -802,7 +802,6 @@ func (s *State) evalForExpression(fe *ast.ForExpression) object.Object {
 	// Other: condition or number of iterations for loop.
 	var lastEval object.Object
 	lastEval = object.NULL
-	count := 0
 	for {
 		condition := s.evalInternal(fe.Condition)
 		switch condition {
@@ -824,10 +823,6 @@ func (s *State) evalForExpression(fe *ast.ForExpression) object.Object {
 			default:
 				return s.NewError("for condition is not a boolean nor integer nor assignment: " + condition.Inspect())
 			}
-		}
-		count++
-		if s.depth+count > s.MaxDepth {
-			return s.NewError("too many for loop iterations")
 		}
 	}
 }

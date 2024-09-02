@@ -67,7 +67,8 @@ func Main() (retcode int) {
 	maxDepth := flag.Int("max-depth", eval.DefaultMaxDepth-1, "Maximum interpreter depth")
 	maxLen := flag.Int("max-save-len", 4000, "Maximum len of saved identifiers, use 0 for unlimited")
 	panicOk := flag.Bool("panic", false, "Don't catch panic - only for development/debugging")
-	maxDuration := flag.Duration("max-duration", eval.DefaultMaxDuration, "Maximum duration for a script to run. 0 for unlimited.")
+	// Use 0 (unlimited) as default now that you can ^C to stop a script.
+	maxDuration := flag.Duration("max-duration", 0, "Maximum duration for a script to run. 0 for unlimited.")
 
 	cli.ArgsHelp = "*.gr files to interpret or `-` for stdin without prompt or no arguments for stdin repl..."
 	cli.MaxArgs = -1
