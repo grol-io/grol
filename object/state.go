@@ -185,7 +185,17 @@ func (e *Environment) Get(name string) (Object, bool) {
 	}
 	log.Debugf("Get miss (%s) called at %d %v", name, e.depth, e.cacheKey)
 	e.getMiss++
-	return e.outer.Get(name) // recurse.
+	for e.outer != nil {
+		obj, ok = e.outer.store[name]
+		if ok {
+			for obj.Type() == REFERENCE { // for is in theory not needed as we deref new refs.
+				obj = obj.(Reference).Value()
+			}
+			return Reference{Name: name, RefEnv: e.outer}, true
+		}
+		e = e.outer
+	}
+	return nil, false
 }
 
 // TriggerNoCache is used prevent this call stack from caching.
@@ -220,7 +230,24 @@ func (e *Environment) NumSet() int64 {
 	return e.numSet
 }
 
+func (e *Environment) IsRef(name string) (*Environment, string) {
+	log.Debugf("IsRef(%s) called at %d %v", name, e.depth, e.cacheKey)
+	r, ok := e.store[name]
+	if !ok {
+		return nil, ""
+	}
+	if rr, ok := r.(Reference); ok {
+		log.Debugf("IsRef(%s) true: %s in %v", name, rr.Name, rr.RefEnv.depth)
+		return rr.RefEnv, rr.Name
+	}
+	return nil, ""
+}
+
 func (e *Environment) SetNoChecks(name string, val Object) Object {
+	if r, n := e.IsRef(name); r != nil {
+		e = r
+		name = n
+	}
 	if e.depth == 0 {
 		e.numSet++
 		if _, ok := e.store[name]; !ok {

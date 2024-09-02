@@ -40,6 +40,7 @@ const (
 	QUOTE
 	MACRO
 	EXTENSION
+	REFERENCE
 	ANY // A marker, for extensions, not a real type.
 )
 
@@ -60,6 +61,7 @@ type Number interface {
 
 // Hashable in tem of Go map for cache key.
 func Hashable(o Object) bool {
+	// TODO: what is right for references?
 	switch o.Type() { //nolint:exhaustive // We have all the types that are hashable + default for the others.
 	case INTEGER, FLOAT, BOOLEAN, NIL, STRING:
 		return true
@@ -103,13 +105,25 @@ func NativeBoolToBooleanObject(input bool) Boolean {
 }
 
 func Equals(left, right Object) bool {
+	// TODO: dereference or not?
 	if left.Type() != right.Type() {
 		return false // int and float aren't the same even though they can Cmp to the same value.
 	}
 	return Cmp(left, right) == 0
 }
 
+// Deal with references and return the actual value.
+func Value(o Object) Object {
+	if r, ok := o.(Reference); ok {
+		o = r.Value()
+	}
+	return o
+}
+
 func Cmp(ei, ej Object) int {
+	// dereference references
+	ei = Value(ei)
+	ej = Value(ej)
 	ti := ei.Type()
 	tj := ej.Type()
 	if areIntFloat(ti, tj) {
@@ -132,6 +146,8 @@ func Cmp(ei, ej Object) int {
 	}
 	// same types at this point.
 	switch ti {
+	case REFERENCE:
+		panic("Unexpected type in Cmp: REFERENCE")
 	case EXTENSION:
 		return cmp.Compare(ei.(Extension).Name, ej.(Extension).Name)
 	case FUNC:
@@ -647,6 +663,7 @@ func NewArray(elements []Object) Object {
 }
 
 func Len(a Object) int {
+	a = Value(a)
 	switch a := a.(type) {
 	case SmallArray:
 		return a.len
@@ -663,6 +680,7 @@ func Len(a Object) int {
 }
 
 func First(a Object) Object {
+	a = Value(a)
 	switch a := a.(type) {
 	case Null:
 		return NULL
@@ -689,6 +707,7 @@ func First(a Object) Object {
 }
 
 func Rest(val Object) Object {
+	val = Value(val)
 	switch v := val.(type) {
 	case Null:
 		return NULL
@@ -717,6 +736,7 @@ func Rest(val Object) Object {
 }
 
 func Range(val Object, l, r int64) Object {
+	val = Value(val)
 	switch v := val.(type) {
 	case SmallArray:
 		if l < 0 || r > int64(v.len) {
@@ -753,6 +773,7 @@ func (sa SmallArray) Len() int           { return sa.len }
 
 // Elements returns the keys of a map or the elements of an array.
 func Elements(val Object) []Object {
+	val = Value(val)
 	switch v := val.(type) {
 	case Array:
 		return v.Elements()
@@ -1007,6 +1028,21 @@ func (m Macro) JSON(w io.Writer) error {
 	_, err := fmt.Fprintf(w, `{"macro":%q}`, m.Inspect())
 	return err
 }
+
+// References are pointer to original object up the stack.
+type Reference struct {
+	Name   string
+	RefEnv *Environment
+}
+
+func (r Reference) Value() Object {
+	log.Infof("XXXX Reference %s -> %s", r.Name, r.RefEnv.store[r.Name].Inspect())
+	return r.RefEnv.store[r.Name]
+}
+func (r Reference) Unwrap(str bool) any    { return r.Value().Unwrap(str) }
+func (r Reference) Type() Type             { return r.Value().Type() }
+func (r Reference) Inspect() string        { return r.Value().Inspect() }
+func (r Reference) JSON(w io.Writer) error { return r.Value().JSON(w) }
 
 // Extensions are functions implemented in go and exposed to grol.
 type Extension struct {
