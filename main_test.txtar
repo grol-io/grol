@@ -282,6 +282,9 @@ stderr '^<err: bitwise not of 1.1>$'
 !grol -quiet -c '"abc" * -3'
 !stderr 'panic'
 
+# time parse round trip
+grol -quiet -c 'now=time(); time_parse(time_info(now).str) == now'
+
 -- json_output --
 {
   "63": 63,
