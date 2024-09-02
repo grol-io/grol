@@ -406,9 +406,14 @@ func createTimeFunctions() {
 		Callback: func(st any, _ string, args []object.Object) object.Object {
 			s := st.(*eval.State)
 			timeUsec := math.Round(args[0].(object.Float).Value * 1e6)
+			// parse_time without a TZ will be in UTC, so to echo it back the same we also default to UTC.
+			// caller can pass "Local" to get the local time.
 			t := time.UnixMicro(int64(timeUsec)).UTC()
 			if len(args) == 2 {
 				timeZone := args[1].(object.String).Value
+				if strings.EqualFold("local", timeZone) {
+					timeZone = "Local"
+				}
 				location, err := time.LoadLocation(timeZone)
 				if err != nil {
 					return s.Error(err)
