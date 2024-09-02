@@ -110,9 +110,9 @@ func Main() (retcode int) {
 	}
 	defer func() {
 		if hookAfter != nil {
-			retcode = hookAfter()
+			retcode += hookAfter()
 		}
-		log.Infof("All done")
+		log.Infof("All done - retcode: %d", retcode)
 	}()
 	c := extensions.Config{
 		HasLoad:           !*disableLoadSave,
