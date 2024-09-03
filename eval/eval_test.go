@@ -106,7 +106,7 @@ func testEval(t *testing.T, input string) object.Object {
 }
 
 func testIntegerObject(t *testing.T, obj object.Object, expected int64) bool {
-	result, ok := object.Value(obj).(object.Integer)
+	result, ok := obj.(object.Integer)
 	if !ok {
 		t.Errorf("object is not Integer. got=%T (%+v)", obj, obj)
 		return false
@@ -175,7 +175,7 @@ func TestBangOperator(t *testing.T) {
 }
 
 func testBooleanObject(t *testing.T, obj object.Object, expected bool) {
-	result, ok := object.Value(obj).(object.Boolean)
+	result, ok := obj.(object.Boolean)
 	if !ok {
 		t.Errorf("object is not Boolean. got=%T (%+v)", obj, obj)
 		return

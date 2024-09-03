@@ -1057,7 +1057,7 @@ func (r Reference) Value() Object {
 }
 
 func (r Reference) Unwrap(str bool) any    { return r.Value().Unwrap(str) }
-func (r Reference) Type() Type             { return r.Value().Type() }
+func (r Reference) Type() Type             { return REFERENCE }
 func (r Reference) Inspect() string        { return r.Value().Inspect() }
 func (r Reference) JSON(w io.Writer) error { return r.Value().JSON(w) }
 
