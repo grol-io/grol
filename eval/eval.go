@@ -286,13 +286,17 @@ func (s *State) evalInternal(node any) object.Object { //nolint:funlen,gocyclo,g
 		var index object.Object
 		if node.Token.Type() == token.DOT {
 			// index is the string value and not an identifier.
-			index = object.String{Value: node.Index.Value().Literal()}
+			key := node.Index.Value().Literal() // could be anything including "x++" from https://github.com/grol-io/grol/issues/189
+			index = object.String{Value: key}
 		} else {
 			if node.Index.Value().Type() == token.COLON {
 				rangeExp := node.Index.(*ast.InfixExpression)
 				return s.evalIndexRangeExpression(left, rangeExp.Left, rangeExp.Right)
 			}
 			index = s.evalInternal(node.Index)
+			if index.Type() == object.ERROR {
+				return index
+			}
 		}
 		return s.evalIndexExpression(left, index)
 	case *ast.Comment:
