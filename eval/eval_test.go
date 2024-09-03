@@ -1022,3 +1022,18 @@ func TestAliasTwice(t *testing.T) {
 		t.Errorf("wrong result, got %q", res.Inspect())
 	}
 }
+
+/* (failing) test for https://github.com/grol-io/grol/issues/189
+func TestIncrMatrix(t *testing.T) {
+	inp := `m={"v":3};()=>{m.v++}();m.v`
+	s := eval.NewState()
+	res, err := eval.EvalString(s, inp, false)
+	if err != nil {
+		t.Errorf("should not have errored: %v", err)
+	}
+	expected := "4"
+	if res.Inspect() != expected {
+		t.Errorf("wrong result, got %q", res.Inspect())
+	}
+}
+*/
