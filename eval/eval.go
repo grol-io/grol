@@ -634,7 +634,7 @@ func extendFunctionEnv(
 		env.SetNoChecks("..", object.NewArray(extra), true)
 	}
 	// for recursion in anonymous functions.
-	// TODO: consider not having to keep setting this in the function's env and treating as a keyword.
+	// TODO: consider not having to keep setting this in the function's env and treating as a keyword or magic var like info.
 	env.SetNoChecks("self", fn, true)
 	// For recursion in named functions, set it here so we don't need to go up a stack of 50k envs to find it
 	if sameFunction && name != "" {
