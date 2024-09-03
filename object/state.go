@@ -264,6 +264,7 @@ func (e *Environment) create(name string, val Object) Object {
 		e.numSet++
 		record(e.ids, name, val.Type())
 	}
+	val = Value(val)
 	e.store[name] = val
 	return val
 }
@@ -283,6 +284,9 @@ func (e *Environment) SetNoChecks(name string, val Object, create bool) Object {
 			name = rr.Name
 		}
 		e.store[name] = val
+		if e.depth == 0 {
+			e.numSet++
+		}
 		return val
 	}
 	// New name... let's see if it's really new or making it a ref.

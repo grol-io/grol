@@ -132,10 +132,10 @@ func TestColonEqualAlias(t *testing.T) {
 	if tok == nil {
 		t.Fatalf("ConstantTokenStr[:=] was not found")
 	}
-	if tok.Type() != ASSIGN {
+	if tok.Type() != DEFINE {
 		t.Errorf("ConstantTokenStr[:=] returned %v, expected ASSIGN", tok.Type())
 	}
-	if tok.Literal() != "=" {
-		t.Errorf("ConstantTokenStr[:=] returned %v, expected '='", tok.Literal())
+	if tok.Literal() != ":=" {
+		t.Errorf("ConstantTokenStr[:=] returned %v", tok.Literal())
 	}
 }
