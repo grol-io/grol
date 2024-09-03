@@ -255,6 +255,16 @@ stdout '^\(\)=>if 1\+2==3\{4\}$'
 grol -quiet -c '(()=> if 1+2==3 {4})()'
 stdout '^4$'
 
+# lamda chaining:
+grol -quiet -c '(()=>a=>b=>c=>a+b+c)()(1)(2)(3)'
+stdout '^6$'
+
+grol -quiet -c '(()=>a=>b=>()=>c=>a+b+c)()(1)(2)()(3)'
+stdout '^6$'
+
+grol -quiet -c 'f= a=>b=>(x,y)=>c=>a+b+c+x+y;f(1)(2)(4,5)(3)'
+stdout '^15$'
+
 # stack trace in errors
 !grol -quiet -c 'func level1(){1+"x"}; func level2(){level1()}; func level3(){level2()}; level3()'
 stderr 'Total 1 error'

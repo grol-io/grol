@@ -305,6 +305,10 @@ func (p *Parser) parseExpression(precedence ast.Priority) ast.Node {
 		return nil
 	}
 	leftExp := prefix()
+	if p.peekTokenIs(token.LAMBDA) && precedence == ast.LAMBDA { // allow lambda chaining without parentheses in input.
+		p.nextToken()
+		return p.parseLambdaMulti(leftExp)
+	}
 	for !p.peekTokenIs(token.SEMICOLON) && precedence < p.peekPrecedence() {
 		t := p.peekToken.Type()
 		infix := p.infixParseFns[t]
