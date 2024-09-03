@@ -61,9 +61,6 @@ type Number interface {
 
 // Hashable in tem of Go map for cache key.
 func Hashable(o Object) bool {
-	if _, ok := o.(Reference); ok {
-		return false
-	}
 	switch o.Type() { //nolint:exhaustive // We have all the types that are hashable + default for the others.
 	case INTEGER, FLOAT, BOOLEAN, NIL, STRING:
 		return true
@@ -86,7 +83,7 @@ func Hashable(o Object) bool {
 			return true
 		}
 	}
-	log.Debugf("Not hashable: %#v", o)
+	log.Debugf("Not hashable: %#v", o) // includes references.
 	return false
 }
 
