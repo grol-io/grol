@@ -159,7 +159,7 @@ func (s *State) evalPostfixExpression(node *ast.PostfixExpression) object.Object
 }
 
 // Doesn't unwrap return - return bubbles up.
-func (s *State) evalInternal(node any) object.Object { //nolint:funlen,gocyclo,gocognit // quite a lot of cases.
+func (s *State) evalInternal(node any) object.Object { //nolint:funlen,gocyclo // quite a lot of cases.
 	if s.Context != nil && s.Context.Err() != nil {
 		return s.Error(s.Context.Err())
 	}
@@ -282,27 +282,35 @@ func (s *State) evalInternal(node any) object.Object { //nolint:funlen,gocyclo,g
 	case *ast.MapLiteral:
 		return s.evalMapLiteral(node)
 	case *ast.IndexExpression:
-		left := s.evalInternal(node.Left)
-		var index object.Object
-		if node.Token.Type() == token.DOT {
-			// index is the string value and not an identifier.
-			key := node.Index.Value().Literal() // could be anything including "x++" from https://github.com/grol-io/grol/issues/189
-			index = object.String{Value: key}
-		} else {
-			if node.Index.Value().Type() == token.COLON {
-				rangeExp := node.Index.(*ast.InfixExpression)
-				return s.evalIndexRangeExpression(left, rangeExp.Left, rangeExp.Right)
-			}
-			index = s.evalInternal(node.Index)
-			if index.Type() == object.ERROR {
-				return index
-			}
-		}
-		return s.evalIndexExpression(left, index)
+		return s.evalIndexExpression(s.evalInternal(node.Left), node)
 	case *ast.Comment:
 		return object.NULL
 	}
 	return s.Errorf("unknown node type: %T", node)
+}
+
+func (s *State) evalIndexExpression(left object.Object, node *ast.IndexExpression) object.Object {
+	if left.Type() == object.ERROR {
+		return left
+	}
+	var index object.Object
+	if node.Token.Type() == token.DOT {
+		// index is the string value and not an identifier to resolve.
+		key := node.Index.Value()
+		if key.Type() != token.STRING && key.Type() != token.IDENT {
+			return s.Errorf("index expression with . not string: %s", key.Literal())
+		}
+		return s.evalIndexExpressionIdx(left, object.String{Value: key.Literal()})
+	}
+	if node.Index.Value().Type() == token.COLON {
+		rangeExp := node.Index.(*ast.InfixExpression)
+		return s.evalIndexRangeExpression(left, rangeExp.Left, rangeExp.Right)
+	}
+	index = s.evalInternal(node.Index)
+	if index.Type() == object.ERROR {
+		return index
+	}
+	return s.evalIndexExpressionIdx(left, index)
 }
 
 func (s *State) evalMapLiteral(node *ast.MapLiteral) object.Object {
@@ -453,7 +461,7 @@ func (s *State) evalIndexRangeExpression(left object.Object, leftIdx, rightIdx a
 	}
 }
 
-func (s *State) evalIndexExpression(left, index object.Object) object.Object {
+func (s *State) evalIndexExpressionIdx(left, index object.Object) object.Object {
 	idxOrZero := index
 	if idxOrZero.Type() == object.NIL {
 		idxOrZero = object.Integer{Value: 0}
