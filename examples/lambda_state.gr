@@ -12,3 +12,16 @@ println(prev())	 // prints 1
 if prev() != 0 {
 	error("prev should be 0")
 }
+
+
+func incrIter(n) { // can use n directly as state though maybe not as clear
+	() => ++n
+}
+
+next = incrIter(5)
+println(next())  // prints 6
+println(next())  // prints 7
+println(next())	 // prints 8
+if next() != 9 {
+	error("next should be 9")
+}
