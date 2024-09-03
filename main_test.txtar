@@ -293,6 +293,10 @@ stdout '^8$'
 grol -quiet -c 'v=42;func foo(){v:=v;v=8};println(foo()); v'
 stdout '^8\n42$'
 
+# crash on self ref
+grol -quiet -c 'v=42;func foo(){v=v}; foo()'
+stdout '^42$'
+
 -- json_output --
 {
   "63": 63,
