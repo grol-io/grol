@@ -111,11 +111,11 @@ func (s *State) evalPrefixIncrDecr(operator token.Type, node ast.Node) object.Ob
 	if !ok {
 		return s.NewError("identifier not found: " + id)
 	}
+	val = object.Value(val) // deref.
 	toAdd := int64(1)
 	if operator == token.DECR {
 		toAdd = -1
 	}
-	val = object.Value(val)
 	switch val := val.(type) {
 	case object.Integer:
 		return s.env.Set(id, object.Integer{Value: val.Value + toAdd})
@@ -133,6 +133,7 @@ func (s *State) evalPostfixExpression(node *ast.PostfixExpression) object.Object
 	if !ok {
 		return s.NewError("identifier not found: " + id)
 	}
+	val = object.Value(val) // deref.
 	var toAdd int64
 	switch node.Type() {
 	case token.INCR:
@@ -142,7 +143,6 @@ func (s *State) evalPostfixExpression(node *ast.PostfixExpression) object.Object
 	default:
 		return s.NewError("unknown postfix operator: " + node.Type().String())
 	}
-	val = object.Value(val)
 	var oerr object.Object
 	switch val := val.(type) {
 	case object.Integer:
