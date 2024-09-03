@@ -175,25 +175,41 @@ func (e *Environment) SaveGlobals(to io.Writer, maxValueLen int) (int, error) {
 	return n, nil
 }
 
+func (e *Environment) makeRef(name string) (*Reference, bool) {
+	orig := e
+	for e.outer != nil {
+		obj, ok := e.outer.store[name]
+		if ok {
+			for obj.Type() == REFERENCE { // for is in theory not needed as we deref new refs.
+				obj = obj.(Reference).Value()
+			}
+			ref := Reference{Name: name, RefEnv: e.outer}
+			orig.store[name] = ref
+			orig.getMiss++ // creating a ref is a miss.
+			return &ref, true
+		}
+		e = e.outer
+	}
+	return nil, false
+}
+
 func (e *Environment) Get(name string) (Object, bool) {
 	if name == "info" {
 		return e.Info(), true
 	}
 	obj, ok := e.store[name]
-	if ok || e.outer == nil {
-		return obj, ok
+	if ok {
+		if _, ok = obj.(Reference); ok { // using references implies uncacheable.
+			e.getMiss++
+		}
+		return obj, true
+	}
+	if e.outer == nil {
+		return nil, false
 	}
 	log.Debugf("Get miss (%s) called at %d %v", name, e.depth, e.cacheKey)
-	e.getMiss++
-	for e.outer != nil {
-		obj, ok = e.outer.store[name]
-		if ok {
-			for obj.Type() == REFERENCE { // for is in theory not needed as we deref new refs.
-				obj = obj.(Reference).Value()
-			}
-			return Reference{Name: name, RefEnv: e.outer}, true
-		}
-		e = e.outer
+	if ref, ok := e.makeRef(name); ok {
+		return *ref, true
 	}
 	return nil, false
 }
@@ -243,23 +259,47 @@ func (e *Environment) IsRef(name string) (*Environment, string) {
 	return nil, ""
 }
 
-func (e *Environment) SetNoChecks(name string, val Object) Object {
-	if r, n := e.IsRef(name); r != nil {
-		e = r
-		name = n
-	}
+func (e *Environment) create(name string, val Object) Object {
 	if e.depth == 0 {
 		e.numSet++
-		if _, ok := e.store[name]; !ok {
-			// new top level entry, record it.
-			record(e.ids, name, val.Type())
-		}
+		record(e.ids, name, val.Type())
 	}
 	e.store[name] = val
 	return val
 }
 
+// create force the creation of a new entry, even if had a previous value or ref.
+// (eg. function parameters are always new).
+func (e *Environment) SetNoChecks(name string, val Object, create bool) Object {
+	if create {
+		log.Debugf("SetNoChecks(%s) forced create to %d", name, e.depth)
+		return e.create(name, val)
+	}
+	r, ok := e.store[name] // is this an update? possibly of an existing ref.
+	if ok {
+		if rr, ok := r.(Reference); ok {
+			log.Debugf("SetNoChecks(%s) updating ref %s in %d", name, rr.Name, rr.RefEnv.depth)
+			e = rr.RefEnv
+			name = rr.Name
+		}
+		e.store[name] = val
+		return val
+	}
+	// New name... let's see if it's really new or making it a ref.
+	if ref, ok := e.makeRef(name); ok {
+		log.Debugf("SetNoChecks(%s) created ref %s in %d", name, ref.Name, ref.RefEnv.depth)
+		ref.RefEnv.store[ref.Name] = val
+		return val
+	}
+	log.Debugf("SetNoChecks(%s) brand new to %d and above", name, e.depth)
+	return e.create(name, val)
+}
+
 func (e *Environment) Set(name string, val Object) Object {
+	return e.CreateOrSet(name, val, false)
+}
+
+func (e *Environment) CreateOrSet(name string, val Object, create bool) Object {
 	if Constant(name) {
 		old, ok := e.Get(name) // not ok
 		if ok {
@@ -272,7 +312,7 @@ func (e *Environment) Set(name string, val Object) Object {
 	if IsExtraFunction(name) {
 		return Error{Value: fmt.Sprintf("attempt to change internal function %s to %s", name, val.Inspect())}
 	}
-	return e.SetNoChecks(name, val)
+	return e.SetNoChecks(name, val, create)
 }
 
 func NewEnclosedEnvironment(outer *Environment) *Environment {
