@@ -35,7 +35,9 @@ func (s *State) evalAssignment(right object.Object, node *ast.InfixExpression) o
 		id, _ := node.Left.(*ast.Identifier)
 		name := id.Literal()
 		log.LogVf("eval assign %#v to %s", right, name)
-		return s.env.Set(name, right) // Propagate possible error (constant, extension names setting).
+		// Propagate possible error (constant, extension names setting).
+		// Distinguish between define and assign, define (:=) forces a new variable.
+		return s.env.CreateOrSet(name, right, node.Type() == token.DEFINE)
 	default:
 		return s.NewError("assignment to non identifier: " + node.Left.Value().DebugString())
 	}
@@ -191,7 +193,7 @@ func (s *State) evalInternal(node any) object.Object { //nolint:funlen,gocyclo,g
 	case *ast.InfixExpression:
 		log.LogVf("eval infix %s", node.DebugString())
 		// Eval and not evalInternal because we need to unwrap "return".
-		if node.Token.Type() == token.ASSIGN {
+		if node.Token.Type() == token.ASSIGN || node.Token.Type() == token.DEFINE {
 			return s.evalAssignment(s.Eval(node.Right), node)
 		}
 		// Humans expect left to right evaluations.
@@ -473,8 +475,8 @@ func (s *State) evalIndexExpression(left, index object.Object) object.Object {
 	}
 }
 
-func evalMapIndexExpression(hash, key object.Object) object.Object {
-	m := object.Value(hash).(object.Map)
+func evalMapIndexExpression(assoc, key object.Object) object.Object {
+	m := object.Value(assoc).(object.Map)
 	v, ok := m.Get(key)
 	if !ok {
 		return object.NULL

@@ -154,7 +154,7 @@ a.b
 		{token.IDENT, "y"},
 		{token.RBRACE, "}"},
 		{token.IDENT, "a3"},
-		{token.ASSIGN, "="}, // `:=` changed to `=`.
+		{token.DEFINE, ":="},
 		{token.INT, "5"},
 		{token.INT, "4"},
 		{token.GTEQ, ">="},

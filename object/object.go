@@ -114,10 +114,18 @@ func Equals(left, right Object) bool {
 
 // Deal with references and return the actual value.
 func Value(o Object) Object {
-	if r, ok := o.(Reference); ok {
-		o = r.Value()
+	count := 0
+	for {
+		if r, ok := o.(Reference); ok {
+			o = r.Value()
+			count++
+			if count > 100 {
+				panic("Too many references")
+			}
+			continue
+		}
+		return o
 	}
-	return o
 }
 
 func Cmp(ei, ej Object) int {
@@ -1038,9 +1046,14 @@ type Reference struct {
 }
 
 func (r Reference) Value() Object {
-	log.Infof("XXXX Reference %s -> %s", r.Name, r.RefEnv.store[r.Name].Inspect())
-	return r.RefEnv.store[r.Name]
+	log.Debugf("Reference Value() %s -> %s", r.Name, r.RefEnv.store[r.Name].Inspect())
+	v := r.RefEnv.store[r.Name]
+	if v == r {
+		panic("Self reference")
+	}
+	return v
 }
+
 func (r Reference) Unwrap(str bool) any    { return r.Value().Unwrap(str) }
 func (r Reference) Type() Type             { return r.Value().Type() }
 func (r Reference) Inspect() string        { return r.Value().Inspect() }
