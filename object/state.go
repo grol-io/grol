@@ -179,16 +179,21 @@ func (e *Environment) makeRef(name string) (*Reference, bool) {
 	orig := e
 	for e.outer != nil {
 		obj, ok := e.outer.store[name]
-		if ok {
-			for obj.Type() == REFERENCE { // for is in theory not needed as we deref new refs.
-				obj = obj.(Reference).Value()
-			}
-			ref := Reference{Name: name, RefEnv: e.outer}
-			orig.store[name] = ref
-			orig.getMiss++ // creating a ref is a miss.
-			return &ref, true
+		if !ok {
+			e = e.outer
+			continue
 		}
-		e = e.outer
+		for {
+			o, ok := obj.(Reference)
+			if !ok {
+				break
+			}
+			obj = o.Value()
+		}
+		ref := Reference{Name: name, RefEnv: e.outer}
+		orig.store[name] = ref
+		orig.getMiss++ // creating a ref is a miss.
+		return &ref, true
 	}
 	return nil, false
 }
