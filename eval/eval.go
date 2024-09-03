@@ -577,6 +577,8 @@ func (s *State) applyFunction(name string, fn object.Object, args []object.Objec
 	}
 	if after != before {
 		log.Debugf("Cache miss for %s %v, %d get misses", function.CacheKey, args, after-before)
+		// A miss here is a miss upstack
+		s.env.TriggerNoCache()
 		return res
 	}
 	// Don't cache errors, as it could be due to binding for instance.
