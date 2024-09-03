@@ -262,7 +262,7 @@ stdout '^6$'
 grol -quiet -c '(()=>a=>b=>()=>c=>a+b+c)()(1)(2)()(3)'
 stdout '^6$'
 
-grol -quiet -c '(()=>a=>b=>(x,y)=>c=>a+b+c+x+y)()(1)(2)(4,5)(3)'
+grol -quiet -c 'f= a=>b=>(x,y)=>c=>a+b+c+x+y;f(1)(2)(4,5)(3)'
 stdout '^15$'
 
 # stack trace in errors
