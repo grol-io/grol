@@ -183,14 +183,11 @@ func (e *Environment) makeRef(name string) (*Reference, bool) {
 			e = e.outer
 			continue
 		}
-		for {
-			o, ok := obj.(Reference)
-			if !ok {
-				break
-			}
-			obj = o.Value()
-		}
 		ref := Reference{Name: name, RefEnv: e.outer}
+		if r, isRef := obj.(Reference); isRef {
+			log.Debugf("makeRef(%s) found ref %s in %d", name, r.Name, r.RefEnv.depth)
+			ref = r // set and return the original ref instead of ref of ref.
+		}
 		orig.store[name] = ref
 		orig.getMiss++ // creating a ref is a miss.
 		return &ref, true

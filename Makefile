@@ -6,7 +6,7 @@ run: grol
 	# Interactive debug run: use logger with file and line numbers
 	LOGGER_IGNORE_CLI_MODE=true GOMEMLIMIT=1GiB ./grol -panic -parse -loglevel debug
 
-GEN:=object/type_string.go parser/priority_string.go token/type_string.go
+GEN:=object/type_string.go ast/priority_string.go token/type_string.go
 
 grol: Makefile *.go */*.go $(GEN)
 	CGO_ENABLED=0 go build -trimpath -ldflags="-w -s" -tags "$(GO_BUILD_TAGS)" .
@@ -79,16 +79,13 @@ test: grol
 check: grol
 	./check_samples_double_format.sh examples/*.gr
 
-generate:
-	go generate ./... # if this fails go install golang.org/x/tools/cmd/stringer@latest
-
 generate: $(GEN)
 
 object/type_string.go: object/object.go
-	go generate ./object
+	go generate ./object # if this fails go install golang.org/x/tools/cmd/stringer@latest
 
-parser/priority_string.go: parser/parser.go
-	go generate ./parser
+ast/priority_string.go: ast/ast.go
+	go generate ./ast
 
 token/type_string.go: token/token.go
 	go generate ./token
