@@ -13,7 +13,8 @@ import (
 
 func TestMain(m *testing.M) {
 	os.Exit(testscript.RunMain(m, map[string]func() int{
-		"grol": main.Main,
+		"grol":     main.Main,
+		"grol.exe": main.Main,
 	}))
 }
 
