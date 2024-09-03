@@ -29,7 +29,7 @@ func (s *State) evalAssignment(right object.Object, node *ast.InfixExpression) o
 		return s.evalIndexAssigment(idxE.Left, index, right)
 	case token.LBRACKET:
 		idxE := node.Left.(*ast.IndexExpression)
-		index := s.evalInternal(idxE.Index)
+		index := s.Eval(idxE.Index)
 		return s.evalIndexAssigment(idxE.Left, index, right)
 	case token.IDENT:
 		id, _ := node.Left.(*ast.Identifier)
@@ -159,6 +159,8 @@ func (s *State) evalPostfixExpression(node *ast.PostfixExpression) object.Object
 }
 
 // Doesn't unwrap return - return bubbles up.
+// Initially this was the one to use internally recursively, except for when evaluating a function
+// but now it's less clear because of the need to unwrap references too. TODO: fix/clarify.
 func (s *State) evalInternal(node any) object.Object { //nolint:funlen,gocyclo // quite a lot of cases.
 	if s.Context != nil && s.Context.Err() != nil {
 		return s.Error(s.Context.Err())
@@ -184,7 +186,7 @@ func (s *State) evalInternal(node any) object.Object { //nolint:funlen,gocyclo /
 		case token.INCR, token.DECR:
 			return s.evalPrefixIncrDecr(node.Type(), node.Right)
 		default:
-			right := s.evalInternal(node.Right)
+			right := s.Eval(node.Right)
 			if right.Type() == object.ERROR {
 				return right
 			}
@@ -196,7 +198,7 @@ func (s *State) evalInternal(node any) object.Object { //nolint:funlen,gocyclo /
 		log.LogVf("eval infix %s", node.DebugString())
 		// Eval and not evalInternal because we need to unwrap "return".
 		if node.Token.Type() == token.ASSIGN || node.Token.Type() == token.DEFINE {
-			return s.evalAssignment(s.evalInternal(node.Right), node)
+			return s.evalAssignment(s.Eval(node.Right), node)
 		}
 		// Humans expect left to right evaluations.
 		left := s.Eval(node.Left)
@@ -318,12 +320,12 @@ func (s *State) evalMapLiteral(node *ast.MapLiteral) object.Object {
 
 	for _, keyNode := range node.Order {
 		valueNode := node.Pairs[keyNode]
-		key := s.evalInternal(keyNode)
+		key := s.Eval(keyNode)
 		if !object.Equals(key, key) {
 			log.Warnf("key %s is not hashable", key.Inspect())
 			return s.NewError("key " + key.Inspect() + " is not hashable")
 		}
-		value := s.evalInternal(valueNode)
+		value := s.Eval(valueNode)
 		result = result.Set(key, value)
 	}
 	return result
