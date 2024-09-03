@@ -52,6 +52,7 @@ func (s *State) evalIndexAssigment(which ast.Node, index, value object.Object) o
 	if !ok {
 		return s.NewError("identifier not found: " + id.Literal())
 	}
+	val = object.Value(val) // deref.
 	switch val.Type() {
 	case object.ARRAY:
 		if index.Type() != object.INTEGER {
@@ -497,7 +498,7 @@ func evalMapIndexExpression(assoc, key object.Object) object.Object {
 	if !ok {
 		return object.NULL
 	}
-	return v
+	return v // already unwrapped (index has been Eval'ed)
 }
 
 func evalArrayIndexExpression(array, index object.Object) object.Object {
