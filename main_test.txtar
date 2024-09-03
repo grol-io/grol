@@ -285,6 +285,14 @@ stderr '^<err: bitwise not of 1.1>$'
 # time parse round trip
 grol -quiet -c 'now=time(); time_parse(time_info(now).str) == now'
 
+# reference changing parent:
+grol -quiet -c 'v=42;func foo(){v=8};foo();v'
+stdout '^8$'
+
+# define not changing parent
+grol -quiet -c 'v=42;func foo(){v:=v;v=8};println(foo()); v'
+stdout '^8\n42$'
+
 -- json_output --
 {
   "63": 63,
