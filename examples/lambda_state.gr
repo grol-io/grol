@@ -1,0 +1,14 @@
+// Demonstrate internal state update in a lambda.
+
+func decrIter(n) {
+	state := n
+	() => state--
+}
+
+prev = decrIter(3)
+println(prev())  // prints 3
+println(prev())  // prints 2
+println(prev())	 // prints 1
+if prev() != 0 {
+	error("prev should be 0")
+}
