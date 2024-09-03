@@ -25,3 +25,25 @@ for v = [2,-5,7] {println("v",v)}
 
 // For strings iterations is on runes - demonstrate continue (skip the "b")
 for c = "ab😀" {if c=="b" {continue} println("rune",c)}
+
+// -- test of return's scope --
+
+innerRetVal = "abc"
+outerRetVal = "xyz"
+res = () => {
+    inner = () => {
+    // for loop with a stop condition
+    for true {println("(not) infinite loop"); return innerRetVal}
+    // unreachable code, return inside the for should bubble up to the lambda level
+    println("this will not be printed")
+    return "def"
+}()
+if inner != "abc" {
+    error("unexpected inner return value", inner)
+}
+return outerRetVal
+}()
+
+if res != "xyz" {
+    error("unexpected outer return value", res)
+}
