@@ -214,12 +214,22 @@ func Test_OperatorPrecedenceParsing(t *testing.T) {
 	}
 }
 
-func TestFormat(t *testing.T) {
+func TestFormat(t *testing.T) { //nolint:funlen // long table driven tests.
 	tests := []struct {
 		input    string
 		expected string
 		compact  string
 	}{
+		{
+			`a=>b=>a+b`,
+			"a => {\n\tb => {\n\t\ta + b\n\t}\n}",
+			"a=>{b=>{a+b}}",
+		},
+		{
+			"a=>{b=>{a+b}}", // check it parses back fine, unlike before https://github.com/grol-io/grol/issues/208 fix
+			"a => {\n\tb => {\n\t\ta + b\n\t}\n}",
+			"a=>{b=>{a+b}}",
+		},
 		{
 			`a=[1,2,3]
 a[1]

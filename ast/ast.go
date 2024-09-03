@@ -20,6 +20,7 @@ const (
 	ASSIGN      // =
 	OR          // ||
 	AND         // &&
+	LAMBDA      // =>
 	EQUALS      // ==
 	LESSGREATER // > or <
 	SUM         // +
@@ -38,7 +39,7 @@ var Precedences = map[token.Type]Priority{
 	token.COLON:      AND, // range operator and maps (lower than lambda)
 	token.EQ:         EQUALS,
 	token.NOTEQ:      EQUALS,
-	token.LAMBDA:     EQUALS,
+	token.LAMBDA:     LAMBDA,
 	token.LT:         LESSGREATER,
 	token.GT:         LESSGREATER,
 	token.LTEQ:       LESSGREATER,
