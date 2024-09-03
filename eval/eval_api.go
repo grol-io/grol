@@ -139,7 +139,10 @@ func (s *State) Eval(node any) object.Object {
 		if returnValue.ControlType != token.RETURN {
 			return s.Errorf("unexpected control type %v outside of for loops", returnValue.ControlType)
 		}
-		return returnValue.Value
+		result = returnValue.Value
+	}
+	if refValue, ok := result.(object.Reference); ok {
+		return object.Value(refValue)
 	}
 	return result
 }
