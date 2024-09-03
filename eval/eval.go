@@ -619,7 +619,7 @@ func extendFunctionEnv(
 			name, len(args), atLeast, n)}
 	}
 	for paramIdx, param := range params {
-		oerr := env.Set(param.Value().Literal(), args[paramIdx])
+		oerr := env.CreateOrSet(param.Value().Literal(), args[paramIdx], true)
 		log.LogVf("set %s to %s - %s", param.Value().Literal(), args[paramIdx].Inspect(), oerr.Inspect())
 		if oerr.Type() == object.ERROR {
 			oe, _ := object.Value(oerr).(object.Error)
@@ -627,14 +627,14 @@ func extendFunctionEnv(
 		}
 	}
 	if fn.Variadic {
-		env.SetNoChecks("..", object.NewArray(extra))
+		env.SetNoChecks("..", object.NewArray(extra), true)
 	}
 	// for recursion in anonymous functions.
 	// TODO: consider not having to keep setting this in the function's env and treating as a keyword.
-	env.SetNoChecks("self", fn)
+	env.SetNoChecks("self", fn, true)
 	// For recursion in named functions, set it here so we don't need to go up a stack of 50k envs to find it
 	if sameFunction && name != "" {
-		env.SetNoChecks(name, fn)
+		env.SetNoChecks(name, fn, true)
 	}
 	return env, nil
 }
