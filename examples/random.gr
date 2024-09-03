@@ -1,0 +1,14 @@
+// Really this checks we don't cache functions that call non cacheable functions.
+
+func deepRand() {
+	() => {
+		rand()
+	}()
+}
+
+a1 = deepRand(); log("a1", a1)
+a2 = deepRand(); log("a2", a2)
+
+if a1 == a2 {
+	error("a1 and a2 should be different")
+}

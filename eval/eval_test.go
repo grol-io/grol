@@ -1009,3 +1009,16 @@ func TestSelfRef(t *testing.T) {
 		t.Errorf("wrong result, got %q", res.Inspect())
 	}
 }
+
+func TestAliasTwice(t *testing.T) {
+	inp := `a=1; b=2;()=>{a=b}();b=5;()=>{a=b}()` // should not crash
+	s := eval.NewState()
+	res, err := eval.EvalString(s, inp, false)
+	if err != nil {
+		t.Errorf("should not have errored: %v", err)
+	}
+	expected := "5"
+	if res.Inspect() != expected {
+		t.Errorf("wrong result, got %q", res.Inspect())
+	}
+}

@@ -302,7 +302,7 @@ func (e *Environment) SetNoChecks(name string, val Object, create bool) Object {
 	// New name... let's see if it's really new or making it a ref.
 	if ref, ok := e.makeRef(name); ok {
 		log.Debugf("SetNoChecks(%s) created ref %s in %d", name, ref.Name, ref.RefEnv.depth)
-		ref.RefEnv.store[ref.Name] = val
+		ref.RefEnv.store[ref.Name] = Value(val) // kinda neat to make aliases but it can create loops, so not for now.
 		return val
 	}
 	log.Debugf("SetNoChecks(%s) brand new to %d and above", name, e.depth)

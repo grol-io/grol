@@ -311,6 +311,10 @@ stdout '^42$'
 grol -quiet -c 'a=-3; b=5; ()=>{b=a;a=b;b++;a++}();[a,b]'
 stdout '^\[-2,-2\]$'
 
+# 2nd aliasing crashes
+grol -quiet -c 'a=1; b=2;()=>{a=b}();()=>{a=b;println(type(a),type(b))}()'
+stdout '&a.\(INTEGER\) &b.\(INTEGER\)'
+
 -- json_output --
 {
   "63": 63,
