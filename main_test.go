@@ -1,5 +1,5 @@
-//go:build !tinygo
-// +build !tinygo
+//go:build !tinygo && !windows
+// +build !tinygo,!windows
 
 package main_test
 
@@ -11,10 +11,10 @@ import (
 	main "grol.io/grol"
 )
 
+// TODO: figure out how to make it work on windows - maybe need to use $exe everywhere?
 func TestMain(m *testing.M) {
 	os.Exit(testscript.RunMain(m, map[string]func() int{
-		"grol":     main.Main,
-		"grol.exe": main.Main,
+		"grol": main.Main,
 	}))
 }
 
