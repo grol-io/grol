@@ -115,6 +115,7 @@ func (s *State) evalPrefixIncrDecr(operator token.Type, node ast.Node) object.Ob
 	if operator == token.DECR {
 		toAdd = -1
 	}
+	val = object.Value(val)
 	switch val := val.(type) {
 	case object.Integer:
 		return s.env.Set(id, object.Integer{Value: val.Value + toAdd})
@@ -142,6 +143,7 @@ func (s *State) evalPostfixExpression(node *ast.PostfixExpression) object.Object
 		return s.NewError("unknown postfix operator: " + node.Type().String())
 	}
 	var oerr object.Object
+	val = object.Value(val)
 	switch val := val.(type) {
 	case object.Integer:
 		oerr = s.env.Set(id, object.Integer{Value: val.Value + toAdd})
