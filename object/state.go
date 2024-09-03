@@ -271,6 +271,23 @@ func (e *Environment) create(name string, val Object) Object {
 	return val
 }
 
+func (e *Environment) update(name string, found, val Object) Object {
+	if vref, ok := val.(Reference); ok {
+		log.Debugf("Not setting %q to a reference %q", name, vref.Name)
+		val = Value(val)
+	}
+	if rr, ok := found.(Reference); ok {
+		log.Debugf("SetNoChecks(%s) updating ref %s in %d", name, rr.Name, rr.RefEnv.depth)
+		e = rr.RefEnv
+		name = rr.Name
+	}
+	e.store[name] = val
+	if e.depth == 0 {
+		e.numSet++
+	}
+	return val
+}
+
 // create force the creation of a new entry, even if had a previous value or ref.
 // (eg. function parameters are always new).
 func (e *Environment) SetNoChecks(name string, val Object, create bool) Object {
@@ -280,16 +297,7 @@ func (e *Environment) SetNoChecks(name string, val Object, create bool) Object {
 	}
 	r, ok := e.store[name] // is this an update? possibly of an existing ref.
 	if ok {
-		if rr, ok := r.(Reference); ok {
-			log.Debugf("SetNoChecks(%s) updating ref %s in %d", name, rr.Name, rr.RefEnv.depth)
-			e = rr.RefEnv
-			name = rr.Name
-		}
-		e.store[name] = val
-		if e.depth == 0 {
-			e.numSet++
-		}
-		return val
+		return e.update(name, r, val)
 	}
 	// New name... let's see if it's really new or making it a ref.
 	if ref, ok := e.makeRef(name); ok {

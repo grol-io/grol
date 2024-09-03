@@ -297,6 +297,10 @@ stdout '^8\n42$'
 grol -quiet -c 'v=42;func foo(){v=v}; foo()'
 stdout '^42$'
 
+# 2 step ref loop
+grol -quiet -c 'a=-3; b=5; ()=>{b=a;a=b;b++;a++}();[a,b]'
+stdout '^\[-2,-2\]$'
+
 -- json_output --
 {
   "63": 63,
