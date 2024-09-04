@@ -533,14 +533,15 @@ func (s *State) applyExtension(fn object.Extension, args []object.Object) object
 			l, fn.Inspect())} // shows usage
 	}
 	for i, arg := range args {
-		arg = object.Value(arg) // deref.
-		args[i] = arg
 		if i >= len(fn.ArgTypes) {
 			break
 		}
 		if fn.ArgTypes[i] == object.ANY {
 			continue
 		}
+		// deref but only if type isn't ANY - so type() gets the REFERENCES but math functions don't/get values.
+		arg = object.Value(arg)
+		args[i] = arg
 		// Auto promote integer to float if needed.
 		if fn.ArgTypes[i] == object.FLOAT && arg.Type() == object.INTEGER {
 			args[i] = object.Float{Value: float64(arg.(object.Integer).Value)}
