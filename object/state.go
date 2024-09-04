@@ -189,7 +189,9 @@ func (e *Environment) makeRef(name string) (*Reference, bool) {
 			ref = r // set and return the original ref instead of ref of ref.
 		}
 		orig.store[name] = ref
-		orig.getMiss++ // creating a ref is a miss.
+		if !Constant(name) {
+			orig.getMiss++ // creating a ref to a non constant is a miss.
+		}
 		return &ref, true
 	}
 	return nil, false
@@ -201,7 +203,8 @@ func (e *Environment) Get(name string) (Object, bool) {
 	}
 	obj, ok := e.store[name]
 	if ok {
-		if _, ok = obj.(Reference); ok { // using references implies uncacheable.
+		// using references to non constant (extensions are constants) implies uncacheable.
+		if r, ok := obj.(Reference); ok && !Constant(r.Name) {
 			e.getMiss++
 		}
 		return obj, true
