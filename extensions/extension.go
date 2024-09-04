@@ -173,6 +173,7 @@ func initInternal(c *Config) error {
 	createStrFunctions()
 	createMisc()
 	createTimeFunctions()
+	createImageFunctions()
 	return nil
 }
 
