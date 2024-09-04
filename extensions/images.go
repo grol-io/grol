@@ -12,8 +12,8 @@ import (
 
 type ImageMap map[object.Object]*image.RGBA
 
-// make this configurable and use the slice check as well as some sort of LRU.
-const MaxImageSize = 1024
+// TODO: make this configurable and use the slice check as well as some sort of LRU.
+const MaxImageDimension = 1024 // in pixels.
 
 func int2RGBAColor(o object.Object) (uint8, *object.Error) {
 	if o.Type() != object.INTEGER {
@@ -21,7 +21,7 @@ func int2RGBAColor(o object.Object) (uint8, *object.Error) {
 	}
 	i := o.(object.Integer).Value
 	if i < 0 || i > 255 {
-		return 0, &object.Error{Value: "color component out of range:" + o.Inspect()}
+		return 0, &object.Error{Value: "color component out of range (should be 0-255):" + o.Inspect()}
 	}
 	return uint8(i), nil //nolint:gosec // gosec not smart enough to see the range check just above
 }
@@ -29,7 +29,7 @@ func int2RGBAColor(o object.Object) (uint8, *object.Error) {
 func arrayToRBGAColor(arr []object.Object) (color.RGBA, *object.Error) {
 	rgba := color.RGBA{}
 	if len(arr) < 3 || len(arr) > 4 {
-		return rgba, &object.Error{Value: "color array must have 3 or 4 elements"}
+		return rgba, &object.Error{Value: "color array must be [R,G,B] or [R,G,B,A]"}
 	}
 	var oerr *object.Error
 	rgba.R, oerr = int2RGBAColor(arr[0])
@@ -56,6 +56,7 @@ func arrayToRBGAColor(arr []object.Object) (color.RGBA, *object.Error) {
 }
 
 func createImageFunctions() {
+	// All the functions consistently use args[0] as the image name/reference into the ClientData map.
 	cdata := make(ImageMap)
 	imgFn := object.Extension{
 		Name:       "image",
@@ -68,7 +69,7 @@ func createImageFunctions() {
 			images := cdata.(ImageMap)
 			x := int(args[1].(object.Integer).Value)
 			y := int(args[2].(object.Integer).Value)
-			if x > MaxImageSize || y > MaxImageSize {
+			if x > MaxImageDimension || y > MaxImageDimension {
 				return object.Error{Value: "image size too large"}
 			}
 			if x < 0 || y < 0 {
@@ -118,11 +119,11 @@ func createImageFunctions() {
 		if err != nil {
 			return object.Error{Value: "error opening image file: " + err.Error()}
 		}
+		defer outputFile.Close()
 		err = png.Encode(outputFile, img)
 		if err != nil {
 			return object.Error{Value: "error encoding image: " + err.Error()}
 		}
-		outputFile.Close()
 		return args[0]
 	}
 	MustCreate(imgFn)
