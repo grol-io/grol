@@ -533,6 +533,8 @@ func (s *State) applyExtension(fn object.Extension, args []object.Object) object
 			l, fn.Inspect())} // shows usage
 	}
 	for i, arg := range args {
+		arg = object.Value(arg) // deref.
+		args[i] = arg
 		if i >= len(fn.ArgTypes) {
 			break
 		}
