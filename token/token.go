@@ -115,6 +115,7 @@ const (
 	LEFTSHIFT
 	RIGHTSHIFT
 	LAMBDA // => lambda short cut: `a,b => a+b` alias for `func(a,b) {a+b}`
+	DEFINE // := (force create new variable instead of possible ref to upper scope)
 
 	endMultiCharTokens
 
@@ -293,9 +294,7 @@ func Init() {
 	assocC2(LEFTSHIFT, "<<")
 	assocC2(RIGHTSHIFT, ">>")
 	assocC2(LAMBDA, "=>")
-	// Special alias for := to be same as ASSIGN.
-	c2Tokens[[2]byte{':', '='}] = cTokens['=']
-	info.Tokens.Add(":=")
+	assocC2(DEFINE, ":=")
 }
 
 //go:generate stringer -type=Type

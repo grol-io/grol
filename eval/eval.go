@@ -29,13 +29,15 @@ func (s *State) evalAssignment(right object.Object, node *ast.InfixExpression) o
 		return s.evalIndexAssigment(idxE.Left, index, right)
 	case token.LBRACKET:
 		idxE := node.Left.(*ast.IndexExpression)
-		index := s.evalInternal(idxE.Index)
+		index := s.Eval(idxE.Index)
 		return s.evalIndexAssigment(idxE.Left, index, right)
 	case token.IDENT:
 		id, _ := node.Left.(*ast.Identifier)
 		name := id.Literal()
 		log.LogVf("eval assign %#v to %s", right, name)
-		return s.env.Set(name, right) // Propagate possible error (constant, extension names setting).
+		// Propagate possible error (constant, extension names setting).
+		// Distinguish between define and assign, define (:=) forces a new variable.
+		return s.env.CreateOrSet(name, right, node.Type() == token.DEFINE)
 	default:
 		return s.NewError("assignment to non identifier: " + node.Left.Value().DebugString())
 	}
@@ -50,6 +52,7 @@ func (s *State) evalIndexAssigment(which ast.Node, index, value object.Object) o
 	if !ok {
 		return s.NewError("identifier not found: " + id.Literal())
 	}
+	val = object.Value(val) // deref.
 	switch val.Type() {
 	case object.ARRAY:
 		if index.Type() != object.INTEGER {
@@ -102,13 +105,14 @@ func (s *State) evalPrefixIncrDecr(operator token.Type, node ast.Node) object.Ob
 	log.LogVf("eval prefix %s", ast.DebugString(node))
 	nv := node.Value()
 	if nv.Type() != token.IDENT {
-		return s.NewError("can't increment/decrement " + nv.DebugString())
+		return s.NewError("can't prefix increment/decrement " + nv.DebugString())
 	}
 	id := nv.Literal()
 	val, ok := s.env.Get(id)
 	if !ok {
 		return s.NewError("identifier not found: " + id)
 	}
+	val = object.Value(val) // deref.
 	toAdd := int64(1)
 	if operator == token.DECR {
 		toAdd = -1
@@ -119,7 +123,7 @@ func (s *State) evalPrefixIncrDecr(operator token.Type, node ast.Node) object.Ob
 	case object.Float:
 		return s.env.Set(id, object.Float{Value: val.Value + float64(toAdd)}) // So PI++ fails not silently.
 	default:
-		return s.NewError("can't increment/decrement " + val.Type().String())
+		return s.NewError("can't prefix increment/decrement " + val.Type().String())
 	}
 }
 
@@ -130,6 +134,7 @@ func (s *State) evalPostfixExpression(node *ast.PostfixExpression) object.Object
 	if !ok {
 		return s.NewError("identifier not found: " + id)
 	}
+	val = object.Value(val) // deref.
 	var toAdd int64
 	switch node.Type() {
 	case token.INCR:
@@ -146,7 +151,7 @@ func (s *State) evalPostfixExpression(node *ast.PostfixExpression) object.Object
 	case object.Float:
 		oerr = s.env.Set(id, object.Float{Value: val.Value + float64(toAdd)}) // So PI++ fails not silently.
 	default:
-		return s.NewError("can't increment/decrement " + val.Type().String())
+		return s.NewError("can't postfix increment/decrement " + val.Type().String())
 	}
 	if oerr.Type() == object.ERROR {
 		return oerr
@@ -155,7 +160,9 @@ func (s *State) evalPostfixExpression(node *ast.PostfixExpression) object.Object
 }
 
 // Doesn't unwrap return - return bubbles up.
-func (s *State) evalInternal(node any) object.Object { //nolint:funlen,gocyclo,gocognit // quite a lot of cases.
+// Initially this was the one to use internally recursively, except for when evaluating a function
+// but now it's less clear because of the need to unwrap references too. TODO: fix/clarify.
+func (s *State) evalInternal(node any) object.Object { //nolint:funlen,gocyclo // quite a lot of cases.
 	if s.Context != nil && s.Context.Err() != nil {
 		return s.Error(s.Context.Err())
 	}
@@ -180,7 +187,7 @@ func (s *State) evalInternal(node any) object.Object { //nolint:funlen,gocyclo,g
 		case token.INCR, token.DECR:
 			return s.evalPrefixIncrDecr(node.Type(), node.Right)
 		default:
-			right := s.evalInternal(node.Right)
+			right := s.Eval(node.Right)
 			if right.Type() == object.ERROR {
 				return right
 			}
@@ -191,7 +198,7 @@ func (s *State) evalInternal(node any) object.Object { //nolint:funlen,gocyclo,g
 	case *ast.InfixExpression:
 		log.LogVf("eval infix %s", node.DebugString())
 		// Eval and not evalInternal because we need to unwrap "return".
-		if node.Token.Type() == token.ASSIGN {
+		if node.Token.Type() == token.ASSIGN || node.Token.Type() == token.DEFINE {
 			return s.evalAssignment(s.Eval(node.Right), node)
 		}
 		// Humans expect left to right evaluations.
@@ -256,7 +263,7 @@ func (s *State) evalInternal(node any) object.Object { //nolint:funlen,gocyclo,g
 		}
 		return fn
 	case *ast.CallExpression:
-		f := s.evalInternal(node.Function)
+		f := s.Eval(node.Function)
 		if f.Type() == object.ERROR {
 			return f
 		}
@@ -278,23 +285,35 @@ func (s *State) evalInternal(node any) object.Object { //nolint:funlen,gocyclo,g
 	case *ast.MapLiteral:
 		return s.evalMapLiteral(node)
 	case *ast.IndexExpression:
-		left := s.evalInternal(node.Left)
-		var index object.Object
-		if node.Token.Type() == token.DOT {
-			// index is the string value and not an identifier.
-			index = object.String{Value: node.Index.Value().Literal()}
-		} else {
-			if node.Index.Value().Type() == token.COLON {
-				rangeExp := node.Index.(*ast.InfixExpression)
-				return s.evalIndexRangeExpression(left, rangeExp.Left, rangeExp.Right)
-			}
-			index = s.evalInternal(node.Index)
-		}
-		return s.evalIndexExpression(left, index)
+		return s.evalIndexExpression(s.Eval(node.Left), node)
 	case *ast.Comment:
 		return object.NULL
 	}
 	return s.Errorf("unknown node type: %T", node)
+}
+
+func (s *State) evalIndexExpression(left object.Object, node *ast.IndexExpression) object.Object {
+	if left.Type() == object.ERROR {
+		return left
+	}
+	var index object.Object
+	if node.Token.Type() == token.DOT {
+		// index is the string value and not an identifier to resolve.
+		key := node.Index.Value()
+		if key.Type() != token.STRING && key.Type() != token.IDENT {
+			return s.Errorf("index expression with . not string: %s", key.Literal())
+		}
+		return s.evalIndexExpressionIdx(left, object.String{Value: key.Literal()})
+	}
+	if node.Index.Value().Type() == token.COLON {
+		rangeExp := node.Index.(*ast.InfixExpression)
+		return s.evalIndexRangeExpression(left, rangeExp.Left, rangeExp.Right)
+	}
+	index = s.Eval(node.Index)
+	if index.Type() == object.ERROR {
+		return index
+	}
+	return s.evalIndexExpressionIdx(left, index)
 }
 
 func (s *State) evalMapLiteral(node *ast.MapLiteral) object.Object {
@@ -302,12 +321,12 @@ func (s *State) evalMapLiteral(node *ast.MapLiteral) object.Object {
 
 	for _, keyNode := range node.Order {
 		valueNode := node.Pairs[keyNode]
-		key := s.evalInternal(keyNode)
+		key := s.Eval(keyNode)
 		if !object.Equals(key, key) {
 			log.Warnf("key %s is not hashable", key.Inspect())
 			return s.NewError("key " + key.Inspect() + " is not hashable")
 		}
-		value := s.evalInternal(valueNode)
+		value := s.Eval(valueNode)
 		result = result.Set(key, value)
 	}
 	return result
@@ -399,13 +418,13 @@ func (s *State) evalBuiltin(node *ast.Builtin) object.Object {
 }
 
 func (s *State) evalIndexRangeExpression(left object.Object, leftIdx, rightIdx ast.Node) object.Object {
-	leftIndex := s.evalInternal(leftIdx)
+	leftIndex := s.Eval(leftIdx)
 	nilRight := (rightIdx == nil)
 	var rightIndex object.Object
 	if nilRight {
 		log.Debugf("eval index %s[%s:]", left.Inspect(), leftIndex.Inspect())
 	} else {
-		rightIndex = s.evalInternal(rightIdx)
+		rightIndex = s.Eval(rightIdx)
 		log.Debugf("eval index %s[%s:%s]", left.Inspect(), leftIndex.Inspect(), rightIndex.Inspect())
 	}
 	if leftIndex.Type() != object.INTEGER || (!nilRight && rightIndex.Type() != object.INTEGER) {
@@ -445,7 +464,7 @@ func (s *State) evalIndexRangeExpression(left object.Object, leftIdx, rightIdx a
 	}
 }
 
-func (s *State) evalIndexExpression(left, index object.Object) object.Object {
+func (s *State) evalIndexExpressionIdx(left, index object.Object) object.Object {
 	idxOrZero := index
 	if idxOrZero.Type() == object.NIL {
 		idxOrZero = object.Integer{Value: 0}
@@ -473,13 +492,13 @@ func (s *State) evalIndexExpression(left, index object.Object) object.Object {
 	}
 }
 
-func evalMapIndexExpression(hash, key object.Object) object.Object {
-	m := hash.(object.Map)
+func evalMapIndexExpression(assoc, key object.Object) object.Object {
+	m := assoc.(object.Map)
 	v, ok := m.Get(key)
 	if !ok {
 		return object.NULL
 	}
-	return v
+	return v // already unwrapped (index has been Eval'ed)
 }
 
 func evalArrayIndexExpression(array, index object.Object) object.Object {
@@ -573,6 +592,8 @@ func (s *State) applyFunction(name string, fn object.Object, args []object.Objec
 	}
 	if after != before {
 		log.Debugf("Cache miss for %s %v, %d get misses", function.CacheKey, args, after-before)
+		// A miss here is a miss upstack
+		s.env.TriggerNoCache()
 		return res
 	}
 	// Don't cache errors, as it could be due to binding for instance.
@@ -619,7 +640,8 @@ func extendFunctionEnv(
 			name, len(args), atLeast, n)}
 	}
 	for paramIdx, param := range params {
-		oerr := env.Set(param.Value().Literal(), args[paramIdx])
+		// By definition function parameters are local copies, deref argument values:
+		oerr := env.CreateOrSet(param.Value().Literal(), object.Value(args[paramIdx]), true)
 		log.LogVf("set %s to %s - %s", param.Value().Literal(), args[paramIdx].Inspect(), oerr.Inspect())
 		if oerr.Type() == object.ERROR {
 			oe, _ := oerr.(object.Error)
@@ -627,14 +649,14 @@ func extendFunctionEnv(
 		}
 	}
 	if fn.Variadic {
-		env.SetNoChecks("..", object.NewArray(extra))
+		env.SetNoChecks("..", object.NewArray(extra), true)
 	}
 	// for recursion in anonymous functions.
-	// TODO: consider not having to keep setting this in the function's env and treating as a keyword.
-	env.SetNoChecks("self", fn)
+	// TODO: consider not having to keep setting this in the function's env and treating as a keyword or magic var like info.
+	env.SetNoChecks("self", fn, true)
 	// For recursion in named functions, set it here so we don't need to go up a stack of 50k envs to find it
 	if sameFunction && name != "" {
-		env.SetNoChecks(name, fn)
+		env.SetNoChecks(name, fn, true)
 	}
 	return env, nil
 }
@@ -747,7 +769,7 @@ func (s *State) evalForSpecialForms(fe *ast.ForExpression) (object.Object, bool)
 		return s.evalForInteger(fe, &startInt, end.(object.Integer), name), true
 	}
 	// Evaluate:
-	v := s.Eval(ie.Right)
+	v := s.evalInternal(ie.Right)
 	switch v.Type() {
 	case object.INTEGER:
 		return s.evalForInteger(fe, nil, v.(object.Integer), name), true

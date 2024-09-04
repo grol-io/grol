@@ -121,6 +121,7 @@ func New(l *lexer.Lexer) *Parser {
 
 	// no let:
 	p.registerInfix(token.ASSIGN, p.parseInfixExpression)
+	p.registerInfix(token.DEFINE, p.parseInfixExpression)
 
 	p.postfixParseFns = make(map[token.Type]postfixParseFn)
 	p.registerPostfix(token.INCR, p.parsePostfixExpression)

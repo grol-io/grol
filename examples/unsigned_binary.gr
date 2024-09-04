@@ -19,4 +19,6 @@ func binary(v) {
 b = binary(~0)
 println(b)
 
-len(b) == 64
+if len(b) != 64 {
+	error("len(b) should be 64")
+}

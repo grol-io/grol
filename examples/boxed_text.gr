@@ -103,11 +103,10 @@ func boxMatrixA(matrix) {
     widths = matrixWidths(matrix)
     maxes = maxWidths(widths)
 
-    lines = []
     // Top line
     topLine = box.topLeft + join(apply(w => box.horizontal * w,
         maxes), box.topT) + box.topRight
-    lines = lines + [topLine]
+    lines = [topLine]
 
     // Middle content (rows and separators)
     lines = forRecursive(len(matrix), func(rowIndex, lines) {

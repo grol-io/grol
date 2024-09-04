@@ -175,17 +175,45 @@ func (e *Environment) SaveGlobals(to io.Writer, maxValueLen int) (int, error) {
 	return n, nil
 }
 
+func (e *Environment) makeRef(name string) (*Reference, bool) {
+	orig := e
+	for e.outer != nil {
+		obj, ok := e.outer.store[name]
+		if !ok {
+			e = e.outer
+			continue
+		}
+		ref := Reference{Name: name, RefEnv: e.outer}
+		if r, isRef := obj.(Reference); isRef {
+			log.Debugf("makeRef(%s) found ref %s in %d", name, r.Name, r.RefEnv.depth)
+			ref = r // set and return the original ref instead of ref of ref.
+		}
+		orig.store[name] = ref
+		orig.getMiss++ // creating a ref is a miss.
+		return &ref, true
+	}
+	return nil, false
+}
+
 func (e *Environment) Get(name string) (Object, bool) {
 	if name == "info" {
 		return e.Info(), true
 	}
 	obj, ok := e.store[name]
-	if ok || e.outer == nil {
-		return obj, ok
+	if ok {
+		if _, ok = obj.(Reference); ok { // using references implies uncacheable.
+			e.getMiss++
+		}
+		return obj, true
+	}
+	if e.outer == nil {
+		return nil, false
 	}
 	log.Debugf("Get miss (%s) called at %d %v", name, e.depth, e.cacheKey)
-	e.getMiss++
-	return e.outer.Get(name) // recurse.
+	if ref, ok := e.makeRef(name); ok {
+		return *ref, true
+	}
+	return nil, false
 }
 
 // TriggerNoCache is used prevent this call stack from caching.
@@ -220,19 +248,72 @@ func (e *Environment) NumSet() int64 {
 	return e.numSet
 }
 
-func (e *Environment) SetNoChecks(name string, val Object) Object {
+func (e *Environment) IsRef(name string) (*Environment, string) {
+	log.Debugf("IsRef(%s) called at %d %v", name, e.depth, e.cacheKey)
+	r, ok := e.store[name]
+	if !ok {
+		return nil, ""
+	}
+	if rr, ok := r.(Reference); ok {
+		log.Debugf("IsRef(%s) true: %s in %v", name, rr.Name, rr.RefEnv.depth)
+		return rr.RefEnv, rr.Name
+	}
+	return nil, ""
+}
+
+func (e *Environment) create(name string, val Object) Object {
 	if e.depth == 0 {
 		e.numSet++
-		if _, ok := e.store[name]; !ok {
-			// new top level entry, record it.
-			record(e.ids, name, val.Type())
-		}
+		record(e.ids, name, val.Type())
 	}
+	val = Value(val)
 	e.store[name] = val
 	return val
 }
 
+func (e *Environment) update(name string, found, val Object) Object {
+	if vref, ok := val.(Reference); ok {
+		log.Debugf("Not setting %q to a reference %q", name, vref.Name)
+		val = Value(val)
+	}
+	if rr, ok := found.(Reference); ok {
+		log.Debugf("SetNoChecks(%s) updating ref %s in %d", name, rr.Name, rr.RefEnv.depth)
+		e = rr.RefEnv
+		name = rr.Name
+	}
+	e.store[name] = val
+	if e.depth == 0 {
+		e.numSet++
+	}
+	return val
+}
+
+// create force the creation of a new entry, even if had a previous value or ref.
+// (eg. function parameters are always new).
+func (e *Environment) SetNoChecks(name string, val Object, create bool) Object {
+	if create {
+		log.Debugf("SetNoChecks(%s) forced create to %d", name, e.depth)
+		return e.create(name, val)
+	}
+	r, ok := e.store[name] // is this an update? possibly of an existing ref.
+	if ok {
+		return e.update(name, r, val)
+	}
+	// New name... let's see if it's really new or making it a ref.
+	if ref, ok := e.makeRef(name); ok {
+		log.Debugf("SetNoChecks(%s) created ref %s in %d", name, ref.Name, ref.RefEnv.depth)
+		ref.RefEnv.store[ref.Name] = Value(val) // kinda neat to make aliases but it can create loops, so not for now.
+		return val
+	}
+	log.Debugf("SetNoChecks(%s) brand new to %d and above", name, e.depth)
+	return e.create(name, val)
+}
+
 func (e *Environment) Set(name string, val Object) Object {
+	return e.CreateOrSet(name, val, false)
+}
+
+func (e *Environment) CreateOrSet(name string, val Object, create bool) Object {
 	if Constant(name) {
 		old, ok := e.Get(name) // not ok
 		if ok {
@@ -245,7 +326,7 @@ func (e *Environment) Set(name string, val Object) Object {
 	if IsExtraFunction(name) {
 		return Error{Value: fmt.Sprintf("attempt to change internal function %s to %s", name, val.Inspect())}
 	}
-	return e.SetNoChecks(name, val)
+	return e.SetNoChecks(name, val, create)
 }
 
 func NewEnclosedEnvironment(outer *Environment) *Environment {

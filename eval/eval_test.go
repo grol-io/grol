@@ -996,3 +996,45 @@ func TestParenInIf(t *testing.T) {
 		t.Errorf("wrong result, got %q", res.Inspect())
 	}
 }
+
+func TestSelfRef(t *testing.T) {
+	inp := `a=1 ()=>{a=a}()`
+	s := eval.NewState()
+	res, err := eval.EvalString(s, inp, false)
+	if err != nil {
+		t.Errorf("should not have errored: %v", err)
+	}
+	expected := "1"
+	if res.Inspect() != expected {
+		t.Errorf("wrong result, got %q", res.Inspect())
+	}
+}
+
+func TestAliasTwice(t *testing.T) {
+	inp := `a=1; b=2;()=>{a=b}();b=5;()=>{a=b}()` // should not crash
+	s := eval.NewState()
+	res, err := eval.EvalString(s, inp, false)
+	if err != nil {
+		t.Errorf("should not have errored: %v", err)
+	}
+	expected := "5"
+	if res.Inspect() != expected {
+		t.Errorf("wrong result, got %q", res.Inspect())
+	}
+}
+
+func TestIncrMatrix(t *testing.T) {
+	inp := `m={"v":3};()=>{m.v++}();m.v`
+	s := eval.NewState()
+	res, err := eval.EvalString(s, inp, false)
+	if err == nil { // TODO fix https://github.com/grol-io/grol/issues/189
+		// t.Errorf("should not have errored: %v", err)
+		t.Fatalf("should have errored, got %v", res)
+	}
+	// once implement res should be 4.
+	expected := "eval error: <err: index expression with . not string: ++ in ()=>m.v++>"
+	actual := err.Error()
+	if actual != expected {
+		t.Errorf("wrong error, got %q instead of %q", actual, expected)
+	}
+}
