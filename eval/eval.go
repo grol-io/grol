@@ -101,7 +101,9 @@ func argCheck[T any](s *State, msg string, n int, vararg bool, args []T) *object
 }
 
 func (s *State) evalPrefixIncrDecr(operator token.Type, node ast.Node) object.Object {
-	log.LogVf("eval prefix %s", ast.DebugString(node))
+	if log.LogVerbose() {
+		log.LogVf("eval prefix %s", ast.DebugString(node))
+	}
 	nv := node.Value()
 	if nv.Type() != token.IDENT {
 		return s.NewError("can't prefix increment/decrement " + nv.DebugString())
@@ -127,7 +129,9 @@ func (s *State) evalPrefixIncrDecr(operator token.Type, node ast.Node) object.Ob
 }
 
 func (s *State) evalPostfixExpression(node *ast.PostfixExpression) object.Object {
-	log.LogVf("eval postfix %s", node.DebugString())
+	if log.LogVerbose() {
+		log.LogVf("eval postfix %s", node.DebugString())
+	}
 	id := node.Prev.Literal()
 	val, ok := s.env.Get(id)
 	if !ok {
@@ -181,7 +185,9 @@ func (s *State) evalInternal(node any) object.Object { //nolint:funlen,gocyclo /
 	case *ast.Identifier:
 		return s.evalIdentifier(node)
 	case *ast.PrefixExpression:
-		log.LogVf("eval prefix %s", node.DebugString())
+		if log.LogVerbose() {
+			log.LogVf("eval prefix %s", node.DebugString())
+		}
 		switch node.Type() {
 		case token.INCR, token.DECR:
 			return s.evalPrefixIncrDecr(node.Type(), node.Right)
@@ -195,7 +201,9 @@ func (s *State) evalInternal(node any) object.Object { //nolint:funlen,gocyclo /
 	case *ast.PostfixExpression:
 		return s.evalPostfixExpression(node)
 	case *ast.InfixExpression:
-		log.LogVf("eval infix %s", node.DebugString())
+		if log.LogVerbose() { // DebugString() is expensive/shows up in profiles significantly otherwise (before the ifs).
+			log.LogVf("eval infix %s", node.DebugString())
+		}
 		// Eval and not evalInternal because we need to unwrap "return".
 		if node.Token.Type() == token.ASSIGN || node.Token.Type() == token.DEFINE {
 			return s.evalAssignment(s.Eval(node.Right), node)
@@ -513,8 +521,11 @@ func evalArrayIndexExpression(array, index object.Object) object.Object {
 }
 
 func (s *State) applyExtension(fn object.Extension, args []object.Object) object.Object {
+	// TODO: consider memoizing the extension functions too? or maybe based on flags on the extension.
 	l := len(args)
-	log.Debugf("apply extension %s variadic %t : %d args %v", fn.Inspect(), fn.Variadic, l, args)
+	if log.LogDebug() {
+		log.Debugf("apply extension %s variadic %t : %d args %v", fn.Inspect(), fn.Variadic, l, args)
+	}
 	if fn.MaxArgs == -1 {
 		// Only do this for true variadic functions (maxargs == -1)
 		if l > 0 && args[l-1].Type() == object.ARRAY {
@@ -569,9 +580,11 @@ func (s *State) applyFunction(name string, fn object.Object, args []object.Objec
 	}
 	if v, output, ok := s.cache.Get(function.CacheKey, args); ok {
 		log.Debugf("Cache hit for %s %v", function.CacheKey, args)
-		_, err := s.Out.Write(output)
-		if err != nil {
-			log.Warnf("output: %v", err)
+		if len(output) > 0 {
+			_, err := s.Out.Write(output)
+			if err != nil {
+				log.Warnf("output: %v", err)
+			}
 		}
 		return v
 	}
@@ -592,10 +605,13 @@ func (s *State) applyFunction(name string, fn object.Object, args []object.Objec
 	// restore the previous env/state.
 	s.env = curState
 	s.Out = oldOut
-	output := buf.Bytes()
-	_, err := s.Out.Write(output)
-	if err != nil {
-		log.Warnf("output: %v", err)
+	var output []byte
+	if buf.Len() > 0 {
+		output = buf.Bytes()
+		_, err := s.Out.Write(output)
+		if err != nil {
+			log.Warnf("output: %v", err)
+		}
 	}
 	if after != before {
 		log.Debugf("Cache miss for %s %v, %d get misses", function.CacheKey, args, after-before)
@@ -703,10 +719,14 @@ func (s *State) evalIfExpression(ie *ast.IfExpression) object.Object {
 	condition := s.evalInternal(ie.Condition)
 	switch condition {
 	case object.TRUE:
-		log.LogVf("if %s is object.TRUE, picking true branch", ie.Condition.Value().DebugString())
+		if log.LogVerbose() {
+			log.LogVf("if %s is object.TRUE, picking true branch", ie.Condition.Value().DebugString())
+		}
 		return s.evalInternal(ie.Consequence)
 	case object.FALSE:
-		log.LogVf("if %s is object.FALSE, picking else branch", ie.Condition.Value().DebugString())
+		if log.LogVerbose() {
+			log.LogVf("if %s is object.FALSE, picking else branch", ie.Condition.Value().DebugString())
+		}
 		return s.evalInternal(ie.Alternative)
 	default:
 		return s.NewError("condition is not a boolean: " + condition.Inspect())
@@ -836,13 +856,17 @@ func (s *State) evalForExpression(fe *ast.ForExpression) object.Object {
 		condition := s.evalInternal(fe.Condition)
 		switch condition {
 		case object.TRUE:
-			log.LogVf("for %s is object.TRUE, running body", fe.Condition.Value().DebugString())
+			if log.LogVerbose() {
+				log.LogVf("for %s is object.TRUE, running body", fe.Condition.Value().DebugString())
+			}
 			lastEval = s.evalInternal(fe.Body)
 			if rt := lastEval.Type(); rt == object.RETURN || rt == object.ERROR {
 				return lastEval
 			}
 		case object.FALSE, object.NULL:
-			log.LogVf("for %s is object.FALSE, done", fe.Condition.Value().DebugString())
+			if log.LogVerbose() {
+				log.LogVf("for %s is object.FALSE, done", fe.Condition.Value().DebugString())
+			}
 			return lastEval
 		default:
 			switch condition.Type() {
@@ -866,7 +890,9 @@ func (s *State) evalStatements(stmts []ast.Node) object.Object {
 	var result object.Object
 	result = object.NULL // no crash when empty program.
 	for _, statement := range stmts {
-		log.LogVf("eval statement %T %s", statement, statement.Value().DebugString())
+		if log.LogVerbose() {
+			log.LogVf("eval statement %T %s", statement, statement.Value().DebugString())
+		}
 		if isComment(statement) {
 			log.Debugf("skipping comment")
 			continue

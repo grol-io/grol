@@ -1,9 +1,11 @@
-/* Create an image */
+/*
+ * Create an image - very useful to use a smaller increment and run with profiling.
+ */
 
 // inspiration @shokhie
 
 // With angle as an int modulo 360 input, this gets memoized.
-func ycbr(angle) {
+func ycbcr(angle) {
 	angle = PI * angle / 180.
 	// Y   Cb  Cr
 	[190, 128 + 120*sin(angle), 128 + 120*cos(angle)]
@@ -23,10 +25,12 @@ color = [0, saturation, lightness]
 for t < 12*PI {
 	x = sin(t) * (pow(E, cos(t)) - 2*cos(4*t) - pow(sin(t/12), 5))
 	y = cos(t) * (pow(E, cos(t)) - 2*cos(4*t) - pow(sin(t/12), 5))
-	// angle := int(t*180./PI) % 360 // so ycbr() get memoized with 360 values
-	// color = ycbr(angle)
-	color[0] = t/(12*PI) // hue
-	image_set_hsl(imgName, int(size/2+(size/div)*x+0.5), int(size/2.5+(size/div)*y+0.5), color)
+	angle := int(t*180./PI) % 360 // so ycbr() get memoized with 360 values
+	color = ycbcr(angle)
+	image_set_ycbcr(canvas, int(size/2+(size/div)*x+0.5), int(size/2.5+(size/div)*y+0.5), color)
+	// Or in HSL:
+	// color[0] = t/(12*PI) // hue
+	// image_set_hsl(canvas, int(size/2+(size/div)*x+0.5), int(size/2.5+(size/div)*y+0.5), color)
 	t = t + 0.0005
 }
 elapsed = time() - now
