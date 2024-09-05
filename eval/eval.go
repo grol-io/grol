@@ -2,7 +2,6 @@ package eval
 
 import (
 	"bytes"
-	"fmt"
 	"math"
 	"strings"
 
@@ -81,8 +80,8 @@ func (s *State) evalIndexAssigment(which ast.Node, index, value object.Object) o
 		}
 		return value
 	default:
-		return object.Error{Value: fmt.Sprintf("index assignment to %s of unexpected type %s",
-			id.Literal(), val.Type().String())}
+		return s.Errorf("index assignment to %s of unexpected type %s",
+			id.Literal(), val.Type().String())
 	}
 }
 
@@ -525,12 +524,12 @@ func (s *State) applyExtension(fn object.Extension, args []object.Object) object
 		}
 	}
 	if l < fn.MinArgs {
-		return object.Error{Value: fmt.Sprintf("wrong number of arguments got=%d, want %s",
-			l, fn.Inspect())} // shows usage
+		return s.Errorf("wrong number of arguments got=%d, want %s",
+			l, fn.Inspect()) // shows usage
 	}
 	if fn.MaxArgs != -1 && l > fn.MaxArgs {
-		return object.Error{Value: fmt.Sprintf("wrong number of arguments got=%d, want %s",
-			l, fn.Inspect())} // shows usage
+		return s.Errorf("wrong number of arguments got=%d, want %s",
+			l, fn.Inspect()) // shows usage
 	}
 	for i, arg := range args {
 		if i >= len(fn.ArgTypes) {
@@ -548,12 +547,17 @@ func (s *State) applyExtension(fn object.Extension, args []object.Object) object
 			continue
 		}
 		if fn.ArgTypes[i] != arg.Type() {
-			return object.Error{Value: fmt.Sprintf("wrong type of argument got=%s, want %s",
-				arg.Type(), fn.Inspect())}
+			return s.Errorf("wrong type of argument got=%s, want %s",
+				arg.Type(), fn.Inspect())
 		}
 	}
 	if fn.ClientData != nil {
-		return fn.Callback(fn.ClientData, fn.Name, args)
+		res := fn.Callback(fn.ClientData, fn.Name, args)
+		if res.Type() == object.ERROR {
+			// Add the stack trace to the error.
+			return s.ErrorAddStack(res.(object.Error))
+		}
+		return res
 	}
 	return fn.Callback(s, fn.Name, args)
 }
@@ -571,7 +575,7 @@ func (s *State) applyFunction(name string, fn object.Object, args []object.Objec
 		}
 		return v
 	}
-	nenv, oerr := extendFunctionEnv(s.env, name, function, args)
+	nenv, oerr := s.extendFunctionEnv(s.env, name, function, args)
 	if oerr != nil {
 		return *oerr
 	}
@@ -609,7 +613,7 @@ func (s *State) applyFunction(name string, fn object.Object, args []object.Objec
 	return res
 }
 
-func extendFunctionEnv(
+func (s *State) extendFunctionEnv(
 	currrentEnv *object.Environment,
 	name string, fn object.Function,
 	args []object.Object,
@@ -639,8 +643,9 @@ func extendFunctionEnv(
 	}
 	n := len(params)
 	if len(args) != n {
-		return nil, &object.Error{Value: fmt.Sprintf("wrong number of arguments for %s. got=%d, want%s=%d",
-			name, len(args), atLeast, n)}
+		oerr := s.Errorf("wrong number of arguments for %s. got=%d, want%s=%d",
+			name, len(args), atLeast, n)
+		return nil, &oerr
 	}
 	for paramIdx, param := range params {
 		// By definition function parameters are local copies, deref argument values:
@@ -950,7 +955,7 @@ func (s *State) evalInfixExpression(operator token.Type, left, right object.Obje
 	case left.Type() == object.ARRAY:
 		return s.evalArrayInfixExpression(operator, left, right)
 	case left.Type() == object.MAP && right.Type() == object.MAP:
-		return evalMapInfixExpression(operator, left, right)
+		return s.evalMapInfixExpression(operator, left, right)
 	default:
 		return s.NewError("no " + operator.String() + " on left=" + left.Inspect() + " right=" + right.Inspect())
 	}
@@ -971,8 +976,8 @@ func (s *State) evalStringInfixExpression(operator token.Type, left, right objec
 		object.MustBeOk(n / object.ObjectSize)
 		return object.String{Value: strings.Repeat(leftVal, int(rightVal))}
 	default:
-		return object.Error{Value: fmt.Sprintf("unknown operator: %s %s %s",
-			left.Type(), operator, right.Type())}
+		return s.Errorf("unknown operator: %s %s %s",
+			left.Type(), operator, right.Type())
 	}
 }
 
@@ -1001,20 +1006,20 @@ func (s *State) evalArrayInfixExpression(operator token.Type, left, right object
 		object.MustBeOk(len(leftVal) + len(rightArr))
 		return object.NewArray(append(leftVal, rightArr...))
 	default:
-		return object.Error{Value: fmt.Sprintf("unknown operator: %s %s %s",
-			left.Type(), operator, right.Type())}
+		return s.Errorf("unknown operator: %s %s %s",
+			left.Type(), operator, right.Type())
 	}
 }
 
-func evalMapInfixExpression(operator token.Type, left, right object.Object) object.Object {
+func (s *State) evalMapInfixExpression(operator token.Type, left, right object.Object) object.Object {
 	leftMap := left.(object.Map)
 	rightMap := right.(object.Map)
 	switch operator {
 	case token.PLUS: // concat / append
 		return leftMap.Append(rightMap)
 	default:
-		return object.Error{Value: fmt.Sprintf("unknown operator: %s %s %s",
-			left.Type(), operator, right.Type())}
+		return s.Errorf("unknown operator: %s %s %s",
+			left.Type(), operator, right.Type())
 	}
 }
 
@@ -1062,27 +1067,30 @@ func (s *State) evalIntegerInfixExpression(operator token.Type, left, right obje
 	}
 }
 
-func (s *State) getFloatValue(o object.Object) (float64, *object.Error) {
+func GetFloatValue(o object.Object) (float64, *object.Error) {
 	switch o.Type() {
 	case object.INTEGER:
 		return float64(o.(object.Integer).Value), nil
 	case object.FLOAT:
 		return o.(object.Float).Value, nil
 	default:
-		e := s.NewError("not converting to float: " + o.Type().String())
+		// Not using state.NewError here because we want this to be reusable by extensions that do not have a state.
+		// they will get the stack trace added by the eval extension code. for here we
+		// will add the stack with s.ErrorAddStack().
+		e := object.Error{Value: "not converting to float: " + o.Type().String()}
 		return math.NaN(), &e
 	}
 }
 
 // So we copy-pasta instead :-(.
 func (s *State) evalFloatInfixExpression(operator token.Type, left, right object.Object) object.Object {
-	leftVal, oerr := s.getFloatValue(left)
+	leftVal, oerr := GetFloatValue(left)
 	if oerr != nil {
-		return *oerr
+		return s.ErrorAddStack(*oerr)
 	}
-	rightVal, oerr := s.getFloatValue(right)
+	rightVal, oerr := GetFloatValue(right)
 	if oerr != nil {
-		return *oerr
+		return s.ErrorAddStack(*oerr)
 	}
 	switch operator {
 	case token.PLUS:

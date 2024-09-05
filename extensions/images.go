@@ -8,6 +8,7 @@ import (
 	"math"
 	"os"
 
+	"grol.io/grol/eval"
 	"grol.io/grol/object"
 )
 
@@ -16,13 +17,11 @@ type ImageMap map[object.Object]*image.RGBA
 // TODO: make this configurable and use the slice check as well as some sort of LRU.
 const MaxImageDimension = 1024 // in pixels.
 
-// HSLToRGB converts HSL values to RGB.
+// HSLToRGB converts HSL values to RGB. h, s and l in [0,1].
 func HSLToRGB(h, s, l float64) color.RGBA {
 	var r, g, b float64
 
-	h = math.Mod(h, 360.) / 360.
-	s = s / 100.
-	l = l / 100.
+	// h = math.Mod(h, 360.) / 360.
 
 	if s == 0 {
 		r, g, b = l, l, l
@@ -36,7 +35,7 @@ func HSLToRGB(h, s, l float64) color.RGBA {
 		p := 2*l - q
 		r = hueToRGB(p, q, h+1/3.)
 		g = hueToRGB(p, q, h)
-		b = hueToRGB(p, q, h-1./3.)
+		b = hueToRGB(p, q, h-1/3.)
 	}
 
 	return color.RGBA{
@@ -46,6 +45,7 @@ func HSLToRGB(h, s, l float64) color.RGBA {
 		A: 255,
 	}
 }
+
 func hueToRGB(p, q, t float64) float64 {
 	if t < 0 {
 		t += 1.
@@ -65,18 +65,39 @@ func hueToRGB(p, q, t float64) float64 {
 	return p
 }
 
+func hslArrayToRBGAColor(arr []object.Object) (color.RGBA, *object.Error) {
+	rgba := color.RGBA{}
+	if len(arr) != 3 {
+		return rgba, object.Errorfp("color array must be [Hue,Saturation,Lightness]")
+	}
+	var oerr *object.Error
+	h, oerr := eval.GetFloatValue(arr[0])
+	if oerr != nil {
+		return rgba, oerr
+	}
+	s, oerr := eval.GetFloatValue(arr[1])
+	if oerr != nil {
+		return rgba, oerr
+	}
+	l, oerr := eval.GetFloatValue(arr[2])
+	if oerr != nil {
+		return rgba, oerr
+	}
+	return HSLToRGB(h, s, l), nil
+}
+
 func elem2ColorComponent(o object.Object) (uint8, *object.Error) {
-	i := -1
+	var i int
 	switch o.Type() {
 	case object.FLOAT:
 		i = int(math.Round(o.(object.Float).Value))
 	case object.INTEGER:
 		i = int(o.(object.Integer).Value)
 	default:
-		return 0, &object.Error{Value: "color component not an integer:" + o.Inspect()}
+		return 0, object.Errorfp("color component not an integer: %s", o.Inspect())
 	}
 	if i < 0 || i > 255 {
-		return 0, &object.Error{Value: "color component out of range (should be 0-255):" + o.Inspect()}
+		return 0, object.Errorfp("color component out of range (should be 0-255): %s", o.Inspect())
 	}
 	return uint8(i), nil //nolint:gosec // gosec not smart enough to see the range check just above
 }
@@ -84,7 +105,7 @@ func elem2ColorComponent(o object.Object) (uint8, *object.Error) {
 func rgbArrayToRBGAColor(arr []object.Object) (color.RGBA, *object.Error) {
 	rgba := color.RGBA{}
 	if len(arr) < 3 || len(arr) > 4 {
-		return rgba, &object.Error{Value: "color array must be [R,G,B] or [R,G,B,A]"}
+		return rgba, object.Errorfp("color array must be [R,G,B] or [R,G,B,A]")
 	}
 	var oerr *object.Error
 	rgba.R, oerr = elem2ColorComponent(arr[0])
@@ -114,7 +135,7 @@ func ycbrArrayToRBGAColor(arr []object.Object) (color.RGBA, *object.Error) {
 	rgba := color.RGBA{}
 	ycbcr := color.YCbCr{}
 	if len(arr) != 3 {
-		return rgba, &object.Error{Value: "color array must be [Y',Cb,Cr]"}
+		return rgba, object.Errorfp("color array must be [Y',Cb,Cr]")
 	}
 	var oerr *object.Error
 	ycbcr.Y, oerr = elem2ColorComponent(arr[0])
@@ -150,10 +171,10 @@ func createImageFunctions() {
 			x := int(args[1].(object.Integer).Value)
 			y := int(args[2].(object.Integer).Value)
 			if x > MaxImageDimension || y > MaxImageDimension {
-				return object.Error{Value: "image size too large"}
+				return object.Errorf("image size too large")
 			}
 			if x < 0 || y < 0 {
-				return object.Error{Value: "image sizes must be positive"}
+				return object.Errorf("image sizes must be positive")
 			}
 			img := image.NewRGBA(image.Rect(0, 0, x, y))
 			transparent := color.RGBA{0, 0, 0, 0}
@@ -174,15 +195,20 @@ func createImageFunctions() {
 		y := int(args[2].(object.Integer).Value)
 		img, ok := images[args[0]]
 		if !ok {
-			return object.Error{Value: "image not found"}
+			return object.Errorf("image not found")
 		}
 		colorArray := object.Elements(args[3])
 		var color color.RGBA
 		var oerr *object.Error
-		if name == "image_set_ycbcr" {
+		switch name {
+		case "image_set_ycbcr":
 			color, oerr = ycbrArrayToRBGAColor(colorArray)
-		} else {
+		case "image_set_hsl":
+			color, oerr = hslArrayToRBGAColor(colorArray)
+		case "image_set":
 			color, oerr = rgbArrayToRBGAColor(colorArray)
+		default:
+			return object.Errorf("unknown image_set function %q", name)
 		}
 		if oerr != nil {
 			return oerr
@@ -194,6 +220,9 @@ func createImageFunctions() {
 	imgFn.Name = "image_set_ycbcr"
 	imgFn.Help = "img, x, y, color: set a pixel in the named image, color Y'CbCr in an array of 3 elements 0-255"
 	MustCreate(imgFn)
+	imgFn.Name = "image_set_hsl"
+	imgFn.Help = "img, x, y, color: set a pixel in the named image, color in an array [Hue (0-360), Sat (0-1), Light (0-1)]"
+	MustCreate(imgFn)
 	imgFn.Name = "image_save"
 	imgFn.Help = "save the named image grol.png"
 	imgFn.MinArgs = 1
@@ -203,16 +232,16 @@ func createImageFunctions() {
 		images := cdata.(ImageMap)
 		img, ok := images[args[0]]
 		if !ok {
-			return object.Error{Value: "image not found"}
+			return object.Errorf("image not found")
 		}
 		outputFile, err := os.Create("grol.png")
 		if err != nil {
-			return object.Error{Value: "error opening image file: " + err.Error()}
+			return object.Errorf("error opening image file: %v", err)
 		}
 		defer outputFile.Close()
 		err = png.Encode(outputFile, img)
 		if err != nil {
-			return object.Error{Value: "error encoding image: " + err.Error()}
+			return object.Errorf("error encoding image: %v", err)
 		}
 		return args[0]
 	}

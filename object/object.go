@@ -498,6 +498,17 @@ type Error struct {
 	Stack []string
 }
 
+// Use eval's Errorf() instead whenever possible, to get the stack.
+// This one should only be used by extensions that do not take the state as clientdata.
+func Errorf(format string, args ...interface{}) Error {
+	return Error{Value: fmt.Sprintf(format, args...)}
+}
+
+// Pointer version of Errorf. used in code conditionally returning an error (oerr pointer).
+func Errorfp(format string, args ...interface{}) *Error {
+	return &Error{Value: fmt.Sprintf(format, args...)}
+}
+
 func (e Error) JSON(w io.Writer) error {
 	_, err := fmt.Fprintf(w, `{"err":%q}`, e.Value)
 	return err
