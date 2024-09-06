@@ -293,13 +293,12 @@ func (s *State) evalInternal(node any) object.Object { //nolint:funlen,gocognit,
 		return s.evalMapLiteral(node)
 	case *ast.IndexExpression:
 		if node.Value().Type() == token.DOT {
-			ns := node.Left.Value().Literal()
-			if namespace, ok := s.Namespaces[ns]; ok {
-				key := node.Index.Value().Literal()
-				log.Debugf("eval ns ext %s . %s", ns, key)
-				if f, ok := namespace[key]; ok {
-					return f
-				}
+			// See PR#217's commits for a version using double map lookup, trading off the string concat (alloc)
+			// for a map lookup. code is a lot simpler without actual ns map though so we stick to this version
+			// for now.
+			extName := node.Left.Value().Literal() + "." + node.Index.Value().Literal()
+			if ext, ok := s.Extensions[extName]; ok {
+				return ext
 			}
 		}
 		return s.evalIndexExpression(s.Eval(node.Left), node)

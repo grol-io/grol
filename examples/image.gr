@@ -33,7 +33,7 @@ for t < 12*PI {
 	// Or in HSL:
 	// color[0] = t/(12*PI) // hue
 	// image_set_hsl(canvas, int(size/2+(size/div)*x+0.5), int(size/2.5+(size/div)*y+0.5), color)
-	t = t + 0.0005
+	t = t + 0.0005 // 0.0001 for profiling.
 }
 elapsed = time() - now
 log("Time elapsed: ", elapsed, " seconds")

@@ -13,7 +13,6 @@ type ExtensionMap map[string]Extension
 var (
 	extraFunctions   ExtensionMap
 	extraIdentifiers map[string]Object
-	namespaces       map[string]ExtensionMap
 	initDone         bool
 )
 
@@ -22,7 +21,6 @@ var (
 func Init() {
 	extraFunctions = make(ExtensionMap)
 	extraIdentifiers = make(map[string]Object)
-	namespaces = make(map[string]ExtensionMap)
 	initDone = true
 }
 
@@ -70,20 +68,17 @@ func CreateFunction(cmd Extension) error {
 	}
 	cmd.Variadic = (cmd.MaxArgs == -1) || (cmd.MaxArgs > cmd.MinArgs)
 	// If namespaced, put both at top level (for sake of baseinfo and command completion) and
-	// in namespace map (for access/ref by eval).
+	// in namespace map (for access/ref by eval). We decided to not even have namespaces map
+	// after all.
 	extraFunctions[cmd.Name] = cmd
-	if _, ok := namespaces[ns]; !ok {
-		namespaces[ns] = make(ExtensionMap)
-	}
-	namespaces[ns][name] = cmd
 	return nil
 }
 
 // Returns the table of extended functions to seed the state of an eval.
-func ExtraFunctions() (ExtensionMap, map[string]ExtensionMap) {
+func ExtraFunctions() ExtensionMap {
 	// no need to make a copy as each value need to be set to be changed (map of structs, not pointers).
 	// TODO: maybe need to make a copy of the namespaces?
-	return extraFunctions, namespaces
+	return extraFunctions
 }
 
 func IsExtraFunction(name string) bool {

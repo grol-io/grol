@@ -68,7 +68,7 @@ func (e *Environment) BaseInfo() *BigMap {
 	}
 	baseInfo.Set(String{"builtins"}, BigArray{elements: keys}) // 3
 	// Ditto cache this as it's set for a given environment.
-	ext, _ := ExtraFunctions()
+	ext := ExtraFunctions()
 	keys = make([]Object, 0, len(ext))
 	for k := range ext {
 		keys = append(keys, String{Value: k})
