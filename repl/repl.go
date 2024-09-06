@@ -229,8 +229,7 @@ func Interactive(options Options) int { //nolint:funlen // we do have quite a fe
 	for v := range tokInfo.Builtins {
 		autoComplete.Trie.Insert(v + "(")
 	}
-	extensions := object.ExtraFunctions()
-	for k := range extensions {
+	for k := range object.ExtraFunctions() {
 		autoComplete.Trie.Insert(k + "(")
 	}
 	autoComplete.Trie.Insert("history") // add this one as it's not in the language but handled here.

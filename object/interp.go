@@ -77,7 +77,6 @@ func CreateFunction(cmd Extension) error {
 // Returns the table of extended functions to seed the state of an eval.
 func ExtraFunctions() ExtensionMap {
 	// no need to make a copy as each value need to be set to be changed (map of structs, not pointers).
-	// TODO: maybe need to make a copy of the namespaces?
 	return extraFunctions
 }
 
