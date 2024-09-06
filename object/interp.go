@@ -2,20 +2,39 @@ package object
 
 import (
 	"errors"
+	"strings"
+
+	"grol.io/grol/lexer"
 )
 
+type ExtensionMap map[string]Extension
+
 var (
-	extraFunctions   map[string]Extension
+	extraFunctions   ExtensionMap
 	extraIdentifiers map[string]Object
+	namespaces       map[string]ExtensionMap
 	initDone         bool
 )
 
 // Init resets the table of extended functions to empty.
 // Optional, will be called on demand the first time through CreateFunction.
 func Init() {
-	extraFunctions = make(map[string]Extension)
+	extraFunctions = make(ExtensionMap)
 	extraIdentifiers = make(map[string]Object)
+	namespaces = make(map[string]ExtensionMap)
 	initDone = true
+}
+
+func ValidIdentifier(name string) bool {
+	if name == "" {
+		return false
+	}
+	for _, b := range []byte(name) {
+		if !lexer.IsAlphaNum(b) {
+			return false
+		}
+	}
+	return true
 }
 
 // CreateFunction adds a new function to the table of extended functions.
@@ -25,6 +44,16 @@ func CreateFunction(cmd Extension) error {
 	}
 	if cmd.Name == "" {
 		return errors.New("empty command name")
+	}
+	// Only support 1 level of namespace for now.
+	dotSplit := strings.SplitN(cmd.Name, ".", 2)
+	var ns string
+	name := cmd.Name
+	if len(dotSplit) == 2 {
+		ns, name = dotSplit[0], dotSplit[1]
+	}
+	if !ValidIdentifier(name) {
+		return errors.New(name + ": not alphanumeric")
 	}
 	if cmd.MaxArgs != -1 && cmd.MinArgs > cmd.MaxArgs {
 		return errors.New(cmd.Name + ": min args > max args")
@@ -36,13 +65,20 @@ func CreateFunction(cmd Extension) error {
 		return errors.New(cmd.Name + ": already defined")
 	}
 	cmd.Variadic = (cmd.MaxArgs == -1) || (cmd.MaxArgs > cmd.MinArgs)
+	// Also put at top level (no namespace == no dot in name) function.
 	extraFunctions[cmd.Name] = cmd
+	if _, ok := namespaces[ns]; !ok {
+		namespaces[ns] = make(ExtensionMap)
+	}
+	namespaces[ns][name] = cmd
 	return nil
 }
 
 // Returns the table of extended functions to seed the state of an eval.
-func ExtraFunctions() map[string]Extension {
-	return extraFunctions // no need to make a copy as each value need to be set to be changed (map of structs, not pointers).
+func ExtraFunctions() (ExtensionMap, map[string]ExtensionMap) {
+	// no need to make a copy as each value need to be set to be changed (map of structs, not pointers).
+	// TODO: maybe need to make a copy of the namespaces?
+	return extraFunctions, namespaces
 }
 
 func IsExtraFunction(name string) bool {

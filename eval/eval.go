@@ -24,7 +24,8 @@ func (s *State) evalAssignment(right object.Object, node *ast.InfixExpression) o
 	switch node.Left.Value().Type() {
 	case token.DOT:
 		idxE := node.Left.(*ast.IndexExpression)
-		index := object.String{Value: idxE.Index.Value().Literal()}
+		key := idxE.Index.Value().Literal()
+		index := object.String{Value: key}
 		return s.evalIndexAssigment(idxE.Left, index, right)
 	case token.LBRACKET:
 		idxE := node.Left.(*ast.IndexExpression)
@@ -292,6 +293,16 @@ func (s *State) evalInternal(node any) object.Object { //nolint:funlen,gocognit,
 	case *ast.MapLiteral:
 		return s.evalMapLiteral(node)
 	case *ast.IndexExpression:
+		if node.Value().Type() == token.DOT {
+			ns := node.Left.Value().Literal()
+			if namespace, ok := s.Namespaces[ns]; ok {
+				key := node.Index.Value().Literal()
+				log.Debugf("eval ns ext %s . %s", ns, key)
+				if f, ok := namespace[key]; ok {
+					return f
+				}
+			}
+		}
 		return s.evalIndexExpression(s.Eval(node.Left), node)
 	case *ast.Comment:
 		return object.NULL
