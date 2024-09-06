@@ -76,6 +76,9 @@
                 document.getElementById('output').value = output.result;
                 document.getElementById('input').value = output.formatted;
                 document.getElementById('errors').value = output.errors.join("\n");
+                if (output.image !== undefined) {
+                    document.getElementById('image').src = output.image;
+                }
             } else {
                 document.getElementById('errors').value = "Unexpected runtime error, see JS console";
             }
@@ -141,6 +144,9 @@ Hit enter or click <button onClick="run();" id="runButton" disabled>Run</button>
 </div>
 <div>
     <label for="output">Result:</label>
+    <br />
+    <img id="image" src="" alt="Image output (if any)">
+    <br />
     <textarea id="output" rows="2" cols="80"></textarea>
 </div>
 <div>

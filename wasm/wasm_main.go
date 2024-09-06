@@ -56,6 +56,11 @@ func jsEval(this js.Value, args []js.Value) interface{} {
 	opts.MaxDuration = WasmMaxDuration
 	res, errs, formatted := repl.EvalStringWithOption(context.Background(), opts, input)
 	result := make(map[string]any)
+	if strings.HasPrefix(res, "data:") {
+		// special case for data: urls, we don't want to return the data
+		result["image"] = res
+		res = ""
+	}
 	result["result"] = strings.TrimSuffix(res, "\n")
 	// transfer errors to []any (!)
 	anyErrs := make([]any, len(errs))

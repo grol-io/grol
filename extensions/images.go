@@ -1,6 +1,7 @@
 package extensions
 
 import (
+	"bytes"
 	"image"
 	"image/color"
 	"image/draw"
@@ -244,6 +245,25 @@ func createImageFunctions() {
 			return object.Errorf("error encoding image: %v", err)
 		}
 		return args[0]
+	}
+	MustCreate(imgFn)
+	imgFn.Name = "image.png"
+	imgFn.Help = "returns the png data of the named image, suitable for base64"
+	imgFn.MinArgs = 1
+	imgFn.MaxArgs = 1
+	imgFn.ArgTypes = []object.Type{object.STRING}
+	imgFn.Callback = func(cdata any, _ string, args []object.Object) object.Object {
+		images := cdata.(ImageMap)
+		img, ok := images[args[0]]
+		if !ok {
+			return object.Errorf("image not found")
+		}
+		buf := bytes.Buffer{}
+		err := png.Encode(&buf, img)
+		if err != nil {
+			return object.Errorf("error encoding image: %v", err)
+		}
+		return object.String{Value: buf.String()}
 	}
 	MustCreate(imgFn)
 }

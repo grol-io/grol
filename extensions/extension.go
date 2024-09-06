@@ -4,6 +4,7 @@ package extensions
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -371,6 +372,28 @@ func createMisc() {
 				return s.Errorf("cannot convert %s to int", o.Type())
 			}
 		},
+	}
+	MustCreate(intFn)
+	intFn.Name = "base64"
+	intFn.Callback = func(st any, _ string, args []object.Object) object.Object {
+		s := st.(*eval.State)
+		o := args[0]
+		var data []byte
+		switch o.Type() {
+		case object.REFERENCE:
+			ref := o.(object.Reference)
+			if ref.Value().Type() != object.STRING {
+				return s.Errorf("cannot convert ref to %s to base64", ref.Value().Type())
+			}
+			data = []byte(ref.Value().(object.String).Value)
+		case object.STRING:
+			data = []byte(o.(object.String).Value)
+		default:
+			return s.Errorf("cannot convert %s to base64", o.Type())
+		}
+		encoded := make([]byte, base64.StdEncoding.EncodedLen(len(data)))
+		base64.StdEncoding.Encode(encoded, data)
+		return object.String{Value: string(encoded)}
 	}
 	MustCreate(intFn)
 }
