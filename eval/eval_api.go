@@ -69,6 +69,7 @@ func NewBlankState() *State {
 		LogOut:     io.Discard,
 		cache:      NewCache(),
 		Extensions: make(map[string]object.Extension),
+		Namespaces: make(map[string]object.ExtensionMap),
 		macroState: object.NewMacroEnvironment(),
 		MaxDepth:   DefaultMaxDepth,
 	}
