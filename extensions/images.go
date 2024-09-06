@@ -157,7 +157,7 @@ func ycbrArrayToRBGAColor(arr []object.Object) (color.RGBA, *object.Error) {
 	return rgba, nil
 }
 
-func createImageFunctions() {
+func createImageFunctions() { //nolint:funlen // this is a group of related functions.
 	// All the functions consistently use args[0] as the image name/reference into the ClientData map.
 	cdata := make(ImageMap)
 	imgFn := object.Extension{
