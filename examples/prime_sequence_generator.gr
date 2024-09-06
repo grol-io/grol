@@ -1,0 +1,43 @@
+/* Demonstrate how to have lambdas as iterators */
+
+func primesGen(maxSieve) {
+    sieve = [true] * maxSieve
+    num = 2
+    currentPrime = 2
+    nextPrime = () => {
+        for currentPrime < maxSieve {
+            if sieve[currentPrime] {
+                prime = currentPrime
+                currentPrime++
+                mult = prime * prime
+                for max(maxSieve - mult, 0) {
+                    if mult % prime == 0 {
+                        sieve[mult] = false
+                    }
+                    mult++
+                }
+                return prime
+            } else {
+                currentPrime++
+            }
+        }
+        return nil
+    }
+}
+
+
+maxS = 1000 // use 100_000 for profiling.
+primeIter = primesGen(maxS)
+p = primeIter()
+printf("| %4d", p)
+n = 1
+for p <= maxS {
+    p = primeIter()
+    if p != nil {
+        printf(" %4d", p)
+        if ++n % 15 == 0 {
+            print("\n|")
+        }
+    }
+}
+println()

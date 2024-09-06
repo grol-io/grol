@@ -158,13 +158,14 @@ func initInternal(c *Config) error {
 		MaxArgs:  1,
 		ArgTypes: []object.Type{object.INTEGER},
 		Callback: func(env any, _ string, args []object.Object) object.Object {
-			eval.TriggerNoCache(env)
+			s := env.(*eval.State)
+			eval.TriggerNoCache(s)
 			if len(args) == 0 {
 				return object.Float{Value: rand.Float64()} //nolint:gosec // no need for crypto/rand here.
 			}
 			n := args[0].(object.Integer).Value
 			if n <= 0 {
-				return object.Error{Value: "argument to rand() if given must be > 0, >=2 for something useful"}
+				return s.NewError("argument to rand() if given must be > 0, >=2 for something useful")
 			}
 			return object.Integer{Value: rand.Int64N(n)} //nolint:gosec // no need for crypto/rand here.
 		},
@@ -173,6 +174,7 @@ func initInternal(c *Config) error {
 	createStrFunctions()
 	createMisc()
 	createTimeFunctions()
+	createImageFunctions()
 	return nil
 }
 

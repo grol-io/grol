@@ -46,6 +46,10 @@ func (s *State) NewError(msg string) object.Error {
 	return object.Error{Value: msg, Stack: s.Stack()}
 }
 
+func (s *State) ErrorAddStack(e object.Error) object.Error {
+	return object.Error{Value: e.Value, Stack: s.Stack()}
+}
+
 // Errorf formats and create an object.Error using given format and args.
 func (s *State) Errorf(format string, args ...interface{}) object.Error {
 	return s.NewError(fmt.Sprintf(format, args...))

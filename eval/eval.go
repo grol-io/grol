@@ -2,7 +2,6 @@ package eval
 
 import (
 	"bytes"
-	"fmt"
 	"math"
 	"strings"
 
@@ -81,8 +80,8 @@ func (s *State) evalIndexAssigment(which ast.Node, index, value object.Object) o
 		}
 		return value
 	default:
-		return object.Error{Value: fmt.Sprintf("index assignment to %s of unexpected type %s",
-			id.Literal(), val.Type().String())}
+		return s.Errorf("index assignment to %s of unexpected type %s",
+			id.Literal(), val.Type().String())
 	}
 }
 
@@ -102,7 +101,9 @@ func argCheck[T any](s *State, msg string, n int, vararg bool, args []T) *object
 }
 
 func (s *State) evalPrefixIncrDecr(operator token.Type, node ast.Node) object.Object {
-	log.LogVf("eval prefix %s", ast.DebugString(node))
+	if log.LogVerbose() {
+		log.LogVf("eval prefix %s", ast.DebugString(node))
+	}
 	nv := node.Value()
 	if nv.Type() != token.IDENT {
 		return s.NewError("can't prefix increment/decrement " + nv.DebugString())
@@ -128,7 +129,9 @@ func (s *State) evalPrefixIncrDecr(operator token.Type, node ast.Node) object.Ob
 }
 
 func (s *State) evalPostfixExpression(node *ast.PostfixExpression) object.Object {
-	log.LogVf("eval postfix %s", node.DebugString())
+	if log.LogVerbose() {
+		log.LogVf("eval postfix %s", node.DebugString())
+	}
 	id := node.Prev.Literal()
 	val, ok := s.env.Get(id)
 	if !ok {
@@ -162,7 +165,7 @@ func (s *State) evalPostfixExpression(node *ast.PostfixExpression) object.Object
 // Doesn't unwrap return - return bubbles up.
 // Initially this was the one to use internally recursively, except for when evaluating a function
 // but now it's less clear because of the need to unwrap references too. TODO: fix/clarify.
-func (s *State) evalInternal(node any) object.Object { //nolint:funlen,gocyclo // quite a lot of cases.
+func (s *State) evalInternal(node any) object.Object { //nolint:funlen,gocognit,gocyclo // quite a lot of cases.
 	if s.Context != nil && s.Context.Err() != nil {
 		return s.Error(s.Context.Err())
 	}
@@ -182,7 +185,9 @@ func (s *State) evalInternal(node any) object.Object { //nolint:funlen,gocyclo /
 	case *ast.Identifier:
 		return s.evalIdentifier(node)
 	case *ast.PrefixExpression:
-		log.LogVf("eval prefix %s", node.DebugString())
+		if log.LogVerbose() {
+			log.LogVf("eval prefix %s", node.DebugString())
+		}
 		switch node.Type() {
 		case token.INCR, token.DECR:
 			return s.evalPrefixIncrDecr(node.Type(), node.Right)
@@ -196,7 +201,9 @@ func (s *State) evalInternal(node any) object.Object { //nolint:funlen,gocyclo /
 	case *ast.PostfixExpression:
 		return s.evalPostfixExpression(node)
 	case *ast.InfixExpression:
-		log.LogVf("eval infix %s", node.DebugString())
+		if log.LogVerbose() { // DebugString() is expensive/shows up in profiles significantly otherwise (before the ifs).
+			log.LogVf("eval infix %s", node.DebugString())
+		}
 		// Eval and not evalInternal because we need to unwrap "return".
 		if node.Token.Type() == token.ASSIGN || node.Token.Type() == token.DEFINE {
 			return s.evalAssignment(s.Eval(node.Right), node)
@@ -422,10 +429,14 @@ func (s *State) evalIndexRangeExpression(left object.Object, leftIdx, rightIdx a
 	nilRight := (rightIdx == nil)
 	var rightIndex object.Object
 	if nilRight {
-		log.Debugf("eval index %s[%s:]", left.Inspect(), leftIndex.Inspect())
+		if log.LogDebug() {
+			log.Debugf("eval index %s[%s:]", left.Inspect(), leftIndex.Inspect())
+		}
 	} else {
 		rightIndex = s.Eval(rightIdx)
-		log.Debugf("eval index %s[%s:%s]", left.Inspect(), leftIndex.Inspect(), rightIndex.Inspect())
+		if log.LogDebug() {
+			log.Debugf("eval index %s[%s:%s]", left.Inspect(), leftIndex.Inspect(), rightIndex.Inspect())
+		}
 	}
 	if leftIndex.Type() != object.INTEGER || (!nilRight && rightIndex.Type() != object.INTEGER) {
 		return s.NewError("range index not integer")
@@ -514,8 +525,11 @@ func evalArrayIndexExpression(array, index object.Object) object.Object {
 }
 
 func (s *State) applyExtension(fn object.Extension, args []object.Object) object.Object {
+	// TODO: consider memoizing the extension functions too? or maybe based on flags on the extension.
 	l := len(args)
-	log.Debugf("apply extension %s variadic %t : %d args %v", fn.Inspect(), fn.Variadic, l, args)
+	if log.LogDebug() {
+		log.Debugf("apply extension %s variadic %t : %d args %v", fn.Inspect(), fn.Variadic, l, args)
+	}
 	if fn.MaxArgs == -1 {
 		// Only do this for true variadic functions (maxargs == -1)
 		if l > 0 && args[l-1].Type() == object.ARRAY {
@@ -525,12 +539,12 @@ func (s *State) applyExtension(fn object.Extension, args []object.Object) object
 		}
 	}
 	if l < fn.MinArgs {
-		return object.Error{Value: fmt.Sprintf("wrong number of arguments got=%d, want %s",
-			l, fn.Inspect())} // shows usage
+		return s.Errorf("wrong number of arguments got=%d, want %s",
+			l, fn.Inspect()) // shows usage
 	}
 	if fn.MaxArgs != -1 && l > fn.MaxArgs {
-		return object.Error{Value: fmt.Sprintf("wrong number of arguments got=%d, want %s",
-			l, fn.Inspect())} // shows usage
+		return s.Errorf("wrong number of arguments got=%d, want %s",
+			l, fn.Inspect()) // shows usage
 	}
 	for i, arg := range args {
 		if i >= len(fn.ArgTypes) {
@@ -539,18 +553,26 @@ func (s *State) applyExtension(fn object.Extension, args []object.Object) object
 		if fn.ArgTypes[i] == object.ANY {
 			continue
 		}
+		// deref but only if type isn't ANY - so type() gets the REFERENCES but math functions don't/get values.
+		arg = object.Value(arg)
+		args[i] = arg
 		// Auto promote integer to float if needed.
 		if fn.ArgTypes[i] == object.FLOAT && arg.Type() == object.INTEGER {
 			args[i] = object.Float{Value: float64(arg.(object.Integer).Value)}
 			continue
 		}
 		if fn.ArgTypes[i] != arg.Type() {
-			return object.Error{Value: fmt.Sprintf("wrong type of argument got=%s, want %s",
-				arg.Type(), fn.Inspect())}
+			return s.Errorf("wrong type of argument got=%s, want %s",
+				arg.Type(), fn.Inspect())
 		}
 	}
 	if fn.ClientData != nil {
-		return fn.Callback(fn.ClientData, fn.Name, args)
+		res := fn.Callback(fn.ClientData, fn.Name, args)
+		if res.Type() == object.ERROR {
+			// Add the stack trace to the error.
+			return s.ErrorAddStack(res.(object.Error))
+		}
+		return res
 	}
 	return fn.Callback(s, fn.Name, args)
 }
@@ -562,13 +584,15 @@ func (s *State) applyFunction(name string, fn object.Object, args []object.Objec
 	}
 	if v, output, ok := s.cache.Get(function.CacheKey, args); ok {
 		log.Debugf("Cache hit for %s %v", function.CacheKey, args)
-		_, err := s.Out.Write(output)
-		if err != nil {
-			log.Warnf("output: %v", err)
+		if len(output) > 0 {
+			_, err := s.Out.Write(output)
+			if err != nil {
+				log.Warnf("output: %v", err)
+			}
 		}
 		return v
 	}
-	nenv, oerr := extendFunctionEnv(s.env, name, function, args)
+	nenv, oerr := s.extendFunctionEnv(s.env, name, function, args)
 	if oerr != nil {
 		return *oerr
 	}
@@ -585,10 +609,13 @@ func (s *State) applyFunction(name string, fn object.Object, args []object.Objec
 	// restore the previous env/state.
 	s.env = curState
 	s.Out = oldOut
-	output := buf.Bytes()
-	_, err := s.Out.Write(output)
-	if err != nil {
-		log.Warnf("output: %v", err)
+	var output []byte
+	if buf.Len() > 0 {
+		output = buf.Bytes()
+		_, err := s.Out.Write(output)
+		if err != nil {
+			log.Warnf("output: %v", err)
+		}
 	}
 	if after != before {
 		log.Debugf("Cache miss for %s %v, %d get misses", function.CacheKey, args, after-before)
@@ -606,7 +633,7 @@ func (s *State) applyFunction(name string, fn object.Object, args []object.Objec
 	return res
 }
 
-func extendFunctionEnv(
+func (s *State) extendFunctionEnv(
 	currrentEnv *object.Environment,
 	name string, fn object.Function,
 	args []object.Object,
@@ -636,13 +663,16 @@ func extendFunctionEnv(
 	}
 	n := len(params)
 	if len(args) != n {
-		return nil, &object.Error{Value: fmt.Sprintf("wrong number of arguments for %s. got=%d, want%s=%d",
-			name, len(args), atLeast, n)}
+		oerr := s.Errorf("wrong number of arguments for %s. got=%d, want%s=%d",
+			name, len(args), atLeast, n)
+		return nil, &oerr
 	}
 	for paramIdx, param := range params {
 		// By definition function parameters are local copies, deref argument values:
 		oerr := env.CreateOrSet(param.Value().Literal(), object.Value(args[paramIdx]), true)
-		log.LogVf("set %s to %s - %s", param.Value().Literal(), args[paramIdx].Inspect(), oerr.Inspect())
+		if log.LogVerbose() {
+			log.LogVf("set %s to %s - %s", param.Value().Literal(), args[paramIdx].Inspect(), oerr.Inspect())
+		}
 		if oerr.Type() == object.ERROR {
 			oe, _ := oerr.(object.Error)
 			return nil, &oe
@@ -695,10 +725,14 @@ func (s *State) evalIfExpression(ie *ast.IfExpression) object.Object {
 	condition := s.evalInternal(ie.Condition)
 	switch condition {
 	case object.TRUE:
-		log.LogVf("if %s is object.TRUE, picking true branch", ie.Condition.Value().DebugString())
+		if log.LogVerbose() {
+			log.LogVf("if %s is object.TRUE, picking true branch", ie.Condition.Value().DebugString())
+		}
 		return s.evalInternal(ie.Consequence)
 	case object.FALSE:
-		log.LogVf("if %s is object.FALSE, picking else branch", ie.Condition.Value().DebugString())
+		if log.LogVerbose() {
+			log.LogVf("if %s is object.FALSE, picking else branch", ie.Condition.Value().DebugString())
+		}
 		return s.evalInternal(ie.Alternative)
 	default:
 		return s.NewError("condition is not a boolean: " + condition.Inspect())
@@ -828,13 +862,17 @@ func (s *State) evalForExpression(fe *ast.ForExpression) object.Object {
 		condition := s.evalInternal(fe.Condition)
 		switch condition {
 		case object.TRUE:
-			log.LogVf("for %s is object.TRUE, running body", fe.Condition.Value().DebugString())
+			if log.LogVerbose() {
+				log.LogVf("for %s is object.TRUE, running body", fe.Condition.Value().DebugString())
+			}
 			lastEval = s.evalInternal(fe.Body)
 			if rt := lastEval.Type(); rt == object.RETURN || rt == object.ERROR {
 				return lastEval
 			}
 		case object.FALSE, object.NULL:
-			log.LogVf("for %s is object.FALSE, done", fe.Condition.Value().DebugString())
+			if log.LogVerbose() {
+				log.LogVf("for %s is object.FALSE, done", fe.Condition.Value().DebugString())
+			}
 			return lastEval
 		default:
 			switch condition.Type() {
@@ -858,7 +896,9 @@ func (s *State) evalStatements(stmts []ast.Node) object.Object {
 	var result object.Object
 	result = object.NULL // no crash when empty program.
 	for _, statement := range stmts {
-		log.LogVf("eval statement %T %s", statement, statement.Value().DebugString())
+		if log.LogVerbose() {
+			log.LogVf("eval statement %T %s", statement, statement.Value().DebugString())
+		}
 		if isComment(statement) {
 			log.Debugf("skipping comment")
 			continue
@@ -947,7 +987,7 @@ func (s *State) evalInfixExpression(operator token.Type, left, right object.Obje
 	case left.Type() == object.ARRAY:
 		return s.evalArrayInfixExpression(operator, left, right)
 	case left.Type() == object.MAP && right.Type() == object.MAP:
-		return evalMapInfixExpression(operator, left, right)
+		return s.evalMapInfixExpression(operator, left, right)
 	default:
 		return s.NewError("no " + operator.String() + " on left=" + left.Inspect() + " right=" + right.Inspect())
 	}
@@ -968,8 +1008,8 @@ func (s *State) evalStringInfixExpression(operator token.Type, left, right objec
 		object.MustBeOk(n / object.ObjectSize)
 		return object.String{Value: strings.Repeat(leftVal, int(rightVal))}
 	default:
-		return object.Error{Value: fmt.Sprintf("unknown operator: %s %s %s",
-			left.Type(), operator, right.Type())}
+		return s.Errorf("unknown operator: %s %s %s",
+			left.Type(), operator, right.Type())
 	}
 }
 
@@ -998,20 +1038,20 @@ func (s *State) evalArrayInfixExpression(operator token.Type, left, right object
 		object.MustBeOk(len(leftVal) + len(rightArr))
 		return object.NewArray(append(leftVal, rightArr...))
 	default:
-		return object.Error{Value: fmt.Sprintf("unknown operator: %s %s %s",
-			left.Type(), operator, right.Type())}
+		return s.Errorf("unknown operator: %s %s %s",
+			left.Type(), operator, right.Type())
 	}
 }
 
-func evalMapInfixExpression(operator token.Type, left, right object.Object) object.Object {
+func (s *State) evalMapInfixExpression(operator token.Type, left, right object.Object) object.Object {
 	leftMap := left.(object.Map)
 	rightMap := right.(object.Map)
 	switch operator {
 	case token.PLUS: // concat / append
 		return leftMap.Append(rightMap)
 	default:
-		return object.Error{Value: fmt.Sprintf("unknown operator: %s %s %s",
-			left.Type(), operator, right.Type())}
+		return s.Errorf("unknown operator: %s %s %s",
+			left.Type(), operator, right.Type())
 	}
 }
 
@@ -1059,27 +1099,30 @@ func (s *State) evalIntegerInfixExpression(operator token.Type, left, right obje
 	}
 }
 
-func (s *State) getFloatValue(o object.Object) (float64, *object.Error) {
+func GetFloatValue(o object.Object) (float64, *object.Error) {
 	switch o.Type() {
 	case object.INTEGER:
 		return float64(o.(object.Integer).Value), nil
 	case object.FLOAT:
 		return o.(object.Float).Value, nil
 	default:
-		e := s.NewError("not converting to float: " + o.Type().String())
+		// Not using state.NewError here because we want this to be reusable by extensions that do not have a state.
+		// they will get the stack trace added by the eval extension code. for here we
+		// will add the stack with s.ErrorAddStack().
+		e := object.Error{Value: "not converting to float: " + o.Type().String()}
 		return math.NaN(), &e
 	}
 }
 
 // So we copy-pasta instead :-(.
 func (s *State) evalFloatInfixExpression(operator token.Type, left, right object.Object) object.Object {
-	leftVal, oerr := s.getFloatValue(left)
+	leftVal, oerr := GetFloatValue(left)
 	if oerr != nil {
-		return *oerr
+		return s.ErrorAddStack(*oerr)
 	}
-	rightVal, oerr := s.getFloatValue(right)
+	rightVal, oerr := GetFloatValue(right)
 	if oerr != nil {
-		return *oerr
+		return s.ErrorAddStack(*oerr)
 	}
 	switch operator {
 	case token.PLUS:
