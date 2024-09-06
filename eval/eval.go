@@ -24,8 +24,7 @@ func (s *State) evalAssignment(right object.Object, node *ast.InfixExpression) o
 	switch node.Left.Value().Type() {
 	case token.DOT:
 		idxE := node.Left.(*ast.IndexExpression)
-		key := idxE.Index.Value().Literal()
-		index := object.String{Value: key}
+		index := object.String{Value: idxE.Index.Value().Literal()}
 		return s.evalIndexAssigment(idxE.Left, index, right)
 	case token.LBRACKET:
 		idxE := node.Left.(*ast.IndexExpression)

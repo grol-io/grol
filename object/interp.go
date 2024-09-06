@@ -2,6 +2,7 @@ package object
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 
 	"grol.io/grol/lexer"
@@ -51,6 +52,9 @@ func CreateFunction(cmd Extension) error {
 	name := cmd.Name
 	if len(dotSplit) == 2 {
 		ns, name = dotSplit[0], dotSplit[1]
+		if !ValidIdentifier(ns) {
+			return fmt.Errorf("namespace %q not alphanumeric", ns)
+		}
 	}
 	if !ValidIdentifier(name) {
 		return errors.New(name + ": not alphanumeric")
@@ -65,7 +69,8 @@ func CreateFunction(cmd Extension) error {
 		return errors.New(cmd.Name + ": already defined")
 	}
 	cmd.Variadic = (cmd.MaxArgs == -1) || (cmd.MaxArgs > cmd.MinArgs)
-	// Also put at top level (no namespace == no dot in name) function.
+	// If namespaced, put both at top level (for sake of baseinfo and command completion) and
+	// in namespace map (for access/ref by eval).
 	extraFunctions[cmd.Name] = cmd
 	if _, ok := namespaces[ns]; !ok {
 		namespaces[ns] = make(ExtensionMap)
