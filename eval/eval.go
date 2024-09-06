@@ -429,10 +429,14 @@ func (s *State) evalIndexRangeExpression(left object.Object, leftIdx, rightIdx a
 	nilRight := (rightIdx == nil)
 	var rightIndex object.Object
 	if nilRight {
-		log.Debugf("eval index %s[%s:]", left.Inspect(), leftIndex.Inspect())
+		if log.LogDebug() {
+			log.Debugf("eval index %s[%s:]", left.Inspect(), leftIndex.Inspect())
+		}
 	} else {
 		rightIndex = s.Eval(rightIdx)
-		log.Debugf("eval index %s[%s:%s]", left.Inspect(), leftIndex.Inspect(), rightIndex.Inspect())
+		if log.LogDebug() {
+			log.Debugf("eval index %s[%s:%s]", left.Inspect(), leftIndex.Inspect(), rightIndex.Inspect())
+		}
 	}
 	if leftIndex.Type() != object.INTEGER || (!nilRight && rightIndex.Type() != object.INTEGER) {
 		return s.NewError("range index not integer")
@@ -666,7 +670,9 @@ func (s *State) extendFunctionEnv(
 	for paramIdx, param := range params {
 		// By definition function parameters are local copies, deref argument values:
 		oerr := env.CreateOrSet(param.Value().Literal(), object.Value(args[paramIdx]), true)
-		log.LogVf("set %s to %s - %s", param.Value().Literal(), args[paramIdx].Inspect(), oerr.Inspect())
+		if log.LogVerbose() {
+			log.LogVf("set %s to %s - %s", param.Value().Literal(), args[paramIdx].Inspect(), oerr.Inspect())
+		}
 		if oerr.Type() == object.ERROR {
 			oe, _ := oerr.(object.Error)
 			return nil, &oe

@@ -5,12 +5,12 @@ func primesGen(maxSieve) {
     num = 2
     currentPrime = 2
     nextPrime = () => {
-        for currentPrime < len(sieve) {
+        for currentPrime < maxSieve {
             if sieve[currentPrime] {
                 prime = currentPrime
                 currentPrime++
                 mult = prime * prime
-                for max(len(sieve) - mult, 0) {
+                for max(maxSieve - mult, 0) {
                     if mult % prime == 0 {
                         sieve[mult] = false
                     }
@@ -26,7 +26,7 @@ func primesGen(maxSieve) {
 }
 
 
-maxS = 1500
+maxS = 1000 // use 100_000 for profiling.
 primeIter = primesGen(maxS)
 p = primeIter()
 printf("| %4d", p)

@@ -1056,7 +1056,9 @@ type Reference struct {
 }
 
 func (r Reference) Value() Object {
-	log.Debugf("Reference Value() %s -> %s", r.Name, r.RefEnv.store[r.Name].Inspect())
+	if log.LogDebug() {
+		log.Debugf("Reference Value() %s -> %s", r.Name, r.RefEnv.store[r.Name].Inspect())
+	}
 	v := r.RefEnv.store[r.Name]
 	if v == r {
 		panic("Self reference")
