@@ -111,17 +111,21 @@ func (s *State) UpdateNumSet() (oldvalue, newvalue int64) {
 	return
 }
 
-func (s *State) SetContext(ctx context.Context, d time.Duration) {
+// SetContext sets the context for the evaluator, with a maximum duration.
+// The returned cancel function can be used to cancel the context sooner and must be
+// called (in a defer typically) to release resources (to avoid issue #204).
+func (s *State) SetContext(ctx context.Context, d time.Duration) context.CancelFunc {
 	if d <= 0 {
 		log.LogVf("SetContext with unlimited duration")
 		s.Context, s.Cancel = context.WithCancel(ctx)
 	} else {
 		s.Context, s.Cancel = context.WithTimeout(ctx, d)
 	}
+	return s.Cancel
 }
 
-func (s *State) SetDefaultContext() {
-	s.SetContext(context.Background(), DefaultMaxDuration)
+func (s *State) SetDefaultContext() context.CancelFunc {
+	return s.SetContext(context.Background(), DefaultMaxDuration)
 }
 
 // Does unwrap (so stop bubbling up) return values.
