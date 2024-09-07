@@ -33,7 +33,7 @@ type State struct {
 	env        *object.Environment
 	rootEnv    *object.Environment // same as ancestor of env but used for reset in panic recovery.
 	cache      Cache
-	Extensions map[string]object.Extension
+	Extensions object.ExtensionMap
 	NoLog      bool // turn log() into println() (for EvalString)
 	// Max depth / recursion level - default DefaultMaxDepth,
 	// note that a simple function consumes at least 2 levels and typically at least 3 or 4.

@@ -37,7 +37,7 @@ TINYGO_STACKS:=-stack-size=40mb
 
 wasm: Makefile *.go */*.go $(GEN) wasm/wasm_exec.js wasm/wasm_exec.html wasm/grol_wasm.html
 #	GOOS=wasip1 GOARCH=wasm go build -o grol.wasm -trimpath -ldflags="-w -s" -tags "$(GO_BUILD_TAGS)" .
-	GOOS=js GOARCH=wasm go build -o wasm/grol.wasm -trimpath -ldflags="-w -s" -tags "$(GO_BUILD_TAGS)" ./wasm
+	GOOS=js GOARCH=wasm $(WASM_GO) build -o wasm/grol.wasm -trimpath -ldflags="-w -s" -tags "$(GO_BUILD_TAGS)" ./wasm
 #	GOOS=wasip1 GOARCH=wasm tinygo build -target=wasi -no-debug -o grol_tiny.wasm -tags "$(GO_BUILD_TAGS)" .
 # Tiny go generates errors https://github.com/tinygo-org/tinygo/issues/1140
 #	GOOS=js GOARCH=wasm tinygo build $(TINYGO_STACKS) -no-debug -o wasm/grol.wasm -tags "$(GO_BUILD_TAGS)" ./wasm
@@ -50,11 +50,15 @@ wasm: Makefile *.go */*.go $(GEN) wasm/wasm_exec.js wasm/wasm_exec.html wasm/gro
 	sleep 3
 	open http://localhost:8080/
 
+
+#WASM_GO:=/opt/homebrew/Cellar/go/1.23.1/bin/go
+WASM_GO:=go
+
 GIT_TAG=$(shell git describe --tags --always --dirty)
 # used to copy to site a release version
 wasm-release: Makefile *.go */*.go $(GEN) wasm/wasm_exec.js wasm/wasm_exec.html
 	@echo "Building wasm release GIT_TAG=$(GIT_TAG)"
-	GOOS=js GOARCH=wasm go install -trimpath -ldflags="-w -s" -tags "$(GO_BUILD_TAGS)" grol.io/grol/wasm@$(GIT_TAG)
+	GOOS=js GOARCH=wasm $(WASM_GO) install -trimpath -ldflags="-w -s" -tags "$(GO_BUILD_TAGS)" grol.io/grol/wasm@$(GIT_TAG)
 	# No buildinfo and no tinygo install so we set version old style:
 #	GOOS=js GOARCH=wasm tinygo build $(TINYGO_STACKS) -o wasm/grol.wasm -no-debug -ldflags="-X main.TinyGoVersion=$(GIT_TAG)" -tags  "$(GO_BUILD_TAGS)" ./wasm
 	mv "$(shell go env GOPATH)/bin/js_wasm/wasm" wasm/grol.wasm
@@ -67,10 +71,10 @@ install:
 
 wasm/wasm_exec.js: Makefile
 #	cp "$(shell tinygo env TINYGOROOT)/targets/wasm_exec.js" ./wasm/
-	cp "$(shell go env GOROOT)/misc/wasm/wasm_exec.js" ./wasm/
+	cp "$(shell $(WASM_GO) env GOROOT)/misc/wasm/wasm_exec.js" ./wasm/
 
 wasm/wasm_exec.html:
-	cp "$(shell go env GOROOT)/misc/wasm/wasm_exec.html" ./wasm/
+	cp "$(shell $(WASM_GO) env GOROOT)/misc/wasm/wasm_exec.html" ./wasm/
 
 test: grol
 	CGO_ENABLED=0 go test -tags $(GO_BUILD_TAGS) ./...

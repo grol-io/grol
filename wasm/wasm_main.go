@@ -56,6 +56,11 @@ func jsEval(this js.Value, args []js.Value) interface{} {
 	opts.MaxDuration = WasmMaxDuration
 	res, errs, formatted := repl.EvalStringWithOption(context.Background(), opts, input)
 	result := make(map[string]any)
+	if strings.HasPrefix(res, "data:") {
+		// special case for data: urls, we don't want to return the data
+		result["image"] = res
+		res = ""
+	}
 	result["result"] = strings.TrimSuffix(res, "\n")
 	// transfer errors to []any (!)
 	anyErrs := make([]any, len(errs))
@@ -83,7 +88,6 @@ func main() {
 	}
 	prev := debug.SetMemoryLimit(WasmMemLimit)
 	log.Infof("Grol wasm main %s - prev memory limit %d now %d", grolVersion, prev, WasmMemLimit)
-	done := make(chan struct{}, 0)
 	global := js.Global()
 	global.Set("grol", js.FuncOf(jsEval))
 	global.Set("grolVersion", js.ValueOf(grolVersion))
@@ -93,5 +97,5 @@ func main() {
 	if err != nil {
 		log.Critf("Error initializing extensions: %v", err)
 	}
-	<-done
+	select {}
 }

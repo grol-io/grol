@@ -1,6 +1,7 @@
 package extensions
 
 import (
+	"bytes"
 	"image"
 	"image/color"
 	"image/draw"
@@ -156,11 +157,11 @@ func ycbrArrayToRBGAColor(arr []object.Object) (color.RGBA, *object.Error) {
 	return rgba, nil
 }
 
-func createImageFunctions() {
+func createImageFunctions() { //nolint:funlen // this is a group of related functions.
 	// All the functions consistently use args[0] as the image name/reference into the ClientData map.
 	cdata := make(ImageMap)
 	imgFn := object.Extension{
-		Name:       "image",
+		Name:       "image.new",
 		MinArgs:    3,
 		MaxArgs:    3,
 		Help:       "create a new RGBA image of the name and size, image starts entirely transparent",
@@ -184,7 +185,7 @@ func createImageFunctions() {
 		},
 	}
 	MustCreate(imgFn)
-	imgFn.Name = "image_set"
+	imgFn.Name = "image.set"
 	imgFn.Help = "img, x, y, color: set a pixel in the named image, color is an array of 3 or 4 elements 0-255"
 	imgFn.MinArgs = 4
 	imgFn.MaxArgs = 4
@@ -201,11 +202,11 @@ func createImageFunctions() {
 		var color color.RGBA
 		var oerr *object.Error
 		switch name {
-		case "image_set_ycbcr":
+		case "image.set_ycbcr":
 			color, oerr = ycbrArrayToRBGAColor(colorArray)
-		case "image_set_hsl":
+		case "image.set_hsl":
 			color, oerr = hslArrayToRBGAColor(colorArray)
-		case "image_set":
+		case "image.set":
 			color, oerr = rgbArrayToRBGAColor(colorArray)
 		default:
 			return object.Errorf("unknown image_set function %q", name)
@@ -217,13 +218,13 @@ func createImageFunctions() {
 		return args[0]
 	}
 	MustCreate(imgFn)
-	imgFn.Name = "image_set_ycbcr"
+	imgFn.Name = "image.set_ycbcr"
 	imgFn.Help = "img, x, y, color: set a pixel in the named image, color Y'CbCr in an array of 3 elements 0-255"
 	MustCreate(imgFn)
-	imgFn.Name = "image_set_hsl"
+	imgFn.Name = "image.set_hsl"
 	imgFn.Help = "img, x, y, color: set a pixel in the named image, color in an array [Hue (0-360), Sat (0-1), Light (0-1)]"
 	MustCreate(imgFn)
-	imgFn.Name = "image_save"
+	imgFn.Name = "image.save"
 	imgFn.Help = "save the named image grol.png"
 	imgFn.MinArgs = 1
 	imgFn.MaxArgs = 1
@@ -244,6 +245,25 @@ func createImageFunctions() {
 			return object.Errorf("error encoding image: %v", err)
 		}
 		return args[0]
+	}
+	MustCreate(imgFn)
+	imgFn.Name = "image.png"
+	imgFn.Help = "returns the png data of the named image, suitable for base64"
+	imgFn.MinArgs = 1
+	imgFn.MaxArgs = 1
+	imgFn.ArgTypes = []object.Type{object.STRING}
+	imgFn.Callback = func(cdata any, _ string, args []object.Object) object.Object {
+		images := cdata.(ImageMap)
+		img, ok := images[args[0]]
+		if !ok {
+			return object.Errorf("image not found")
+		}
+		buf := bytes.Buffer{}
+		err := png.Encode(&buf, img)
+		if err != nil {
+			return object.Errorf("error encoding image: %v", err)
+		}
+		return object.String{Value: buf.String()}
 	}
 	MustCreate(imgFn)
 }
