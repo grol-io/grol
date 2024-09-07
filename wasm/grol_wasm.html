@@ -68,7 +68,7 @@
         try {
             // console.clear();
             console.log('In run')
-			go.run(inst);
+            go.run(inst)
             var input = document.getElementById('input').value
             var compact = document.getElementById('compact').checked
             // Call the grol function with the input
@@ -79,11 +79,12 @@
                 // Write the result to the output textarea
                 document.getElementById('output').value = output.result;
                 document.getElementById('input').value = output.formatted;
-                document.getElementById('errors').value = output.errors.join("\n");
+                document.getElementById('errors').value = output.errors.join("\n")
                 if (output.image !== undefined) {
-                    document.getElementById('image').src = output.image;
+                    document.getElementById('image').src = output.image
                 } else {
-                    document.getElementById('image').src = "";
+                    var img = document.getElementById('image')
+                    img.src = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw=="
                 }
             } else {
                 document.getElementById('errors').value = "Unexpected runtime error, see JS console";
@@ -132,25 +133,26 @@ a=[fact(5), "abc", sqrt(2)] // heterogeneous array, math functions
 m={"str key": a, PI: "pi", 42: "str val", 1e3: "a lot"}</textarea>
 </div>
 <div>
-Hit enter or click <button onClick="run();" id="runButton" disabled>Run</button> (will also format the code, also try <input type="checkbox" id="compact">compact)
-<button id="addParamButton">Share</button>
-<script>
-    document.getElementById('addParamButton').addEventListener('click', () => {
-        const paramValue = document.getElementById('input').value
-        const url = new URL(window.location)
-        function customEscape(str) {
-            return str.replace(/%/g, '%2525')
-              .replace(/\+/g, '%2B')
-              .replace(/ /g, '+')
-              .replace(/\n/g, '%0A')
-              .replace(/\t/g, '%09')
-              .replace(/</g, '%3C')
-        }
-        const encodedValue = customEscape(paramValue)
-        const newUrl = `${url.origin}${url.pathname}?c=${encodedValue}`
-        window.history.pushState({}, '', newUrl)
-    });
-</script>
+    Hit enter or click <button onClick="run();" id="runButton" disabled>Run</button> (will also format the code, also
+    try <input type="checkbox" id="compact">compact)
+    <button id="addParamButton">Share</button>
+    <script>
+        document.getElementById('addParamButton').addEventListener('click', () => {
+            const paramValue = document.getElementById('input').value
+            const url = new URL(window.location)
+            function customEscape(str) {
+                return str.replace(/%/g, '%2525')
+                    .replace(/\+/g, '%2B')
+                    .replace(/ /g, '+')
+                    .replace(/\n/g, '%0A')
+                    .replace(/\t/g, '%09')
+                    .replace(/</g, '%3C')
+            }
+            const encodedValue = customEscape(paramValue)
+            const newUrl = `${url.origin}${url.pathname}?c=${encodedValue}`
+            window.history.pushState({}, '', newUrl)
+        });
+    </script>
 
 </div>
 <div>
