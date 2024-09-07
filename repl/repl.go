@@ -380,6 +380,7 @@ func EvalOne(ctx context.Context, s *eval.State, what string, out io.Writer, opt
 		}()
 	}
 	s.SetContext(ctx, options.MaxDuration)
+	defer s.Cancel()
 	continuation, errs, formatted = evalOne(s, what, out, options)
 	return
 }

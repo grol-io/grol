@@ -88,7 +88,6 @@ func main() {
 	}
 	prev := debug.SetMemoryLimit(WasmMemLimit)
 	log.Infof("Grol wasm main %s - prev memory limit %d now %d", grolVersion, prev, WasmMemLimit)
-	done := make(chan struct{}, 0)
 	global := js.Global()
 	global.Set("grol", js.FuncOf(jsEval))
 	global.Set("grolVersion", js.ValueOf(grolVersion))
@@ -98,5 +97,5 @@ func main() {
 	if err != nil {
 		log.Critf("Error initializing extensions: %v", err)
 	}
-	<-done
+	select {}
 }

@@ -60,11 +60,15 @@
     function formatError(error) {
         return `Error: ${error.message}`;
     }
+    let isRunning = false
     async function run() {
+        if (isRunning) return; // Prevent running multiple times concurrently
+        isRunning = true;
+        document.getElementById("runButton").disabled = true; // Disable button during execution
         try {
             // console.clear();
             console.log('In run')
-            go.run(inst);
+			go.run(inst);
             var input = document.getElementById('input').value
             var compact = document.getElementById('compact').checked
             // Call the grol function with the input
@@ -78,6 +82,8 @@
                 document.getElementById('errors').value = output.errors.join("\n");
                 if (output.image !== undefined) {
                     document.getElementById('image').src = output.image;
+                } else {
+                    document.getElementById('image').src = "";
                 }
             } else {
                 document.getElementById('errors').value = "Unexpected runtime error, see JS console";
@@ -88,7 +94,12 @@
             const formattedError = formatError(e);
             document.getElementById('errors').value = formattedError;
         } finally {
-            inst = await WebAssembly.instantiate(mod, go.importObject); // reset instance
+            inst = await WebAssembly.instantiate(mod, go.importObject)
+            console.log('Instance reset:', inst)
+            if (isRunning) {
+                isRunning = false; // Allow running again after reset
+                document.getElementById("runButton").disabled = false; // Re-enable the button
+            }
         }
         resizeTextarea(document.getElementById('input'));
         resizeTextarea(document.getElementById('output'));
@@ -96,7 +107,7 @@
     }
     document.addEventListener('DOMContentLoaded', (event) => {
         document.getElementById('input').addEventListener('keydown', function (e) {
-            if (e.key === 'Enter') {
+            if (e.key === 'Enter' && !isRunning) {
                 run();
             }
         });
