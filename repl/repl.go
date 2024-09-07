@@ -379,8 +379,8 @@ func EvalOne(ctx context.Context, s *eval.State, what string, out io.Writer, opt
 			}
 		}()
 	}
-	s.SetContext(ctx, options.MaxDuration)
-	defer s.Cancel()
+	cancel := s.SetContext(ctx, options.MaxDuration)
+	defer cancel() // must be called to avoid leaking timeout context, which caused #204.
 	continuation, errs, formatted = evalOne(s, what, out, options)
 	return
 }
