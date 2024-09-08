@@ -278,7 +278,7 @@ func createImageFunctions() { //nolint:funlen // this is a group of related func
 	createVectorImageFunctions(cdata)
 }
 
-func createVectorImageFunctions(cdata ImageMap) {
+func createVectorImageFunctions(cdata ImageMap) { //nolint:funlen // this is a group of related functions.
 	imgFn := object.Extension{
 		Name:       "image.move_to",
 		MinArgs:    3,
@@ -388,8 +388,9 @@ func createVectorImageFunctions(cdata ImageMap) {
 }
 
 func mergeAdd(img1, img2 *image.NRGBA) {
-	for y := 0; y < img1.Bounds().Dy(); y++ {
-		for x := 0; x < img1.Bounds().Dx(); x++ {
+	//nolint:gosec // gosec not smart enough to see the range check just below.
+	for y := range img1.Bounds().Dy() {
+		for x := range img1.Bounds().Dx() {
 			p1 := img1.NRGBAAt(x, y)
 			if p1.R == 0 && p1.G == 0 && p1.B == 0 { // black is no change
 				img1.SetNRGBA(x, y, img2.NRGBAAt(x, y))
@@ -402,9 +403,8 @@ func mergeAdd(img1, img2 *image.NRGBA) {
 			p1.R = uint8(min(255, uint16(p1.R)+uint16(p2.R)))
 			p1.G = uint8(min(255, uint16(p1.G)+uint16(p2.G)))
 			p1.B = uint8(min(255, uint16(p1.B)+uint16(p2.B)))
-			//p1.A = uint8(min(255, uint16(p1.A)+uint16(p2.A)))
+			// p1.A = uint8(min(255, uint16(p1.A)+uint16(p2.A))) // summing transparency yield non transparent quickly
 			p1.A = max(p1.A, p2.A)
-			// p1.A = uint8((uint16(p1.A) + uint16(p2.A)) / 2)
 			img1.SetNRGBA(x, y, p1)
 		}
 	}
