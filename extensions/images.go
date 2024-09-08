@@ -9,11 +9,18 @@ import (
 	"math"
 	"os"
 
+	"golang.org/x/image/vector"
 	"grol.io/grol/eval"
 	"grol.io/grol/object"
 )
 
-type ImageMap map[object.Object]*image.RGBA
+type GrolImage struct {
+	*image.RGBA
+	*vector.Rasterizer
+	w, h int
+}
+
+type ImageMap map[object.Object]GrolImage
 
 // TODO: make this configurable and use the slice check as well as some sort of LRU.
 const MaxImageDimension = 1024 // in pixels.
@@ -178,9 +185,11 @@ func createImageFunctions() { //nolint:funlen // this is a group of related func
 				return object.Errorf("image sizes must be positive")
 			}
 			img := image.NewRGBA(image.Rect(0, 0, x, y))
-			transparent := color.RGBA{0, 0, 0, 0}
-			draw.Draw(img, img.Bounds(), &image.Uniform{transparent}, image.Point{}, draw.Src)
-			images[args[0]] = img
+			/*
+				transparent := color.RGBA{0, 0, 0, 0}
+				draw.Draw(img, img.Bounds(), &image.Uniform{transparent}, image.Point{}, draw.Src)
+			*/
+			images[args[0]] = GrolImage{img, vector.NewRasterizer(x, y), x, y}
 			return args[0]
 		},
 	}
@@ -196,7 +205,7 @@ func createImageFunctions() { //nolint:funlen // this is a group of related func
 		y := int(args[2].(object.Integer).Value)
 		img, ok := images[args[0]]
 		if !ok {
-			return object.Errorf("image not found")
+			return object.Errorf("image %q not found", args[0].(object.String).Value)
 		}
 		colorArray := object.Elements(args[3])
 		var color color.RGBA
@@ -209,7 +218,7 @@ func createImageFunctions() { //nolint:funlen // this is a group of related func
 		case "image.set":
 			color, oerr = rgbArrayToRBGAColor(colorArray)
 		default:
-			return object.Errorf("unknown image_set function %q", name)
+			return object.Errorf("unknown image.set function %q", name)
 		}
 		if oerr != nil {
 			return oerr
@@ -222,7 +231,7 @@ func createImageFunctions() { //nolint:funlen // this is a group of related func
 	imgFn.Help = "img, x, y, color: set a pixel in the named image, color Y'CbCr in an array of 3 elements 0-255"
 	MustCreate(imgFn)
 	imgFn.Name = "image.set_hsl"
-	imgFn.Help = "img, x, y, color: set a pixel in the named image, color in an array [Hue (0-360), Sat (0-1), Light (0-1)]"
+	imgFn.Help = "img, x, y, color: set a pixel in the named image, color in an array [Hue (0-1), Sat (0-1), Light (0-1)]"
 	MustCreate(imgFn)
 	imgFn.Name = "image.save"
 	imgFn.Help = "save the named image grol.png"
@@ -240,7 +249,7 @@ func createImageFunctions() { //nolint:funlen // this is a group of related func
 			return object.Errorf("error opening image file: %v", err)
 		}
 		defer outputFile.Close()
-		err = png.Encode(outputFile, img)
+		err = png.Encode(outputFile, img.RGBA)
 		if err != nil {
 			return object.Errorf("error encoding image: %v", err)
 		}
@@ -259,11 +268,105 @@ func createImageFunctions() { //nolint:funlen // this is a group of related func
 			return object.Errorf("image not found")
 		}
 		buf := bytes.Buffer{}
-		err := png.Encode(&buf, img)
+		err := png.Encode(&buf, img.RGBA)
 		if err != nil {
 			return object.Errorf("error encoding image: %v", err)
 		}
 		return object.String{Value: buf.String()}
 	}
 	MustCreate(imgFn)
+	createVectorImageFunctions(cdata)
+}
+
+func createVectorImageFunctions(cdata ImageMap) {
+	imgFn := object.Extension{
+		Name:       "image.move_to",
+		MinArgs:    3,
+		MaxArgs:    3,
+		Help:       "starts a new path and moves the pen to coords",
+		ArgTypes:   []object.Type{object.STRING, object.FLOAT, object.FLOAT},
+		ClientData: cdata,
+		Callback: func(cdata any, _ string, args []object.Object) object.Object {
+			images := cdata.(ImageMap)
+			img, ok := images[args[0]]
+			if !ok {
+				return object.Errorf("image %q not found", args[0].(object.String).Value)
+			}
+			x := int(args[1].(object.Float).Value)
+			y := int(args[2].(object.Float).Value)
+			img.Rasterizer.MoveTo(float32(x), float32(y))
+			return args[0]
+		},
+	}
+	MustCreate(imgFn)
+	imgFn.Name = "image.line_to"
+	imgFn.Help = "adds a line segment"
+	imgFn.Callback = func(cdata any, _ string, args []object.Object) object.Object {
+		images := cdata.(ImageMap)
+		img, ok := images[args[0]]
+		if !ok {
+			return object.Errorf("image %q not found", args[0].(object.String).Value)
+		}
+		x := int(args[1].(object.Float).Value)
+		y := int(args[2].(object.Float).Value)
+		img.Rasterizer.LineTo(float32(x), float32(y))
+		return args[0]
+	}
+	MustCreate(imgFn)
+	imgFn.Name = "image.close_path"
+	imgFn.Help = "close the current path"
+	imgFn.MinArgs = 1
+	imgFn.MaxArgs = 1
+	imgFn.Callback = func(cdata any, _ string, args []object.Object) object.Object {
+		images := cdata.(ImageMap)
+		img, ok := images[args[0]]
+		if !ok {
+			return object.Errorf("image %q not found", args[0].(object.String).Value)
+		}
+		img.Rasterizer.ClosePath()
+		return args[0]
+	}
+	MustCreate(imgFn)
+	imgFn.Name = "image.draw"
+	imgFn.Help = "draw the path in the color is an array of 3 or 4 elements 0-255"
+	imgFn.MinArgs = 2
+	imgFn.MaxArgs = 2
+	imgFn.ArgTypes = []object.Type{object.STRING, object.ARRAY}
+	imgFn.Callback = func(cdata any, name string, args []object.Object) object.Object {
+		images := cdata.(ImageMap)
+		img, ok := images[args[0]]
+		if !ok {
+			return object.Errorf("image %q not found", args[0].(object.String).Value)
+		}
+		colorArray := object.Elements(args[1])
+		var color color.RGBA
+		var oerr *object.Error
+		switch name {
+		case "image.draw_ycbcr":
+			color, oerr = ycbrArrayToRBGAColor(colorArray)
+		case "image.draw_hsl":
+			color, oerr = hslArrayToRBGAColor(colorArray)
+		case "image.draw":
+			color, oerr = rgbArrayToRBGAColor(colorArray)
+		default:
+			return object.Errorf("unknown image.draw function %q", name)
+		}
+		if oerr != nil {
+			return oerr
+		}
+		img.Rasterizer.ClosePath() // just in case
+		src := image.NewUniform(color)
+		img.Rasterizer.DrawOp = draw.Over
+		img.Rasterizer.Draw(img.RGBA, img.RGBA.Bounds(), src, image.Point{})
+		img.Rasterizer.Reset(img.h, img.w)
+		return args[0]
+	}
+	MustCreate(imgFn)
+	imgFn.Name = "image.draw_ycbcr"
+	imgFn.Help = "draw vector path, color Y'CbCr in an array of 3 elements 0-255"
+	MustCreate(imgFn)
+	imgFn.Name = "image.draw_hsl"
+	imgFn.Help = "draw vector path, color in an array [Hue (0-1), Sat (0-1), Light (0-1)]"
+	MustCreate(imgFn)
+
 }

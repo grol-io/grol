@@ -1,0 +1,37 @@
+/* use path vector graphic image functions */
+
+
+i := "img"
+
+image.new(i, 1024, 1024)
+
+alpha:=86
+main:=128
+
+// red triangle
+image.move_to(i,100, 100)
+image.line_to(i,300, 500)
+image.line_to(i,500, 100)
+
+image.draw(i, [main,0,0,alpha])
+
+// green triangle
+image.move_to(i,256, 256)
+image.line_to(i,800, 900)
+image.line_to(i,1000, 700)
+
+image.draw(i, [0,255,0,255])
+
+// blue triangle
+image.move_to(i,600, 100)
+image.line_to(i,900, 300)
+image.line_to(i,10, 400)
+
+image.draw(i, [0,0,main,alpha])
+
+image.set(i, 100, 900, [255,0,0,255])
+image.set(i, 100, 901, [0,255,0,255])
+image.set(i, 100, 902, [0,0,255,255])
+
+
+image.save(i)
