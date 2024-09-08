@@ -152,6 +152,18 @@ func initInternal(c *Config) error {
 		oneFloat.Name = function.name
 		MustCreate(oneFloat)
 	}
+	MustCreate(object.Extension{
+		Name:     "atan2",
+		MinArgs:  2,
+		MaxArgs:  2,
+		ArgTypes: []object.Type{object.FLOAT, object.FLOAT},
+		Callback: object.ShortCallback(func(args []object.Object) object.Object {
+			base := args[0].(object.Float).Value
+			exp := args[1].(object.Float).Value
+			result := math.Atan2(base, exp)
+			return object.Float{Value: result}
+		}),
+	})
 	// rand() and rand(n) functions.
 	MustCreate(object.Extension{
 		Name:     "rand",

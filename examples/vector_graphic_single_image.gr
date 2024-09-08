@@ -15,6 +15,21 @@ image.set(i, 100, h-9, [255,0,0,255])
 image.set(i, 100, h-8, [0,255,0,255])
 image.set(i, 100, h-7, [0,0,255,255])
 
+func line(x1, y1, x2, y2, color, thickness) {
+	angle := atan2(y2-y1, x2-x1) + PI/2
+	dx := thickness*cos(angle)/2.
+	dy := thickness*sin(angle)/2.
+	image.move_to(i, x1-dx, y1-dy)
+	image.line_to(i, x2-dx, y2-dy)
+	image.line_to(i, x2+dx, y2+dy)
+	image.line_to(i, x1+dx, y1+dy)
+	image.draw(i, color)
+}
+
+line(100, 400, 600, 350, [255,255,255,255], 20)
+line(100, 400, 600, 350, [0,0,255,255], 0.1)
+
+
 alpha:=192
 main:=255
 
