@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"image"
 	"image/color"
-	"image/draw"
 	"image/png"
 	"math"
 	"os"
@@ -15,9 +14,9 @@ import (
 )
 
 type GrolImage struct {
-	*image.NRGBA
-	*vector.Rasterizer
-	w, h int
+	Image *image.NRGBA
+	Vect  *vector.Rasterizer
+	W, H  int
 }
 
 type ImageMap map[object.Object]GrolImage
@@ -189,7 +188,7 @@ func createImageFunctions() { //nolint:funlen // this is a group of related func
 				transparent := color.NRGBA{0, 0, 0, 0}
 				draw.Draw(img, img.Bounds(), &image.Uniform{transparent}, image.Point{}, draw.Src)
 			*/
-			images[args[0]] = GrolImage{img, vector.NewRasterizer(x, y), x, y}
+			images[args[0]] = GrolImage{Image: img, Vect: vector.NewRasterizer(x, y), W: x, H: y}
 			return args[0]
 		},
 	}
@@ -223,7 +222,7 @@ func createImageFunctions() { //nolint:funlen // this is a group of related func
 		if oerr != nil {
 			return oerr
 		}
-		img.SetNRGBA(x, y, color)
+		img.Image.SetNRGBA(x, y, color)
 		return args[0]
 	}
 	MustCreate(imgFn)
@@ -249,7 +248,7 @@ func createImageFunctions() { //nolint:funlen // this is a group of related func
 			return object.Errorf("error opening image file: %v", err)
 		}
 		defer outputFile.Close()
-		err = png.Encode(outputFile, img.NRGBA)
+		err = png.Encode(outputFile, img.Image)
 		if err != nil {
 			return object.Errorf("error encoding image: %v", err)
 		}
@@ -268,7 +267,7 @@ func createImageFunctions() { //nolint:funlen // this is a group of related func
 			return object.Errorf("image not found")
 		}
 		buf := bytes.Buffer{}
-		err := png.Encode(&buf, img.NRGBA)
+		err := png.Encode(&buf, img.Image)
 		if err != nil {
 			return object.Errorf("error encoding image: %v", err)
 		}
@@ -294,7 +293,7 @@ func createVectorImageFunctions(cdata ImageMap) { //nolint:funlen // this is a g
 			}
 			x := int(args[1].(object.Float).Value)
 			y := int(args[2].(object.Float).Value)
-			img.Rasterizer.MoveTo(float32(x), float32(y))
+			img.Vect.MoveTo(float32(x), float32(y))
 			return args[0]
 		},
 	}
@@ -309,7 +308,7 @@ func createVectorImageFunctions(cdata ImageMap) { //nolint:funlen // this is a g
 		}
 		x := int(args[1].(object.Float).Value)
 		y := int(args[2].(object.Float).Value)
-		img.Rasterizer.LineTo(float32(x), float32(y))
+		img.Vect.LineTo(float32(x), float32(y))
 		return args[0]
 	}
 	MustCreate(imgFn)
@@ -323,7 +322,7 @@ func createVectorImageFunctions(cdata ImageMap) { //nolint:funlen // this is a g
 		if !ok {
 			return object.Errorf("image %q not found", args[0].(object.String).Value)
 		}
-		img.Rasterizer.ClosePath()
+		img.Vect.ClosePath()
 		return args[0]
 	}
 	MustCreate(imgFn)
@@ -354,11 +353,10 @@ func createVectorImageFunctions(cdata ImageMap) { //nolint:funlen // this is a g
 		if oerr != nil {
 			return oerr
 		}
-		img.Rasterizer.ClosePath() // just in case
+		img.Vect.ClosePath() // just in case
 		src := image.NewUniform(color)
-		img.Rasterizer.DrawOp = draw.Over
-		img.Rasterizer.Draw(img.NRGBA, img.NRGBA.Bounds(), src, image.Point{})
-		img.Rasterizer.Reset(img.h, img.w)
+		img.Vect.Draw(img.Image, img.Image.Bounds(), src, image.Point{})
+		img.Vect.Reset(img.W, img.H)
 		return args[0]
 	}
 	MustCreate(imgFn)
@@ -381,7 +379,7 @@ func createVectorImageFunctions(cdata ImageMap) { //nolint:funlen // this is a g
 		if !ok {
 			return object.Errorf("image %q not found", args[1].(object.String).Value)
 		}
-		mergeAdd(img1.NRGBA, img2.NRGBA)
+		mergeAdd(img1.Image, img2.Image)
 		return args[0]
 	}
 	MustCreate(imgFn)
