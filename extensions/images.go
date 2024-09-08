@@ -170,7 +170,7 @@ func createImageFunctions() { //nolint:funlen // this is a group of related func
 		Name:       "image.new",
 		MinArgs:    3,
 		MaxArgs:    3,
-		Help:       "create a new NRGBA image of the name and size, image starts entirely transparent",
+		Help:       "create a new image of the name and size, image starts entirely transparent",
 		ArgTypes:   []object.Type{object.STRING, object.INTEGER, object.INTEGER},
 		ClientData: cdata,
 		Callback: func(cdata any, _ string, args []object.Object) object.Object {
@@ -184,10 +184,6 @@ func createImageFunctions() { //nolint:funlen // this is a group of related func
 				return object.Errorf("image sizes must be positive")
 			}
 			img := image.NewNRGBA(image.Rect(0, 0, x, y))
-			/*
-				transparent := color.NRGBA{0, 0, 0, 0}
-				draw.Draw(img, img.Bounds(), &image.Uniform{transparent}, image.Point{}, draw.Src)
-			*/
 			images[args[0]] = GrolImage{Image: img, Vect: vector.NewRasterizer(x, y), W: x, H: y}
 			return args[0]
 		},
