@@ -368,5 +368,44 @@ func createVectorImageFunctions(cdata ImageMap) {
 	imgFn.Name = "image.draw_hsl"
 	imgFn.Help = "draw vector path, color in an array [Hue (0-1), Sat (0-1), Light (0-1)]"
 	MustCreate(imgFn)
+	imgFn.Name = "image.add"
+	imgFn.Help = "merges the 2nd image into the first one, additively with white clipping"
+	imgFn.ArgTypes = []object.Type{object.STRING, object.STRING}
+	imgFn.Callback = func(cdata any, _ string, args []object.Object) object.Object {
+		images := cdata.(ImageMap)
+		img1, ok := images[args[0]]
+		if !ok {
+			return object.Errorf("image %q not found", args[0].(object.String).Value)
+		}
+		img2, ok := images[args[1]]
+		if !ok {
+			return object.Errorf("image %q not found", args[1].(object.String).Value)
+		}
+		mergeAdd(img1.NRGBA, img2.NRGBA)
+		return args[0]
+	}
+	MustCreate(imgFn)
+}
 
+func mergeAdd(img1, img2 *image.NRGBA) {
+	for y := 0; y < img1.Bounds().Dy(); y++ {
+		for x := 0; x < img1.Bounds().Dx(); x++ {
+			p1 := img1.NRGBAAt(x, y)
+			if p1.R == 0 && p1.G == 0 && p1.B == 0 { // black is no change
+				img1.SetNRGBA(x, y, img2.NRGBAAt(x, y))
+				continue
+			}
+			p2 := img2.NRGBAAt(x, y)
+			if p2.R == 0 && p2.G == 0 && p2.B == 0 { // black is no change
+				continue
+			}
+			p1.R = uint8(min(255, uint16(p1.R)+uint16(p2.R)))
+			p1.G = uint8(min(255, uint16(p1.G)+uint16(p2.G)))
+			p1.B = uint8(min(255, uint16(p1.B)+uint16(p2.B)))
+			//p1.A = uint8(min(255, uint16(p1.A)+uint16(p2.A)))
+			p1.A = max(p1.A, p2.A)
+			// p1.A = uint8((uint16(p1.A) + uint16(p2.A)) / 2)
+			img1.SetNRGBA(x, y, p1)
+		}
+	}
 }
