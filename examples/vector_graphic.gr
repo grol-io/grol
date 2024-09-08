@@ -5,8 +5,8 @@ i := "img"
 
 image.new(i, 1024, 1024)
 
-alpha:=86
-main:=128
+alpha:=200
+main:=255
 
 // red triangle
 image.move_to(i,100, 100)
@@ -20,7 +20,7 @@ image.move_to(i,256, 256)
 image.line_to(i,800, 900)
 image.line_to(i,1000, 700)
 
-image.draw(i, [0,255,0,255])
+image.draw(i, [0,main,0,alpha])
 
 // blue triangle
 image.move_to(i,600, 100)

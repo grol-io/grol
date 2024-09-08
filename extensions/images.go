@@ -15,7 +15,7 @@ import (
 )
 
 type GrolImage struct {
-	*image.RGBA
+	*image.NRGBA
 	*vector.Rasterizer
 	w, h int
 }
@@ -26,7 +26,7 @@ type ImageMap map[object.Object]GrolImage
 const MaxImageDimension = 1024 // in pixels.
 
 // HSLToRGB converts HSL values to RGB. h, s and l in [0,1].
-func HSLToRGB(h, s, l float64) color.RGBA {
+func HSLToRGB(h, s, l float64) color.NRGBA {
 	var r, g, b float64
 
 	// h = math.Mod(h, 360.) / 360.
@@ -46,7 +46,7 @@ func HSLToRGB(h, s, l float64) color.RGBA {
 		b = hueToRGB(p, q, h-1/3.)
 	}
 
-	return color.RGBA{
+	return color.NRGBA{
 		R: uint8(math.Round(r * 255)),
 		G: uint8(math.Round(g * 255)),
 		B: uint8(math.Round(b * 255)),
@@ -73,8 +73,8 @@ func hueToRGB(p, q, t float64) float64 {
 	return p
 }
 
-func hslArrayToRBGAColor(arr []object.Object) (color.RGBA, *object.Error) {
-	rgba := color.RGBA{}
+func hslArrayToRBGAColor(arr []object.Object) (color.NRGBA, *object.Error) {
+	rgba := color.NRGBA{}
 	if len(arr) != 3 {
 		return rgba, object.Errorfp("color array must be [Hue,Saturation,Lightness]")
 	}
@@ -110,8 +110,8 @@ func elem2ColorComponent(o object.Object) (uint8, *object.Error) {
 	return uint8(i), nil //nolint:gosec // gosec not smart enough to see the range check just above
 }
 
-func rgbArrayToRBGAColor(arr []object.Object) (color.RGBA, *object.Error) {
-	rgba := color.RGBA{}
+func rgbArrayToRBGAColor(arr []object.Object) (color.NRGBA, *object.Error) {
+	rgba := color.NRGBA{}
 	if len(arr) < 3 || len(arr) > 4 {
 		return rgba, object.Errorfp("color array must be [R,G,B] or [R,G,B,A]")
 	}
@@ -139,8 +139,8 @@ func rgbArrayToRBGAColor(arr []object.Object) (color.RGBA, *object.Error) {
 	return rgba, nil
 }
 
-func ycbrArrayToRBGAColor(arr []object.Object) (color.RGBA, *object.Error) {
-	rgba := color.RGBA{}
+func ycbrArrayToRBGAColor(arr []object.Object) (color.NRGBA, *object.Error) {
+	rgba := color.NRGBA{}
 	ycbcr := color.YCbCr{}
 	if len(arr) != 3 {
 		return rgba, object.Errorfp("color array must be [Y',Cb,Cr]")
@@ -160,7 +160,7 @@ func ycbrArrayToRBGAColor(arr []object.Object) (color.RGBA, *object.Error) {
 	}
 	rgba.A = 255
 	rgba.R, rgba.G, rgba.B = color.YCbCrToRGB(ycbcr.Y, ycbcr.Cb, ycbcr.Cr)
-	// return color.YCbCrModel.Convert(ycbcr).(color.RGBA), nil
+	// return color.YCbCrModel.Convert(ycbcr).(color.NRGBA), nil
 	return rgba, nil
 }
 
@@ -171,7 +171,7 @@ func createImageFunctions() { //nolint:funlen // this is a group of related func
 		Name:       "image.new",
 		MinArgs:    3,
 		MaxArgs:    3,
-		Help:       "create a new RGBA image of the name and size, image starts entirely transparent",
+		Help:       "create a new NRGBA image of the name and size, image starts entirely transparent",
 		ArgTypes:   []object.Type{object.STRING, object.INTEGER, object.INTEGER},
 		ClientData: cdata,
 		Callback: func(cdata any, _ string, args []object.Object) object.Object {
@@ -184,9 +184,9 @@ func createImageFunctions() { //nolint:funlen // this is a group of related func
 			if x < 0 || y < 0 {
 				return object.Errorf("image sizes must be positive")
 			}
-			img := image.NewRGBA(image.Rect(0, 0, x, y))
+			img := image.NewNRGBA(image.Rect(0, 0, x, y))
 			/*
-				transparent := color.RGBA{0, 0, 0, 0}
+				transparent := color.NRGBA{0, 0, 0, 0}
 				draw.Draw(img, img.Bounds(), &image.Uniform{transparent}, image.Point{}, draw.Src)
 			*/
 			images[args[0]] = GrolImage{img, vector.NewRasterizer(x, y), x, y}
@@ -208,7 +208,7 @@ func createImageFunctions() { //nolint:funlen // this is a group of related func
 			return object.Errorf("image %q not found", args[0].(object.String).Value)
 		}
 		colorArray := object.Elements(args[3])
-		var color color.RGBA
+		var color color.NRGBA
 		var oerr *object.Error
 		switch name {
 		case "image.set_ycbcr":
@@ -223,7 +223,7 @@ func createImageFunctions() { //nolint:funlen // this is a group of related func
 		if oerr != nil {
 			return oerr
 		}
-		img.SetRGBA(x, y, color)
+		img.SetNRGBA(x, y, color)
 		return args[0]
 	}
 	MustCreate(imgFn)
@@ -249,7 +249,7 @@ func createImageFunctions() { //nolint:funlen // this is a group of related func
 			return object.Errorf("error opening image file: %v", err)
 		}
 		defer outputFile.Close()
-		err = png.Encode(outputFile, img.RGBA)
+		err = png.Encode(outputFile, img.NRGBA)
 		if err != nil {
 			return object.Errorf("error encoding image: %v", err)
 		}
@@ -268,7 +268,7 @@ func createImageFunctions() { //nolint:funlen // this is a group of related func
 			return object.Errorf("image not found")
 		}
 		buf := bytes.Buffer{}
-		err := png.Encode(&buf, img.RGBA)
+		err := png.Encode(&buf, img.NRGBA)
 		if err != nil {
 			return object.Errorf("error encoding image: %v", err)
 		}
@@ -339,7 +339,7 @@ func createVectorImageFunctions(cdata ImageMap) {
 			return object.Errorf("image %q not found", args[0].(object.String).Value)
 		}
 		colorArray := object.Elements(args[1])
-		var color color.RGBA
+		var color color.NRGBA
 		var oerr *object.Error
 		switch name {
 		case "image.draw_ycbcr":
@@ -357,7 +357,7 @@ func createVectorImageFunctions(cdata ImageMap) {
 		img.Rasterizer.ClosePath() // just in case
 		src := image.NewUniform(color)
 		img.Rasterizer.DrawOp = draw.Over
-		img.Rasterizer.Draw(img.RGBA, img.RGBA.Bounds(), src, image.Point{})
+		img.Rasterizer.Draw(img.NRGBA, img.NRGBA.Bounds(), src, image.Point{})
 		img.Rasterizer.Reset(img.h, img.w)
 		return args[0]
 	}
