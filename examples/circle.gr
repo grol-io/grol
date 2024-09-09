@@ -21,6 +21,8 @@ func circleQuadrant(img, x, y, rx, ry, color, thickness) {
 }
 
 func quadrant(img, x, y, rx, ry, thickness) {
+	x = round(x)+.5 // semi magic adjustment that makes the bezier circle and trueCircle match
+	y = round(y)+.5
 	a := 1.00005519
 	b := 0.55342686
 	c := 0.99873585
@@ -55,8 +57,6 @@ func quadrant(img, x, y, rx, ry, thickness) {
 }
 
 func elipse(img, x,y,rx,ry,color,thickness) {
-	x = x+.75 // semi magic adjustment that makes the bezier circle and trueCircle match
-	y = y+.75
 	quadrant(img, x,y,rx,ry,thickness)
 	quadrant(img, x,y,rx,-ry,thickness)
 	quadrant(img, x,y,-rx,ry,thickness)
@@ -74,21 +74,21 @@ func trueCircle(img, x,y,r,color) {
 		x1 := round(x + r*cos(i))
 		y1 := round(y + r*sin(i))
 		image.set(img, x1, y1, color)
-		i = i+PI/90.
+		i = i+PI/30.
 	}
 }
 
-xsize:=1024
-ysize:=1024
+xsize:=256
+ysize:=256
 
 img := "canvas"
 image.new(img, xsize, ysize)
 
-cx := xsize/2
-cy := ysize/2
+cx := xsize/2.-0.5
+cy := ysize/2.-0.5
 
-thickness := 100 // try 40, it's pretty https://github.com/grol-io/grol/pull/219
-r := 400
+thickness := ysize/5 // try 40, it's pretty https://github.com/grol-io/grol/pull/219
+r := ysize/2-thickness
 
 circleQuadrant(img, cx, cy, r, r, [200,70,70,200], thickness)
 circleQuadrant(img, cx, cy, -r, -r, [70,200,70,200], thickness)
@@ -96,8 +96,9 @@ circleQuadrant(img, cx, cy, -r, r, [70,70,200,200], thickness)
 circleQuadrant(img, cx, cy, r, -r, [200,200,70,200], thickness)
 
 // check that the bezier circle is correct vs sin/cos true circle
-circle(img, cx, cy, 500, [190,190,190,180], 1)
-trueCircle(img, cx, cy, 499, [200,70,70,240])
-trueCircle(img, cx, cy, 501, [70,200,70,200])
-trueCircle(img, cx, cy, 500, [20,20,255,255])
+r := ysize/2-0.5
+circle(img, cx, cy, r, [190,190,190,180], 1)
+trueCircle(img, cx, cy, r-1, [200,70,70,240])
+trueCircle(img, cx, cy, r+1, [70,200,70,200])
+trueCircle(img, cx, cy, r, [20,20,255,255])
 image.save(img)
