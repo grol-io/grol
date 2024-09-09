@@ -856,7 +856,7 @@ func TestExtension(t *testing.T) {
 	testFloatObject(t, evaluated, 1024)
 	input = `round(2.7)`
 	evaluated = testEval(t, input)
-	testFloatObject(t, evaluated, 3)
+	testIntegerObject(t, evaluated, 3)
 	input = `cos(PI)` // somehow getting 'exact' -1 for cos() but some 1e-16 for sin().
 	evaluated = testEval(t, input)
 	testFloatObject(t, evaluated, -1)

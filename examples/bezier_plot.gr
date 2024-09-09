@@ -72,7 +72,7 @@ color := [200,200,200,80]
 for ix = n-1 {
 	yi := points[ix]
 	yp1 := points[ix+1]
-	println(ix, yi, yp1)
+	log(ix, yi, yp1)
 	line(coordX(ix), coordY(yi), coordX(ix+1), coordY(yp1), color, 1)
 }
 
