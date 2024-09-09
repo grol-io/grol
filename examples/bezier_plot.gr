@@ -9,9 +9,9 @@ image.new(I, X, Y)
 // generate a list of N point heights.
 n:=9
 
-points:=[]
+points := []
 for n {
-	points = points + (20 + rand(400))
+	points = points + (40 + rand(350))
 }
 
 func coordX(idx) {
@@ -21,29 +21,46 @@ func coordY(height) {
 	Y-10-height
 }
 
+
+// flat start of bezier curve - imaginary point at -1 same height as first point
+ix := -1
+prevX := coordX(-1)
+curX := coordX(0)
+curY := coordY(points[0])
+ctrlX1 = 2*curX - (prevX + curX) / 2.
+ctrlY1 = curY
+
 ix := 0
-image.move_to(I, coordX(ix), coordY(0))
-image.line_to(I, coordX(ix), coordY(points[0]))
-ix = 1
-for ix < n-1 {
-	image.quad_to(I, coordX(ix), coordY(points[ix]), coordX(ix+1), coordY(points[ix+1]))
-	ix = ix + 2
+image.move_to(I, curX, coordY(0))
+image.line_to(I, curX, curY)
+ix ++
+prevX = curX
+prevY = curY
+for ix < n {
+	curX := coordX(ix)
+	curY := coordY(points[ix])
+	ctrlX2 := (prevX + 3* curX) / 4.
+	ctrlY2 := (prevY + 3* curY) / 4.
+	if ix == n-1 { // flatter end.
+		ctrlX2 = (prevX + curX) / 2
+		ctrlY2 = curY
+	}
+	image.cube_to(I, ctrlX1, ctrlY1, ctrlX2, ctrlY2, curX, curY)
+	prevX = curX
+	prevY = curY
+	ctrlX1 = 2* curX - ctrlX2
+	ctrlY1 = 2* curY - ctrlY2
+	ix++
 
 	/*
-	// Calculate control points for smooth curves
-	ctrlX1 := (2 * coordX(ix) + coordX(ix + 1)) / 3
-	ctrlY1 := (2 * coordY(points[ix]) + coordY(points[ix + 1])) / 3
-
-	ctrlX2 := (coordX(ix) + 2 * coordX(ix + 1)) / 3
-	ctrlY2 := (coordY(points[ix]) + 2 * coordY(points[ix + 1])) / 3
-
-	// Draw curve using two control points for smoother "U" shapes
-	image.cube_to(I, ctrlX1, ctrlY1, ctrlX2, ctrlY2, coordX(ix + 1), coordY(points[ix + 1]))
-	ix++
+	image.quad_to(I, coordX(ix), coordY(points[ix]), coordX(ix+1), coordY(points[ix+1]))
+	ix = ix + 2
 	*/
 }
 image.line_to(I, coordX(n-1), coordY(0))
-image.draw(I, [30,30,200,255])
+image.draw(I, [30,30,200,200])
+
+
 
 
 // -- no bezier, just lines for reference/comparison
