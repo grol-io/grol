@@ -138,16 +138,28 @@ func initInternal(c *Config) error {
 		{math.Asin, "asin"},
 		{math.Acos, "acos"},
 		{math.Atan, "atan"},
-		{math.Round, "round"},
-		{math.Trunc, "trunc"},
-		{math.Floor, "floor"},
-		{math.Ceil, "ceil"},
 		{math.Log10, "log10"},
 	} {
 		oneFloat.Callback = object.ShortCallback(func(args []object.Object) object.Object {
 			// Arg len check already done through MinArgs=MaxArgs=1 and
 			// type through ArgTypes: []object.Type{object.FLOAT}.
 			return object.Float{Value: function.fn(args[0].(object.Float).Value)}
+		})
+		oneFloat.Name = function.name
+		MustCreate(oneFloat)
+	}
+	// These are all int-returning functions.
+	for _, function := range []struct {
+		fn   OneFloatInOutFunc
+		name string
+	}{
+		{math.Round, "round"},
+		{math.Trunc, "trunc"},
+		{math.Floor, "floor"},
+		{math.Ceil, "ceil"},
+	} {
+		oneFloat.Callback = object.ShortCallback(func(args []object.Object) object.Object {
+			return object.Integer{Value: int64(function.fn(args[0].(object.Float).Value))}
 		})
 		oneFloat.Name = function.name
 		MustCreate(oneFloat)
