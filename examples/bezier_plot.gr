@@ -1,0 +1,70 @@
+/* use image.quad_to to draw a bezier curve passing through a lis of points */
+
+
+I := "img"
+X:=768
+Y:=432
+image.new(I, X, Y)
+
+// generate a list of N point heights.
+n:=9
+
+points:=[]
+for n {
+	points = points + (20 + rand(400))
+}
+
+func coordX(idx) {
+	10+idx*90
+}
+func coordY(height) {
+	Y-10-height
+}
+
+ix := 0
+image.move_to(I, coordX(ix), coordY(0))
+image.line_to(I, coordX(ix), coordY(points[0]))
+ix = 1
+for ix < n-1 {
+	image.quad_to(I, coordX(ix), coordY(points[ix]), coordX(ix+1), coordY(points[ix+1]))
+	ix = ix + 2
+
+	/*
+	// Calculate control points for smooth curves
+	ctrlX1 := (2 * coordX(ix) + coordX(ix + 1)) / 3
+	ctrlY1 := (2 * coordY(points[ix]) + coordY(points[ix + 1])) / 3
+
+	ctrlX2 := (coordX(ix) + 2 * coordX(ix + 1)) / 3
+	ctrlY2 := (coordY(points[ix]) + 2 * coordY(points[ix + 1])) / 3
+
+	// Draw curve using two control points for smoother "U" shapes
+	image.cube_to(I, ctrlX1, ctrlY1, ctrlX2, ctrlY2, coordX(ix + 1), coordY(points[ix + 1]))
+	ix++
+	*/
+}
+image.line_to(I, coordX(n-1), coordY(0))
+image.draw(I, [30,30,200,255])
+
+
+// -- no bezier, just lines for reference/comparison
+
+func line(x1, y1, x2, y2, color, thickness) {
+	angle := atan2(y2-y1, x2-x1) + PI/2
+	dx := thickness*cos(angle)/2.
+	dy := thickness*sin(angle)/2.
+	image.move_to(I, x1-dx, y1-dy)
+	image.line_to(I, x2-dx, y2-dy)
+	image.line_to(I, x2+dx, y2+dy)
+	image.line_to(I, x1+dx, y1+dy)
+	image.draw(I, color)
+}
+
+color := [200,200,200,80]
+for ix = n-1 {
+	yi := points[ix]
+	yp1 := points[ix+1]
+	println(ix, yi, yp1)
+	line(coordX(ix), coordY(yi), coordX(ix+1), coordY(yp1), color, 1)
+}
+
+image.save(I)

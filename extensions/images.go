@@ -8,6 +8,7 @@ import (
 	"math"
 	"os"
 
+	"fortio.org/log"
 	"golang.org/x/image/vector"
 	"grol.io/grol/eval"
 	"grol.io/grol/object"
@@ -106,7 +107,7 @@ func elem2ColorComponent(o object.Object) (uint8, *object.Error) {
 	if i < 0 || i > 255 {
 		return 0, object.Errorfp("color component out of range (should be 0-255): %s", o.Inspect())
 	}
-	return uint8(i), nil //nolint:gosec // gosec not smart enough to see the range check just above
+	return uint8(i), nil //nolint:gosec // gosec not smart enough to see the range check just above this.
 }
 
 func rgbArrayToRBGAColor(arr []object.Object) (color.NRGBA, *object.Error) {
@@ -248,6 +249,7 @@ func createImageFunctions() { //nolint:funlen // this is a group of related func
 		if err != nil {
 			return object.Errorf("error encoding image: %v", err)
 		}
+		log.Infof("Saved image to grol.png")
 		return args[0]
 	}
 	MustCreate(imgFn)
@@ -379,10 +381,50 @@ func createVectorImageFunctions(cdata ImageMap) { //nolint:funlen // this is a g
 		return args[0]
 	}
 	MustCreate(imgFn)
+	imgFn.Name = "image.cube_to"
+	imgFn.Help = "adds a cubic bezier segment"
+	imgFn.MinArgs = 7
+	imgFn.MaxArgs = 7
+	imgFn.ArgTypes = []object.Type{object.STRING, object.FLOAT, object.FLOAT, object.FLOAT, object.FLOAT, object.FLOAT, object.FLOAT}
+	imgFn.Callback = func(cdata any, _ string, args []object.Object) object.Object {
+		images := cdata.(ImageMap)
+		img, ok := images[args[0]]
+		if !ok {
+			return object.Errorf("image %q not found", args[0].(object.String).Value)
+		}
+		x1 := int(args[1].(object.Float).Value)
+		y1 := int(args[2].(object.Float).Value)
+		x2 := int(args[3].(object.Float).Value)
+		y2 := int(args[4].(object.Float).Value)
+		x3 := int(args[5].(object.Float).Value)
+		y3 := int(args[6].(object.Float).Value)
+		img.Vect.CubeTo(float32(x1), float32(y1), float32(x2), float32(y2), float32(x3), float32(y3))
+		return args[0]
+	}
+	MustCreate(imgFn)
+	imgFn.Name = "image.quad_to"
+	imgFn.Help = "adds a quadratic bezier segment"
+	imgFn.MinArgs = 5
+	imgFn.MaxArgs = 5
+	imgFn.ArgTypes = []object.Type{object.STRING, object.FLOAT, object.FLOAT, object.FLOAT, object.FLOAT}
+	imgFn.Callback = func(cdata any, _ string, args []object.Object) object.Object {
+		images := cdata.(ImageMap)
+		img, ok := images[args[0]]
+		if !ok {
+			return object.Errorf("image %q not found", args[0].(object.String).Value)
+		}
+		x1 := int(args[1].(object.Float).Value)
+		y1 := int(args[2].(object.Float).Value)
+		x2 := int(args[3].(object.Float).Value)
+		y2 := int(args[4].(object.Float).Value)
+		img.Vect.QuadTo(float32(x1), float32(y1), float32(x2), float32(y2))
+		return args[0]
+	}
+	MustCreate(imgFn)
 }
 
 func mergeAdd(img1, img2 *image.NRGBA) {
-	//nolint:gosec // gosec not smart enough to see the range check just below.
+	//nolint:gosec // gosec not smart enough to see the range checks.
 	for y := range img1.Bounds().Dy() {
 		for x := range img1.Bounds().Dx() {
 			p1 := img1.NRGBAAt(x, y)

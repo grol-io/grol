@@ -26,30 +26,15 @@ func line(x1, y1, x2, y2, color, thickness) {
 	image.draw(i, color)
 }
 
-// Draw 1 pixel wide line from (the middle of) x1,y1 to (the middle of) x2,y2. Pixel aligned vertically and horizontally.
-// to the exact pixel. ie 3,3 to 30,3 will be on 4th row of pixels (pixel 3).
-func line1(x1, y1, x2, y2, color) {
-	angle := atan2(y2-y1, x2-x1) + PI/2
-	dx := cos(angle)
-	dy := sin(angle)
-	image.move_to(i, x1-dx, y1+dy)
-	image.line_to(i, x2-dx, y2+dy)
-	image.line_to(i, x2, y2)
-	image.line_to(i, x1, y1)
-	image.draw(i, color)
-}
-
 line(100, 400, 600, 350, [255,255,255,255], 20)
 line(100, 400, 600, 350, [0,0,255,255], 0.1)
 // compare line aligned with pixel middle or not:
 c := [20,200,200]
-line(100, 3, 120, 3, c, 0.5)
-line1(120, 3, 140, 3, c)
-line1(140, 4, 160, 4, c)
+line(100, 3, 120, 3, c, 1)
 
-line(3.5, 100, 3.5, 120, c, 3)
-line1(3, 120, 3, 140, c)
-line1(4, 140, 4, 160, c)
+line(3.5, 100, 3.5, 120, c, 1)
+
+line(10,10, 40,40, c, 1)
 
 alpha:=192
 main:=255
