@@ -188,6 +188,7 @@ func createImageFunctions() { //nolint:funlen // this is a group of related func
 			images[args[0]] = GrolImage{Image: img, Vect: vector.NewRasterizer(x, y), W: x, H: y}
 			return args[0]
 		},
+		DontCache: true,
 	}
 	MustCreate(imgFn)
 	imgFn.Name = "image.set"

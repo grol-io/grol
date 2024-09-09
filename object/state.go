@@ -189,8 +189,9 @@ func (e *Environment) makeRef(name string) (*Reference, bool) {
 			ref = r // set and return the original ref instead of ref of ref.
 		}
 		orig.store[name] = ref
-		if !Constant(name) {
+		if !Constant(name) && obj.Type() != FUNC {
 			orig.getMiss++ // creating a ref to a non constant is a miss.
+			log.Debugf("makeRef(%s) GETMISS %d", name, orig.getMiss)
 		}
 		return &ref, true
 	}
@@ -204,8 +205,9 @@ func (e *Environment) Get(name string) (Object, bool) {
 	obj, ok := e.store[name]
 	if ok {
 		// using references to non constant (extensions are constants) implies uncacheable.
-		if r, ok := obj.(Reference); ok && !Constant(r.Name) {
+		if r, ok := obj.(Reference); ok && !Constant(r.Name) && r.Value().Type() != FUNC {
 			e.getMiss++
+			log.Debugf("get(%s) GETMISS %d", name, e.getMiss)
 		}
 		return obj, true
 	}
@@ -222,7 +224,7 @@ func (e *Environment) Get(name string) (Object, bool) {
 // TriggerNoCache is used prevent this call stack from caching.
 // Meant to be used by extensions that for instance return random numbers or change state.
 func (e *Environment) TriggerNoCache() {
-	log.Debugf("TriggerNoCache() called at %d %v", e.depth, e.cacheKey)
+	log.Debugf("TriggerNoCache() GETMISS called at %d %v", e.depth, e.cacheKey)
 	e.getMiss++
 }
 

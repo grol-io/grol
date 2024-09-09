@@ -575,6 +575,9 @@ func (s *State) applyExtension(fn object.Extension, args []object.Object) object
 				arg.Type(), fn.Inspect())
 		}
 	}
+	if fn.DontCache {
+		s.env.TriggerNoCache()
+	}
 	if fn.ClientData != nil {
 		res := fn.Callback(fn.ClientData, fn.Name, args)
 		if res.Type() == object.ERROR {

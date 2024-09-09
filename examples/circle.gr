@@ -21,6 +21,7 @@ func circleQuadrant(img, x, y, rx, ry, color, thickness) {
 }
 
 func quadrant(img, x, y, rx, ry, thickness) {
+	sign = sign
 	x = round(x)+.5 // semi magic adjustment that makes the bezier circle and trueCircle match
 	y = round(y)+.5
 	a := 1.00005519

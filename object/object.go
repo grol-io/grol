@@ -1081,6 +1081,7 @@ type Extension struct {
 	Callback   ExtFunction // The go function or lambda to call when the grol by Name(...) is invoked.
 	ClientData any         // Opaque data that will be passed as first argument of Callback if set (state is, if nil).
 	Variadic   bool        // MaxArgs > MinArgs (or MaxArg == -1)
+	DontCache  bool        // If true, the result of this function should not be cached (has side effects).
 }
 
 // Adapter for functions that only need the argumants.

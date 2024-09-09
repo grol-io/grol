@@ -184,7 +184,6 @@ func initInternal(c *Config) error {
 		ArgTypes: []object.Type{object.INTEGER},
 		Callback: func(env any, _ string, args []object.Object) object.Object {
 			s := env.(*eval.State)
-			eval.TriggerNoCache(s)
 			if len(args) == 0 {
 				return object.Float{Value: rand.Float64()} //nolint:gosec // no need for crypto/rand here.
 			}
@@ -194,6 +193,7 @@ func initInternal(c *Config) error {
 			}
 			return object.Integer{Value: rand.Int64N(n)} //nolint:gosec // no need for crypto/rand here.
 		},
+		DontCache: true,
 	})
 	createJSONAndEvalFunctions(c)
 	createStrFunctions()
@@ -428,10 +428,10 @@ func createTimeFunctions() {
 		MinArgs: 0,
 		MaxArgs: 0,
 		Help:    "Date/time in seconds since epoch",
-		Callback: func(env any, _ string, _ []object.Object) object.Object {
-			eval.TriggerNoCache(env)
+		Callback: object.ShortCallback(func(_ []object.Object) object.Object {
 			return object.Float{Value: float64(time.Now().UnixMicro()) / 1e6}
-		},
+		}),
+		DontCache: true,
 	})
 	MustCreate(object.Extension{
 		Name:     "sleep",
