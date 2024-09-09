@@ -20,12 +20,16 @@ func circleQuadrant(img, x, y, rx, ry, color, thickness) {
 	b := 0.55342686
 	c := 0.99873585
 	thickness = thickness / 2.
+	ythickness := thickness
+	if sign(rx) != sign(ry) {
+		ythickness = -thickness
+	}
 	p0x := x + rx*a - thickness
 	p0y := y
 	image.move_to(img, p0x, p0y)
 	image.line_to(img, p0x+2*thickness, p0y)
 	rx = rx + thickness
-	ry = ry + thickness
+	ry = ry + ythickness
 	p2x := x + rx*b
 	p2y := y + ry*c
 	p1x := x + rx*c
@@ -34,7 +38,7 @@ func circleQuadrant(img, x, y, rx, ry, color, thickness) {
 	p3y := y + ry*a
 	image.cube_to(img, p1x, p1y, p2x, p2y, p3x, p3y)
 	rx = rx - 2*thickness
-	ry = ry - 2*thickness
+	ry = ry - 2*ythickness
 	p3y := y + ry*a
 	image.line_to(img, x, p3y)
 	p2x := x + rx*b
@@ -53,9 +57,11 @@ ysize:=350
 img := "canvas"
 image.new(img, xsize, ysize)
 
-circleQuadrant(img, xsize/2, ysize/2, 150, 150, [200,70,70,200], 50)
-circleQuadrant(img, xsize/2, ysize/2, -150, -150, [70,200,70,200], 50)
-circleQuadrant(img, xsize/2, ysize/2, -150, 150, [70,70,200,200], 50)
-circleQuadrant(img, xsize/2, ysize/2, 150, -150, [200,200,70,200], 50)
+thickness := 1 // try 40, it's pretty https://github.com/grol-io/grol/pull/219
+
+circleQuadrant(img, xsize/2, ysize/2, 150, 150, [200,70,70,200], thickness)
+circleQuadrant(img, xsize/2, ysize/2, -150, -150, [70,200,70,200], thickness)
+circleQuadrant(img, xsize/2, ysize/2, -150, 150, [70,70,200,200], thickness)
+circleQuadrant(img, xsize/2, ysize/2, 150, -150, [200,200,70,200], thickness)
 
 image.save(img)
