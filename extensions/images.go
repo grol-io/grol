@@ -4,22 +4,29 @@ import (
 	"bytes"
 	"image"
 	"image/color"
-	"image/draw"
 	"image/png"
 	"math"
 	"os"
 
+	"fortio.org/log"
+	"golang.org/x/image/vector"
 	"grol.io/grol/eval"
 	"grol.io/grol/object"
 )
 
-type ImageMap map[object.Object]*image.RGBA
+type GrolImage struct {
+	Image *image.NRGBA
+	Vect  *vector.Rasterizer
+	W, H  int
+}
+
+type ImageMap map[object.Object]GrolImage
 
 // TODO: make this configurable and use the slice check as well as some sort of LRU.
 const MaxImageDimension = 1024 // in pixels.
 
 // HSLToRGB converts HSL values to RGB. h, s and l in [0,1].
-func HSLToRGB(h, s, l float64) color.RGBA {
+func HSLToRGB(h, s, l float64) color.NRGBA {
 	var r, g, b float64
 
 	// h = math.Mod(h, 360.) / 360.
@@ -39,7 +46,7 @@ func HSLToRGB(h, s, l float64) color.RGBA {
 		b = hueToRGB(p, q, h-1/3.)
 	}
 
-	return color.RGBA{
+	return color.NRGBA{
 		R: uint8(math.Round(r * 255)),
 		G: uint8(math.Round(g * 255)),
 		B: uint8(math.Round(b * 255)),
@@ -66,8 +73,8 @@ func hueToRGB(p, q, t float64) float64 {
 	return p
 }
 
-func hslArrayToRBGAColor(arr []object.Object) (color.RGBA, *object.Error) {
-	rgba := color.RGBA{}
+func hslArrayToRBGAColor(arr []object.Object) (color.NRGBA, *object.Error) {
+	rgba := color.NRGBA{}
 	if len(arr) != 3 {
 		return rgba, object.Errorfp("color array must be [Hue,Saturation,Lightness]")
 	}
@@ -100,11 +107,11 @@ func elem2ColorComponent(o object.Object) (uint8, *object.Error) {
 	if i < 0 || i > 255 {
 		return 0, object.Errorfp("color component out of range (should be 0-255): %s", o.Inspect())
 	}
-	return uint8(i), nil //nolint:gosec // gosec not smart enough to see the range check just above
+	return uint8(i), nil //nolint:gosec // gosec not smart enough to see the range check just above this.
 }
 
-func rgbArrayToRBGAColor(arr []object.Object) (color.RGBA, *object.Error) {
-	rgba := color.RGBA{}
+func rgbArrayToRBGAColor(arr []object.Object) (color.NRGBA, *object.Error) {
+	rgba := color.NRGBA{}
 	if len(arr) < 3 || len(arr) > 4 {
 		return rgba, object.Errorfp("color array must be [R,G,B] or [R,G,B,A]")
 	}
@@ -132,8 +139,8 @@ func rgbArrayToRBGAColor(arr []object.Object) (color.RGBA, *object.Error) {
 	return rgba, nil
 }
 
-func ycbrArrayToRBGAColor(arr []object.Object) (color.RGBA, *object.Error) {
-	rgba := color.RGBA{}
+func ycbrArrayToRBGAColor(arr []object.Object) (color.NRGBA, *object.Error) {
+	rgba := color.NRGBA{}
 	ycbcr := color.YCbCr{}
 	if len(arr) != 3 {
 		return rgba, object.Errorfp("color array must be [Y',Cb,Cr]")
@@ -153,7 +160,7 @@ func ycbrArrayToRBGAColor(arr []object.Object) (color.RGBA, *object.Error) {
 	}
 	rgba.A = 255
 	rgba.R, rgba.G, rgba.B = color.YCbCrToRGB(ycbcr.Y, ycbcr.Cb, ycbcr.Cr)
-	// return color.YCbCrModel.Convert(ycbcr).(color.RGBA), nil
+	// return color.YCbCrModel.Convert(ycbcr).(color.NRGBA), nil
 	return rgba, nil
 }
 
@@ -164,7 +171,7 @@ func createImageFunctions() { //nolint:funlen // this is a group of related func
 		Name:       "image.new",
 		MinArgs:    3,
 		MaxArgs:    3,
-		Help:       "create a new RGBA image of the name and size, image starts entirely transparent",
+		Help:       "create a new image of the name and size, image starts entirely transparent",
 		ArgTypes:   []object.Type{object.STRING, object.INTEGER, object.INTEGER},
 		ClientData: cdata,
 		Callback: func(cdata any, _ string, args []object.Object) object.Object {
@@ -177,12 +184,11 @@ func createImageFunctions() { //nolint:funlen // this is a group of related func
 			if x < 0 || y < 0 {
 				return object.Errorf("image sizes must be positive")
 			}
-			img := image.NewRGBA(image.Rect(0, 0, x, y))
-			transparent := color.RGBA{0, 0, 0, 0}
-			draw.Draw(img, img.Bounds(), &image.Uniform{transparent}, image.Point{}, draw.Src)
-			images[args[0]] = img
+			img := image.NewNRGBA(image.Rect(0, 0, x, y))
+			images[args[0]] = GrolImage{Image: img, Vect: vector.NewRasterizer(x, y), W: x, H: y}
 			return args[0]
 		},
+		DontCache: true,
 	}
 	MustCreate(imgFn)
 	imgFn.Name = "image.set"
@@ -196,10 +202,10 @@ func createImageFunctions() { //nolint:funlen // this is a group of related func
 		y := int(args[2].(object.Integer).Value)
 		img, ok := images[args[0]]
 		if !ok {
-			return object.Errorf("image not found")
+			return object.Errorf("image %q not found", args[0].(object.String).Value)
 		}
 		colorArray := object.Elements(args[3])
-		var color color.RGBA
+		var color color.NRGBA
 		var oerr *object.Error
 		switch name {
 		case "image.set_ycbcr":
@@ -209,12 +215,12 @@ func createImageFunctions() { //nolint:funlen // this is a group of related func
 		case "image.set":
 			color, oerr = rgbArrayToRBGAColor(colorArray)
 		default:
-			return object.Errorf("unknown image_set function %q", name)
+			return object.Errorf("unknown image.set function %q", name)
 		}
 		if oerr != nil {
 			return oerr
 		}
-		img.SetRGBA(x, y, color)
+		img.Image.SetNRGBA(x, y, color)
 		return args[0]
 	}
 	MustCreate(imgFn)
@@ -222,7 +228,7 @@ func createImageFunctions() { //nolint:funlen // this is a group of related func
 	imgFn.Help = "img, x, y, color: set a pixel in the named image, color Y'CbCr in an array of 3 elements 0-255"
 	MustCreate(imgFn)
 	imgFn.Name = "image.set_hsl"
-	imgFn.Help = "img, x, y, color: set a pixel in the named image, color in an array [Hue (0-360), Sat (0-1), Light (0-1)]"
+	imgFn.Help = "img, x, y, color: set a pixel in the named image, color in an array [Hue (0-1), Sat (0-1), Light (0-1)]"
 	MustCreate(imgFn)
 	imgFn.Name = "image.save"
 	imgFn.Help = "save the named image grol.png"
@@ -240,10 +246,11 @@ func createImageFunctions() { //nolint:funlen // this is a group of related func
 			return object.Errorf("error opening image file: %v", err)
 		}
 		defer outputFile.Close()
-		err = png.Encode(outputFile, img)
+		err = png.Encode(outputFile, img.Image)
 		if err != nil {
 			return object.Errorf("error encoding image: %v", err)
 		}
+		log.Infof("Saved image to grol.png")
 		return args[0]
 	}
 	MustCreate(imgFn)
@@ -259,11 +266,183 @@ func createImageFunctions() { //nolint:funlen // this is a group of related func
 			return object.Errorf("image not found")
 		}
 		buf := bytes.Buffer{}
-		err := png.Encode(&buf, img)
+		err := png.Encode(&buf, img.Image)
 		if err != nil {
 			return object.Errorf("error encoding image: %v", err)
 		}
 		return object.String{Value: buf.String()}
 	}
 	MustCreate(imgFn)
+	createVectorImageFunctions(cdata)
+}
+
+func createVectorImageFunctions(cdata ImageMap) { //nolint:funlen // this is a group of related functions.
+	imgFn := object.Extension{
+		Name:       "image.move_to",
+		MinArgs:    3,
+		MaxArgs:    3,
+		Help:       "starts a new path and moves the pen to coords",
+		ArgTypes:   []object.Type{object.STRING, object.FLOAT, object.FLOAT},
+		ClientData: cdata,
+		Callback: func(cdata any, _ string, args []object.Object) object.Object {
+			images := cdata.(ImageMap)
+			img, ok := images[args[0]]
+			if !ok {
+				return object.Errorf("image %q not found", args[0].(object.String).Value)
+			}
+			x := int(args[1].(object.Float).Value)
+			y := int(args[2].(object.Float).Value)
+			img.Vect.MoveTo(float32(x), float32(y))
+			return args[0]
+		},
+	}
+	MustCreate(imgFn)
+	imgFn.Name = "image.line_to"
+	imgFn.Help = "adds a line segment"
+	imgFn.Callback = func(cdata any, _ string, args []object.Object) object.Object {
+		images := cdata.(ImageMap)
+		img, ok := images[args[0]]
+		if !ok {
+			return object.Errorf("image %q not found", args[0].(object.String).Value)
+		}
+		x := int(args[1].(object.Float).Value)
+		y := int(args[2].(object.Float).Value)
+		img.Vect.LineTo(float32(x), float32(y))
+		return args[0]
+	}
+	MustCreate(imgFn)
+	imgFn.Name = "image.close_path"
+	imgFn.Help = "close the current path"
+	imgFn.MinArgs = 1
+	imgFn.MaxArgs = 1
+	imgFn.Callback = func(cdata any, _ string, args []object.Object) object.Object {
+		images := cdata.(ImageMap)
+		img, ok := images[args[0]]
+		if !ok {
+			return object.Errorf("image %q not found", args[0].(object.String).Value)
+		}
+		img.Vect.ClosePath()
+		return args[0]
+	}
+	MustCreate(imgFn)
+	imgFn.Name = "image.draw"
+	imgFn.Help = "draw the path in the color is an array of 3 or 4 elements 0-255"
+	imgFn.MinArgs = 2
+	imgFn.MaxArgs = 2
+	imgFn.ArgTypes = []object.Type{object.STRING, object.ARRAY}
+	imgFn.Callback = func(cdata any, name string, args []object.Object) object.Object {
+		images := cdata.(ImageMap)
+		img, ok := images[args[0]]
+		if !ok {
+			return object.Errorf("image %q not found", args[0].(object.String).Value)
+		}
+		colorArray := object.Elements(args[1])
+		var color color.NRGBA
+		var oerr *object.Error
+		switch name {
+		case "image.draw_ycbcr":
+			color, oerr = ycbrArrayToRBGAColor(colorArray)
+		case "image.draw_hsl":
+			color, oerr = hslArrayToRBGAColor(colorArray)
+		case "image.draw":
+			color, oerr = rgbArrayToRBGAColor(colorArray)
+		default:
+			return object.Errorf("unknown image.draw function %q", name)
+		}
+		if oerr != nil {
+			return oerr
+		}
+		img.Vect.ClosePath() // just in case
+		src := image.NewUniform(color)
+		img.Vect.Draw(img.Image, img.Image.Bounds(), src, image.Point{})
+		img.Vect.Reset(img.W, img.H)
+		return args[0]
+	}
+	MustCreate(imgFn)
+	imgFn.Name = "image.draw_ycbcr"
+	imgFn.Help = "draw vector path, color Y'CbCr in an array of 3 elements 0-255"
+	MustCreate(imgFn)
+	imgFn.Name = "image.draw_hsl"
+	imgFn.Help = "draw vector path, color in an array [Hue (0-1), Sat (0-1), Light (0-1)]"
+	MustCreate(imgFn)
+	imgFn.Name = "image.add"
+	imgFn.Help = "merges the 2nd image into the first one, additively with white clipping"
+	imgFn.ArgTypes = []object.Type{object.STRING, object.STRING}
+	imgFn.Callback = func(cdata any, _ string, args []object.Object) object.Object {
+		images := cdata.(ImageMap)
+		img1, ok := images[args[0]]
+		if !ok {
+			return object.Errorf("image %q not found", args[0].(object.String).Value)
+		}
+		img2, ok := images[args[1]]
+		if !ok {
+			return object.Errorf("image %q not found", args[1].(object.String).Value)
+		}
+		mergeAdd(img1.Image, img2.Image)
+		return args[0]
+	}
+	MustCreate(imgFn)
+	imgFn.Name = "image.cube_to"
+	imgFn.Help = "adds a cubic bezier segment"
+	imgFn.MinArgs = 7
+	imgFn.MaxArgs = 7
+	imgFn.ArgTypes = []object.Type{object.STRING, object.FLOAT, object.FLOAT, object.FLOAT, object.FLOAT, object.FLOAT, object.FLOAT}
+	imgFn.Callback = func(cdata any, _ string, args []object.Object) object.Object {
+		images := cdata.(ImageMap)
+		img, ok := images[args[0]]
+		if !ok {
+			return object.Errorf("image %q not found", args[0].(object.String).Value)
+		}
+		x1 := int(args[1].(object.Float).Value)
+		y1 := int(args[2].(object.Float).Value)
+		x2 := int(args[3].(object.Float).Value)
+		y2 := int(args[4].(object.Float).Value)
+		x3 := int(args[5].(object.Float).Value)
+		y3 := int(args[6].(object.Float).Value)
+		img.Vect.CubeTo(float32(x1), float32(y1), float32(x2), float32(y2), float32(x3), float32(y3))
+		return args[0]
+	}
+	MustCreate(imgFn)
+	imgFn.Name = "image.quad_to"
+	imgFn.Help = "adds a quadratic bezier segment"
+	imgFn.MinArgs = 5
+	imgFn.MaxArgs = 5
+	imgFn.ArgTypes = []object.Type{object.STRING, object.FLOAT, object.FLOAT, object.FLOAT, object.FLOAT}
+	imgFn.Callback = func(cdata any, _ string, args []object.Object) object.Object {
+		images := cdata.(ImageMap)
+		img, ok := images[args[0]]
+		if !ok {
+			return object.Errorf("image %q not found", args[0].(object.String).Value)
+		}
+		x1 := int(args[1].(object.Float).Value)
+		y1 := int(args[2].(object.Float).Value)
+		x2 := int(args[3].(object.Float).Value)
+		y2 := int(args[4].(object.Float).Value)
+		img.Vect.QuadTo(float32(x1), float32(y1), float32(x2), float32(y2))
+		return args[0]
+	}
+	MustCreate(imgFn)
+}
+
+func mergeAdd(img1, img2 *image.NRGBA) {
+	//nolint:gosec // gosec not smart enough to see the range checks.
+	for y := range img1.Bounds().Dy() {
+		for x := range img1.Bounds().Dx() {
+			p1 := img1.NRGBAAt(x, y)
+			if p1.R == 0 && p1.G == 0 && p1.B == 0 { // black is no change
+				img1.SetNRGBA(x, y, img2.NRGBAAt(x, y))
+				continue
+			}
+			p2 := img2.NRGBAAt(x, y)
+			if p2.R == 0 && p2.G == 0 && p2.B == 0 { // black is no change
+				continue
+			}
+			p1.R = uint8(min(255, uint16(p1.R)+uint16(p2.R)))
+			p1.G = uint8(min(255, uint16(p1.G)+uint16(p2.G)))
+			p1.B = uint8(min(255, uint16(p1.B)+uint16(p2.B)))
+			// p1.A = uint8(min(255, uint16(p1.A)+uint16(p2.A))) // summing transparency yield non transparent quickly
+			p1.A = max(p1.A, p2.A)
+			img1.SetNRGBA(x, y, p1)
+		}
+	}
 }

@@ -200,7 +200,4 @@ func (s *State) NumMacros() int {
 	return s.macroState.Len()
 }
 
-// Call from object.Extension to prevent caching.
-func TriggerNoCache(this any) {
-	this.(*State).env.TriggerNoCache() // will panic if any is wrong and that's ok as that'd be a bug (like non nil ClientData)
-}
+// TriggerNoCache() is replaced by DontCache boolean in object.Extension.

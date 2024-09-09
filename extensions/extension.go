@@ -138,10 +138,6 @@ func initInternal(c *Config) error {
 		{math.Asin, "asin"},
 		{math.Acos, "acos"},
 		{math.Atan, "atan"},
-		{math.Round, "round"},
-		{math.Trunc, "trunc"},
-		{math.Floor, "floor"},
-		{math.Ceil, "ceil"},
 		{math.Log10, "log10"},
 	} {
 		oneFloat.Callback = object.ShortCallback(func(args []object.Object) object.Object {
@@ -152,6 +148,34 @@ func initInternal(c *Config) error {
 		oneFloat.Name = function.name
 		MustCreate(oneFloat)
 	}
+	// These are all int-returning functions.
+	for _, function := range []struct {
+		fn   OneFloatInOutFunc
+		name string
+	}{
+		{math.Round, "round"},
+		{math.Trunc, "trunc"},
+		{math.Floor, "floor"},
+		{math.Ceil, "ceil"},
+	} {
+		oneFloat.Callback = object.ShortCallback(func(args []object.Object) object.Object {
+			return object.Integer{Value: int64(function.fn(args[0].(object.Float).Value))}
+		})
+		oneFloat.Name = function.name
+		MustCreate(oneFloat)
+	}
+	MustCreate(object.Extension{
+		Name:     "atan2",
+		MinArgs:  2,
+		MaxArgs:  2,
+		ArgTypes: []object.Type{object.FLOAT, object.FLOAT},
+		Callback: object.ShortCallback(func(args []object.Object) object.Object {
+			base := args[0].(object.Float).Value
+			exp := args[1].(object.Float).Value
+			result := math.Atan2(base, exp)
+			return object.Float{Value: result}
+		}),
+	})
 	// rand() and rand(n) functions.
 	MustCreate(object.Extension{
 		Name:     "rand",
@@ -160,7 +184,6 @@ func initInternal(c *Config) error {
 		ArgTypes: []object.Type{object.INTEGER},
 		Callback: func(env any, _ string, args []object.Object) object.Object {
 			s := env.(*eval.State)
-			eval.TriggerNoCache(s)
 			if len(args) == 0 {
 				return object.Float{Value: rand.Float64()} //nolint:gosec // no need for crypto/rand here.
 			}
@@ -170,6 +193,7 @@ func initInternal(c *Config) error {
 			}
 			return object.Integer{Value: rand.Int64N(n)} //nolint:gosec // no need for crypto/rand here.
 		},
+		DontCache: true,
 	})
 	createJSONAndEvalFunctions(c)
 	createStrFunctions()
@@ -404,10 +428,10 @@ func createTimeFunctions() {
 		MinArgs: 0,
 		MaxArgs: 0,
 		Help:    "Date/time in seconds since epoch",
-		Callback: func(env any, _ string, _ []object.Object) object.Object {
-			eval.TriggerNoCache(env)
+		Callback: object.ShortCallback(func(_ []object.Object) object.Object {
 			return object.Float{Value: float64(time.Now().UnixMicro()) / 1e6}
-		},
+		}),
+		DontCache: true,
 	})
 	MustCreate(object.Extension{
 		Name:     "sleep",

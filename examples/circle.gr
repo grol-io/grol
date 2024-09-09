@@ -1,0 +1,105 @@
+/* bezier cube to disc
+https://spencermortensen.com/articles/bezier-circle/
+
+P0=(0,a), P1=(b,c), P2=(c,b), P3=(a,0), where
+a=1.00005519
+b=0.55342686
+c=0.99873585
+
+*/
+
+func sign(x) {
+	if x < 0 {
+		return -1
+	}
+	return 1
+}
+
+func circleQuadrant(img, x, y, rx, ry, color, thickness) {
+	quadrant(img, x, y, rx, ry, thickness)
+	image.draw(img, color)
+}
+
+func quadrant(img, x, y, rx, ry, thickness) {
+	sign = sign
+	x = round(x)+.5 // semi magic adjustment that makes the bezier circle and trueCircle match
+	y = round(y)+.5
+	a := 1.00005519
+	b := 0.55342686
+	c := 0.99873585
+	thickness = thickness / 2.
+	ythickness := thickness
+	if sign(rx) != sign(ry) {
+		ythickness = -thickness
+	}
+	p0x := x + rx*a - thickness
+	p0y := y
+	image.move_to(img, p0x, p0y)
+	image.line_to(img, p0x+2*thickness, p0y)
+	rx = rx + thickness
+	ry = ry + ythickness
+	p2x := x + rx*b
+	p2y := y + ry*c
+	p1x := x + rx*c
+	p1y := y + ry*b
+	p3x := x
+	p3y := y + ry*a
+	image.cube_to(img, p1x, p1y, p2x, p2y, p3x, p3y)
+	rx = rx - 2*thickness
+	ry = ry - 2*ythickness
+	p3y := y + ry*a
+	image.line_to(img, x, p3y)
+	p2x := x + rx*b
+	p2y := y + ry*c
+	p1x := x + rx*c
+	p1y := y + ry*b
+	image.cube_to(img, p2x, p2y, p1x, p1y, p0x, p0y)
+	// image.line_to(img, x, y) // covered by close_path in draw
+}
+
+func elipse(img, x,y,rx,ry,color,thickness) {
+	quadrant(img, x,y,rx,ry,thickness)
+	quadrant(img, x,y,rx,-ry,thickness)
+	quadrant(img, x,y,-rx,ry,thickness)
+	quadrant(img, x,y,-rx,-ry,thickness)
+	image.draw(img, color)
+}
+
+func circle(img, x,y,r,color,thickness) {
+	elipse(img, x,y,r,r,color,thickness)
+}
+
+func trueCircle(img, x,y,r,color) {
+	i := 0.
+	for i<2*PI {
+		x1 := round(x + r*cos(i))
+		y1 := round(y + r*sin(i))
+		image.set(img, x1, y1, color)
+		i = i+PI/30.
+	}
+}
+
+xsize:=256
+ysize:=256
+
+img := "canvas"
+image.new(img, xsize, ysize)
+
+cx := xsize/2.-0.5
+cy := ysize/2.-0.5
+
+thickness := ysize/5 // try 40, it's pretty https://github.com/grol-io/grol/pull/219
+r := ysize/2-thickness
+
+circleQuadrant(img, cx, cy, r, r, [200,70,70,200], thickness)
+circleQuadrant(img, cx, cy, -r, -r, [70,200,70,200], thickness)
+circleQuadrant(img, cx, cy, -r, r, [70,70,200,200], thickness)
+circleQuadrant(img, cx, cy, r, -r, [200,200,70,200], thickness)
+
+// check that the bezier circle is correct vs sin/cos true circle
+r := ysize/2-0.5
+circle(img, cx, cy, r, [190,190,190,180], 1)
+trueCircle(img, cx, cy, r-1, [200,70,70,240])
+trueCircle(img, cx, cy, r+1, [70,200,70,200])
+trueCircle(img, cx, cy, r, [20,20,255,255])
+image.save(img)

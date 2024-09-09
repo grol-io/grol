@@ -1,0 +1,64 @@
+/*
+ * use path vector graphic image functions
+ * demonstrate
+ */
+
+
+i := "img"
+
+w := 768
+h := 432
+image.new(i, w, h)
+
+// 3 ref/test pixels
+image.set(i, 100, h-9, [255,0,0,255])
+image.set(i, 100, h-8, [0,255,0,255])
+image.set(i, 100, h-7, [0,0,255,255])
+
+func line(x1, y1, x2, y2, color, thickness) {
+	angle := atan2(y2-y1, x2-x1) + PI/2
+	dx := thickness*cos(angle)/2.
+	dy := thickness*sin(angle)/2.
+	image.move_to(i, x1-dx, y1-dy)
+	image.line_to(i, x2-dx, y2-dy)
+	image.line_to(i, x2+dx, y2+dy)
+	image.line_to(i, x1+dx, y1+dy)
+	image.draw(i, color)
+}
+
+line(100, 400, 600, 350, [255,255,255,255], 20)
+line(100, 400, 600, 350, [0,0,255,255], 0.1)
+// compare line aligned with pixel middle or not:
+c := [20,200,200]
+line(100, 3, 120, 3, c, 1)
+
+line(3.5, 100, 3.5, 120, c, 1)
+
+line(10,10, 40,40, c, 1)
+
+alpha:=192
+main:=255
+
+
+// red triangle
+image.move_to(i,100, 50)
+image.line_to(i,300, 400)
+image.line_to(i,500, 50)
+
+image.draw(i, [main,0,0,alpha])
+
+// green triangle
+image.move_to(i,200, 70)
+image.line_to(i,650, 400)
+image.line_to(i,750, 300)
+
+image.draw(i, [0,main,0,alpha])
+
+// blue triangle
+image.move_to(i,600, 50)
+image.line_to(i,750, 200)
+image.line_to(i,10, 300)
+
+image.draw(i, [0,0,main,alpha])
+
+image.save(i)

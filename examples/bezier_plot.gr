@@ -1,0 +1,79 @@
+/* use image.quad_to to draw a bezier curve passing through a lis of points */
+
+
+I := "img"
+X:=768
+Y:=432
+image.new(I, X, Y)
+
+// generate a list of N point heights.
+n:=9
+
+points := []
+for n {
+	points = points + (40 + rand(350))
+}
+
+func coordX(idx) {
+	10+idx*90
+}
+func coordY(height) {
+	Y-10-height
+}
+
+
+// flat start of bezier curve - imaginary point at -1 same height as first point
+ix := -1
+prevX := coordX(-1)
+curX := coordX(0)
+curY := coordY(points[0])
+ctrlX1 = 2*curX - (prevX + curX) / 2.
+ctrlY1 = curY
+
+ix := 0
+image.move_to(I, curX, coordY(0))
+image.line_to(I, curX, curY)
+ix ++
+prevX = curX
+prevY = curY
+for ix < n {
+	curX := coordX(ix)
+	curY := coordY(points[ix])
+	ctrlX2 := (prevX + 3* curX) / 4.
+	ctrlY2 := (prevY + 3* curY) / 4.
+	if ix == n-1 { // flatter end.
+		ctrlX2 = (prevX + curX) / 2
+		ctrlY2 = curY
+	}
+	image.cube_to(I, ctrlX1, ctrlY1, ctrlX2, ctrlY2, curX, curY)
+	prevX = curX
+	prevY = curY
+	ctrlX1 = 2* curX - ctrlX2
+	ctrlY1 = 2* curY - ctrlY2
+	ix++
+}
+image.line_to(I, coordX(n-1), coordY(0))
+image.draw(I, [30,30,200,200])
+
+// -- no bezier, just lines for reference/comparison
+
+func line(x1, y1, x2, y2, color, thickness) {
+	angle := atan2(y2-y1, x2-x1) + PI/2
+	dx := thickness*cos(angle)/2.
+	dy := thickness*sin(angle)/2.
+	image.move_to(I, x1-dx, y1-dy)
+	image.line_to(I, x2-dx, y2-dy)
+	image.line_to(I, x2+dx, y2+dy)
+	image.line_to(I, x1+dx, y1+dy)
+	image.draw(I, color)
+}
+
+color := [200,200,200,80]
+for ix = n-1 {
+	yi := points[ix]
+	yp1 := points[ix+1]
+	log(ix, yi, yp1)
+	line(coordX(ix), coordY(yi), coordX(ix+1), coordY(yp1), color, 1)
+}
+
+image.save(I)

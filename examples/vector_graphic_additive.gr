@@ -1,0 +1,50 @@
+/*
+ * use path vector graphic image functions
+ * demonstrate
+ */
+
+
+i := "img"
+
+w := 768
+h := 432
+image.new(i, w, h)
+
+// 3 ref/test pixels
+image.set(i, 100, h-9, [255,0,0,255])
+image.set(i, 100, h-8, [0,255,0,255])
+image.set(i, 100, h-7, [0,0,255,255])
+
+alpha:=int(255*.9)
+main:=255
+
+// red triangle
+image.move_to(i,100, 50)
+image.line_to(i,300, 400)
+image.line_to(i,500, 50)
+
+image.draw(i, [main,0,0,alpha])
+
+gi := "img2"
+image.new(gi, w, h)
+
+// green triangle
+image.move_to(gi,200, 70)
+image.line_to(gi,650, 400)
+image.line_to(gi,750, 300)
+
+image.draw(gi, [0,main,0,alpha])
+
+bi := "img3"
+image.new(bi, w, h)
+
+// blue triangle
+image.move_to(bi,600, 50)
+image.line_to(bi,750, 200)
+image.line_to(bi,10, 300)
+
+image.draw(bi, [0,0,main,alpha])
+
+image.add(gi, bi) // merge blue into green
+image.add(i, gi)  // merge into red
+image.save(i)

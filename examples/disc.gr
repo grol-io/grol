@@ -1,0 +1,43 @@
+/* bezier cube to disc
+https://spencermortensen.com/articles/bezier-circle/
+
+P0=(0,a), P1=(b,c), P2=(c,b), P3=(a,0), where
+a=1.00005519
+b=0.55342686
+c=0.99873585
+
+(except for images cube_to p2 and p1 are swapped)
+*/
+
+func discQuadrant(img, x, y, rx, ry, color) {
+	a := 1.00005519
+	b := 0.55342686
+	c := 0.99873585
+	p0x := x + rx*a
+	p0y := y
+	image.move_to(img, x, y)
+	image.line_to(img, p0x, p0y)
+	p2x := x + rx*b
+	p2y := y + ry*c
+	p1x := x + rx*c
+	p1y := y + ry*b
+	p3x := x
+	p3y := y + ry*a
+	image.cube_to(img, p1x, p1y, p2x, p2y, p3x, p3y)
+	// image.line_to(img, x, y) // covered by close_path in draw
+	image.draw(img, color)
+}
+
+
+xsize:=550
+ysize:=350
+
+img := "canvas"
+image.new(img, xsize, ysize)
+
+discQuadrant(img, xsize/2, ysize/2, 150, 150, [200,70,70,200])
+discQuadrant(img, xsize/2, ysize/2, -150, -150, [70,200,70,200])
+discQuadrant(img, xsize/2, ysize/2, -150, 150, [70,70,200,200])
+discQuadrant(img, xsize/2, ysize/2, 150, -150, [200,200,70,200])
+
+image.save(img)
