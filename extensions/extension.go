@@ -18,6 +18,7 @@ import (
 
 	"fortio.org/log"
 	"fortio.org/terminal"
+	"github.com/ldemailly/go-scratch/safecast"
 	"github.com/rivo/uniseg"
 	"grol.io/grol/eval"
 	"grol.io/grol/lexer"
@@ -139,6 +140,8 @@ func initInternal(c *Config) error {
 		{math.Acos, "acos"},
 		{math.Atan, "atan"},
 		{math.Log10, "log10"},
+		{math.Floor, "floor"},
+		{math.Ceil, "ceil"},
 	} {
 		oneFloat.Callback = object.ShortCallback(func(args []object.Object) object.Object {
 			// Arg len check already done through MinArgs=MaxArgs=1 and
@@ -149,21 +152,16 @@ func initInternal(c *Config) error {
 		MustCreate(oneFloat)
 	}
 	// These are all int-returning functions.
-	for _, function := range []struct {
-		fn   OneFloatInOutFunc
-		name string
-	}{
-		{math.Round, "round"},
-		{math.Trunc, "trunc"},
-		{math.Floor, "floor"},
-		{math.Ceil, "ceil"},
-	} {
-		oneFloat.Callback = object.ShortCallback(func(args []object.Object) object.Object {
-			return object.Integer{Value: int64(function.fn(args[0].(object.Float).Value))}
-		})
-		oneFloat.Name = function.name
-		MustCreate(oneFloat)
-	}
+	oneFloat.Name = "round"
+	oneFloat.Callback = object.ShortCallback(func(args []object.Object) object.Object {
+		return object.Integer{Value: safecast.MustRound[int64](args[0].(object.Float).Value)}
+	})
+	MustCreate(oneFloat)
+	oneFloat.Name = "trunc"
+	oneFloat.Callback = object.ShortCallback(func(args []object.Object) object.Object {
+		return object.Integer{Value: safecast.MustTruncate[int64](args[0].(object.Float).Value)}
+	})
+	MustCreate(oneFloat)
 	MustCreate(object.Extension{
 		Name:     "atan2",
 		MinArgs:  2,
