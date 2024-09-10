@@ -20,6 +20,7 @@ import (
 	"fortio.org/log"
 	"fortio.org/safecast"
 	"fortio.org/terminal"
+	"github.com/ldemailly/go-scratch/safecast"
 	"github.com/rivo/uniseg"
 	"grol.io/grol/eval"
 	"grol.io/grol/lexer"
