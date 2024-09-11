@@ -722,6 +722,12 @@ func First(a Object) Object {
 		}
 		// first rune of str
 		return String{Value: string([]rune(a.Value)[:1])}
+	case Function:
+		res := MakeObjectSlice(len(a.Parameters))
+		for _, p := range a.Parameters {
+			res = append(res, String{Value: p.Value().Literal()})
+		}
+		return NewArray(res)
 	}
 	return Error{Value: "first() not supported on " + a.Type().String()}
 }
@@ -751,6 +757,15 @@ func Rest(val Object) Object {
 		return v.Rest()
 	case SmallMap:
 		return v.Rest()
+	case Function:
+		body := v.Body.Statements
+		res := MakeObjectSlice(len(body))
+		for _, stmt := range body {
+			ps := ast.NewPrintState()
+			stmt.PrettyPrint(ps)
+			res = append(res, String{Value: ps.String()})
+		}
+		return NewArray(res)
 	}
 	return Error{Value: "rest() not supported on " + val.Type().String()}
 }
