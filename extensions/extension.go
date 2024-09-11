@@ -237,11 +237,47 @@ func createJSONAndEvalFunctions(c *Config) {
 	jsonFn.Callback = evalFunc // unjson at the moment is just (like) eval hoping that json is map/array/...
 	MustCreate(jsonFn)
 	jsonFn.Name = "format"
+	jsonFn.Help = "returns a string, pretty printed function object"
 	jsonFn.ArgTypes = []object.Type{object.FUNC}
 	jsonFn.Callback = object.ShortCallback(func(args []object.Object) object.Object {
 		fn := args[0].(object.Function)
 		return object.String{Value: fn.Format()}
 	})
+	MustCreate(jsonFn)
+	jsonFn.Name = "defun"
+	jsonFn.Help = "defines a function from name (empty for lambda), arguments, statements (as returned by first/rest)"
+	jsonFn.ArgTypes = []object.Type{object.STRING, object.ARRAY, object.ARRAY}
+	jsonFn.MinArgs = 3
+	jsonFn.MaxArgs = 3
+	jsonFn.Callback = func(env any, _ string, args []object.Object) object.Object {
+		s := env.(*eval.State)
+		name := args[0].(object.String).Value
+		argArray := args[1].(object.Array)
+		stmtArray := args[2].(object.Array)
+		// brute force-ish
+		buf := strings.Builder{}
+		buf.WriteString("func ")
+		buf.WriteString(name) // will be a lamnda if empty.
+		buf.WriteString("(")
+		for i, a := range argArray.Elements() {
+			if i > 0 {
+				buf.WriteString(",")
+			}
+			buf.WriteString(a.Inspect())
+		}
+		buf.WriteString("){")
+		for _, stmt := range stmtArray.Elements() {
+			buf.WriteString(stmt.Inspect())
+			buf.WriteString("\n")
+		}
+		strFn := buf.String()
+		log.LogVf("defun: %s", strFn)
+		o, err := eval.EvalString(s, strFn, false)
+		if err != nil {
+			return s.Error(err)
+		}
+		return o
+	}
 	MustCreate(jsonFn)
 	loadSaveFn := object.Extension{
 		MinArgs:  0, // empty only case - ie ".gr" save file.
