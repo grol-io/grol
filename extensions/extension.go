@@ -260,6 +260,9 @@ func createJSONAndEvalFunctions(c *Config) {
 		buf.WriteString(name) // will be a lamnda if empty.
 		buf.WriteString("(")
 		for i, a := range argArray.Elements() {
+			if a.Type() != object.STRING {
+				return s.Errorf("defun: unexpected type %s in arguments", a.Type())
+			}
 			if i > 0 {
 				buf.WriteString(",")
 			}
@@ -267,7 +270,11 @@ func createJSONAndEvalFunctions(c *Config) {
 		}
 		buf.WriteString("){")
 		for _, stmt := range stmtArray.Elements() {
-			buf.WriteString(stmt.Inspect())
+			if stmt.Type() != object.STRING {
+				return s.Errorf("defun: unexpected type %s in statements", stmt.Type())
+			}
+			str := stmt.(object.String).Value
+			buf.WriteString(str)
 			buf.WriteString("\n")
 		}
 		strFn := buf.String()

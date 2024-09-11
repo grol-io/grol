@@ -315,6 +315,9 @@ stdout '^\[-2,-2\]$'
 grol -quiet -c 'a=1; b=2;()=>{a=b}();()=>{a=b;println(type(a),type(b))}()'
 stdout '&a.\(INTEGER\) &b.\(INTEGER\)'
 
+grol -quiet -c 'defun("prtf", first(printf), rest(printf)); prtf("%d", 42)'
+stdout '^42$'
+
 -- json_output --
 {
   "63": 63,
