@@ -293,7 +293,7 @@ stderr '^<err: bitwise not of 1.1>$'
 !stderr 'panic'
 
 # time parse round trip
-grol -quiet -c 'now=time(); time_parse(time_info(now).str) == now'
+grol -quiet -c 'now=time.now(); time.parse(time.info(now).str) == now'
 
 # reference changing parent:
 grol -quiet -c 'v=42;func foo(){v=8};foo();v'

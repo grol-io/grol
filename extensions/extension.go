@@ -430,7 +430,7 @@ func createMisc() {
 
 func createTimeFunctions() {
 	MustCreate(object.Extension{
-		Name:    "time",
+		Name:    "time.now",
 		MinArgs: 0,
 		MaxArgs: 0,
 		Help:    "Date/time in seconds since epoch",
@@ -457,11 +457,11 @@ func createTimeFunctions() {
 		},
 	})
 	MustCreate(object.Extension{
-		Name:     "time_info",
+		Name:     "time.info",
 		MinArgs:  1,
 		MaxArgs:  2,
 		ArgTypes: []object.Type{object.FLOAT, object.STRING},
-		Help:     "Float as returned by time() and time_parse() in seconds since epoch, and optional TimeZone/location",
+		Help:     "Float as returned by time.now() and time.parse() in seconds since epoch, and optional TimeZone/location",
 		Callback: func(st any, _ string, args []object.Object) object.Object {
 			s := st.(*eval.State)
 			timeUsec := math.Round(args[0].(object.Float).Value * 1e6)
@@ -499,7 +499,7 @@ func createTimeFunctions() {
 		},
 	})
 	MustCreate(object.Extension{
-		Name:     "time_parse",
+		Name:     "time.parse",
 		MinArgs:  1,
 		MaxArgs:  2,
 		ArgTypes: []object.Type{object.STRING, object.STRING},
@@ -527,7 +527,7 @@ func createTimeFunctions() {
 // --- implementation of the functions that aren't inlined in lambdas above.
 
 var parseFormats = []string{
-	time.DateTime, //   = "2006-01-02 15:04:05" // first as that's what time_info().str returns (with usec).
+	time.DateTime, //   = "2006-01-02 15:04:05" // first as that's what time.info().str returns (with usec).
 	time.RFC3339,
 	time.ANSIC,    //   = "Mon Jan _2 15:04:05 2006"
 	time.UnixDate, //   = "Mon Jan _2 15:04:05 MST 2006"

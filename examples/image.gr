@@ -22,7 +22,7 @@ canvas = image.new(imgName, size, size)
 div = 6
 
 t = 0
-now = time()
+now = time.now()
 // color = [0, saturation, lightness]
 for t < 12*PI {
 	x = sin(t) * (pow(E, cos(t)) - 2*cos(4*t) - pow(sin(t/12), 5))
@@ -35,7 +35,7 @@ for t < 12*PI {
 	// image_set_hsl(canvas, int(size/2+(size/div)*x+0.5), int(size/2.5+(size/div)*y+0.5), color)
 	t = t + 0.0005 // 0.0001 for profiling.
 }
-elapsed = time() - now
+elapsed = time.now() - now
 log("Time elapsed: ", elapsed, " seconds")
 
 image.save(imgName)
