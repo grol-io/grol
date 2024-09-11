@@ -75,7 +75,7 @@ func initInternal(c *Config) error {
 
 	// for printf, we could expose current eval "Out", but instead let's use new variadic support and define
 	// printf as print(snprintf(format,..)) that way the memoization of output also works out of the box.
-	err := eval.AddEvalResult("printf", "func(format, ..){print(sprintf(format, ..))}")
+	err := eval.AddEvalResult("printf", "func(fmtstr, ..){print(sprintf(fmtstr, ..))}")
 	if err != nil {
 		return err
 	}
@@ -236,7 +236,13 @@ func createJSONAndEvalFunctions(c *Config) {
 	jsonFn.Name = "unjson"
 	jsonFn.Callback = evalFunc // unjson at the moment is just (like) eval hoping that json is map/array/...
 	MustCreate(jsonFn)
-
+	jsonFn.Name = "format"
+	jsonFn.ArgTypes = []object.Type{object.FUNC}
+	jsonFn.Callback = object.ShortCallback(func(args []object.Object) object.Object {
+		fn := args[0].(object.Function)
+		return object.String{Value: fn.Format()}
+	})
+	MustCreate(jsonFn)
 	loadSaveFn := object.Extension{
 		MinArgs:  0, // empty only case - ie ".gr" save file.
 		MaxArgs:  1,

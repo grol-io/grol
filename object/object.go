@@ -592,7 +592,7 @@ func (f *Function) SetCacheKey() string {
 	if !f.Lambda {
 		out.WriteString("func ")
 	}
-	f.CacheKey = f.finishFuncOutput(&out)
+	f.CacheKey = f.finishFuncOutput(&out, true)
 	return f.CacheKey
 }
 
@@ -616,15 +616,21 @@ func (f *Function) lambdaPrint(ps *ast.PrintState, out *strings.Builder) string 
 }
 
 // Common part of Inspect and SetCacheKey. Outputs the rest of the function.
-func (f *Function) finishFuncOutput(out *strings.Builder) string {
+func (f *Function) finishFuncOutput(out *strings.Builder, compact bool) string {
 	needParen := !f.Lambda || len(f.Parameters) != 1
 	if needParen {
 		out.WriteString("(")
 	}
-	ps := &ast.PrintState{Out: out, Compact: true}
+	ps := &ast.PrintState{Out: out, Compact: compact}
 	ps.ComaList(f.Parameters)
 	if f.Lambda {
 		return f.lambdaPrint(ps, out)
+	}
+	if !compact {
+		out.WriteString(") ")
+		ps.IndentLevel++
+		f.Body.PrettyPrint(ps)
+		return out.String()
 	}
 	out.WriteString("){")
 	f.Body.PrettyPrint(ps)
@@ -639,12 +645,23 @@ func (f Function) Inspect() string {
 	out := strings.Builder{}
 	out.WriteString("func ")
 	out.WriteString(f.Name.Literal())
-	return f.finishFuncOutput(&out)
+	return f.finishFuncOutput(&out, true)
 }
 
 func (f Function) JSON(w io.Writer) error {
 	_, err := fmt.Fprintf(w, `{"func":%q}`, f.Inspect())
 	return err
+}
+
+// Format is like Inspect but using non compact print state.
+func (f Function) Format() string {
+	out := strings.Builder{}
+	out.WriteString("func ")
+	if f.Name != nil {
+		out.WriteString(f.Name.Literal())
+	}
+	f.Lambda = false // force the fun style (and this receiver is a copy).
+	return f.finishFuncOutput(&out, false)
 }
 
 const MaxSmallArray = 8
