@@ -423,7 +423,7 @@ func (s *State) evalBuiltin(node *ast.Builtin) object.Object {
 	case token.CATCH:
 		isError := rt == object.ERROR
 		if isError {
-			val = object.String{Value: val.Inspect()}
+			val = object.String{Value: val.(object.Error).Value}
 		}
 		return object.MakeQuad(ErrorKey, object.NativeBoolToBooleanObject(isError), object.ValueKey, val)
 	case token.ERROR, token.PRINT, token.PRINTLN, token.LOG:

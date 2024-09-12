@@ -323,6 +323,18 @@ stdout '^42 A$'
 grol -quiet -c 'println(format(printf))'
 cmp stdout println_output
 
+# catch errors
+grol -quiet -c 'catch("1"+a).err'
+stdout '^true$'
+
+# catch errors
+grol -quiet -c 'catch("1"+a).value'
+stdout '^"unknown operator: STRING PLUS INTEGER"$'
+
+# catch no error
+grol -quiet -c 'catch("1"+"2")'
+stdout '^{"err":false,"value":"12"}$'
+
 -- println_output --
 func (fmtstr, ..) {
 	print(sprintf(fmtstr, ..))
