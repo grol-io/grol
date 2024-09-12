@@ -379,6 +379,8 @@ func createStrFunctions() { //nolint:funlen // we do have quite a few, yes.
 		return object.String{Value: strings.Join(strs, sep)}
 	}
 	MustCreate(strFn)
+	// TODO: Consider adding a cache of all the regexp compilation in the CData or globally
+	// some LRU (like discord bot's fixedmap) maybe. For now we compile on each call.
 	strFn.Name = "regexp"
 	strFn.Help = "returns true if regular expression matches the string (2nd arg)"
 	strFn.ArgTypes = []object.Type{object.STRING, object.STRING, object.BOOLEAN}
@@ -387,8 +389,8 @@ func createStrFunctions() { //nolint:funlen // we do have quite a few, yes.
 		s := env.(*eval.State)
 		regx := args[0].(object.String).Value
 		inp := args[1].(object.String).Value
-		results := (len(args) == 3) && args[2].(object.Boolean).Value
-		if results {
+		returnMatches := (len(args) == 3) && args[2].(object.Boolean).Value
+		if returnMatches {
 			re, err := regexp.Compile(regx)
 			if err != nil {
 				return s.Error(err)
@@ -401,6 +403,7 @@ func createStrFunctions() { //nolint:funlen // we do have quite a few, yes.
 			}
 			return object.NewArray(res)
 		}
+		// else plain boolean match:
 		matched, err := regexp.MatchString(regx, inp)
 		if err != nil {
 			return s.Error(err)
