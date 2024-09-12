@@ -266,7 +266,7 @@ func createJSONAndEvalFunctions(c *Config) {
 			if i > 0 {
 				buf.WriteString(",")
 			}
-			buf.WriteString(a.Inspect())
+			buf.WriteString(a.(object.String).Value)
 		}
 		buf.WriteString("){")
 		for _, stmt := range stmtArray.Elements() {
