@@ -293,7 +293,7 @@ stderr '^<err: bitwise not of 1.1>$'
 !stderr 'panic'
 
 # time parse round trip
-grol -quiet -c 'now=time(); time_parse(time_info(now).str) == now'
+grol -quiet -c 'now=time.now(); time.parse(time.info(now).str) == now'
 
 # reference changing parent:
 grol -quiet -c 'v=42;func foo(){v=8};foo();v'
@@ -315,6 +315,18 @@ stdout '^\[-2,-2\]$'
 grol -quiet -c 'a=1; b=2;()=>{a=b}();()=>{a=b;println(type(a),type(b))}()'
 stdout '&a.\(INTEGER\) &b.\(INTEGER\)'
 
+# test of first() and rest() back to function through defun().
+grol -quiet -c 'defun("prtf", first(printf), rest(printf)); prtf("%d %c", 42, 65)'
+stdout '^42 A$'
+
+# test of format.
+grol -quiet -c 'println(format(printf))'
+cmp stdout println_output
+
+-- println_output --
+func (fmtstr, ..) {
+	print(sprintf(fmtstr, ..))
+}
 -- json_output --
 {
   "63": 63,
