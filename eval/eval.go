@@ -391,9 +391,7 @@ func (s *State) evalPrintLogError(node *ast.Builtin) object.Object {
 	return object.NULL
 }
 
-var (
-	ErrorKey = object.String{Value: "err"} // can't use error as that's a builtin.
-)
+var ErrorKey = object.String{Value: "err"} // can't use error as that's a builtin.
 
 func (s *State) evalBuiltin(node *ast.Builtin) object.Object {
 	// all take 1 arg exactly except print and log which take 1+.
