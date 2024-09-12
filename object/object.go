@@ -780,6 +780,7 @@ func Rest(val Object) Object {
 		for _, stmt := range body {
 			ps := ast.NewPrintState()
 			ps.Compact = true
+			ps.IndentLevel = 1
 			stmt.PrettyPrint(ps)
 			res = append(res, String{Value: ps.String()})
 		}
