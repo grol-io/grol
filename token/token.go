@@ -143,6 +143,7 @@ const (
 	PRINTLN
 	LOG
 	ERROR
+	CATCH
 
 	endIdentityTokens
 
