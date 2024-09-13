@@ -91,6 +91,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.LOG, p.parseBuiltin)
 	p.registerPrefix(token.MACRO, p.parseMacroLiteral)
 	p.registerPrefix(token.ERROR, p.parseBuiltin)
+	p.registerPrefix(token.CATCH, p.parseBuiltin)
 	p.registerPrefix(token.QUOTE, p.parseBuiltin)
 	p.registerPrefix(token.UNQUOTE, p.parseBuiltin)
 

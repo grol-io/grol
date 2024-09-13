@@ -11,6 +11,7 @@ import (
 	"math"
 	"math/rand/v2"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -304,7 +305,7 @@ func createJSONAndEvalFunctions(c *Config) {
 	}
 }
 
-func createStrFunctions() {
+func createStrFunctions() { //nolint:funlen // we do have quite a few, yes.
 	strFn := object.Extension{
 		MinArgs:  1,
 		MaxArgs:  1,
@@ -376,6 +377,55 @@ func createStrFunctions() {
 		}
 		object.MustBeOk(totalLen / object.ObjectSize) // off by sepLen but that's ok.
 		return object.String{Value: strings.Join(strs, sep)}
+	}
+	MustCreate(strFn)
+	// TODO: Consider adding a cache of all the regexp compilation in the CData or globally
+	// some LRU (like discord bot's fixedmap) maybe. For now we compile on each call.
+	strFn.Name = "regexp"
+	strFn.Help = "returns true if regular expression matches the string (2nd arg)"
+	strFn.ArgTypes = []object.Type{object.STRING, object.STRING, object.BOOLEAN}
+	strFn.MaxArgs = 3
+	strFn.Callback = func(env any, _ string, args []object.Object) object.Object {
+		s := env.(*eval.State)
+		regx := args[0].(object.String).Value
+		inp := args[1].(object.String).Value
+		returnMatches := (len(args) == 3) && args[2].(object.Boolean).Value
+		if returnMatches {
+			re, err := regexp.Compile(regx)
+			if err != nil {
+				return s.Error(err)
+			}
+			matches := re.FindStringSubmatch(inp)
+			l := len(matches)
+			res := object.MakeObjectSlice(l)
+			for _, m := range matches {
+				res = append(res, object.String{Value: m})
+			}
+			return object.NewArray(res)
+		}
+		// else plain boolean match:
+		matched, err := regexp.MatchString(regx, inp)
+		if err != nil {
+			return s.Error(err)
+		}
+		return object.NativeBoolToBooleanObject(matched)
+	}
+	MustCreate(strFn)
+	strFn.Name = "regsub"
+	strFn.Help = "regexp, input, subst"
+	strFn.ArgTypes = []object.Type{object.STRING, object.STRING, object.STRING}
+	strFn.MaxArgs = 3
+	strFn.Callback = func(env any, _ string, args []object.Object) object.Object {
+		s := env.(*eval.State)
+		regx := args[0].(object.String).Value
+		re, err := regexp.Compile(regx)
+		if err != nil {
+			return s.Error(err)
+		}
+		inp := args[1].(object.String).Value
+		repl := args[2].(object.String).Value
+		newStr := re.ReplaceAllString(inp, repl)
+		return object.String{Value: newStr}
 	}
 	MustCreate(strFn)
 }

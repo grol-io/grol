@@ -391,6 +391,8 @@ func (s *State) evalPrintLogError(node *ast.Builtin) object.Object {
 	return object.NULL
 }
 
+var ErrorKey = object.String{Value: "err"} // can't use error as that's a builtin.
+
 func (s *State) evalBuiltin(node *ast.Builtin) object.Object {
 	// all take 1 arg exactly except print and log which take 1+.
 	t := node.Type()
@@ -411,11 +413,17 @@ func (s *State) evalBuiltin(node *ast.Builtin) object.Object {
 	if minV > 0 {
 		val = s.evalInternal(node.Parameters[0])
 		rt = val.Type()
-		if rt == object.ERROR && t != token.LOG { // log can log (and thus catch) errors.
+		if rt == object.ERROR && t != token.LOG && t != token.CATCH { // log can log (and thus catch) errors.
 			return val
 		}
 	}
 	switch t {
+	case token.CATCH:
+		isError := rt == object.ERROR
+		if isError {
+			val = object.String{Value: val.(object.Error).Value}
+		}
+		return object.MakeQuad(ErrorKey, object.NativeBoolToBooleanObject(isError), object.ValueKey, val)
 	case token.ERROR, token.PRINT, token.PRINTLN, token.LOG:
 		return s.evalPrintLogError(node)
 	case token.FIRST:
