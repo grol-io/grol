@@ -1,8 +1,6 @@
 package ast
 
-import (
-	"fortio.org/log"
-)
+import "fmt"
 
 // Note, this is somewhat similar to eval.go's eval... both are "apply"ing.
 func Modify(node Node, f func(Node) Node) Node { //nolint:funlen // yeah lots of types.
@@ -62,7 +60,10 @@ func Modify(node Node, f func(Node) Node) Node { //nolint:funlen // yeah lots of
 	case *MapLiteral:
 		newNode := &MapLiteral{Base: node.Base, Pairs: make(map[Node]Node)}
 		for _, key := range node.Order {
-			val := node.Pairs[key]
+			val, ok := node.Pairs[key]
+			if !ok {
+				panic(fmt.Sprintf("key %v not in pairs for map %v", key, node))
+			}
 			newKey := Modify(key, f)
 			newNode.Order = append(newNode.Order, newKey)
 			newNode.Pairs[newKey] = Modify(val, f)
@@ -72,8 +73,8 @@ func Modify(node Node, f func(Node) Node) Node { //nolint:funlen // yeah lots of
 		n := *node
 		return f(&n) // silly go optimizes &(*node) to node (ptr) so need 2 steps
 	case *IntegerLiteral:
-		n := *node
-		return f(&n)
+		n := node
+		return f(n)
 	case *FloatLiteral:
 		n := *node
 		return f(&n)
@@ -115,7 +116,6 @@ func Modify(node Node, f func(Node) Node) Node { //nolint:funlen // yeah lots of
 		newNode.Body = Modify(node.Body, f).(*Statements)
 		return f(&newNode)
 	default:
-		log.Warnf("default for node type %T", node)
+		panic(fmt.Sprintf("Modify not implemented for node type %T", node))
 	}
-	return f(node)
 }
