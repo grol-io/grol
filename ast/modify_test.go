@@ -102,14 +102,20 @@ func TestModify(t *testing.T) {
 			&ArrayLiteral{Elements: []Node{two(), two()}},
 		},
 		{
-			&MapLiteral{Pairs: map[Node]Node{
-				one(): one(),
-				one(): one(),
-			}},
-			&MapLiteral{Pairs: map[Node]Node{
-				two(): two(),
-				two(): two(),
-			}},
+			&MapLiteral{
+				Pairs: map[Node]Node{
+					one(): one(),
+					two(): one(),
+				},
+				Order: []Node{two(), one()},
+			},
+			&MapLiteral{
+				Pairs: map[Node]Node{
+					two(): two(),
+					two(): two(),
+				},
+				Order: []Node{two(), two()}, // kinda bogus.
+			},
 		},
 	}
 	for _, tt := range tests {

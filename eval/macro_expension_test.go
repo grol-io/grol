@@ -95,13 +95,13 @@ func TestExpandMacros(t *testing.T) {
             `,
 			`(1 + 2)`,
 		},
-		{
+		{ // bug where first macro use is all of them. #223.
 			`
-            reverse = macro(a, b) { quote(unquote(b) - unquote(a)); };
-
-            reverse(2 + 2, 10 - 5);
+            reverse = macro(a, b) { quote(unquote(b) - unquote(a)) }
+            reverse(x,y)
+            reverse(2 + 2, 10 - 5)
             `,
-			`(10 - 5) - (2 + 2)`,
+			`(y-x) (10 - 5) - (2 + 2)`,
 		},
 		{
 			`
