@@ -3,7 +3,7 @@ package ast
 import "fmt"
 
 // Note, this is somewhat similar to eval.go's eval... both are "apply"ing.
-func Modify(node Node, f func(Node) Node) Node { //nolint:funlen // yeah lots of types.
+func Modify(node Node, f func(Node) Node) Node { //nolint:funlen,gocyclo // yeah lots of types.
 	// TODO: add err checks for _s.
 	switch node := node.(type) {
 	case *Statements:
