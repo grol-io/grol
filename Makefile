@@ -76,13 +76,20 @@ wasm/wasm_exec.js: Makefile
 wasm/wasm_exec.html:
 	cp "$(shell $(WASM_GO) env GOROOT)/misc/wasm/wasm_exec.html" ./wasm/
 
-test: grol
+test: grol unit-tests examples grol-tests
+
+unit-tests:
 	CGO_ENABLED=0 go test -tags $(GO_BUILD_TAGS) ./...
-	GOMEMLIMIT=1GiB ./grol examples/*.gr
-	GOMEMLIMIT=1GiB ./grol -shared-state grol_tests/*.gr
+
+examples: grol
+	GOMEMLIMIT=1GiB ./grol -panic examples/*.gr
+
+grol-tests: grol
+	GOMEMLIMIT=1GiB ./grol -panic -shared-state grol_tests/*.gr
 
 check: grol
 	./check_samples_double_format.sh examples/*.gr
+	./check_tests_double_format.sh
 
 generate: $(GEN)
 
@@ -107,4 +114,4 @@ lint: .golangci.yml
 .golangci.yml: Makefile
 	curl -fsS -o .golangci.yml https://raw.githubusercontent.com/fortio/workflows/main/golangci.yml
 
-.PHONY: all lint generate test clean run build wasm tinygo wasm-release tiny_test tinygo-tests check install
+.PHONY: all lint generate test clean run build wasm tinygo wasm-release tiny_test tinygo-tests check install unit-tests examples grol-tests

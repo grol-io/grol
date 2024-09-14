@@ -1,0 +1,33 @@
+/*
+
+Library of macros for testing
+
+*/
+func str(x) {
+	sprintf("%v", x)
+}
+
+NoErr = macro(msg, expr, expectedRegexp) {
+	quote(if (r = catch(unquote(expr))).err {
+			error("FAIL unexpected error:", r.value, "for", unquote(msg))
+		} else {
+			if (regexp(unquote(expectedRegexp), str(r.value))) {
+				println("OK", unquote(msg), "is:", r.value)
+			} else {
+				error("FAIL", unquote(msg), "didn't match expected:", r.value)
+			}
+		})
+}
+
+
+IsErr = macro(msg, expr, expectedRegexp) {
+	quote(if (r = catch(unquote(expr))).err {
+			if (regexp(unquote(expectedRegexp), str(r.value))) {
+				println("OK", unquote(msg), "get expected error:", r.value)
+			} else {
+				error("FAIL", unquote(msg), "didn't match expected:", r.value)
+			}
+		} else {
+			error("FAIL", unquote(msg),"didn't get expected error:",r.value)
+		})
+}
