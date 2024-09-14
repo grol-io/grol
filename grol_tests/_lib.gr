@@ -3,10 +3,13 @@
 Library of macros for testing
 
 */
+
+// Convert any grol object to a string.
 func str(x) {
 	sprintf("%v", x)
 }
 
+// Test for absence of error and that the expression's result matches a regexp.
 NoErr = macro(msg, expr, expectedRegexp) {
 	quote(if (r = catch(unquote(expr))).err {
 			error("FAIL unexpected error:", r.value, "for", unquote(msg))
@@ -19,7 +22,7 @@ NoErr = macro(msg, expr, expectedRegexp) {
 		})
 }
 
-
+// Test for expected error and that the message matches a regexp.
 IsErr = macro(msg, expr, expectedRegexp) {
 	quote(if (r = catch(unquote(expr))).err {
 			if (regexp(unquote(expectedRegexp), str(r.value))) {
