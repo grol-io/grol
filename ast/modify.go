@@ -1,55 +1,121 @@
 package ast
 
-import "fortio.org/log"
+import "fmt"
 
 // Note, this is somewhat similar to eval.go's eval... both are "apply"ing.
-func Modify(node Node, f func(Node) Node) Node {
+func Modify(node Node, f func(Node) Node) Node { //nolint:funlen,gocyclo // yeah lots of types.
 	// TODO: add err checks for _s.
 	switch node := node.(type) {
 	case *Statements:
+		newNode := &Statements{Base: node.Base, Statements: make([]Node, len(node.Statements))}
 		for i, statement := range node.Statements {
-			node.Statements[i] = Modify(statement, f)
+			newNode.Statements[i] = Modify(statement, f)
 		}
+		return f(newNode)
 	case *InfixExpression:
-		le := Modify(node.Left, f)
-		node.Left = le
-		re := Modify(node.Right, f)
-		node.Right = re
+		newNode := &InfixExpression{Base: node.Base}
+		newNode.Left = Modify(node.Left, f)
+		newNode.Right = Modify(node.Right, f)
+		return f(newNode)
 	case *PrefixExpression:
-		pe := Modify(node.Right, f)
-		node.Right = pe
+		newNode := &PrefixExpression{Base: node.Base}
+		newNode.Right = Modify(node.Right, f)
+		return f(newNode)
 	case *IndexExpression:
-		node.Left = Modify(node.Left, f)
-		node.Index = Modify(node.Index, f)
+		newNode := &IndexExpression{Base: node.Base}
+		newNode.Left = Modify(node.Left, f)
+		newNode.Index = Modify(node.Index, f)
+		return f(newNode)
 	case *IfExpression:
-		ce := Modify(node.Condition, f)
-		node.Condition = ce
-		node.Consequence = Modify(node.Consequence, f).(*Statements)
+		newNode := &IfExpression{Base: node.Base}
+		newNode.Condition = Modify(node.Condition, f)
+		newNode.Consequence = Modify(node.Consequence, f).(*Statements)
 		if node.Alternative != nil {
-			node.Alternative = Modify(node.Alternative, f).(*Statements)
+			newNode.Alternative = Modify(node.Alternative, f).(*Statements)
 		}
+		return f(newNode)
+	case *ForExpression:
+		newNode := &ForExpression{Base: node.Base}
+		newNode.Condition = Modify(node.Condition, f)
+		newNode.Body = Modify(node.Body, f).(*Statements)
+		return f(newNode)
 	case *ReturnStatement:
-		re := Modify(node.ReturnValue, f)
-		node.ReturnValue = re
+		newNode := &ReturnStatement{Base: node.Base}
+		newNode.ReturnValue = Modify(node.ReturnValue, f)
+		return f(newNode)
 	case *FunctionLiteral:
+		newNode := *node
+		newNode.Parameters = make([]Node, len(node.Parameters))
 		for i := range node.Parameters {
-			node.Parameters[i] = Modify(node.Parameters[i], f).(*Identifier)
+			newNode.Parameters[i] = Modify(node.Parameters[i], f).(*Identifier)
 		}
-		node.Body = Modify(node.Body, f).(*Statements)
+		newNode.Body = Modify(node.Body, f).(*Statements)
+		return f(&newNode)
 	case *ArrayLiteral:
+		newNode := &ArrayLiteral{Base: node.Base, Elements: make([]Node, len(node.Elements))}
 		for i := range node.Elements {
-			node.Elements[i] = Modify(node.Elements[i], f)
+			newNode.Elements[i] = Modify(node.Elements[i], f)
 		}
+		return f(newNode)
 	case *MapLiteral:
-		newPairs := make(map[Node]Node)
-		for key, val := range node.Pairs {
+		newNode := &MapLiteral{Base: node.Base, Pairs: make(map[Node]Node)}
+		for _, key := range node.Order {
+			val, ok := node.Pairs[key]
+			if !ok {
+				panic(fmt.Sprintf("key %v not in pairs for map %v", key, node))
+			}
 			newKey := Modify(key, f)
-			newVal := Modify(val, f)
-			newPairs[newKey] = newVal // TODO: bug, change Order too.
+			newNode.Order = append(newNode.Order, newKey)
+			newNode.Pairs[newKey] = Modify(val, f)
 		}
-		node.Pairs = newPairs
+		return f(newNode)
+	case *Identifier:
+		n := *node
+		return f(&n) // silly go optimizes &(*node) to node (ptr) so need 2 steps
+	case *IntegerLiteral:
+		n := node
+		return f(n)
+	case *FloatLiteral:
+		n := *node
+		return f(&n)
+	case *StringLiteral:
+		n := *node
+		return f(&n)
+	case *Boolean:
+		n := *node
+		return f(&n)
+	case *Comment:
+		n := *node
+		return f(&n)
+	case *ControlExpression:
+		n := *node
+		return f(&n)
+	case *PostfixExpression:
+		n := *node
+		return f(&n)
+	case *Builtin:
+		newNode := &Builtin{Base: node.Base, Parameters: make([]Node, len(node.Parameters))}
+		for i := range node.Parameters {
+			newNode.Parameters[i] = Modify(node.Parameters[i], f)
+		}
+		return f(newNode)
+	case *CallExpression:
+		newNode := *node
+		newNode.Arguments = make([]Node, len(node.Arguments))
+		for i := range node.Arguments {
+			newNode.Arguments[i] = Modify(node.Arguments[i], f)
+		}
+		return f(&newNode)
+	case *MacroLiteral:
+		// modifying macro itself may be pointless but for completeness.
+		newNode := *node
+		newNode.Parameters = make([]Node, len(node.Parameters))
+		for i := range node.Parameters {
+			newNode.Parameters[i] = Modify(node.Parameters[i], f).(*Identifier)
+		}
+		newNode.Body = Modify(node.Body, f).(*Statements)
+		return f(&newNode)
 	default:
-		log.LogVf("default for node type %T", node)
+		panic(fmt.Sprintf("Modify not implemented for node type %T", node))
 	}
-	return f(node)
 }

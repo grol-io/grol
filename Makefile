@@ -79,7 +79,7 @@ wasm/wasm_exec.html:
 test: grol
 	CGO_ENABLED=0 go test -tags $(GO_BUILD_TAGS) ./...
 	GOMEMLIMIT=1GiB ./grol examples/*.gr
-	GOMEMLIMIT=1GiB ./grol grol_tests/*.gr
+	GOMEMLIMIT=1GiB ./grol -shared-state grol_tests/*.gr
 
 check: grol
 	./check_samples_double_format.sh examples/*.gr

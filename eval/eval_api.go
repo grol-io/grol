@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"fortio.org/log"
+	"grol.io/grol/ast"
 	"grol.io/grol/lexer"
 	"grol.io/grol/object"
 	"grol.io/grol/parser"
@@ -170,7 +171,8 @@ func AddEvalResult(name, code string) error {
 func EvalString(this any, code string, emptyEnv bool) (object.Object, error) {
 	l := lexer.New(code)
 	p := parser.New(l)
-	program := p.ParseProgram()
+	var program ast.Node
+	program = p.ParseProgram()
 	if len(p.Errors()) != 0 {
 		return object.NULL, fmt.Errorf("parsing error: %v", p.Errors())
 	}
@@ -187,7 +189,7 @@ func EvalString(this any, code string, emptyEnv bool) (object.Object, error) {
 			return object.NULL, fmt.Errorf("invalid this: %T", this)
 		}
 		evalState.DefineMacros(program)
-		_ = evalState.ExpandMacros(program)
+		program = evalState.ExpandMacros(program)
 	}
 	res := evalState.Eval(program)
 	if res.Type() == object.ERROR {
