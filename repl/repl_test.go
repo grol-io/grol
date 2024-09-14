@@ -180,7 +180,7 @@ func TestLikeDiscordBot(t *testing.T) {
 	cfg.AutoLoad = true
 	// create a .gr file:
 	content := `x=()=>{return}`
-	os.WriteFile(".gr", []byte(content), 0644)
+	os.WriteFile(".gr", []byte(content), 0o644)
 	evalres, errs, _ := repl.EvalStringWithOption(context.Background(), cfg, input)
 	if evalres != expected {
 		t.Errorf("EvalString() got %v\n---\n%s\n---want---\n%s\n---", errs, evalres, expected)
