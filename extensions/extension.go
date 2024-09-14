@@ -11,6 +11,7 @@ import (
 	"math"
 	"math/rand/v2"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -76,7 +77,7 @@ func initInternal(c *Config) error {
 
 	// for printf, we could expose current eval "Out", but instead let's use new variadic support and define
 	// printf as print(snprintf(format,..)) that way the memoization of output also works out of the box.
-	err := eval.AddEvalResult("printf", "func(format, ..){print(sprintf(format, ..))}")
+	err := eval.AddEvalResult("printf", "func(fmtstr, ..){print(sprintf(fmtstr, ..))}")
 	if err != nil {
 		return err
 	}
@@ -234,7 +235,56 @@ func createJSONAndEvalFunctions(c *Config) {
 	jsonFn.Name = "unjson"
 	jsonFn.Callback = evalFunc // unjson at the moment is just (like) eval hoping that json is map/array/...
 	MustCreate(jsonFn)
-
+	jsonFn.Name = "format"
+	jsonFn.Help = "returns a string, pretty printed function object"
+	jsonFn.ArgTypes = []object.Type{object.FUNC}
+	jsonFn.Callback = object.ShortCallback(func(args []object.Object) object.Object {
+		fn := args[0].(object.Function)
+		return object.String{Value: fn.Format()}
+	})
+	MustCreate(jsonFn)
+	jsonFn.Name = "defun"
+	jsonFn.Help = "defines a function from name (empty for lambda), arguments, statements (as returned by first/rest)"
+	jsonFn.ArgTypes = []object.Type{object.STRING, object.ARRAY, object.ARRAY}
+	jsonFn.MinArgs = 3
+	jsonFn.MaxArgs = 3
+	jsonFn.Callback = func(env any, _ string, args []object.Object) object.Object {
+		s := env.(*eval.State)
+		name := args[0].(object.String).Value
+		argArray := args[1].(object.Array)
+		stmtArray := args[2].(object.Array)
+		// brute force-ish
+		buf := strings.Builder{}
+		buf.WriteString("func ")
+		buf.WriteString(name) // will be a lamnda if empty.
+		buf.WriteString("(")
+		for i, a := range argArray.Elements() {
+			if a.Type() != object.STRING {
+				return s.Errorf("defun: unexpected type %s in arguments", a.Type())
+			}
+			if i > 0 {
+				buf.WriteString(",")
+			}
+			buf.WriteString(a.(object.String).Value)
+		}
+		buf.WriteString("){")
+		for _, stmt := range stmtArray.Elements() {
+			if stmt.Type() != object.STRING {
+				return s.Errorf("defun: unexpected type %s in statements", stmt.Type())
+			}
+			str := stmt.(object.String).Value
+			buf.WriteString(str)
+			buf.WriteString("\n")
+		}
+		strFn := buf.String()
+		log.LogVf("defun: %s", strFn)
+		o, err := eval.EvalString(s, strFn, false)
+		if err != nil {
+			return s.Error(err)
+		}
+		return o
+	}
+	MustCreate(jsonFn)
 	loadSaveFn := object.Extension{
 		MinArgs:  0, // empty only case - ie ".gr" save file.
 		MaxArgs:  1,
@@ -253,7 +303,7 @@ func createJSONAndEvalFunctions(c *Config) {
 	}
 }
 
-func createStrFunctions() {
+func createStrFunctions() { //nolint:funlen // we do have quite a few, yes.
 	strFn := object.Extension{
 		MinArgs:  1,
 		MaxArgs:  1,
@@ -325,6 +375,55 @@ func createStrFunctions() {
 		}
 		object.MustBeOk(totalLen / object.ObjectSize) // off by sepLen but that's ok.
 		return object.String{Value: strings.Join(strs, sep)}
+	}
+	MustCreate(strFn)
+	// TODO: Consider adding a cache of all the regexp compilation in the CData or globally
+	// some LRU (like discord bot's fixedmap) maybe. For now we compile on each call.
+	strFn.Name = "regexp"
+	strFn.Help = "returns true if regular expression matches the string (2nd arg)"
+	strFn.ArgTypes = []object.Type{object.STRING, object.STRING, object.BOOLEAN}
+	strFn.MaxArgs = 3
+	strFn.Callback = func(env any, _ string, args []object.Object) object.Object {
+		s := env.(*eval.State)
+		regx := args[0].(object.String).Value
+		inp := args[1].(object.String).Value
+		returnMatches := (len(args) == 3) && args[2].(object.Boolean).Value
+		if returnMatches {
+			re, err := regexp.Compile(regx)
+			if err != nil {
+				return s.Error(err)
+			}
+			matches := re.FindStringSubmatch(inp)
+			l := len(matches)
+			res := object.MakeObjectSlice(l)
+			for _, m := range matches {
+				res = append(res, object.String{Value: m})
+			}
+			return object.NewArray(res)
+		}
+		// else plain boolean match:
+		matched, err := regexp.MatchString(regx, inp)
+		if err != nil {
+			return s.Error(err)
+		}
+		return object.NativeBoolToBooleanObject(matched)
+	}
+	MustCreate(strFn)
+	strFn.Name = "regsub"
+	strFn.Help = "regexp, input, subst"
+	strFn.ArgTypes = []object.Type{object.STRING, object.STRING, object.STRING}
+	strFn.MaxArgs = 3
+	strFn.Callback = func(env any, _ string, args []object.Object) object.Object {
+		s := env.(*eval.State)
+		regx := args[0].(object.String).Value
+		re, err := regexp.Compile(regx)
+		if err != nil {
+			return s.Error(err)
+		}
+		inp := args[1].(object.String).Value
+		repl := args[2].(object.String).Value
+		newStr := re.ReplaceAllString(inp, repl)
+		return object.String{Value: newStr}
 	}
 	MustCreate(strFn)
 }
@@ -422,7 +521,7 @@ func createMisc() {
 
 func createTimeFunctions() {
 	MustCreate(object.Extension{
-		Name:    "time",
+		Name:    "time.now",
 		MinArgs: 0,
 		MaxArgs: 0,
 		Help:    "Date/time in seconds since epoch",
@@ -449,11 +548,11 @@ func createTimeFunctions() {
 		},
 	})
 	MustCreate(object.Extension{
-		Name:     "time_info",
+		Name:     "time.info",
 		MinArgs:  1,
 		MaxArgs:  2,
 		ArgTypes: []object.Type{object.FLOAT, object.STRING},
-		Help:     "Float as returned by time() and time_parse() in seconds since epoch, and optional TimeZone/location",
+		Help:     "Float as returned by time.now() and time.parse() in seconds since epoch, and optional TimeZone/location",
 		Callback: func(st any, _ string, args []object.Object) object.Object {
 			s := st.(*eval.State)
 			timeUsec := math.Round(args[0].(object.Float).Value * 1e6)
@@ -491,7 +590,7 @@ func createTimeFunctions() {
 		},
 	})
 	MustCreate(object.Extension{
-		Name:     "time_parse",
+		Name:     "time.parse",
 		MinArgs:  1,
 		MaxArgs:  2,
 		ArgTypes: []object.Type{object.STRING, object.STRING},
@@ -519,7 +618,7 @@ func createTimeFunctions() {
 // --- implementation of the functions that aren't inlined in lambdas above.
 
 var parseFormats = []string{
-	time.DateTime, //   = "2006-01-02 15:04:05" // first as that's what time_info().str returns (with usec).
+	time.DateTime, //   = "2006-01-02 15:04:05" // first as that's what time.info().str returns (with usec).
 	time.RFC3339,
 	time.ANSIC,    //   = "Mon Jan _2 15:04:05 2006"
 	time.UnixDate, //   = "Mon Jan _2 15:04:05 MST 2006"

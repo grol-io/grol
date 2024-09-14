@@ -313,7 +313,7 @@ func Interactive(options Options) int { //nolint:funlen // we do have quite a fe
 type Grol struct {
 	State     *eval.State
 	PrintEval bool
-	program   *ast.Statements
+	program   ast.Node
 }
 
 // Initialize with new empty state.
@@ -335,9 +335,7 @@ func (g *Grol) Parse(inp []byte) error {
 		return nil
 	}
 	log.LogVf("Expanding, %d macros defined", numMacros)
-	// This actually modifies the original program, not sure... that's good but that's why
-	// expanded return value doesn't need to be used.
-	_ = g.State.ExpandMacros(g.program)
+	g.program = g.State.ExpandMacros(g.program)
 	return nil
 }
 
@@ -393,7 +391,8 @@ func evalOne(s *eval.State, what string, out io.Writer, options Options) (bool, 
 		l = lexer.NewLineMode(what)
 	}
 	p := parser.New(l)
-	program := p.ParseProgram()
+	var program ast.Node
+	program = p.ParseProgram()
 	if logParserErrors(p) {
 		return false, p.Errors(), what
 	}
@@ -428,9 +427,7 @@ func evalOne(s *eval.State, what string, out io.Writer, options Options) (bool, 
 	numMacros := s.NumMacros()
 	if numMacros > 0 {
 		log.LogVf("Expanding, %d macros defined", numMacros)
-		// This actually modifies the original program, not sure... that's good but that's why
-		// expanded return value doesn't need to be used.
-		_ = s.ExpandMacros(program)
+		program = s.ExpandMacros(program)
 		if options.ShowParse {
 			fmt.Fprint(out, "== Macro ==> ")
 			program.PrettyPrint(&ast.PrintState{Out: out})

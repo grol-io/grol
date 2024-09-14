@@ -11,7 +11,9 @@ unless = macro(cond, iffalse, iftrue) {
     })
 }
 
-unless(10 > 5, print("BUG: not greater\n"), print("macro test: greater\n"))
+unless(5 > 11, println("macro test 1: lower ok"), println("BUG: not lower"))
+
+unless(10 > 5, println("BUG: not greater"), println("macro test 2: greater")) // should output "macro test: greater" and not again "lower ok"
 
 // first class function objects, can also be written as `func fact(n) {` as shorthand
 // or fact = (n => ...) as a lambda short form.

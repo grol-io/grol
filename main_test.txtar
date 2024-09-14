@@ -293,7 +293,7 @@ stderr '^<err: bitwise not of 1.1>$'
 !stderr 'panic'
 
 # time parse round trip
-grol -quiet -c 'now=time(); time_parse(time_info(now).str) == now'
+grol -quiet -c 'now=time.now(); time.parse(time.info(now).str) == now'
 
 # reference changing parent:
 grol -quiet -c 'v=42;func foo(){v=8};foo();v'
@@ -315,6 +315,43 @@ stdout '^\[-2,-2\]$'
 grol -quiet -c 'a=1; b=2;()=>{a=b}();()=>{a=b;println(type(a),type(b))}()'
 stdout '&a.\(INTEGER\) &b.\(INTEGER\)'
 
+# test of first() and rest() back to function through defun().
+grol -quiet -c 'defun("prtf", first(printf), rest(printf)); prtf("%d %c", 42, 65)'
+stdout '^42 A$'
+
+# test of format.
+grol -quiet -c 'println(format(printf))'
+cmp stdout println_output
+
+# catch errors
+grol -quiet -c 'catch("1"+a).err'
+stdout '^true$'
+
+# catch errors
+grol -quiet -c 'catch("1"+a).value'
+stdout '^"unknown operator: STRING PLUS INTEGER"$'
+
+# catch no error
+grol -quiet -c 'catch("1"+"2")'
+stdout '^{"err":false,"value":"12"}$'
+
+grol -quiet -c 'regsub(`^([^\.]+)\.c$`,"afile.c","cc -c $0 -o $1.o")'
+stdout '^"cc -c afile.c -o afile.o"$'
+
+grol -quiet -c 'regexp(`(?i)^abc$`,"ABC")'
+stdout '^true$'
+
+grol -quiet -c 'regexp(`^abc$`,"ABC")'
+stdout '^false$'
+
+# URL regexp [all host p port what key]
+grol -quiet -c 'url="http://debug.fortio.org:80/abc?foo=bar#anchor"; regexp(`^http://([^/:]+)(:([^/]*))?(/[^#]*)?(#.*)?$`, url, true)'
+stdout '^\["http://debug.fortio.org:80/abc\?foo=bar#anchor","debug.fortio.org",":80","80","/abc\?foo=bar","#anchor"\]$'
+
+-- println_output --
+func (fmtstr, ..) {
+	print(sprintf(fmtstr, ..))
+}
 -- json_output --
 {
   "63": 63,

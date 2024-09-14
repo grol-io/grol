@@ -1,0 +1,31 @@
+
+/*
+NoErr = macro(expr,a,b) {
+    quote(
+		r = catch(unquote(expr))
+	    if r.err {
+			error("unexpected error:", r.value)
+			unquote(a)
+		} else {
+			unquote(b)
+		}
+	)
+}
+*/
+
+if (r=catch(PI)).err {
+	error("unexpected error:", r.value)
+} else {
+	println("PI is:", r.value)
+}
+
+
+if !(r=catch(PI++)).err {
+	error("expected error, got ok", r)
+} else {
+	if regexp("attempt to change constant PI", r.value) {
+		println("Got expected error:", r.value)
+	} else {
+		error("unexpected error:", r.value)
+	}
+}

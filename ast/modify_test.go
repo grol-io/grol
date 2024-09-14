@@ -5,12 +5,14 @@ import (
 	"testing"
 )
 
-func TestModify(t *testing.T) {
-	one := func() Node { return IntegerLiteral{Val: 1} }
-	two := func() Node { return IntegerLiteral{Val: 2} }
+var (
+	one  = func() Node { return &IntegerLiteral{Val: 1} }
+	two  = func() Node { return &IntegerLiteral{Val: 2} }
+	aone = one()
+	atwo = two()
 
-	turnOneIntoTwo := func(node Node) Node {
-		integer, ok := node.(IntegerLiteral)
+	turnOneIntoTwo = func(node Node) Node {
+		integer, ok := node.(*IntegerLiteral)
 		if !ok {
 			return node
 		}
@@ -22,7 +24,9 @@ func TestModify(t *testing.T) {
 		integer.Val = 2
 		return integer
 	}
+)
 
+func TestModify(t *testing.T) {
 	tests := []struct {
 		input    Node
 		expected Node
@@ -101,21 +105,37 @@ func TestModify(t *testing.T) {
 			&ArrayLiteral{Elements: []Node{one(), one()}},
 			&ArrayLiteral{Elements: []Node{two(), two()}},
 		},
-		{
-			&MapLiteral{Pairs: map[Node]Node{
-				one(): one(),
-				one(): one(),
-			}},
-			&MapLiteral{Pairs: map[Node]Node{
-				two(): two(),
-				two(): two(),
-			}},
-		},
 	}
 	for _, tt := range tests {
 		modified := Modify(tt.input, turnOneIntoTwo)
 		if !reflect.DeepEqual(modified, tt.expected) {
 			t.Errorf("not equal.\n%#v\n-vs-\n%#v", modified, tt.expected)
+		}
+	}
+}
+
+func TestModifyMap(t *testing.T) {
+	// need to test map separately because deepequal can't compare a map
+	// with keys of the same underlying value (2:2, 2:2)
+	modified := Modify(
+		&MapLiteral{
+			Pairs: map[Node]Node{
+				aone: one(),
+				atwo: one(),
+			},
+			Order: []Node{atwo, aone},
+		}, turnOneIntoTwo).(*MapLiteral)
+	if len(modified.Order) != 2 {
+		t.Errorf("Order length not 2. got=%d", len(modified.Order))
+	}
+	for i := range 2 {
+		key := modified.Order[i]
+		if key.(*IntegerLiteral).Val != 2 {
+			t.Errorf("Order[%d] not 2. got=%v", i, modified.Order[i])
+		}
+		val := modified.Pairs[key]
+		if val.(*IntegerLiteral).Val != 2 {
+			t.Errorf("Pairs not modified for key %v -> %v", key, val)
 		}
 	}
 }
