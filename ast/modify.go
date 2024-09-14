@@ -41,7 +41,9 @@ func Modify(node Node, f func(Node) Node) Node { //nolint:funlen,gocyclo // yeah
 		return f(newNode)
 	case *ReturnStatement:
 		newNode := &ReturnStatement{Base: node.Base}
-		newNode.ReturnValue = Modify(node.ReturnValue, f)
+		if node.ReturnValue != nil {
+			newNode.ReturnValue = Modify(node.ReturnValue, f)
+		}
 		return f(newNode)
 	case *FunctionLiteral:
 		newNode := *node
