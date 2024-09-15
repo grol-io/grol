@@ -1,36 +1,40 @@
 
-func mandelbrot(x, y, maxIter) {
+maxIter = 32
+
+func mandelbrot(x, y) {
+	m := maxIter // bind to global, prevents caching, save allocs/cache writes.
     zx := 0.0
     zy := 0.0
-    for n = maxIter {
+    for n := m {
         zx2 := zx * zx
         zy2 := zy * zy
         if zx2 + zy2 > 4.0 {
             return n
         }
-        // Calculate z = z^2 + c
         zy = 2 * zx * zy + y
         zx = zx2 - zy2 + x
     }
-    maxIter
+    m
 }
 
 size:=256
 img:="img"
 image.new(img, size, size)
-maxIter := 32
 
+now := time.now()
 for px := size {
    for py := size {
-      x := (1.*px)/size*2.0 - 1.5
-      y := (1.*py)/size*2.0 - 1.
-      m := mandelbrot(x, y, maxIter)
-      color := [0,0,0, 255]
+      x := (2.*px)/size - 1.5
+      y := (2.*py)/size - 1.
+      m := mandelbrot(x, y)
+      color := [0,0,0]
       if m != maxIter {
          norm := ln(m)/ln(maxIter)
-         color = [ 128+ 127 * sin(norm*2*PI), 128+127*sin(norm*2*PI+2*PI/3), 128+127*sin(norm*2*PI+4*PI/3) ]
-      }
-      image.set(img,px,py,color)
+         color = [ 0.5+cos(PI/3+norm*PI/4)/2., .9, .5]
+	  }
+      image.set_hsl(img,px,py,color)
    }
 }
+elapsed := time.now() - now
+log("Elapsed time:", elapsed)
 image.save(img)
