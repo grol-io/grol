@@ -1,0 +1,36 @@
+
+func mandelbrot(x, y, maxIter) {
+    zx := 0.0
+    zy := 0.0
+    for n = maxIter {
+        zx2 := zx * zx
+        zy2 := zy * zy
+        if zx2 + zy2 > 4.0 {
+            return n
+        }
+        // Calculate z = z^2 + c
+        zy = 2 * zx * zy + y
+        zx = zx2 - zy2 + x
+    }
+    maxIter
+}
+
+size:=256
+img:="img"
+image.new(img, size, size)
+maxIter := 32
+
+for px := size {
+   for py := size {
+      x := (1.*px)/size*2.0 - 1.5
+      y := (1.*py)/size*2.0 - 1.
+      m := mandelbrot(x, y, maxIter)
+      color := [0,0,0, 255]
+      if m != maxIter {
+         norm := ln(m)/ln(maxIter)
+         color = [ 128+ 127 * sin(norm*2*PI), 128+127*sin(norm*2*PI+2*PI/3), 128+127*sin(norm*2*PI+4*PI/3) ]
+      }
+      image.set(img,px,py,color)
+   }
+}
+image.save(img)
