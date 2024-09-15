@@ -5,12 +5,12 @@ go 1.22.7
 require (
 	fortio.org/cli v1.9.0
 	fortio.org/log v1.16.0
+	fortio.org/safecast v0.1.0
 	fortio.org/sets v1.2.0
 	fortio.org/struct2env v0.4.1
 	fortio.org/terminal v0.8.2
 	fortio.org/testscript v0.3.2 // only for tests
 	fortio.org/version v1.0.4
-	github.com/ldemailly/go-scratch v0.1.1
 	github.com/rivo/uniseg v0.4.7
 	golang.org/x/image v0.20.0
 )
