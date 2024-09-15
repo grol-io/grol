@@ -73,6 +73,15 @@ func isMacroCall(s *object.Environment, exp *ast.CallExpression) (*object.Macro,
 	return macro, true
 }
 
+func (s *State) MacroErrorf(fmtmsg string, args ...any) ast.Node {
+	res := ast.Builtin{}
+	res.Token = token.ByType(token.ERROR)
+	msgNode := ast.StringLiteral{}
+	msgNode.Token = token.Intern(token.STRING, fmt.Sprintf(fmtmsg, args...))
+	res.Parameters = []ast.Node{&msgNode}
+	return &res
+}
+
 func (s *State) ExpandMacros(program ast.Node) ast.Node {
 	return ast.Modify(program, func(node ast.Node) ast.Node {
 		callExpression, ok := node.(*ast.CallExpression)
@@ -86,6 +95,10 @@ func (s *State) ExpandMacros(program ast.Node) ast.Node {
 		}
 
 		args := quoteArgs(callExpression)
+		if len(args) != len(macro.Parameters) {
+			return s.MacroErrorf("wrong number of macro arguments, want=%d, got=%d", len(macro.Parameters), len(args))
+		}
+
 		evalEnv := extendMacroEnv(macro, args)
 
 		evaluated := evalEnv.Eval(macro.Body)
@@ -94,12 +107,7 @@ func (s *State) ExpandMacros(program ast.Node) ast.Node {
 		if !ok {
 			estr := fmt.Sprintf("macro should return Quote. got=%T (%+v)", evaluated, evaluated)
 			log.Critf("%s", estr)
-			res := ast.Builtin{}
-			res.Token = token.ByType(token.ERROR)
-			msg := ast.StringLiteral{}
-			msg.Token = token.Intern(token.STRING, estr)
-			res.Parameters = []ast.Node{&msg}
-			return &res
+			return s.MacroErrorf("%s", estr)
 		}
 		return quote.Node
 	})

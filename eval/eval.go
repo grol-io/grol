@@ -803,7 +803,7 @@ func (s *State) evalForSpecialForms(fe *ast.ForExpression) (object.Object, bool)
 	if !ok {
 		return object.NULL, false
 	}
-	if ie.Token.Type() != token.ASSIGN {
+	if ie.Token.Type() != token.ASSIGN && ie.Token.Type() != token.DEFINE {
 		return object.NULL, false
 	}
 	if ie.Left.Value().Type() != token.IDENT {

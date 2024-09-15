@@ -2,6 +2,7 @@ package repl_test
 
 import (
 	"context"
+	"os"
 	"testing"
 
 	"grol.io/grol/eval"
@@ -169,5 +170,19 @@ func TestPreInputHook(t *testing.T) {
 	res, errs, _ := repl.EvalStringWithOption(context.Background(), opts, inp)
 	if res != expected || len(errs) > 0 {
 		t.Errorf("EvalString() got %v\n---\n%s\n---want---\n%s\n---", errs, res, expected)
+	}
+}
+
+func TestLikeDiscordBot(t *testing.T) {
+	input := "1"
+	expected := "1\n"
+	cfg := repl.EvalStringOptions()
+	cfg.AutoLoad = true
+	// create a .gr file:
+	content := `x=()=>{return}`
+	os.WriteFile(".gr", []byte(content), 0o644)
+	evalres, errs, _ := repl.EvalStringWithOption(context.Background(), cfg, input)
+	if evalres != expected {
+		t.Errorf("EvalString() got %v\n---\n%s\n---want---\n%s\n---", errs, evalres, expected)
 	}
 }
