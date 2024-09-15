@@ -218,7 +218,7 @@ func createImageFunctions() { //nolint:funlen // this is a group of related func
 			return object.Errorf("unknown image.set function %q", name)
 		}
 		if oerr != nil {
-			return oerr
+			return *oerr
 		}
 		img.Image.SetNRGBA(x, y, color)
 		return args[0]

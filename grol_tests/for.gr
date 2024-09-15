@@ -1,0 +1,10 @@
+
+s :=0
+// check that := works too in for loop.
+for n := 4 {
+	s = s+ n
+}
+// 0 + 1 + 2 + 3 = 6
+if s != 6 {
+	error("Expected 6, got", s) // was 16 before the fix.
+}
