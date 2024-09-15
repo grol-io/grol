@@ -88,7 +88,7 @@ func Main() (retcode int) {
 		log.Warnf("Memory limit not set, please set the GOMEMLIMIT env var; e.g. GOMEMLIMIT=1GiB")
 	}
 	options := repl.Options{
-		ShowParse:   *showParse,
+		ShowParse:   *showParse || *allParens,
 		ShowEval:    *showEval,
 		FormatOnly:  *format,
 		Compact:     *compact,
