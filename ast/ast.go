@@ -24,8 +24,7 @@ const (
 	EQUALS      // ==
 	LESSGREATER // > or <
 	SUM         // +
-	PRODUCT     // *
-	DIVIDE      // /
+	PRODUCT     // * // removed DIVIDE // / // we do want left to right so 1.*2/3 is 0.6666666666666666 not 0
 	PREFIX      // -X or !X
 	CALL        // myFunction(X)
 	INDEX       // array[index]
@@ -54,7 +53,7 @@ var Precedences = map[token.Type]Priority{
 	token.PERCENT:    PRODUCT,
 	token.LEFTSHIFT:  PRODUCT,
 	token.RIGHTSHIFT: PRODUCT,
-	token.SLASH:      DIVIDE,
+	token.SLASH:      PRODUCT, // was DIVIDE
 	token.INCR:       PREFIX,
 	token.DECR:       PREFIX,
 	token.LPAREN:     CALL,

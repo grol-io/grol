@@ -1,0 +1,12 @@
+
+
+num := 2
+div := 3
+
+r := 1. * num / div
+
+if r != 2./3. {
+	error("FAIL division was integer division instead of 1.* converting to float")
+} else {
+	println("OK division was float division", r)
+}
