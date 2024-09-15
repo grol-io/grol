@@ -85,7 +85,7 @@ examples: grol
 	GOMEMLIMIT=1GiB ./grol -panic examples/*.gr
 
 grol-tests: grol
-	GOMEMLIMIT=1GiB ./grol -panic -shared-state grol_tests/*.gr
+	GOMEMLIMIT=1GiB ./grol -panic -shared-state tests/*.gr
 
 check: grol
 	./check_samples_double_format.sh examples/*.gr
