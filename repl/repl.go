@@ -68,6 +68,7 @@ type Options struct {
 	PreInput    func(*eval.State)
 	AllParens   bool // Show all parens in parse tree (default is to simplify using precedence).
 	MaxDuration time.Duration
+	ShebangMode bool // Whether to run in #! script mode (not making a difference here, used in main.go).
 }
 
 func AutoLoad(s *eval.State, options Options) error {

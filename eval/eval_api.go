@@ -164,6 +164,18 @@ func AddEvalResult(name, code string) error {
 	return nil
 }
 
+// Name of the args array in the interpreter state.
+const argsName = "args"
+
+// SetArgs sets the args array for this interpreter state (used for #! shebang mode).
+func (s *State) SetArgs(args []string) object.Object {
+	arr := object.MakeObjectSlice(len(args))
+	for _, arg := range args {
+		arr = append(arr, object.String{Value: arg})
+	}
+	return s.env.SetNoChecks(argsName, object.NewArray(arr), true)
+}
+
 // Evals a string either from entirely blank environment or from the current environment.
 // `unjson` uses emptyEnv == true (for now, pending better/safer implementation).
 //
