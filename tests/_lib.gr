@@ -34,3 +34,12 @@ IsErr = macro(msg, expr, expectedRegexp) {
 			error("FAIL", unquote(msg),"didn't get expected error:",r.value)
 		})
 }
+
+// Assert a boolean expression is true.
+Assert = macro(msg, expr) {
+	quote(if (unquote(expr)) {
+			println("OK", unquote(msg))
+		} else {
+			error("FAIL", unquote(msg))
+		})
+}
