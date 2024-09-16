@@ -2,6 +2,7 @@ package repl
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -144,6 +145,9 @@ func EvalAll(s *eval.State, in io.Reader, out io.Writer, options Options) []stri
 		log.Fatalf("%v", err)
 	}
 	what := string(b)
+	if strings.HasPrefix(what, "#!") {
+		what = what[bytes.IndexByte(b, '\n')+1:]
+	}
 	if options.PreInput != nil {
 		options.PreInput(s)
 	}
