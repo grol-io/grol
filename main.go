@@ -40,7 +40,7 @@ func EnvHelp(w io.Writer) {
 
 var hookBefore, hookAfter func() int
 
-func Main() (retcode int) {
+func Main() (retcode int) { //nolint:funlen // we do have quite a lot of flags and variants.
 	commandFlag := flag.String("c", "", "command/inline script to run instead of interactive mode")
 	showParse := flag.Bool("parse", false, "show parse tree")
 	allParens := flag.Bool("parse-debug", false, "show all parenthesis in parse tree (default is to simplify using precedence)")
@@ -69,23 +69,27 @@ func Main() (retcode int) {
 	panicOk := flag.Bool("panic", false, "Don't catch panic - only for development/debugging")
 	// Use 0 (unlimited) as default now that you can ^C to stop a script.
 	maxDuration := flag.Duration("max-duration", 0, "Maximum duration for a script to run. 0 for unlimited.")
+	shebangMode := flag.Bool("s", false, "#! script mode: next argument is a script file to run, rest are args to the script")
 
 	cli.ArgsHelp = "*.gr files to interpret or `-` for stdin without prompt or no arguments for stdin repl..."
 	cli.MaxArgs = -1
 	cli.Main()
-	histFile := *historyFile
-	if histFile == historyDefault {
-		homeDir, err := os.UserHomeDir()
-		histFile = filepath.Join(homeDir, ".grol_history")
-		if err != nil {
-			log.Warnf("Couldn't get user home dir: %v", err)
-			histFile = ""
+	var histFile string
+	if !*shebangMode { //nolint:nestif // shebang mode skips a few things like history, memory and welcome message.
+		histFile = *historyFile
+		if histFile == historyDefault {
+			homeDir, err := os.UserHomeDir()
+			histFile = filepath.Join(homeDir, ".grol_history")
+			if err != nil {
+				log.Warnf("Couldn't get user home dir: %v", err)
+				histFile = ""
+			}
 		}
-	}
-	log.Infof("grol %s - welcome!", cli.LongVersion)
-	memlimit := debug.SetMemoryLimit(-1)
-	if memlimit == math.MaxInt64 {
-		log.Warnf("Memory limit not set, please set the GOMEMLIMIT env var; e.g. GOMEMLIMIT=1GiB")
+		log.Infof("grol %s - welcome!", cli.LongVersion)
+		memlimit := debug.SetMemoryLimit(-1)
+		if memlimit == math.MaxInt64 {
+			log.Warnf("Memory limit not set, please set the GOMEMLIMIT env var; e.g. GOMEMLIMIT=1GiB")
+		}
 	}
 	options := repl.Options{
 		ShowParse:   *showParse || *allParens,
@@ -101,6 +105,7 @@ func Main() (retcode int) {
 		PanicOk:     *panicOk,
 		AllParens:   *allParens,
 		MaxDuration: *maxDuration,
+		ShebangMode: *shebangMode,
 	}
 	if hookBefore != nil {
 		retcode = hookBefore()
@@ -139,6 +144,14 @@ func Main() (retcode int) {
 	}
 	options.All = true
 	s := eval.NewState()
+	if options.ShebangMode {
+		script := flag.Arg(0)
+		// remaining := flag.Args()[1:] // actually let's also pass the name of the script as arg[0]
+		options.AutoLoad = false
+		args := s.SetArgs(flag.Args())
+		log.Infof("Running #! %s with args %s", script, args.Inspect())
+		return processOneFile(script, s, options)
+	}
 	for _, file := range flag.Args() {
 		ret := processOneFile(file, s, options)
 		if ret != 0 {
@@ -176,7 +189,9 @@ func processOneFile(file string, s *eval.State, options repl.Options) int {
 	if options.FormatOnly {
 		verb = "Formatting"
 	}
-	log.Infof("%s %s", verb, file)
+	if !options.ShebangMode {
+		log.Infof("%s %s", verb, file)
+	}
 	code := processOneStream(s, f, options)
 	f.Close()
 	return code

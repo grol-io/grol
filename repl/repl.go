@@ -2,6 +2,7 @@ package repl
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -67,6 +68,7 @@ type Options struct {
 	PreInput    func(*eval.State)
 	AllParens   bool // Show all parens in parse tree (default is to simplify using precedence).
 	MaxDuration time.Duration
+	ShebangMode bool // Whether to run in #! script mode (not making a difference here, used in main.go).
 }
 
 func AutoLoad(s *eval.State, options Options) error {
@@ -144,6 +146,9 @@ func EvalAll(s *eval.State, in io.Reader, out io.Writer, options Options) []stri
 		log.Fatalf("%v", err)
 	}
 	what := string(b)
+	if strings.HasPrefix(what, "#!") {
+		what = what[bytes.IndexByte(b, '\n')+1:]
+	}
 	if options.PreInput != nil {
 		options.PreInput(s)
 	}
