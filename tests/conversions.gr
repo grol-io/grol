@@ -1,0 +1,26 @@
+
+
+NoErr("rounding down", round(3.14), "3")
+NoErr("rounding up", round(3.7), "4")
+NoErr("rounding neg", round(-3.7), "-4")
+
+IsErr("rounding error", round(pow(2, 65)), "out of range")
+
+NoErr("truncation", int(3.7), "3")
+NoErr("truncation neg", int(-3.7), "-3")
+
+IsErr("truncation error", int(-pow(2, 65)), "out of range")
+
+NoErr("abs -3.7", abs(-3.7), "3.7")
+
+if int("-123") != -123 {
+	error("int(\"-123\") != -123")
+}
+
+Assert("trunc() is float", trunc(3.7) == 3.)
+Assert("trunc() is float", trunc(3.7) != 3)
+Assert("trunc() no overflow", trunc(pow(2, 65)) == pow(2, 65))
+Assert("int() is int", int(3.7) == 3)
+Assert("int(true) is 1", int(true) == 1)
+Assert("int(false) is 0", int(false) == 0)
+Assert("int(nil) is 0", int(nil) == 0)

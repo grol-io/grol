@@ -143,6 +143,7 @@ func initInternal(c *Config) error {
 		{math.Log10, "log10"},
 		{math.Floor, "floor"},
 		{math.Ceil, "ceil"},
+		{math.Trunc, "trunc"}, // use int() for the version returning int and using safecast.
 	} {
 		oneFloat.Callback = object.ShortCallback(func(args []object.Object) object.Object {
 			// Arg len check already done through MinArgs=MaxArgs=1 and
@@ -152,17 +153,18 @@ func initInternal(c *Config) error {
 		oneFloat.Name = function.name
 		MustCreate(oneFloat)
 	}
-	// These are all int-returning functions.
+	// round() is int-returning function using safecast (so does int() for truncate).
 	oneFloat.Name = "round"
-	oneFloat.Callback = object.ShortCallback(func(args []object.Object) object.Object {
-		return object.Integer{Value: safecast.MustRound[int64](args[0].(object.Float).Value)}
-	})
+	oneFloat.Callback = func(env any, _ string, args []object.Object) object.Object {
+		s := env.(*eval.State)
+		r, err := safecast.Round[int64](args[0].(object.Float).Value)
+		if err != nil {
+			return s.Error(err)
+		}
+		return object.Integer{Value: r}
+	}
 	MustCreate(oneFloat)
-	oneFloat.Name = "trunc"
-	oneFloat.Callback = object.ShortCallback(func(args []object.Object) object.Object {
-		return object.Integer{Value: safecast.MustTruncate[int64](args[0].(object.Float).Value)}
-	})
-	MustCreate(oneFloat)
+	// atan2 is a special case with 2 arguments.
 	MustCreate(object.Extension{
 		Name:     "atan2",
 		MinArgs:  2,
@@ -482,7 +484,11 @@ func createMisc() {
 				}
 				return object.Integer{Value: 0}
 			case object.FLOAT:
-				return object.Integer{Value: int64(o.(object.Float).Value)}
+				r, err := safecast.Truncate[int64](o.(object.Float).Value)
+				if err != nil {
+					return s.Error(err)
+				}
+				return object.Integer{Value: r}
 			case object.STRING:
 				i, serr := strconv.ParseInt(o.(object.String).Value, 0, 64)
 				if serr != nil {
