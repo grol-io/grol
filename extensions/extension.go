@@ -155,7 +155,7 @@ func initInternal(c *Config) error {
 	}
 	// round() is int-returning function using safecast (so does int() for truncate).
 	oneFloat.Name = "round"
-	oneFloat.Callback = func(env any, name string, args []object.Object) object.Object {
+	oneFloat.Callback = func(env any, _ string, args []object.Object) object.Object {
 		s := env.(*eval.State)
 		r, err := safecast.Round[int64](args[0].(object.Float).Value)
 		if err != nil {
