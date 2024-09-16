@@ -61,7 +61,7 @@ func Main() (retcode int) { //nolint:funlen // we do have quite a lot of flags a
 	historyFile := flag.String("history", defaultHistoryFile, "history `file` to use")
 	maxHistory := flag.Int("max-history", terminal.DefaultHistoryCapacity, "max history `size`, use 0 to disable.")
 	disableLoadSave := flag.Bool("no-load-save", false, "disable load/save of history")
-	unrestrictedIOs := flag.Bool("unrestricted-io", false, "enable unrestricted io (dangerous)")
+	restrictIOs := flag.Bool("restrict-io", false, "restrict IOs (safe mode)")
 	emptyOnly := flag.Bool("empty-only", false, "only allow load()/save() to ./.gr")
 	noAuto := flag.Bool("no-auto", false, "don't auto load/save the state to ./.gr")
 	maxDepth := flag.Int("max-depth", eval.DefaultMaxDepth-1, "Maximum interpreter depth")
@@ -122,7 +122,7 @@ func Main() (retcode int) { //nolint:funlen // we do have quite a lot of flags a
 	c := extensions.Config{
 		HasLoad:           !*disableLoadSave,
 		HasSave:           !*disableLoadSave,
-		UnrestrictedIOs:   *unrestrictedIOs,
+		UnrestrictedIOs:   !*restrictIOs,
 		LoadSaveEmptyOnly: *emptyOnly,
 	}
 	err := extensions.Init(&c)

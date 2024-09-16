@@ -201,6 +201,9 @@ func initInternal(c *Config) error {
 	createMisc()
 	createTimeFunctions()
 	createImageFunctions()
+	if c.UnrestrictedIOs {
+		createShellFunctions()
+	}
 	return nil
 }
 
