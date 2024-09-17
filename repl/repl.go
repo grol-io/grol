@@ -220,11 +220,11 @@ func Interactive(options Options) int { //nolint:funlen // we do have quite a fe
 	s.MaxDepth = options.MaxDepth
 	s.MaxValueLen = options.MaxValueLen // 0 is unlimited so ok to copy as is.
 	term, err := terminal.Open(context.Background())
-	ctx := term.Context
 	if err != nil {
 		return log.FErrf("Error creating readline: %v", err)
 	}
 	defer term.Close()
+	s.Term = term
 	s.Out = term.Out
 	autoComplete := NewCompletion()
 	tokInfo := token.Info()
@@ -252,6 +252,7 @@ func Interactive(options Options) int { //nolint:funlen // we do have quite a fe
 	}
 	prev := ""
 	for {
+		var ctx context.Context
 		rd, err := term.ReadLine()
 		if errors.Is(err, io.EOF) {
 			log.Infof("EOF, exiting")
@@ -260,12 +261,13 @@ func Interactive(options Options) int { //nolint:funlen // we do have quite a fe
 		}
 		if errors.Is(err, terminal.ErrUserInterrupt) {
 			log.Debugf("^C from user")
-			ctx, _ = term.ResetInterrupts(context.Background()) //nolint:fatcontext // we only get a new one after the previous one is done.
+			term.ResetInterrupts(context.Background()) // will set ctx in term to be used in next loop's eval.
 			continue
 		}
 		if err != nil {
 			return log.FErrf("Error reading line: %v", err)
 		}
+		ctx = term.Context // context can be changed by shell run command through suspend/resume.
 		log.Debugf("Read: %q", rd)
 		if idx, ok := extractHistoryNumber(rd); ok {
 			h := term.History()

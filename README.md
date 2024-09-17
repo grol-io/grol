@@ -183,7 +183,7 @@ See [Open Issues](https://grol.io/grol/issues) for what's left to do
 ### CLI Usage
 
 ```
-grol 0.58.0 usage:
+grol 0.72.0 usage:
 	grol [flags] *.gr files to interpret or `-` for stdin without prompt or no arguments for stdin repl...
 or 1 of the special arguments
 	grol {help|envhelp|version|buildinfo}
@@ -201,9 +201,9 @@ flags:
   -history file
     	history file to use (default "~/.grol_history")
   -max-depth int
-    	Maximum interpreter depth (default 194999)
+    	Maximum interpreter depth (default 149999)
   -max-duration duration
-    	Maximum duration for a script to run. 0 for unlimited. (default 10s)
+    	Maximum duration for a script to run. 0 for unlimited.
   -max-history size
     	max history size, use 0 to disable. (default 99)
   -max-save-len int
@@ -220,10 +220,11 @@ flags:
     	show all parenthesis in parse tree (default is to simplify using precedence)
   -quiet
     	Quiet mode, sets loglevel to Error (quietly) to reduces the output
+  -restrict-io
+    	restrict IOs (safe mode)
+  -s	#! script mode: next argument is a script file to run, rest are args to the script
   -shared-state
     	All files share same interpreter state (default is new state for each)
-  -unrestricted-io
-    	enable unrestricted io (dangerous)
 ```
 (excluding logger control, see `gorepl help` for all the flags, of note `-logger-no-color` will turn off colors for gorepl too, for development there are also `-profile*` options for pprof, when building without `no_pprof`)
 

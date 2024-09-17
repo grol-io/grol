@@ -55,6 +55,12 @@ func (s *State) Errorf(format string, args ...interface{}) object.Error {
 	return s.NewError(fmt.Sprintf(format, args...))
 }
 
+// Errorfp formats and create an *object.Error using given format and args.
+func (s *State) Errorfp(format string, args ...interface{}) *object.Error {
+	e := s.Errorf(format, args...)
+	return &e
+}
+
 // Error converts from a go error to an object.Error.
 // If the error is nil, it returns object.NULL instead (no error).
 func (s *State) Error(err error) object.Object {

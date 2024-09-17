@@ -1,0 +1,9 @@
+
+run("true")
+run("echo", "echoing", "foo")
+
+IsErr("non zero exit", run("false"), "exit status 1")
+
+NoErr("exec captures", exec("false").err, `^exit status 1$`)
+NoErr("exec captures", exec("echo", "-n", "foo").stdout, "^foo$")
+NoErr("exec captures", exec("ls", "/no/such/file").stderr, "No such file or directory")

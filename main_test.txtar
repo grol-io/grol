@@ -146,17 +146,17 @@ stderr 'identifier not found: save'
 !grol -no-load-save -c 'load("foo.gr")'
 stderr 'identifier not found: load'
 
-!grol -c 'save("/tmp/foo.gr"); load("/tmp/foo.gr")'
+!grol -restrict-io -c 'save("/tmp/foo.gr"); load("/tmp/foo.gr")'
 stderr 'invalid character in filename "/tmp/foo.gr": /'
 
-grol -c 'load("fib_50")'
+grol -restrict-io -c 'load("fib_50")'
 stdout '^12586269025\n$'
 stderr 'Read/evaluated: fib_50.gr'
 
-!grol -c 'load("./fib_50.gr")'
+!grol -restrict-io -c 'load("./fib_50.gr")'
 stderr 'invalid character in filename "./fib_50.gr": \.'
 
-grol -unrestricted-io -c 'load("./fib_50.gr")'
+grol -c 'load("./fib_50.gr")'
 stdout '^12586269025\n$'
 stderr 'Read/evaluated: ./fib_50.gr'
 
