@@ -45,6 +45,9 @@ func createShellFunctions() {
 			var sout, serr bytes.Buffer
 			cmd.Stdout = &sout
 			cmd.Stderr = &serr
+			if obj := s.GetPipeValue(); obj != nil {
+				cmd.Stdin = bytes.NewReader(obj)
+			}
 			err := cmd.Run()
 			res := object.MakeQuad(stdout, object.String{Value: sout.String()},
 				stderr, object.String{Value: serr.String()})

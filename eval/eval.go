@@ -220,6 +220,10 @@ func (s *State) evalInternal(node any) object.Object { //nolint:funlen,gocognit,
 		if node.Token.Type() == token.OR && left == object.TRUE {
 			return object.TRUE
 		}
+		// Pipe operator, for now only for string | call expressions:
+		if node.Token.Type() == token.BITOR && left.Type() == object.STRING && node.Right.Value().Type() == token.LPAREN {
+			return s.evalPipe(left, node.Right)
+		}
 		right := s.Eval(node.Right)
 		if right.Type() == object.ERROR {
 			return right
@@ -306,6 +310,13 @@ func (s *State) evalInternal(node any) object.Object { //nolint:funlen,gocognit,
 		return object.NULL
 	}
 	return s.Errorf("unknown node type: %T", node)
+}
+
+func (s *State) evalPipe(left object.Object, right ast.Node) object.Object {
+	s.PipeVal = []byte(left.(object.String).Value)
+	res := s.evalInternal(right)
+	s.PipeVal = nil
+	return res
 }
 
 func (s *State) evalIndexExpression(left object.Object, node *ast.IndexExpression) object.Object {

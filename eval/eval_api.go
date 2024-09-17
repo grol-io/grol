@@ -47,6 +47,7 @@ type State struct {
 	// To enforce a max duration or cancel evals.
 	Context context.Context //nolint:containedctx // we need a context for callbacks from extensions and to set it without API change.
 	Cancel  context.CancelFunc
+	PipeVal []byte // value to return from pipe() function
 }
 
 func NewState() *State {
@@ -217,3 +218,7 @@ func (s *State) NumMacros() int {
 }
 
 // TriggerNoCache() is replaced by DontCache boolean in object.Extension.
+
+func (s *State) GetPipeValue() []byte {
+	return s.PipeVal
+}
