@@ -220,8 +220,8 @@ func (s *State) evalInternal(node any) object.Object { //nolint:funlen,gocognit,
 		if node.Token.Type() == token.OR && left == object.TRUE {
 			return object.TRUE
 		}
-		log.Debugf("eval infix %s %s %s", node.Token.Type().String(), left.Type().String(), node.Right.Value().Type().String())
-		if node.Token.Type() == token.BITOR && left.Type() == object.STRING && node.Right.Value().Type() == token.LPAREN { // pipe operator
+		// Pipe operator, for now only for string | call expressions:
+		if node.Token.Type() == token.BITOR && left.Type() == object.STRING && node.Right.Value().Type() == token.LPAREN {
 			return s.evalPipe(left, node.Right)
 		}
 		right := s.Eval(node.Right)
