@@ -34,7 +34,7 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         uses: golangci/golangci-lint-action@aaa42aa0628b4ae2578232a66b541047968fac86 # pin@v6
         with:
-          version: v1.60.3
+          version: v1.61.0
       - name: Install Git Bash
         run: |
           choco install git

@@ -107,7 +107,7 @@ func elem2ColorComponent(o object.Object) (uint8, *object.Error) {
 	if i < 0 || i > 255 {
 		return 0, object.Errorfp("color component out of range (should be 0-255): %s", o.Inspect())
 	}
-	return uint8(i), nil //nolint:gosec // gosec not smart enough to see the range check just above this.
+	return uint8(i), nil
 }
 
 func rgbArrayToRBGAColor(arr []object.Object) (color.NRGBA, *object.Error) {
@@ -425,7 +425,7 @@ func createVectorImageFunctions(cdata ImageMap) { //nolint:funlen // this is a g
 }
 
 func mergeAdd(img1, img2 *image.NRGBA) {
-	//nolint:gosec // gosec not smart enough to see the range checks.
+	//nolint:gosec // gosec not smart enough to see the range checks with min - https://github.com/securego/gosec/issues/1212
 	for y := range img1.Bounds().Dy() {
 		for x := range img1.Bounds().Dx() {
 			p1 := img1.NRGBAAt(x, y)
