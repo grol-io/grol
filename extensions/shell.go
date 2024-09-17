@@ -59,7 +59,7 @@ func createShellFunctions() {
 	}
 	MustCreate(shellFn)
 	shellFn.Name = "run"
-	shellFn.Help = "runs a command"
+	shellFn.Help = "runs a command interactively"
 	shellFn.Callback = func(env any, _ string, args []object.Object) object.Object {
 		s := env.(*eval.State)
 		if s.Term != nil {
