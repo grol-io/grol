@@ -2,6 +2,8 @@ package extensions
 
 import (
 	"bytes"
+	"context"
+	"os"
 	"os/exec"
 
 	"fortio.org/log"
@@ -17,6 +19,7 @@ func createCmd(s eval.State, args []object.Object) (*exec.Cmd, *object.Error) {
 		}
 		cmdArgs = append(cmdArgs, arg.(object.String).Value)
 	}
+	//nolint:gosec // we do want to run the command given by the user.
 	return exec.CommandContext(s.Context, cmdArgs[0], cmdArgs[1:]...), nil
 }
 
@@ -59,14 +62,22 @@ func createShellFunctions() {
 	shellFn.Help = "runs a command"
 	shellFn.Callback = func(env any, _ string, args []object.Object) object.Object {
 		s := env.(*eval.State)
+		if s.Term != nil {
+			s.Term.Suspend()
+		}
+		s.Context, s.Cancel = context.WithCancel(context.Background()) // no timeout.
 		cmd, oerr := createCmd(*s, args)
 		if oerr != nil {
 			return *oerr
 		}
 		log.Infof("Running %#v", cmd)
-		cmd.Stdout = s.Out
-		cmd.Stderr = s.Out
+		cmd.Stdin = os.Stdin
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
 		err := cmd.Run()
+		if s.Term != nil {
+			s.Context, s.Cancel = s.Term.Resume(context.Background())
+		}
 		if err != nil {
 			return s.Error(err)
 		}

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"fortio.org/log"
+	"fortio.org/terminal"
 	"grol.io/grol/ast"
 	"grol.io/grol/lexer"
 	"grol.io/grol/object"
@@ -28,6 +29,7 @@ const (
 )
 
 type State struct {
+	Term       *terminal.Terminal
 	Out        io.Writer
 	LogOut     io.Writer
 	macroState *object.Environment
