@@ -124,6 +124,6 @@ func Modify(node Node, f func(Node) Node) Node { //nolint:funlen,gocyclo,gocogni
 	default:
 		log.Debugf("Modify not implemented for node type %T", node)
 		return f(node)
-		//panic(fmt.Sprintf("Modify not implemented for node type %T", node))
+		// panic(fmt.Sprintf("Modify not implemented for node type %T", node))
 	}
 }
