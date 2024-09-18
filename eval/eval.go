@@ -54,10 +54,10 @@ func (s *State) evalIndexAssigment(which ast.Node, index, value object.Object) o
 	val = object.Value(val) // deref.
 	switch val.Type() {
 	case object.ARRAY:
-		if index.Type() != object.INTEGER {
+		idx, ok := Int64Value(index)
+		if !ok {
 			return s.NewError("index assignment to array with non integer index: " + index.Inspect())
 		}
-		idx := index.(object.Integer).Value
 		if idx < 0 {
 			idx = int64(object.Len(val)) + idx
 		}
@@ -170,9 +170,9 @@ func (s *State) evalInternal(node any) object.Object { //nolint:funlen,gocognit,
 		return s.Error(s.Context.Err())
 	}
 	switch node := node.(type) {
-	case object.Register:
+	case *object.Register:
 		// somehow returning unwrapped node as is for Eval to unwrap is more expensive (escape analysis issue?)
-		return node.ObjValue()
+		return node
 	// Statements
 	case *ast.Statements:
 		if node == nil { // TODO: only here? this comes from empty else branches.
@@ -467,11 +467,11 @@ func (s *State) evalIndexRangeExpression(left object.Object, leftIdx, rightIdx a
 			log.Debugf("eval index %s[%s:%s]", left.Inspect(), leftIndex.Inspect(), rightIndex.Inspect())
 		}
 	}
-	if leftIndex.Type() != object.INTEGER || (!nilRight && rightIndex.Type() != object.INTEGER) {
+	if !object.IsIntType(leftIndex.Type()) || (!nilRight && !object.IsIntType(rightIndex.Type())) {
 		return s.NewError("range index not integer")
 	}
 	num := object.Len(left)
-	l := leftIndex.(object.Integer).Value
+	l, _ := Int64Value(leftIndex)
 	if l < 0 { // negative is relative to the end.
 		l = int64(num) + l
 	}
@@ -479,7 +479,7 @@ func (s *State) evalIndexRangeExpression(left object.Object, leftIdx, rightIdx a
 	if nilRight {
 		r = int64(num)
 	} else {
-		r = rightIndex.(object.Integer).Value
+		r, _ = Int64Value(rightIndex)
 		if r < 0 {
 			r = int64(num) + r
 		}
@@ -505,13 +505,16 @@ func (s *State) evalIndexRangeExpression(left object.Object, leftIdx, rightIdx a
 }
 
 func (s *State) evalIndexExpressionIdx(left, index object.Object) object.Object {
-	idxOrZero := index
-	if idxOrZero.Type() == object.NIL {
-		idxOrZero = object.Integer{Value: 0}
+	var idx int64
+	var isInt bool
+	if index.Type() == object.NIL {
+		idx = 0
+		isInt = true
+	} else {
+		idx, isInt = Int64Value(index)
 	}
 	switch {
-	case left.Type() == object.STRING && idxOrZero.Type() == object.INTEGER:
-		idx := idxOrZero.(object.Integer).Value
+	case left.Type() == object.STRING && isInt:
 		str := left.(object.String).Value
 		num := len(str)
 		if idx < 0 { // negative is relative to the end.
@@ -521,8 +524,8 @@ func (s *State) evalIndexExpressionIdx(left, index object.Object) object.Object 
 			return object.NULL
 		}
 		return object.Integer{Value: int64(str[idx])}
-	case left.Type() == object.ARRAY && idxOrZero.Type() == object.INTEGER:
-		return evalArrayIndexExpression(left, idxOrZero)
+	case left.Type() == object.ARRAY && isInt:
+		return evalArrayIndexExpression(left, idx)
 	case left.Type() == object.MAP:
 		return evalMapIndexExpression(left, index)
 	case left.Type() == object.NIL:
@@ -541,8 +544,7 @@ func evalMapIndexExpression(assoc, key object.Object) object.Object {
 	return v // already unwrapped (index has been Eval'ed)
 }
 
-func evalArrayIndexExpression(array, index object.Object) object.Object {
-	idx := index.(object.Integer).Value
+func evalArrayIndexExpression(array object.Object, idx int64) object.Object {
 	maxV := int64(object.Len(array) - 1)
 	if idx < 0 { // negative is relative to the end.
 		idx = maxV + 1 + idx // elsewhere we use len() but here maxV is len-1
@@ -775,20 +777,20 @@ func ModifyRegister(register *object.Register, in ast.Node) ast.Node {
 	if i, ok := in.(*ast.Identifier); ok {
 		if i.Literal() == register.Literal() {
 			register.Count++
-			return *register
+			return register
 		}
 	}
 	return in
 }
 
-func (s *State) evalForInteger(fe *ast.ForExpression, start *object.Integer, end object.Integer, name string) object.Object {
+func (s *State) evalForInteger(fe *ast.ForExpression, start *int64, end int64, name string) object.Object {
 	var lastEval object.Object
 	lastEval = object.NULL
 	startValue := 0
 	if start != nil {
-		startValue = int(start.Value)
+		startValue = int(*start)
 	}
-	endValue := int(end.Value)
+	endValue := int(end)
 	num := endValue - startValue
 	if num < 0 {
 		return s.Errorf("for loop with negative count [%d,%d[", startValue, endValue)
@@ -854,21 +856,24 @@ func (s *State) evalForSpecialForms(fe *ast.ForExpression) (object.Object, bool)
 	name := ie.Left.Value().Literal()
 	if ie.Right.Value().Type() == token.COLON {
 		start := s.evalInternal(ie.Right.(*ast.InfixExpression).Left)
-		if start.Type() != object.INTEGER {
+		startInt, ok := Int64Value(start)
+		if !ok {
 			return s.NewError("for var = n:m n not an integer: " + start.Inspect()), true
 		}
 		end := s.evalInternal(ie.Right.(*ast.InfixExpression).Right)
-		if end.Type() != object.INTEGER {
+		endInt, ok := Int64Value(end)
+		if !ok {
 			return s.NewError("for var = n:m m not an integer: " + end.Inspect()), true
 		}
-		startInt := start.(object.Integer)
-		return s.evalForInteger(fe, &startInt, end.(object.Integer), name), true
+		return s.evalForInteger(fe, &startInt, endInt, name), true
 	}
 	// Evaluate:
 	v := s.evalInternal(ie.Right)
 	switch v.Type() {
+	case object.REGISTER:
+		return s.evalForInteger(fe, nil, v.(*object.Register).Int64(), name), true
 	case object.INTEGER:
-		return s.evalForInteger(fe, nil, v.(object.Integer), name), true
+		return s.evalForInteger(fe, nil, v.(object.Integer).Value, name), true
 	case object.ERROR:
 		return v, true
 	case object.ARRAY, object.MAP, object.STRING:
@@ -940,8 +945,10 @@ func (s *State) evalForExpression(fe *ast.ForExpression) object.Object {
 			switch condition.Type() {
 			case object.ERROR:
 				return condition
+			case object.REGISTER:
+				return s.evalForInteger(fe, nil, condition.(*object.Register).Int64(), "")
 			case object.INTEGER:
-				return s.evalForInteger(fe, nil, condition.(object.Integer), "")
+				return s.evalForInteger(fe, nil, condition.(object.Integer).Value, "")
 			default:
 				return s.NewError("for condition is not a boolean nor integer nor assignment: " + condition.Inspect())
 			}
@@ -983,8 +990,9 @@ func (s *State) evalPrefixExpression(operator token.Type, right object.Object) o
 	case token.MINUS:
 		return s.evalMinusPrefixOperatorExpression(right)
 	case token.BITNOT, token.BITXOR:
-		if right.Type() == object.INTEGER {
-			return object.Integer{Value: ^right.(object.Integer).Value}
+		rightVal, ok := Int64Value(right)
+		if ok {
+			return object.Integer{Value: ^rightVal}
 		}
 		return s.NewError("bitwise not of " + right.Inspect())
 	case token.PLUS:
@@ -1013,6 +1021,9 @@ func (s *State) evalMinusPrefixOperatorExpression(right object.Object) object.Ob
 	case object.INTEGER:
 		value := right.(object.Integer).Value
 		return object.Integer{Value: -value}
+	case object.REGISTER:
+		value := right.(*object.Register).Int64()
+		return object.Integer{Value: -value}
 	case object.FLOAT:
 		value := right.(object.Float).Value
 		return object.Float{Value: -value}
@@ -1022,6 +1033,8 @@ func (s *State) evalMinusPrefixOperatorExpression(right object.Object) object.Ob
 }
 
 func (s *State) evalInfixExpression(operator token.Type, left, right object.Object) object.Object {
+	rightVal, rightIsInt := Int64Value(right)
+	leftVal, leftIsInt := Int64Value(left)
 	switch {
 	case operator == token.EQ:
 		return object.NativeBoolToBooleanObject(object.Equals(left, right))
@@ -1040,8 +1053,8 @@ func (s *State) evalInfixExpression(operator token.Type, left, right object.Obje
 	case operator == token.OR:
 		return object.NativeBoolToBooleanObject(left == object.TRUE || right == object.TRUE)
 		// can't use generics :/ see other comment.
-	case left.Type() == object.INTEGER && right.Type() == object.INTEGER:
-		return s.evalIntegerInfixExpression(operator, left, right)
+	case rightIsInt && leftIsInt:
+		return s.evalIntegerInfixExpression(operator, leftVal, rightVal)
 	case left.Type() == object.FLOAT || right.Type() == object.FLOAT:
 		return s.evalFloatInfixExpression(operator, left, right)
 	case left.Type() == object.STRING:
@@ -1057,12 +1070,12 @@ func (s *State) evalInfixExpression(operator token.Type, left, right object.Obje
 
 func (s *State) evalStringInfixExpression(operator token.Type, left, right object.Object) object.Object {
 	leftVal := left.(object.String).Value
+	rightVal, rightIsInt := Int64Value(right)
 	switch {
 	case operator == token.PLUS && right.Type() == object.STRING:
 		rightVal := right.(object.String).Value
 		return object.String{Value: leftVal + rightVal}
-	case operator == token.ASTERISK && right.Type() == object.INTEGER:
-		rightVal := right.(object.Integer).Value
+	case operator == token.ASTERISK && rightIsInt:
 		n := len(leftVal) * int(rightVal)
 		if rightVal < 0 {
 			return s.NewError("right operand of * on strings must be a positive integer")
@@ -1079,11 +1092,11 @@ func (s *State) evalArrayInfixExpression(operator token.Type, left, right object
 	leftVal := object.Elements(left)
 	switch operator {
 	case token.ASTERISK: // repeat
-		if right.Type() != object.INTEGER {
+		rightVal, ok := Int64Value(right)
+		if !ok {
 			return s.NewError("right operand of * on arrays must be an integer")
 		}
 		// TODO: go1.23 use	slices.Repeat
-		rightVal := right.(object.Integer).Value
 		if rightVal < 0 {
 			return s.NewError("right operand of * on arrays must be a positive integer")
 		}
@@ -1117,14 +1130,22 @@ func (s *State) evalMapInfixExpression(operator token.Type, left, right object.O
 	}
 }
 
+func Int64Value(o object.Object) (int64, bool) {
+	switch o.Type() {
+	case object.INTEGER:
+		return o.(object.Integer).Value, true
+	case object.REGISTER:
+		return o.(*object.Register).Int64(), true
+	default:
+		return -1, false // use -1 to get OOB when ok isn't checked/bug.
+	}
+}
+
 // You would think this is an ideal case for generics... yet...
 // can't use fields directly in generic code,
 // https://github.com/golang/go/issues/48522
 // would need getters/setters which is not very go idiomatic.
-func (s *State) evalIntegerInfixExpression(operator token.Type, left, right object.Object) object.Object {
-	leftVal := left.(object.Integer).Value
-	rightVal := right.(object.Integer).Value
-
+func (s *State) evalIntegerInfixExpression(operator token.Type, leftVal, rightVal int64) object.Object {
 	switch operator {
 	case token.PLUS:
 		return object.Integer{Value: leftVal + rightVal}
@@ -1163,6 +1184,8 @@ func (s *State) evalIntegerInfixExpression(operator token.Type, left, right obje
 
 func GetFloatValue(o object.Object) (float64, *object.Error) {
 	switch o.Type() {
+	case object.REGISTER:
+		return float64(o.(*object.Register).Int64()), nil
 	case object.INTEGER:
 		return float64(o.(object.Integer).Value), nil
 	case object.FLOAT:

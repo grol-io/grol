@@ -1,5 +1,5 @@
 
-maxIter = 32
+maxIter = 64
 
 func mandelbrot(x, y) {
 	m := maxIter // bind to global, prevents caching, save allocs/cache writes.
@@ -17,7 +17,7 @@ func mandelbrot(x, y) {
     m
 }
 
-size:=256
+size:=512
 img:="img"
 image.new(img, size, size)
 

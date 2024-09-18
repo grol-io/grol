@@ -104,9 +104,19 @@ func NativeBoolToBooleanObject(input bool) Boolean {
 	return FALSE
 }
 
+// registers are equivalent to integers.
+func IsIntType(t Type) bool {
+	return t == INTEGER || t == REGISTER
+}
+
+// registers are considered integer for the purpose of comparison.
+func TypeEqual(a, b Type) bool {
+	return a == b || (IsIntType(a) && IsIntType(b))
+}
+
 func Equals(left, right Object) bool {
-	// TODO: dereference or not?
-	if left.Type() != right.Type() {
+	// TODO: references are usually derefs before coming here, unlike registers.
+	if !TypeEqual(left.Type(), right.Type()) {
 		return false // int and float aren't the same even though they can Cmp to the same value.
 	}
 	return Cmp(left, right) == 0
@@ -114,7 +124,7 @@ func Equals(left, right Object) bool {
 
 // Deal with references and registers and return the actual value.
 func Value(o Object) Object {
-	if r, ok := o.(Register); ok {
+	if r, ok := o.(*Register); ok {
 		return r.ObjValue()
 	}
 	count := 0
@@ -1095,21 +1105,29 @@ type Register struct {
 	Count  int
 }
 
-func (r Register) ObjValue() Object {
+func (r *Register) Int64() int64 {
+	return r.RefEnv.registers[r.Idx]
+}
+
+func (r *Register) ObjValue() Object {
 	return Integer{r.RefEnv.registers[r.Idx]}
 }
 
-func (r Register) Ptr() *int64 {
+func (r *Register) Ptr() *int64 {
 	return &r.RefEnv.registers[r.Idx]
 }
 
-func (r Register) Unwrap(str bool) any    { return r.ObjValue().Unwrap(str) }
-func (r Register) Type() Type             { return REGISTER }
-func (r Register) Inspect() string        { return r.ObjValue().Inspect() }
-func (r Register) JSON(w io.Writer) error { return r.ObjValue().JSON(w) }
+func (r *Register) Unwrap(str bool) any    { return r.ObjValue().Unwrap(str) }
+func (r *Register) Type() Type             { return REGISTER }
+func (r *Register) Inspect() string        { return r.ObjValue().Inspect() }
+func (r *Register) JSON(w io.Writer) error { return r.ObjValue().JSON(w) }
 
-func (r Register) PrettyPrint(out *ast.PrintState) *ast.PrintState {
-	out.Print("R", strconv.Itoa(r.Idx), ".(", r.Literal(), ")")
+func (r *Register) DebugString() string {
+	return "R[" + strconv.Itoa(r.Idx) + "," + r.Literal() + "]"
+}
+
+func (r *Register) PrettyPrint(out *ast.PrintState) *ast.PrintState {
+	out.Print(r.DebugString())
 	return out
 }
 

@@ -227,10 +227,16 @@ func createJSONAndEvalFunctions(c *Config) {
 	jsonFn.Name = "type"
 	jsonFn.Callback = object.ShortCallback(func(args []object.Object) object.Object {
 		obj := args[0]
-		if r, ok := obj.(object.Reference); ok {
+		switch obj.Type() {
+		case object.REFERENCE:
+			r := obj.(object.Reference)
 			return object.String{Value: "&" + r.Name + ".(" + r.ObjValue().Type().String() + ")"}
+		case object.REGISTER:
+			r := obj.(*object.Register)
+			return object.String{Value: r.DebugString()}
+		default:
+			return object.String{Value: obj.Type().String()}
 		}
-		return object.String{Value: obj.Type().String()}
 	})
 	MustCreate(jsonFn)
 	jsonFn.Name = "eval"

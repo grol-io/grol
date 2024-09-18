@@ -1,7 +1,10 @@
 
-n := 10_000_000
+n1 := 100_000
+n2 := 1_000
 sum := 0
-for i := n {
-  sum = sum + i
+for i := n1 {
+  for j := n2 {
+    sum = sum + i+j
+  }
 }
 sum
