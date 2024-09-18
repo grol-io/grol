@@ -171,6 +171,7 @@ func (s *State) evalInternal(node any) object.Object { //nolint:funlen,gocognit,
 	}
 	switch node := node.(type) {
 	case object.Register:
+		// somehow returning unwrapped node as is for Eval to unwrap is more expensive (escape analysis issue?)
 		return node.ObjValue()
 	// Statements
 	case *ast.Statements:
@@ -770,11 +771,11 @@ func (s *State) evalIfExpression(ie *ast.IfExpression) object.Object {
 	}
 }
 
-func ModifyRegister(register object.Register, in ast.Node) ast.Node {
+func ModifyRegister(register *object.Register, in ast.Node) ast.Node {
 	if i, ok := in.(*ast.Identifier); ok {
 		if i.Literal() == register.Literal() {
-			log.Debugf("replacing %s with %#v", i.Literal(), register)
-			return register
+			register.Count++
+			return *register
 		}
 	}
 	return in
@@ -800,8 +801,14 @@ func (s *State) evalForInteger(fe *ast.ForExpression, start *object.Integer, end
 		register = s.env.MakeRegister(name, int64(startValue))
 		ptr = register.Ptr()
 		newBody = ast.Modify(fe.Body, func(in ast.Node) ast.Node {
-			return ModifyRegister(register, in)
+			return ModifyRegister(&register, in)
 		})
+		if log.LogVerbose() {
+			out := strings.Builder{}
+			ps := &ast.PrintState{Out: &out, Compact: true}
+			newBody.PrettyPrint(ps)
+			log.LogVf("for %s replaced %d registers: %s", name, register.Count, out.String())
+		}
 	}
 	for i := startValue; i < endValue; i++ {
 		if ptr != nil {

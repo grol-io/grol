@@ -150,7 +150,7 @@ func (s *State) Eval(node any) object.Object {
 		result = returnValue.Value
 	}
 	if refValue, ok := result.(object.Reference); ok {
-		return object.Value(refValue)
+		return refValue.ObjValue()
 	}
 	return result
 }

@@ -112,22 +112,22 @@ func Equals(left, right Object) bool {
 	return Cmp(left, right) == 0
 }
 
-// Deal with references and return the actual value.
+// Deal with references and registers and return the actual value.
 func Value(o Object) Object {
+	if r, ok := o.(Register); ok {
+		return r.ObjValue()
+	}
 	count := 0
 	for {
 		if r, ok := o.(Reference); ok {
 			o = r.ObjValue()
 			count++
-		} else if r, ok := o.(Register); ok {
-			o = r.ObjValue()
-			count++
-		} else {
-			return o
+			if count > 100 {
+				panic("Too many references")
+			}
+			continue
 		}
-		if count > 100 {
-			panic("Too many references")
-		}
+		return o
 	}
 }
 
@@ -1092,6 +1092,7 @@ type Register struct {
 	ast.Base
 	RefEnv *Environment
 	Idx    int
+	Count  int
 }
 
 func (r Register) ObjValue() Object {
@@ -1106,6 +1107,11 @@ func (r Register) Unwrap(str bool) any    { return r.ObjValue().Unwrap(str) }
 func (r Register) Type() Type             { return REGISTER }
 func (r Register) Inspect() string        { return r.ObjValue().Inspect() }
 func (r Register) JSON(w io.Writer) error { return r.ObjValue().JSON(w) }
+
+func (r Register) PrettyPrint(out *ast.PrintState) *ast.PrintState {
+	out.Print("R", strconv.Itoa(r.Idx), ".(", r.Literal(), ")")
+	return out
+}
 
 // References are pointer to original object up the stack.
 type Reference struct {
