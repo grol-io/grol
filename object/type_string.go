@@ -23,12 +23,13 @@ func _() {
 	_ = x[MACRO-12]
 	_ = x[EXTENSION-13]
 	_ = x[REFERENCE-14]
-	_ = x[ANY-15]
+	_ = x[REGISTER-15]
+	_ = x[ANY-16]
 }
 
-const _Type_name = "UNKNOWNINTEGERFLOATBOOLEANNILERRORRETURNFUNCSTRINGARRAYMAPQUOTEMACROEXTENSIONREFERENCEANY"
+const _Type_name = "UNKNOWNINTEGERFLOATBOOLEANNILERRORRETURNFUNCSTRINGARRAYMAPQUOTEMACROEXTENSIONREFERENCEREGISTERANY"
 
-var _Type_index = [...]uint8{0, 7, 14, 19, 26, 29, 34, 40, 44, 50, 55, 58, 63, 68, 77, 86, 89}
+var _Type_index = [...]uint8{0, 7, 14, 19, 26, 29, 34, 40, 44, 50, 55, 58, 63, 68, 77, 86, 94, 97}
 
 func (i Type) String() string {
 	if i >= Type(len(_Type_index)-1) {

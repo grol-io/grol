@@ -1,6 +1,10 @@
 package ast
 
-import "fmt"
+import (
+	"fmt"
+
+	"fortio.org/log"
+)
 
 // Note, this is somewhat similar to eval.go's eval... both are "apply"ing.
 func Modify(node Node, f func(Node) Node) Node { //nolint:funlen,gocyclo,gocognit // yeah lots of types.
@@ -118,6 +122,8 @@ func Modify(node Node, f func(Node) Node) Node { //nolint:funlen,gocyclo,gocogni
 		newNode.Body = Modify(node.Body, f).(*Statements)
 		return f(&newNode)
 	default:
-		panic(fmt.Sprintf("Modify not implemented for node type %T", node))
+		log.Debugf("Modify not implemented for node type %T", node)
+		return f(node)
+		//panic(fmt.Sprintf("Modify not implemented for node type %T", node))
 	}
 }

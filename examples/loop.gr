@@ -1,0 +1,7 @@
+
+n := 10_000_000
+sum := 0
+for i := n {
+  sum = sum + i
+}
+sum

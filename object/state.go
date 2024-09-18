@@ -9,20 +9,25 @@ import (
 	"fortio.org/cli"
 	"fortio.org/log"
 	"fortio.org/sets"
+	"grol.io/grol/ast"
 	"grol.io/grol/token"
 	"grol.io/grol/trie"
 )
 
+const NumRegisters = 8
+
 type Environment struct {
-	store    map[string]Object
-	outer    *Environment
-	stack    *Environment // Different from outer when we attach to top level lambdas. see logic in NewFunctionEnvironment.
-	depth    int
-	cacheKey string
-	ids      *trie.Trie
-	numSet   int64
-	getMiss  int64
-	function *Function
+	store     map[string]Object
+	outer     *Environment
+	stack     *Environment // Different from outer when we attach to top level lambdas. see logic in NewFunctionEnvironment.
+	depth     int
+	cacheKey  string
+	ids       *trie.Trie
+	numSet    int64
+	getMiss   int64
+	function  *Function
+	registers [NumRegisters]int64
+	numReg    int
 }
 
 // Truly empty store suitable for macros storage.
@@ -175,6 +180,28 @@ func (e *Environment) SaveGlobals(to io.Writer, maxValueLen int) (int, error) {
 	return n, nil
 }
 
+func (e *Environment) HasRegisters() bool {
+	return e.numReg < NumRegisters
+}
+
+func (e *Environment) MakeRegister(originalName string, v int64) Register {
+	if !e.HasRegisters() {
+		panic("No more registers available")
+	}
+	e.registers[e.numReg] = v
+	tok := token.Intern(token.IDENT, originalName)
+	r := Register{RefEnv: e, Idx: e.numReg, Base: ast.Base{Token: tok}}
+	e.numReg++
+	return r
+}
+
+func (e *Environment) ReleaseRegister(register Register) {
+	if register.Idx != e.numReg-1 {
+		panic("Releasing non last register")
+	}
+	e.numReg--
+}
+
 func (e *Environment) makeRef(name string) (*Reference, bool) {
 	orig := e
 	for e.outer != nil {
@@ -205,7 +232,7 @@ func (e *Environment) Get(name string) (Object, bool) {
 	obj, ok := e.store[name]
 	if ok {
 		// using references to non constant (extensions are constants) implies uncacheable.
-		if r, ok := obj.(Reference); ok && !Constant(r.Name) && r.Value().Type() != FUNC {
+		if r, ok := obj.(Reference); ok && !Constant(r.Name) && r.ObjValue().Type() != FUNC {
 			e.getMiss++
 			log.Debugf("get(%s) GETMISS %d", name, e.getMiss)
 		}

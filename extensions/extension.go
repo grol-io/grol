@@ -228,7 +228,7 @@ func createJSONAndEvalFunctions(c *Config) {
 	jsonFn.Callback = object.ShortCallback(func(args []object.Object) object.Object {
 		obj := args[0]
 		if r, ok := obj.(object.Reference); ok {
-			return object.String{Value: "&" + r.Name + ".(" + r.Value().Type().String() + ")"}
+			return object.String{Value: "&" + r.Name + ".(" + r.ObjValue().Type().String() + ")"}
 		}
 		return object.String{Value: obj.Type().String()}
 	})
@@ -512,10 +512,10 @@ func createMisc() {
 		switch o.Type() {
 		case object.REFERENCE:
 			ref := o.(object.Reference)
-			if ref.Value().Type() != object.STRING {
-				return s.Errorf("cannot convert ref to %s to base64", ref.Value().Type())
+			if ref.ObjValue().Type() != object.STRING {
+				return s.Errorf("cannot convert ref to %s to base64", ref.ObjValue().Type())
 			}
-			data = []byte(ref.Value().(object.String).Value)
+			data = []byte(ref.ObjValue().(object.String).Value)
 		case object.STRING:
 			data = []byte(o.(object.String).Value)
 		default:

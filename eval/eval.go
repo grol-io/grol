@@ -170,6 +170,8 @@ func (s *State) evalInternal(node any) object.Object { //nolint:funlen,gocognit,
 		return s.Error(s.Context.Err())
 	}
 	switch node := node.(type) {
+	case object.Register:
+		return node.ObjValue()
 	// Statements
 	case *ast.Statements:
 		if node == nil { // TODO: only here? this comes from empty else branches.
@@ -234,10 +236,8 @@ func (s *State) evalInternal(node any) object.Object { //nolint:funlen,gocognit,
 		return object.Integer{Value: node.Val}
 	case *ast.FloatLiteral:
 		return object.Float{Value: node.Val}
-
 	case *ast.Boolean:
 		return object.NativeBoolToBooleanObject(node.Val)
-
 	case *ast.StringLiteral:
 		return object.String{Value: node.Literal()}
 
@@ -770,6 +770,16 @@ func (s *State) evalIfExpression(ie *ast.IfExpression) object.Object {
 	}
 }
 
+func ModifyRegister(register object.Register, in ast.Node) ast.Node {
+	if i, ok := in.(*ast.Identifier); ok {
+		if i.Literal() == register.Literal() {
+			log.Debugf("replacing %s with %#v", i.Literal(), register)
+			return register
+		}
+	}
+	return in
+}
+
 func (s *State) evalForInteger(fe *ast.ForExpression, start *object.Integer, end object.Integer, name string) object.Object {
 	var lastEval object.Object
 	lastEval = object.NULL
@@ -782,11 +792,22 @@ func (s *State) evalForInteger(fe *ast.ForExpression, start *object.Integer, end
 	if num < 0 {
 		return s.Errorf("for loop with negative count [%d,%d[", startValue, endValue)
 	}
+	var register object.Register
+	var ptr *int64
+	var newBody ast.Node
+	newBody = fe.Body
+	if name != "" {
+		register = s.env.MakeRegister(name, int64(startValue))
+		ptr = register.Ptr()
+		newBody = ast.Modify(fe.Body, func(in ast.Node) ast.Node {
+			return ModifyRegister(register, in)
+		})
+	}
 	for i := startValue; i < endValue; i++ {
-		if name != "" {
-			s.env.Set(name, object.Integer{Value: int64(i)})
+		if ptr != nil {
+			*ptr = int64(i)
 		}
-		nextEval := s.evalInternal(fe.Body)
+		nextEval := s.evalInternal(newBody)
 		switch nextEval.Type() {
 		case object.ERROR:
 			return nextEval
@@ -805,6 +826,9 @@ func (s *State) evalForInteger(fe *ast.ForExpression, start *object.Integer, end
 		default:
 			lastEval = nextEval
 		}
+	}
+	if ptr != nil {
+		s.env.ReleaseRegister(register)
 	}
 	return lastEval
 }

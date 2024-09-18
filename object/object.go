@@ -41,6 +41,7 @@ const (
 	MACRO
 	EXTENSION
 	REFERENCE
+	REGISTER
 	ANY // A marker, for extensions, not a real type.
 )
 
@@ -116,14 +117,17 @@ func Value(o Object) Object {
 	count := 0
 	for {
 		if r, ok := o.(Reference); ok {
-			o = r.Value()
+			o = r.ObjValue()
 			count++
-			if count > 100 {
-				panic("Too many references")
-			}
-			continue
+		} else if r, ok := o.(Register); ok {
+			o = r.ObjValue()
+			count++
+		} else {
+			return o
 		}
-		return o
+		if count > 100 {
+			panic("Too many references")
+		}
 	}
 }
 
@@ -153,8 +157,8 @@ func Cmp(ei, ej Object) int {
 	}
 	// same types at this point.
 	switch ti {
-	case REFERENCE:
-		panic("Unexpected type in Cmp: REFERENCE")
+	case REFERENCE, REGISTER:
+		panic("Unexpected type in Cmp: " + ti.String())
 	case EXTENSION:
 		return cmp.Compare(ei.(Extension).Name, ej.(Extension).Name)
 	case FUNC:
@@ -1083,13 +1087,33 @@ func (m Macro) JSON(w io.Writer) error {
 	return err
 }
 
+// Registers are fast local integer variables skipping the environment map lookup.
+type Register struct {
+	ast.Base
+	RefEnv *Environment
+	Idx    int
+}
+
+func (r Register) ObjValue() Object {
+	return Integer{r.RefEnv.registers[r.Idx]}
+}
+
+func (r Register) Ptr() *int64 {
+	return &r.RefEnv.registers[r.Idx]
+}
+
+func (r Register) Unwrap(str bool) any    { return r.ObjValue().Unwrap(str) }
+func (r Register) Type() Type             { return REGISTER }
+func (r Register) Inspect() string        { return r.ObjValue().Inspect() }
+func (r Register) JSON(w io.Writer) error { return r.ObjValue().JSON(w) }
+
 // References are pointer to original object up the stack.
 type Reference struct {
 	Name   string
 	RefEnv *Environment
 }
 
-func (r Reference) Value() Object {
+func (r Reference) ObjValue() Object {
 	if log.LogDebug() {
 		log.Debugf("Reference Value() %s -> %s", r.Name, r.RefEnv.store[r.Name].Inspect())
 	}
@@ -1100,10 +1124,10 @@ func (r Reference) Value() Object {
 	return v
 }
 
-func (r Reference) Unwrap(str bool) any    { return r.Value().Unwrap(str) }
+func (r Reference) Unwrap(str bool) any    { return r.ObjValue().Unwrap(str) }
 func (r Reference) Type() Type             { return REFERENCE }
-func (r Reference) Inspect() string        { return r.Value().Inspect() }
-func (r Reference) JSON(w io.Writer) error { return r.Value().JSON(w) }
+func (r Reference) Inspect() string        { return r.ObjValue().Inspect() }
+func (r Reference) JSON(w io.Writer) error { return r.ObjValue().JSON(w) }
 
 // Extensions are functions implemented in go and exposed to grol.
 type Extension struct {
