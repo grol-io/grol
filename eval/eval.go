@@ -31,12 +31,21 @@ func (s *State) evalAssignment(right object.Object, node *ast.InfixExpression) o
 		index := s.Eval(idxE.Index)
 		return s.evalIndexAssigment(idxE.Left, index, right)
 	case token.IDENT:
-		id, _ := node.Left.(*ast.Identifier)
+		id := node.Left.(*ast.Identifier)
 		name := id.Literal()
 		log.LogVf("eval assign %#v to %s", right, name)
 		// Propagate possible error (constant, extension names setting).
 		// Distinguish between define and assign, define (:=) forces a new variable.
 		return s.env.CreateOrSet(name, right, node.Type() == token.DEFINE)
+	case token.REGISTER:
+		reg := node.Left.(*object.Register)
+		log.LogVf("eval assign %#v to register %d", right, reg.Idx)
+		intVal, ok := Int64Value(right)
+		if !ok {
+			return s.NewError("register assignment of non integer: " + right.Inspect())
+		}
+		*reg.Ptr() = intVal
+		return right
 	default:
 		return s.NewError("assignment to non identifier: " + node.Left.Value().DebugString())
 	}
@@ -626,7 +635,7 @@ func (s *State) applyFunction(name string, fn object.Object, args []object.Objec
 		}
 		return v
 	}
-	nenv, oerr := s.extendFunctionEnv(s.env, name, function, args)
+	nenv, newBody, oerr := s.extendFunctionEnv(s.env, name, function, args)
 	if oerr != nil {
 		return *oerr
 	}
@@ -638,7 +647,7 @@ func (s *State) applyFunction(name string, fn object.Object, args []object.Objec
 	// This is 0 as the env is new, but... we just want to make sure there is
 	// no get() up stack to confirm the function might be cacheable.
 	before := s.env.GetMisses()
-	res := s.Eval(function.Body) // Need to have the return value unwrapped. Fixes bug #46, also need to count recursion.
+	res := s.Eval(newBody) // Need to have the return value unwrapped. Fixes bug #46, also need to count recursion.
 	after := s.env.GetMisses()
 	// restore the previous env/state.
 	s.env = curState
@@ -671,14 +680,12 @@ func (s *State) extendFunctionEnv(
 	currrentEnv *object.Environment,
 	name string, fn object.Function,
 	args []object.Object,
-) (*object.Environment, *object.Error) {
+) (*object.Environment, ast.Node, *object.Error) {
 	// https://github.com/grol-io/grol/issues/47
 	// fn.Env is "captured state", but for recursion we now parent from current state; eg
 	//     func test(n) {if (n==2) {x=1}; if (n==1) {return x}; test(n-1)}; test(3)
 	// return 1 (state set by recursion with n==2)
-	// Make sure `self` is used to recurse, or named function, otherwise the function will
-	// need to be found way up the now much deeper stack.
-	env, sameFunction := object.NewFunctionEnvironment(fn, currrentEnv)
+	env, _ := object.NewFunctionEnvironment(fn, currrentEnv)
 	params := fn.Parameters
 	atLeast := ""
 	var extra []object.Object
@@ -699,30 +706,44 @@ func (s *State) extendFunctionEnv(
 	if len(args) != n {
 		oerr := s.Errorf("wrong number of arguments for %s. got=%d, want%s=%d",
 			name, len(args), atLeast, n)
-		return nil, &oerr
+		return nil, nil, &oerr
 	}
+	var newBody ast.Node
+	newBody = fn.Body
 	for paramIdx, param := range params {
 		// By definition function parameters are local copies, deref argument values:
-		oerr := env.CreateOrSet(param.Value().Literal(), object.Value(args[paramIdx]), true)
-		if log.LogVerbose() {
-			log.LogVf("set %s to %s - %s", param.Value().Literal(), args[paramIdx].Inspect(), oerr.Inspect())
+		pval := object.Value(args[paramIdx])
+		needVariable := true
+		if pval.Type() == object.INTEGER {
+			// We will release all these registers just by returning/dropping the env.
+			register, nbody := setupRegister(env, param.Value().Literal(), pval.(object.Integer).Value, newBody)
+			if register.Ok {
+				newBody = nbody
+				needVariable = false
+			}
 		}
-		if oerr.Type() == object.ERROR {
-			oe, _ := oerr.(object.Error)
-			return nil, &oe
+		if needVariable {
+			oerr := env.CreateOrSet(param.Value().Literal(), pval, true)
+			if log.LogVerbose() {
+				log.LogVf("set %s to %s - %s", param.Value().Literal(), args[paramIdx].Inspect(), oerr.Inspect())
+			}
+			if oerr.Type() == object.ERROR {
+				oe, _ := oerr.(object.Error)
+				return nil, nil, &oe
+			}
 		}
 	}
 	if fn.Variadic {
 		env.SetNoChecks("..", object.NewArray(extra), true)
 	}
-	// for recursion in anonymous functions.
-	// TODO: consider not having to keep setting this in the function's env and treating as a keyword or magic var like info.
-	env.SetNoChecks("self", fn, true)
+	// Recursion is handle specially in Get (defining "self" and the function name in the env)
 	// For recursion in named functions, set it here so we don't need to go up a stack of 50k envs to find it
-	if sameFunction && name != "" {
-		env.SetNoChecks(name, fn, true)
-	}
-	return env, nil
+	/*
+		if sameFunction && name != "" {
+			env.SetNoChecks(name, fn, true)
+		}
+	*/
+	return env, newBody, nil
 }
 
 func (s *State) evalExpressions(exps []ast.Node) ([]object.Object, *object.Error) {
@@ -774,13 +795,36 @@ func (s *State) evalIfExpression(ie *ast.IfExpression) object.Object {
 }
 
 func ModifyRegister(register *object.Register, in ast.Node) ast.Node {
-	if i, ok := in.(*ast.Identifier); ok {
-		if i.Literal() == register.Literal() {
+	switch in := in.(type) {
+	case *ast.Identifier:
+		if in.Literal() == register.Literal() {
 			register.Count++
 			return register
 		}
+	case *ast.PostfixExpression:
+		if in.Prev.Literal() == register.Literal() {
+			// not handled currently (x--)
+			register.Ok = false
+		}
 	}
 	return in
+}
+
+func setupRegister(env *object.Environment, name string, value int64, body ast.Node) (object.Register, ast.Node) {
+	register := env.MakeRegister(name, value)
+	newBody := ast.Modify(body, func(in ast.Node) ast.Node {
+		return ModifyRegister(&register, in)
+	})
+	if log.LogVerbose() {
+		out := strings.Builder{}
+		ps := &ast.PrintState{Out: &out, Compact: true}
+		newBody.PrettyPrint(ps)
+		log.LogVf("replaced %d registers - ok = %t: %s", register.Count, register.Ok, out.String())
+	}
+	if register.Count == 0 || !register.Ok {
+		return register, body // original body unchanged.
+	}
+	return register, newBody
 }
 
 func (s *State) evalForInteger(fe *ast.ForExpression, start *int64, end int64, name string) object.Object {
@@ -800,17 +844,11 @@ func (s *State) evalForInteger(fe *ast.ForExpression, start *int64, end int64, n
 	var newBody ast.Node
 	newBody = fe.Body
 	if name != "" {
-		register = s.env.MakeRegister(name, int64(startValue))
-		ptr = register.Ptr()
-		newBody = ast.Modify(fe.Body, func(in ast.Node) ast.Node {
-			return ModifyRegister(&register, in)
-		})
-		if log.LogVerbose() {
-			out := strings.Builder{}
-			ps := &ast.PrintState{Out: &out, Compact: true}
-			newBody.PrettyPrint(ps)
-			log.LogVf("for %s replaced %d registers: %s", name, register.Count, out.String())
+		register, newBody = setupRegister(s.env, name, int64(startValue), fe.Body)
+		if !register.Ok {
+			return s.Errorf("for loop register %s shouldn't be modified inside the loop", name)
 		}
+		ptr = register.Ptr()
 	}
 	for i := startValue; i < endValue; i++ {
 		if ptr != nil {

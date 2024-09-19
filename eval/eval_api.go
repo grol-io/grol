@@ -132,6 +132,11 @@ func (s *State) SetDefaultContext() context.CancelFunc {
 	return s.SetContext(context.Background(), DefaultMaxDuration)
 }
 
+// Final unwrapped result of an evaluation (for instance unwraps the registers which Eval() does not).
+func (s *State) EvalToplevel(node any) object.Object {
+	return object.Value(s.Eval(node))
+}
+
 // Does unwrap (so stop bubbling up) return values.
 func (s *State) Eval(node any) object.Object {
 	if s.depth > s.MaxDepth {
@@ -152,6 +157,11 @@ func (s *State) Eval(node any) object.Object {
 	if refValue, ok := result.(object.Reference); ok {
 		return refValue.ObjValue()
 	}
+	/* Doing this at each eval breaks some optimization so we do it only in the caller/repl/last level.
+	if registerValue, ok := result.(*object.Register); ok {
+		return registerValue.ObjValue()
+	}
+	*/
 	return result
 }
 

@@ -186,18 +186,18 @@ func (e *Environment) HasRegisters() bool {
 
 func (e *Environment) MakeRegister(originalName string, v int64) Register {
 	if !e.HasRegisters() {
-		panic("No more registers available")
+		panic(fmt.Sprintf("No more registers available for %s (%d) have %v", originalName, v, e.registers))
 	}
 	e.registers[e.numReg] = v
-	tok := token.Intern(token.IDENT, originalName)
-	r := Register{RefEnv: e, Idx: e.numReg, Base: ast.Base{Token: tok}}
+	tok := token.Intern(token.REGISTER, originalName)
+	r := Register{RefEnv: e, Idx: e.numReg, Base: ast.Base{Token: tok}, Ok: true}
 	e.numReg++
 	return r
 }
 
 func (e *Environment) ReleaseRegister(register Register) {
 	if register.Idx != e.numReg-1 {
-		panic("Releasing non last register")
+		panic(fmt.Sprintf("Releasing non last register %s %d != %d", register.Literal(), register.Idx, e.numReg-1))
 	}
 	e.numReg--
 }
@@ -228,6 +228,15 @@ func (e *Environment) makeRef(name string) (*Reference, bool) {
 func (e *Environment) Get(name string) (Object, bool) {
 	if name == "info" {
 		return e.Info(), true
+	}
+	if name == "self" {
+		if e.function != nil {
+			return *e.function, true
+		}
+		return nil, false
+	}
+	if e.function != nil && e.function.Name != nil && name == e.function.Name.Literal() {
+		return *e.function, true
 	}
 	obj, ok := e.store[name]
 	if ok {

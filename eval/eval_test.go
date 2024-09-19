@@ -102,7 +102,7 @@ func testEval(t *testing.T, input string) object.Object {
 		t.Fatalf("parser has %d error(s) for %q: %v", len(p.Errors()), input, p.Errors())
 	}
 	s := eval.NewState() // each test starts anew.
-	return s.Eval(program)
+	return s.EvalToplevel(program)
 }
 
 func testIntegerObject(t *testing.T, obj object.Object, expected int64) bool {
@@ -261,9 +261,9 @@ func TestErrorHandling(t *testing.T) {
 			`C1=1;C1=2`,
 			"attempt to change constant C1 from 1 to 2",
 		},
-		{
-			`func x(FOO) {log("x",FOO,PI);if FOO<=1 {return FOO} x(FOO-1)};x(2)`,
-			"attempt to change constant FOO from 2 to 1",
+		{ // with integer registers you can mutate FOO if it's an int.
+			`func x(FOO) {log("x",FOO,PI);if len(FOO)<=1 {return FOO} x(FOO[0:-1])};x("AB")`,
+			`attempt to change constant FOO from "AB" to "A"`,
 		},
 		{
 			`func FOO(x){x}; func FOO(x){x+1}`,
@@ -335,19 +335,19 @@ if (10 > 1) {
 		},
 	}
 
-	for _, tt := range tests {
+	for i, tt := range tests {
 		evaluated := testEval(t, tt.input)
 
 		errObj, ok := evaluated.(object.Error)
 		if !ok {
-			t.Errorf("no error object returned. got=%T(%+v)",
-				evaluated, evaluated)
+			t.Errorf("test %d: no error object returned. for %s got=%T(%+v)",
+				i+1, tt.input, evaluated, evaluated)
 			continue
 		}
 
 		if errObj.Value != tt.expectedMessage {
-			t.Errorf("wrong error message. expected=%q, got=%q",
-				tt.expectedMessage, errObj.Value)
+			t.Errorf("test %d: wrong error message. for %s expected=%q, got=%q",
+				i+1, tt.input, tt.expectedMessage, errObj.Value)
 		}
 	}
 }
@@ -1036,5 +1036,18 @@ func TestIncrMatrix(t *testing.T) {
 	actual := err.Error()
 	if actual != expected {
 		t.Errorf("wrong error, got %q instead of %q", actual, expected)
+	}
+}
+
+func TestDecrRegister(t *testing.T) {
+	inp := `x=>{x-- return x}(3)`
+	s := eval.NewState()
+	res, err := eval.EvalString(s, inp, false)
+	if err != nil {
+		t.Errorf("should not have errored: %v", err)
+	}
+	expected := "2"
+	if res.Inspect() != expected {
+		t.Errorf("wrong result, got %q", res.Inspect())
 	}
 }
