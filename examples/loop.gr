@@ -1,10 +1,10 @@
-
-n1 := 100_000
-n2 := 1_000
+// increase when benchmarking
+n2 := 10_000
+n1 := 5_000
 sum := 0
 for i := n1 {
   for j := n2 {
-    sum = sum + i+j
+    sum = sum + i + j
   }
 }
 sum

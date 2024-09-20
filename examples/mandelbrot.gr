@@ -1,5 +1,5 @@
 
-maxIter = 64
+maxIter = 32 // increase when benchmarking
 
 func mandelbrot(x, y) {
 	m := maxIter // bind to global, prevents caching, save allocs/cache writes.
