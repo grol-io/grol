@@ -1116,7 +1116,7 @@ func (s *State) evalStringInfixExpression(operator token.Type, left, right objec
 	case operator == token.ASTERISK && rightIsInt:
 		n := len(leftVal) * int(rightVal)
 		if rightVal < 0 {
-			return s.NewError("right operand of * on strings must be a positive integer")
+			return s.Errorf("right operand of * on strings must be a positive integer, got %d", rightVal)
 		}
 		object.MustBeOk(n / object.ObjectSize)
 		return object.String{Value: strings.Repeat(leftVal, int(rightVal))}
