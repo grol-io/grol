@@ -4,11 +4,6 @@ Library of macros for testing
 
 */
 
-// Convert any grol object to a string.
-func str(x) {
-	sprintf("%v", x)
-}
-
 // Test for absence of error and that the expression's result matches a regexp.
 NoErr = macro(msg, expr, expectedRegexp) {
 	quote(if (r = catch(unquote(expr))).err {

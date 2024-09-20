@@ -1,0 +1,60 @@
+
+NoErr("loop not using register", for n := 1 {println("ok")}, "")
+
+// Should work, x-- aborts register op (for now, makes state ! ok)
+func foo(x){
+	x--
+	x
+}
+NoErr("register -- should work", foo(3), "2")
+func foo(x){
+	x = x - 1
+}
+NoErr("register assignment should work", foo(3), "2")
+
+arr := []
+for i:=5 {arr = arr + i}
+
+if arr != [0,1,2,3,4] {
+	error("for loop plus elem append not working, got", arr)
+}
+
+arr := []
+for i:=5 {arr = arr + [i]}
+
+if arr != [0,1,2,3,4] {
+	error("for loop plus array append not working, got", arr)
+}
+
+
+// -- repro the boxed text issue --
+
+
+func apply(f, a) {
+    if (len(a)==0) {
+        []
+    } else {
+        [f(first(a))]+apply(f,rest(a))
+    }
+}
+
+
+func maxWidths(widths) {
+    cols := len(widths[0])
+    colIndices := 0:cols // Generates [0, 1, 2] for 3 columns
+    apply(colIndex => max(apply( row => row[colIndex], widths)), colIndices)
+}
+
+
+func matrixWidths(matrix) {
+    apply(row => apply(item => width(str(item)), row), matrix)
+}
+
+
+matrix = [
+	["a", "bcde","1"],
+	[123, 45,    "four"],
+	["xyz","hello","6"]
+]
+
+NoErr("matrix max width", maxWidths(matrixWidths(matrix)), `\[3 5 4\]`)

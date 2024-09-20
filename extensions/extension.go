@@ -93,6 +93,9 @@ func initInternal(c *Config) error {
 	if err != nil {
 		return err
 	}
+	// [x] because for varargs we transform arrays as last arg to varargs. so we wrap the single argument into an array
+	// so arrays can be printed properly.
+	err = eval.AddEvalResult("str", `func str(x){sprintf("%v", [x])}`)
 	object.AddIdentifier("nil", object.NULL)
 	object.AddIdentifier("null", object.NULL)
 	object.AddIdentifier("NaN", object.Float{Value: math.NaN()})
