@@ -14,7 +14,7 @@ func ModifyNoOk(node Node, f func(Node) Node) Node {
 }
 
 // Note, this is somewhat similar to eval.go's eval... both are "apply"ing.
-func Modify(node Node, f func(Node) (Node, bool)) (Node, bool) { //nolint:funlen,gocyclo,gocognit // yeah lots of types.
+func Modify(node Node, f func(Node) (Node, bool)) (Node, bool) { //nolint:funlen,gocyclo,gocognit,maintidx // yeah lots of types.
 	// It's quite ugly all these continuation/ok checks.
 	var cont bool
 	switch node := node.(type) {

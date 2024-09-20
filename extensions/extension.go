@@ -96,6 +96,9 @@ func initInternal(c *Config) error {
 	// [x] because for varargs we transform arrays as last arg to varargs. so we wrap the single argument into an array
 	// so arrays can be printed properly.
 	err = eval.AddEvalResult("str", `func str(x){sprintf("%v", [x])}`)
+	if err != nil {
+		return err
+	}
 	object.AddIdentifier("nil", object.NULL)
 	object.AddIdentifier("null", object.NULL)
 	object.AddIdentifier("NaN", object.Float{Value: math.NaN()})
@@ -124,7 +127,19 @@ func initInternal(c *Config) error {
 		ArgTypes: []object.Type{object.STRING},
 		Callback: object.ShortCallback(sprintf),
 	})
+	createMathFunctions()
+	createJSONAndEvalFunctions(c)
+	createStrFunctions()
+	createMisc()
+	createTimeFunctions()
+	createImageFunctions()
+	if c.UnrestrictedIOs {
+		createShellFunctions()
+	}
+	return nil
+}
 
+func createMathFunctions() {
 	oneFloat := object.Extension{
 		MinArgs:  1,
 		MaxArgs:  1,
@@ -199,15 +214,6 @@ func initInternal(c *Config) error {
 		},
 		DontCache: true,
 	})
-	createJSONAndEvalFunctions(c)
-	createStrFunctions()
-	createMisc()
-	createTimeFunctions()
-	createImageFunctions()
-	if c.UnrestrictedIOs {
-		createShellFunctions()
-	}
-	return nil
 }
 
 func createJSONAndEvalFunctions(c *Config) {

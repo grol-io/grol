@@ -63,7 +63,8 @@ type Number interface {
 // Hashable in tem of Go map for cache key.
 func Hashable(o Object) bool {
 	switch o.Type() { //nolint:exhaustive // We have all the types that are hashable + default for the others.
-	case INTEGER, FLOAT, BOOLEAN, NIL, STRING, REGISTER: // register because it's a pointer though dubious whether it's hashable for cache key.
+	// register because it's a pointer though dubious whether it's hashable for cache key.
+	case INTEGER, FLOAT, BOOLEAN, NIL, STRING, REGISTER:
 		return true
 	case ARRAY:
 		if sa, ok := o.(SmallArray); ok {
