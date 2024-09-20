@@ -1,0 +1,46 @@
+
+NoErr("loop not using register", for n := 1 {println("ok")}, "")
+
+// Should work, x-- aborts register op (for now, makes state ! ok)
+func foo(x){
+	x--
+	x
+}
+NoErr("register -- should work", foo(3), "2")
+func foo(x){
+	x = x - 1
+}
+NoErr("register assignment should work", foo(3), "2")
+
+arr := []
+for i:=5 {arr = arr + i}
+
+if arr != [0,1,2,3,4] {
+	error("for loop plus elem append not working, got", arr)
+}
+
+arr := []
+for i:=5 {arr = arr + [i]}
+
+if arr != [0,1,2,3,4] {
+	error("for loop plus array append not working, got", arr)
+}
+
+
+// -- repro the boxed text issue --
+
+func apply(f, a) {
+    if (len(a)==0) {
+        []
+    } else {
+        [f(first(a))]+apply(f,rest(a))
+    }
+}
+
+func maxWidths(widths) {
+    apply(colIndex => apply(row => row[colIndex], widths), [0,1])
+}
+
+mw := [[9999,7777]]
+
+NoErr("matrix max width", maxWidths(mw), `\[\[9999\] \[7777\]\]`)

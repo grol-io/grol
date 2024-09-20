@@ -1,0 +1,31 @@
+/* Demonstrate how to have lambdas as iterators */
+func primesGen(mx) {
+	sieve = [true] * mx
+	cp = 2
+	nextPrime = () => {
+		for cp < mx {
+			if sieve[cp] {
+				prime = cp
+				cp++
+				mult = prime * prime
+				for max(mx - mult, 0) {
+					if mult % prime == 0 {
+						sieve[mult] = false
+					}
+					mult++
+				}
+				return prime
+			} else {
+				cp++
+			}
+		}
+		nil
+	}
+}
+
+maxS = 10_000
+primeIter = primesGen(maxS)
+for (p = primeIter()) != nil {
+	print(" ", p)
+}
+println()

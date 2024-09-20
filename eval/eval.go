@@ -31,12 +31,21 @@ func (s *State) evalAssignment(right object.Object, node *ast.InfixExpression) o
 		index := s.Eval(idxE.Index)
 		return s.evalIndexAssigment(idxE.Left, index, right)
 	case token.IDENT:
-		id, _ := node.Left.(*ast.Identifier)
+		id := node.Left.(*ast.Identifier)
 		name := id.Literal()
 		log.LogVf("eval assign %#v to %s", right, name)
 		// Propagate possible error (constant, extension names setting).
 		// Distinguish between define and assign, define (:=) forces a new variable.
 		return s.env.CreateOrSet(name, right, node.Type() == token.DEFINE)
+	case token.REGISTER:
+		reg := node.Left.(*object.Register)
+		log.LogVf("eval assign %#v to register %d", right, reg.Idx)
+		intVal, ok := Int64Value(right)
+		if !ok {
+			return s.NewError("register assignment of non integer: " + right.Inspect())
+		}
+		*reg.Ptr() = intVal
+		return right
 	default:
 		return s.NewError("assignment to non identifier: " + node.Left.Value().DebugString())
 	}
@@ -54,10 +63,10 @@ func (s *State) evalIndexAssigment(which ast.Node, index, value object.Object) o
 	val = object.Value(val) // deref.
 	switch val.Type() {
 	case object.ARRAY:
-		if index.Type() != object.INTEGER {
+		idx, ok := Int64Value(index)
+		if !ok {
 			return s.NewError("index assignment to array with non integer index: " + index.Inspect())
 		}
-		idx := index.(object.Integer).Value
 		if idx < 0 {
 			idx = int64(object.Len(val)) + idx
 		}
@@ -170,6 +179,9 @@ func (s *State) evalInternal(node any) object.Object { //nolint:funlen,gocognit,
 		return s.Error(s.Context.Err())
 	}
 	switch node := node.(type) {
+	case *object.Register:
+		// somehow returning unwrapped node as is for Eval to unwrap is more expensive (escape analysis issue?)
+		return node
 	// Statements
 	case *ast.Statements:
 		if node == nil { // TODO: only here? this comes from empty else branches.
@@ -234,10 +246,8 @@ func (s *State) evalInternal(node any) object.Object { //nolint:funlen,gocognit,
 		return object.Integer{Value: node.Val}
 	case *ast.FloatLiteral:
 		return object.Float{Value: node.Val}
-
 	case *ast.Boolean:
 		return object.NativeBoolToBooleanObject(node.Val)
-
 	case *ast.StringLiteral:
 		return object.String{Value: node.Literal()}
 
@@ -466,11 +476,11 @@ func (s *State) evalIndexRangeExpression(left object.Object, leftIdx, rightIdx a
 			log.Debugf("eval index %s[%s:%s]", left.Inspect(), leftIndex.Inspect(), rightIndex.Inspect())
 		}
 	}
-	if leftIndex.Type() != object.INTEGER || (!nilRight && rightIndex.Type() != object.INTEGER) {
+	if !object.IsIntType(leftIndex.Type()) || (!nilRight && !object.IsIntType(rightIndex.Type())) {
 		return s.NewError("range index not integer")
 	}
 	num := object.Len(left)
-	l := leftIndex.(object.Integer).Value
+	l, _ := Int64Value(leftIndex)
 	if l < 0 { // negative is relative to the end.
 		l = int64(num) + l
 	}
@@ -478,7 +488,7 @@ func (s *State) evalIndexRangeExpression(left object.Object, leftIdx, rightIdx a
 	if nilRight {
 		r = int64(num)
 	} else {
-		r = rightIndex.(object.Integer).Value
+		r, _ = Int64Value(rightIndex)
 		if r < 0 {
 			r = int64(num) + r
 		}
@@ -504,13 +514,16 @@ func (s *State) evalIndexRangeExpression(left object.Object, leftIdx, rightIdx a
 }
 
 func (s *State) evalIndexExpressionIdx(left, index object.Object) object.Object {
-	idxOrZero := index
-	if idxOrZero.Type() == object.NIL {
-		idxOrZero = object.Integer{Value: 0}
+	var idx int64
+	var isInt bool
+	if index.Type() == object.NIL {
+		idx = 0
+		isInt = true
+	} else {
+		idx, isInt = Int64Value(index)
 	}
 	switch {
-	case left.Type() == object.STRING && idxOrZero.Type() == object.INTEGER:
-		idx := idxOrZero.(object.Integer).Value
+	case left.Type() == object.STRING && isInt:
 		str := left.(object.String).Value
 		num := len(str)
 		if idx < 0 { // negative is relative to the end.
@@ -520,8 +533,8 @@ func (s *State) evalIndexExpressionIdx(left, index object.Object) object.Object 
 			return object.NULL
 		}
 		return object.Integer{Value: int64(str[idx])}
-	case left.Type() == object.ARRAY && idxOrZero.Type() == object.INTEGER:
-		return evalArrayIndexExpression(left, idxOrZero)
+	case left.Type() == object.ARRAY && isInt:
+		return evalArrayIndexExpression(left, idx)
 	case left.Type() == object.MAP:
 		return evalMapIndexExpression(left, index)
 	case left.Type() == object.NIL:
@@ -540,8 +553,7 @@ func evalMapIndexExpression(assoc, key object.Object) object.Object {
 	return v // already unwrapped (index has been Eval'ed)
 }
 
-func evalArrayIndexExpression(array, index object.Object) object.Object {
-	idx := index.(object.Integer).Value
+func evalArrayIndexExpression(array object.Object, idx int64) object.Object {
 	maxV := int64(object.Len(array) - 1)
 	if idx < 0 { // negative is relative to the end.
 		idx = maxV + 1 + idx // elsewhere we use len() but here maxV is len-1
@@ -614,7 +626,7 @@ func (s *State) applyFunction(name string, fn object.Object, args []object.Objec
 		return s.NewError("not a function: " + fn.Type().String() + ":" + fn.Inspect())
 	}
 	if v, output, ok := s.cache.Get(function.CacheKey, args); ok {
-		log.Debugf("Cache hit for %s %v", function.CacheKey, args)
+		log.Debugf("Cache hit for %s %v -> %#v", function.CacheKey, args, v)
 		if len(output) > 0 {
 			_, err := s.Out.Write(output)
 			if err != nil {
@@ -623,7 +635,7 @@ func (s *State) applyFunction(name string, fn object.Object, args []object.Objec
 		}
 		return v
 	}
-	nenv, oerr := s.extendFunctionEnv(s.env, name, function, args)
+	nenv, newBody, oerr := s.extendFunctionEnv(s.env, name, function, args)
 	if oerr != nil {
 		return *oerr
 	}
@@ -635,7 +647,7 @@ func (s *State) applyFunction(name string, fn object.Object, args []object.Objec
 	// This is 0 as the env is new, but... we just want to make sure there is
 	// no get() up stack to confirm the function might be cacheable.
 	before := s.env.GetMisses()
-	res := s.Eval(function.Body) // Need to have the return value unwrapped. Fixes bug #46, also need to count recursion.
+	res := s.Eval(newBody) // Need to have the return value unwrapped. Fixes bug #46, also need to count recursion.
 	after := s.env.GetMisses()
 	// restore the previous env/state.
 	s.env = curState
@@ -668,14 +680,12 @@ func (s *State) extendFunctionEnv(
 	currrentEnv *object.Environment,
 	name string, fn object.Function,
 	args []object.Object,
-) (*object.Environment, *object.Error) {
+) (*object.Environment, ast.Node, *object.Error) {
 	// https://github.com/grol-io/grol/issues/47
 	// fn.Env is "captured state", but for recursion we now parent from current state; eg
 	//     func test(n) {if (n==2) {x=1}; if (n==1) {return x}; test(n-1)}; test(3)
 	// return 1 (state set by recursion with n==2)
-	// Make sure `self` is used to recurse, or named function, otherwise the function will
-	// need to be found way up the now much deeper stack.
-	env, sameFunction := object.NewFunctionEnvironment(fn, currrentEnv)
+	env, _ := object.NewFunctionEnvironment(fn, currrentEnv)
 	params := fn.Parameters
 	atLeast := ""
 	var extra []object.Object
@@ -696,30 +706,44 @@ func (s *State) extendFunctionEnv(
 	if len(args) != n {
 		oerr := s.Errorf("wrong number of arguments for %s. got=%d, want%s=%d",
 			name, len(args), atLeast, n)
-		return nil, &oerr
+		return nil, nil, &oerr
 	}
+	var newBody ast.Node
+	newBody = fn.Body
 	for paramIdx, param := range params {
 		// By definition function parameters are local copies, deref argument values:
-		oerr := env.CreateOrSet(param.Value().Literal(), object.Value(args[paramIdx]), true)
-		if log.LogVerbose() {
-			log.LogVf("set %s to %s - %s", param.Value().Literal(), args[paramIdx].Inspect(), oerr.Inspect())
+		pval := object.Value(args[paramIdx])
+		needVariable := true
+		if pval.Type() == object.INTEGER {
+			// We will release all these registers just by returning/dropping the env.
+			_, nbody, ok := setupRegister(env, param.Value().Literal(), pval.(object.Integer).Value, newBody)
+			if ok {
+				newBody = nbody
+				needVariable = false
+			}
 		}
-		if oerr.Type() == object.ERROR {
-			oe, _ := oerr.(object.Error)
-			return nil, &oe
+		if needVariable {
+			oerr := env.CreateOrSet(param.Value().Literal(), pval, true)
+			if log.LogVerbose() {
+				log.LogVf("set %s to %s - %s", param.Value().Literal(), args[paramIdx].Inspect(), oerr.Inspect())
+			}
+			if oerr.Type() == object.ERROR {
+				oe, _ := oerr.(object.Error)
+				return nil, nil, &oe
+			}
 		}
 	}
 	if fn.Variadic {
 		env.SetNoChecks("..", object.NewArray(extra), true)
 	}
-	// for recursion in anonymous functions.
-	// TODO: consider not having to keep setting this in the function's env and treating as a keyword or magic var like info.
-	env.SetNoChecks("self", fn, true)
+	// Recursion is handle specially in Get (defining "self" and the function name in the env)
 	// For recursion in named functions, set it here so we don't need to go up a stack of 50k envs to find it
-	if sameFunction && name != "" {
-		env.SetNoChecks(name, fn, true)
-	}
-	return env, nil
+	/*
+		if sameFunction && name != "" {
+			env.SetNoChecks(name, fn, true)
+		}
+	*/
+	return env, newBody, nil
 }
 
 func (s *State) evalExpressions(exps []ast.Node) ([]object.Object, *object.Error) {
@@ -730,7 +754,7 @@ func (s *State) evalExpressions(exps []ast.Node) ([]object.Object, *object.Error
 			oerr := evaluated.(object.Error)
 			return nil, &oerr
 		}
-		result = append(result, evaluated)
+		result = append(result, object.CopyRegister(evaluated))
 	}
 	return result, nil
 }
@@ -770,23 +794,71 @@ func (s *State) evalIfExpression(ie *ast.IfExpression) object.Object {
 	}
 }
 
-func (s *State) evalForInteger(fe *ast.ForExpression, start *object.Integer, end object.Integer, name string) object.Object {
+func ModifyRegister(register *object.Register, in ast.Node) (ast.Node, bool) {
+	switch in := in.(type) {
+	case *ast.Identifier:
+		if in.Literal() == register.Literal() {
+			register.Count++
+			return register, true
+		}
+	case *ast.PostfixExpression:
+		if in.Prev.Literal() == register.Literal() {
+			// not handled currently (x--)
+			return nil, false
+		}
+	case *ast.FunctionLiteral:
+		// skip lambda/functions in functions.
+		return nil, false
+	}
+	return in, true
+}
+
+func setupRegister(env *object.Environment, name string, value int64, body ast.Node) (object.Register, ast.Node, bool) {
+	register := env.MakeRegister(name, value)
+	newBody, ok := ast.Modify(body, func(in ast.Node) (ast.Node, bool) {
+		return ModifyRegister(&register, in)
+	})
+	if log.LogVerbose() {
+		out := strings.Builder{}
+		ps := &ast.PrintState{Out: &out, Compact: true}
+		newBody.PrettyPrint(ps)
+		log.LogVf("replaced %d registers - ok = %t: %s", register.Count, ok, out.String())
+	}
+	if !ok || register.Count == 0 {
+		return register, body, ok // original body unchanged.
+	}
+	return register, newBody, ok
+}
+
+func (s *State) evalForInteger(fe *ast.ForExpression, start *int64, end int64, name string) object.Object {
 	var lastEval object.Object
 	lastEval = object.NULL
 	startValue := 0
 	if start != nil {
-		startValue = int(start.Value)
+		startValue = int(*start)
 	}
-	endValue := int(end.Value)
+	endValue := int(end)
 	num := endValue - startValue
 	if num < 0 {
 		return s.Errorf("for loop with negative count [%d,%d[", startValue, endValue)
 	}
-	for i := startValue; i < endValue; i++ {
-		if name != "" {
-			s.env.Set(name, object.Integer{Value: int64(i)})
+	var ptr *int64
+	var newBody ast.Node
+	var register object.Register
+	newBody = fe.Body
+	if name != "" {
+		var ok bool
+		register, newBody, ok = setupRegister(s.env, name, int64(startValue), fe.Body)
+		if !ok {
+			return s.Errorf("for loop register %s shouldn't be modified inside the loop", name)
 		}
-		nextEval := s.evalInternal(fe.Body)
+		ptr = register.Ptr()
+	}
+	for i := startValue; i < endValue; i++ {
+		if ptr != nil {
+			*ptr = int64(i)
+		}
+		nextEval := s.evalInternal(newBody)
 		switch nextEval.Type() {
 		case object.ERROR:
 			return nextEval
@@ -806,6 +878,9 @@ func (s *State) evalForInteger(fe *ast.ForExpression, start *object.Integer, end
 			lastEval = nextEval
 		}
 	}
+	if ptr != nil {
+		s.env.ReleaseRegister(register)
+	}
 	return lastEval
 }
 
@@ -823,21 +898,24 @@ func (s *State) evalForSpecialForms(fe *ast.ForExpression) (object.Object, bool)
 	name := ie.Left.Value().Literal()
 	if ie.Right.Value().Type() == token.COLON {
 		start := s.evalInternal(ie.Right.(*ast.InfixExpression).Left)
-		if start.Type() != object.INTEGER {
+		startInt, ok := Int64Value(start)
+		if !ok {
 			return s.NewError("for var = n:m n not an integer: " + start.Inspect()), true
 		}
 		end := s.evalInternal(ie.Right.(*ast.InfixExpression).Right)
-		if end.Type() != object.INTEGER {
+		endInt, ok := Int64Value(end)
+		if !ok {
 			return s.NewError("for var = n:m m not an integer: " + end.Inspect()), true
 		}
-		startInt := start.(object.Integer)
-		return s.evalForInteger(fe, &startInt, end.(object.Integer), name), true
+		return s.evalForInteger(fe, &startInt, endInt, name), true
 	}
 	// Evaluate:
 	v := s.evalInternal(ie.Right)
 	switch v.Type() {
+	case object.REGISTER:
+		return s.evalForInteger(fe, nil, v.(*object.Register).Int64(), name), true
 	case object.INTEGER:
-		return s.evalForInteger(fe, nil, v.(object.Integer), name), true
+		return s.evalForInteger(fe, nil, v.(object.Integer).Value, name), true
 	case object.ERROR:
 		return v, true
 	case object.ARRAY, object.MAP, object.STRING:
@@ -909,8 +987,10 @@ func (s *State) evalForExpression(fe *ast.ForExpression) object.Object {
 			switch condition.Type() {
 			case object.ERROR:
 				return condition
+			case object.REGISTER:
+				return s.evalForInteger(fe, nil, condition.(*object.Register).Int64(), "")
 			case object.INTEGER:
-				return s.evalForInteger(fe, nil, condition.(object.Integer), "")
+				return s.evalForInteger(fe, nil, condition.(object.Integer).Value, "")
 			default:
 				return s.NewError("for condition is not a boolean nor integer nor assignment: " + condition.Inspect())
 			}
@@ -952,8 +1032,9 @@ func (s *State) evalPrefixExpression(operator token.Type, right object.Object) o
 	case token.MINUS:
 		return s.evalMinusPrefixOperatorExpression(right)
 	case token.BITNOT, token.BITXOR:
-		if right.Type() == object.INTEGER {
-			return object.Integer{Value: ^right.(object.Integer).Value}
+		rightVal, ok := Int64Value(right)
+		if ok {
+			return object.Integer{Value: ^rightVal}
 		}
 		return s.NewError("bitwise not of " + right.Inspect())
 	case token.PLUS:
@@ -982,6 +1063,9 @@ func (s *State) evalMinusPrefixOperatorExpression(right object.Object) object.Ob
 	case object.INTEGER:
 		value := right.(object.Integer).Value
 		return object.Integer{Value: -value}
+	case object.REGISTER:
+		value := right.(*object.Register).Int64()
+		return object.Integer{Value: -value}
 	case object.FLOAT:
 		value := right.(object.Float).Value
 		return object.Float{Value: -value}
@@ -991,6 +1075,8 @@ func (s *State) evalMinusPrefixOperatorExpression(right object.Object) object.Ob
 }
 
 func (s *State) evalInfixExpression(operator token.Type, left, right object.Object) object.Object {
+	rightVal, rightIsInt := Int64Value(right)
+	leftVal, leftIsInt := Int64Value(left)
 	switch {
 	case operator == token.EQ:
 		return object.NativeBoolToBooleanObject(object.Equals(left, right))
@@ -1009,8 +1095,8 @@ func (s *State) evalInfixExpression(operator token.Type, left, right object.Obje
 	case operator == token.OR:
 		return object.NativeBoolToBooleanObject(left == object.TRUE || right == object.TRUE)
 		// can't use generics :/ see other comment.
-	case left.Type() == object.INTEGER && right.Type() == object.INTEGER:
-		return s.evalIntegerInfixExpression(operator, left, right)
+	case rightIsInt && leftIsInt:
+		return s.evalIntegerInfixExpression(operator, leftVal, rightVal)
 	case left.Type() == object.FLOAT || right.Type() == object.FLOAT:
 		return s.evalFloatInfixExpression(operator, left, right)
 	case left.Type() == object.STRING:
@@ -1026,15 +1112,15 @@ func (s *State) evalInfixExpression(operator token.Type, left, right object.Obje
 
 func (s *State) evalStringInfixExpression(operator token.Type, left, right object.Object) object.Object {
 	leftVal := left.(object.String).Value
+	rightVal, rightIsInt := Int64Value(right)
 	switch {
 	case operator == token.PLUS && right.Type() == object.STRING:
 		rightVal := right.(object.String).Value
 		return object.String{Value: leftVal + rightVal}
-	case operator == token.ASTERISK && right.Type() == object.INTEGER:
-		rightVal := right.(object.Integer).Value
+	case operator == token.ASTERISK && rightIsInt:
 		n := len(leftVal) * int(rightVal)
 		if rightVal < 0 {
-			return s.NewError("right operand of * on strings must be a positive integer")
+			return s.Errorf("right operand of * on strings must be a positive integer, got %d", rightVal)
 		}
 		object.MustBeOk(n / object.ObjectSize)
 		return object.String{Value: strings.Repeat(leftVal, int(rightVal))}
@@ -1048,11 +1134,11 @@ func (s *State) evalArrayInfixExpression(operator token.Type, left, right object
 	leftVal := object.Elements(left)
 	switch operator {
 	case token.ASTERISK: // repeat
-		if right.Type() != object.INTEGER {
+		rightVal, ok := Int64Value(right)
+		if !ok {
 			return s.NewError("right operand of * on arrays must be an integer")
 		}
 		// TODO: go1.23 use	slices.Repeat
-		rightVal := right.(object.Integer).Value
 		if rightVal < 0 {
 			return s.NewError("right operand of * on arrays must be a positive integer")
 		}
@@ -1063,7 +1149,7 @@ func (s *State) evalArrayInfixExpression(operator token.Type, left, right object
 		return object.NewArray(result)
 	case token.PLUS: // concat / append
 		if right.Type() != object.ARRAY {
-			return object.NewArray(append(leftVal, right))
+			return object.NewArray(append(leftVal, object.Value(right)))
 		}
 		rightArr := object.Elements(right)
 		object.MustBeOk(len(leftVal) + len(rightArr))
@@ -1086,14 +1172,22 @@ func (s *State) evalMapInfixExpression(operator token.Type, left, right object.O
 	}
 }
 
+func Int64Value(o object.Object) (int64, bool) {
+	switch o.Type() {
+	case object.INTEGER:
+		return o.(object.Integer).Value, true
+	case object.REGISTER:
+		return o.(*object.Register).Int64(), true
+	default:
+		return -1, false // use -1 to get OOB when ok isn't checked/bug.
+	}
+}
+
 // You would think this is an ideal case for generics... yet...
 // can't use fields directly in generic code,
 // https://github.com/golang/go/issues/48522
 // would need getters/setters which is not very go idiomatic.
-func (s *State) evalIntegerInfixExpression(operator token.Type, left, right object.Object) object.Object {
-	leftVal := left.(object.Integer).Value
-	rightVal := right.(object.Integer).Value
-
+func (s *State) evalIntegerInfixExpression(operator token.Type, leftVal, rightVal int64) object.Object {
 	switch operator {
 	case token.PLUS:
 		return object.Integer{Value: leftVal + rightVal}
@@ -1132,6 +1226,8 @@ func (s *State) evalIntegerInfixExpression(operator token.Type, left, right obje
 
 func GetFloatValue(o object.Object) (float64, *object.Error) {
 	switch o.Type() {
+	case object.REGISTER:
+		return float64(o.(*object.Register).Int64()), nil
 	case object.INTEGER:
 		return float64(o.(object.Integer).Value), nil
 	case object.FLOAT:

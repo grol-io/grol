@@ -93,6 +93,12 @@ func initInternal(c *Config) error {
 	if err != nil {
 		return err
 	}
+	// [x] because for varargs we transform arrays as last arg to varargs. so we wrap the single argument into an array
+	// so arrays can be printed properly.
+	err = eval.AddEvalResult("str", `func str(x){sprintf("%v", [x])}`)
+	if err != nil {
+		return err
+	}
 	object.AddIdentifier("nil", object.NULL)
 	object.AddIdentifier("null", object.NULL)
 	object.AddIdentifier("NaN", object.Float{Value: math.NaN()})
@@ -121,7 +127,19 @@ func initInternal(c *Config) error {
 		ArgTypes: []object.Type{object.STRING},
 		Callback: object.ShortCallback(sprintf),
 	})
+	createMathFunctions()
+	createJSONAndEvalFunctions(c)
+	createStrFunctions()
+	createMisc()
+	createTimeFunctions()
+	createImageFunctions()
+	if c.UnrestrictedIOs {
+		createShellFunctions()
+	}
+	return nil
+}
 
+func createMathFunctions() {
 	oneFloat := object.Extension{
 		MinArgs:  1,
 		MaxArgs:  1,
@@ -196,15 +214,6 @@ func initInternal(c *Config) error {
 		},
 		DontCache: true,
 	})
-	createJSONAndEvalFunctions(c)
-	createStrFunctions()
-	createMisc()
-	createTimeFunctions()
-	createImageFunctions()
-	if c.UnrestrictedIOs {
-		createShellFunctions()
-	}
-	return nil
 }
 
 func createJSONAndEvalFunctions(c *Config) {
@@ -227,10 +236,16 @@ func createJSONAndEvalFunctions(c *Config) {
 	jsonFn.Name = "type"
 	jsonFn.Callback = object.ShortCallback(func(args []object.Object) object.Object {
 		obj := args[0]
-		if r, ok := obj.(object.Reference); ok {
-			return object.String{Value: "&" + r.Name + ".(" + r.Value().Type().String() + ")"}
+		switch obj.Type() {
+		case object.REFERENCE:
+			r := obj.(object.Reference)
+			return object.String{Value: "&" + r.Name + ".(" + r.ObjValue().Type().String() + ")"}
+		case object.REGISTER:
+			r := obj.(*object.Register)
+			return object.String{Value: r.DebugString()}
+		default:
+			return object.String{Value: obj.Type().String()}
 		}
-		return object.String{Value: obj.Type().String()}
 	})
 	MustCreate(jsonFn)
 	jsonFn.Name = "eval"
@@ -387,6 +402,7 @@ func createStrFunctions() { //nolint:funlen // we do have quite a few, yes.
 	strFn.Name = "regexp"
 	strFn.Help = "returns true if regular expression matches the string (2nd arg)"
 	strFn.ArgTypes = []object.Type{object.STRING, object.STRING, object.BOOLEAN}
+	strFn.MinArgs = 2
 	strFn.MaxArgs = 3
 	strFn.Callback = func(env any, _ string, args []object.Object) object.Object {
 		s := env.(*eval.State)
@@ -512,10 +528,10 @@ func createMisc() {
 		switch o.Type() {
 		case object.REFERENCE:
 			ref := o.(object.Reference)
-			if ref.Value().Type() != object.STRING {
-				return s.Errorf("cannot convert ref to %s to base64", ref.Value().Type())
+			if ref.ObjValue().Type() != object.STRING {
+				return s.Errorf("cannot convert ref to %s to base64", ref.ObjValue().Type())
 			}
-			data = []byte(ref.Value().(object.String).Value)
+			data = []byte(ref.ObjValue().(object.String).Value)
 		case object.STRING:
 			data = []byte(o.(object.String).Value)
 		default:

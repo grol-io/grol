@@ -80,7 +80,7 @@ stdout '^1\n3$'
 stderr '<err: macro should return Quote. got=object.Null \({}\)>'
 
 # quiet mode and fast fibbonaci (log won't show)
-grol -quiet -c 'fib=func(x){log("fib",x);if x<=1 {x} else {fib(x-1)+fib(x-2)}}; fib(92)'
+grol -quiet -c 'func fib(x){log("fib",x);if x<=1 {x} else {fib(x-1)+fib(x-2)}}; fib(92)'
 stdout '^7540113804746346429\n$'
 !stdout '\n\n'
 !stderr .
@@ -121,8 +121,8 @@ stdout '^3$'
 !stderr .
 
 # eval() runs in the same context as when called
-grol -quiet -c 'func foo(x) {eval("info")};foo(42)["all_ids"][1]'
-stdout '^\["self","x"\]$'
+grol -quiet -c 'func foo(x) {eval("info")};foo("A")["all_ids"][1]'
+stdout '^\["x"\]$'
 !stderr .
 
 # json of (nested) arrays
@@ -404,7 +404,7 @@ fib = func(x) {
 	if (x == 1) {
 		return 1
 	}
-	fib(x - 1) + fib(x - 2)
+	self(x - 1) + self(x - 2)
 }
 fib(50)
 -- sample_test_stdout --

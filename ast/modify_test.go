@@ -26,7 +26,7 @@ var (
 	}
 )
 
-func TestModify(t *testing.T) {
+func TestModifyNoOk(t *testing.T) {
 	tests := []struct {
 		input    Node
 		expected Node
@@ -107,7 +107,7 @@ func TestModify(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		modified := Modify(tt.input, turnOneIntoTwo)
+		modified := ModifyNoOk(tt.input, turnOneIntoTwo)
 		if !reflect.DeepEqual(modified, tt.expected) {
 			t.Errorf("not equal.\n%#v\n-vs-\n%#v", modified, tt.expected)
 		}
@@ -117,7 +117,7 @@ func TestModify(t *testing.T) {
 func TestModifyMap(t *testing.T) {
 	// need to test map separately because deepequal can't compare a map
 	// with keys of the same underlying value (2:2, 2:2)
-	modified := Modify(
+	modified := ModifyNoOk(
 		&MapLiteral{
 			Pairs: map[Node]Node{
 				aone: one(),

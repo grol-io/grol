@@ -22,37 +22,37 @@ func circleQuadrant(img, x, y, rx, ry, color, thickness) {
 
 func quadrant(img, x, y, rx, ry, thickness) {
 	sign = sign
-	x = round(x)+.5 // semi magic adjustment that makes the bezier circle and trueCircle match
-	y = round(y)+.5
+	xx := round(x)+.5 // semi magic adjustment that makes the bezier circle and trueCircle match
+	yy := round(y)+.5
 	a := 1.00005519
 	b := 0.55342686
 	c := 0.99873585
-	thickness = thickness / 2.
-	ythickness := thickness
+	thickness2 = thickness / 2.
+	ythickness := thickness2
 	if sign(rx) != sign(ry) {
-		ythickness = -thickness
+		ythickness = -thickness2
 	}
-	p0x := x + rx*a - thickness
-	p0y := y
+	p0x := xx + rx*a - thickness2
+	p0y := yy
 	image.move_to(img, p0x, p0y)
-	image.line_to(img, p0x+2*thickness, p0y)
-	rx = rx + thickness
-	ry = ry + ythickness
-	p2x := x + rx*b
-	p2y := y + ry*c
-	p1x := x + rx*c
-	p1y := y + ry*b
-	p3x := x
-	p3y := y + ry*a
+	image.line_to(img, p0x+thickness, p0y)
+	rxx := rx + thickness2
+	ryy := ry + ythickness
+	p2x := xx + rxx*b
+	p2y := yy + ryy*c
+	p1x := xx + rxx*c
+	p1y := yy + ryy*b
+	p3x := xx
+	p3y := yy + ryy*a
 	image.cube_to(img, p1x, p1y, p2x, p2y, p3x, p3y)
-	rx = rx - 2*thickness
-	ry = ry - 2*ythickness
-	p3y := y + ry*a
-	image.line_to(img, x, p3y)
-	p2x := x + rx*b
-	p2y := y + ry*c
-	p1x := x + rx*c
-	p1y := y + ry*b
+	rxx = rxx - thickness
+	ryy = ryy - 2*ythickness
+	p3y := yy + ryy*a
+	image.line_to(img, xx, p3y)
+	p2x := xx + rxx*b
+	p2y := yy + ryy*c
+	p1x := xx + rxx*c
+	p1y := yy + ryy*b
 	image.cube_to(img, p2x, p2y, p1x, p1y, p0x, p0y)
 	// image.line_to(img, x, y) // covered by close_path in draw
 }

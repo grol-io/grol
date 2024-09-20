@@ -8,9 +8,9 @@
 
 // With angle as an int modulo 360 input, this gets memoized.
 func ycbcr(angle) {
-	angle = PI * angle / 180.
+	a = PI * angle / 180.
 	// Y   Cb  Cr
-	[190, 128 + 120*sin(angle), 128 + 120*cos(angle)]
+	[190, 128 + 120*sin(a), 128 + 120*cos(a)]
 }
 
 // saturation = 1

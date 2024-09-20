@@ -4,20 +4,23 @@ Library of macros for testing
 
 */
 
-// Convert any grol object to a string.
-func str(x) {
-	sprintf("%v", x)
+// When testing regressions using older grol versions (without builtin str):
+/*
+func str(s) {
+	sprintf("%v",[s])
 }
+*/
 
 // Test for absence of error and that the expression's result matches a regexp.
 NoErr = macro(msg, expr, expectedRegexp) {
 	quote(if (r = catch(unquote(expr))).err {
 			error("FAIL unexpected error:", r.value, "for", unquote(msg))
 		} else {
-			if (regexp(unquote(expectedRegexp), str(r.value))) {
+			sv = str(r.value)
+			if regexp(unquote(expectedRegexp), sv) {
 				println("OK", unquote(msg), "is:", r.value)
 			} else {
-				error("FAIL", unquote(msg), "didn't match expected:", r.value)
+				error(sprintf("FAIL %s didn't match expected: %v (str %q, regexp %q)", unquote(msg), r.value, sv, unquote(expectedRegexp)))
 			}
 		})
 }

@@ -41,6 +41,7 @@ const (
 	MACRO
 	EXTENSION
 	REFERENCE
+	REGISTER
 	ANY // A marker, for extensions, not a real type.
 )
 
@@ -62,7 +63,8 @@ type Number interface {
 // Hashable in tem of Go map for cache key.
 func Hashable(o Object) bool {
 	switch o.Type() { //nolint:exhaustive // We have all the types that are hashable + default for the others.
-	case INTEGER, FLOAT, BOOLEAN, NIL, STRING:
+	// register because it's a pointer though dubious whether it's hashable for cache key.
+	case INTEGER, FLOAT, BOOLEAN, NIL, STRING, REGISTER:
 		return true
 	case ARRAY:
 		if sa, ok := o.(SmallArray); ok {
@@ -103,20 +105,38 @@ func NativeBoolToBooleanObject(input bool) Boolean {
 	return FALSE
 }
 
+// registers are equivalent to integers.
+func IsIntType(t Type) bool {
+	return t == INTEGER || t == REGISTER
+}
+
+// registers are considered integer for the purpose of comparison.
+func TypeEqual(a, b Type) bool {
+	return a == b || (IsIntType(a) && IsIntType(b))
+}
+
 func Equals(left, right Object) bool {
-	// TODO: dereference or not?
-	if left.Type() != right.Type() {
+	// TODO: references are usually derefs before coming here, unlike registers.
+	if !TypeEqual(left.Type(), right.Type()) {
 		return false // int and float aren't the same even though they can Cmp to the same value.
 	}
 	return Cmp(left, right) == 0
 }
 
-// Deal with references and return the actual value.
+func CopyRegister(o Object) Object {
+	if r, ok := o.(*Register); ok {
+		return r.ObjValue()
+	}
+	return o
+}
+
+// Deal with references and registers and return the actual value.
 func Value(o Object) Object {
+	o = CopyRegister(o)
 	count := 0
 	for {
 		if r, ok := o.(Reference); ok {
-			o = r.Value()
+			o = r.ObjValue()
 			count++
 			if count > 100 {
 				panic("Too many references")
@@ -153,8 +173,8 @@ func Cmp(ei, ej Object) int {
 	}
 	// same types at this point.
 	switch ti {
-	case REFERENCE:
-		panic("Unexpected type in Cmp: REFERENCE")
+	case REFERENCE, REGISTER:
+		panic("Unexpected type in Cmp: " + ti.String())
 	case EXTENSION:
 		return cmp.Compare(ei.(Extension).Name, ej.(Extension).Name)
 	case FUNC:
@@ -1083,13 +1103,47 @@ func (m Macro) JSON(w io.Writer) error {
 	return err
 }
 
+// Registers are fast local integer variables skipping the environment map lookup.
+type Register struct {
+	ast.Base
+	RefEnv *Environment
+	Idx    int
+	Count  int
+}
+
+func (r *Register) Int64() int64 {
+	return r.RefEnv.registers[r.Idx]
+}
+
+func (r *Register) ObjValue() Object {
+	return Integer{r.RefEnv.registers[r.Idx]}
+}
+
+func (r *Register) Ptr() *int64 {
+	return &r.RefEnv.registers[r.Idx]
+}
+
+func (r *Register) Unwrap(str bool) any    { return r.ObjValue().Unwrap(str) }
+func (r *Register) Type() Type             { return REGISTER }
+func (r *Register) Inspect() string        { return r.ObjValue().Inspect() }
+func (r *Register) JSON(w io.Writer) error { return r.ObjValue().JSON(w) }
+
+func (r *Register) DebugString() string {
+	return "R[" + strconv.Itoa(r.Idx) + "," + r.Literal() + "]"
+}
+
+func (r *Register) PrettyPrint(out *ast.PrintState) *ast.PrintState {
+	out.Print(r.DebugString())
+	return out
+}
+
 // References are pointer to original object up the stack.
 type Reference struct {
 	Name   string
 	RefEnv *Environment
 }
 
-func (r Reference) Value() Object {
+func (r Reference) ObjValue() Object {
 	if log.LogDebug() {
 		log.Debugf("Reference Value() %s -> %s", r.Name, r.RefEnv.store[r.Name].Inspect())
 	}
@@ -1100,10 +1154,10 @@ func (r Reference) Value() Object {
 	return v
 }
 
-func (r Reference) Unwrap(str bool) any    { return r.Value().Unwrap(str) }
+func (r Reference) Unwrap(str bool) any    { return r.ObjValue().Unwrap(str) }
 func (r Reference) Type() Type             { return REFERENCE }
-func (r Reference) Inspect() string        { return r.Value().Inspect() }
-func (r Reference) JSON(w io.Writer) error { return r.Value().JSON(w) }
+func (r Reference) Inspect() string        { return r.ObjValue().Inspect() }
+func (r Reference) JSON(w io.Writer) error { return r.ObjValue().JSON(w) }
 
 // Extensions are functions implemented in go and exposed to grol.
 type Extension struct {

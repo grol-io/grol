@@ -64,6 +64,7 @@ const (
 	STRING // "foo bar" or `foo bar`
 	LINECOMMENT
 	BLOCKCOMMENT
+	REGISTER // not used for parsing, only to tag object.Register as ast node of unique type.
 
 	endValueTokens
 

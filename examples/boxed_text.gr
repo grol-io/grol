@@ -59,18 +59,15 @@ boxTextTerm(testStr)
 
 // matrix
 
-func str(x) {
-	sprintf("%v", x)
-}
-
 func matrixWidths(matrix) {
     apply(row => apply(item => width(str(item)), row), matrix)
 }
 
 func forRecursive(n, f, start) {
+    nn:=n
     (i,f,x) => { // internal lambda with the index param and intermediate result
        r = f(i,x)
-       if (i>=n) {
+       if (i>=nn) {
            return r
        }
        self(i+1, f,r)
@@ -78,8 +75,8 @@ func forRecursive(n, f, start) {
 }
 
 func maxWidths(widths) {
-    cols = len(widths[0])
-    colIndices = 0:cols // Generates [0, 1, 2] for 3 columns
+    cols := len(widths[0])
+    colIndices := 0:cols // Generates [0, 1, 2] for 3 columns
     apply(colIndex => max(apply( row => row[colIndex], widths)), colIndices)
 }
 
@@ -151,7 +148,7 @@ matrix = [
 	["xyz","hello","world"]
 ]
 
-    println("For", matrix)
+println("For", matrix)
 boxMatrix(matrix)
 
 // Example usage for tic-tac-toe board
