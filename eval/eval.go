@@ -754,7 +754,7 @@ func (s *State) evalExpressions(exps []ast.Node) ([]object.Object, *object.Error
 			oerr := evaluated.(object.Error)
 			return nil, &oerr
 		}
-		result = append(result, evaluated)
+		result = append(result, object.Value(evaluated))
 	}
 	return result, nil
 }
@@ -1145,7 +1145,7 @@ func (s *State) evalArrayInfixExpression(operator token.Type, left, right object
 		return object.NewArray(result)
 	case token.PLUS: // concat / append
 		if right.Type() != object.ARRAY {
-			return object.NewArray(append(leftVal, right))
+			return object.NewArray(append(leftVal, object.Value(right)))
 		}
 		rightArr := object.Elements(right)
 		object.MustBeOk(len(leftVal) + len(rightArr))
