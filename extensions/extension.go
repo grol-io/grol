@@ -393,6 +393,7 @@ func createStrFunctions() { //nolint:funlen // we do have quite a few, yes.
 	strFn.Name = "regexp"
 	strFn.Help = "returns true if regular expression matches the string (2nd arg)"
 	strFn.ArgTypes = []object.Type{object.STRING, object.STRING, object.BOOLEAN}
+	strFn.MinArgs = 2
 	strFn.MaxArgs = 3
 	strFn.Callback = func(env any, _ string, args []object.Object) object.Object {
 		s := env.(*eval.State)
