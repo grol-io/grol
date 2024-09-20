@@ -754,7 +754,7 @@ func (s *State) evalExpressions(exps []ast.Node) ([]object.Object, *object.Error
 			oerr := evaluated.(object.Error)
 			return nil, &oerr
 		}
-		result = append(result, object.Value(evaluated))
+		result = append(result, object.CopyRegister(evaluated))
 	}
 	return result, nil
 }

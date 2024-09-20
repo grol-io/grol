@@ -63,7 +63,7 @@ type Number interface {
 // Hashable in tem of Go map for cache key.
 func Hashable(o Object) bool {
 	switch o.Type() { //nolint:exhaustive // We have all the types that are hashable + default for the others.
-	case INTEGER, FLOAT, BOOLEAN, NIL, STRING:
+	case INTEGER, FLOAT, BOOLEAN, NIL, STRING, REGISTER: // register because it's a pointer though dubious whether it's hashable for cache key.
 		return true
 	case ARRAY:
 		if sa, ok := o.(SmallArray); ok {
@@ -122,11 +122,16 @@ func Equals(left, right Object) bool {
 	return Cmp(left, right) == 0
 }
 
-// Deal with references and registers and return the actual value.
-func Value(o Object) Object {
+func CopyRegister(o Object) Object {
 	if r, ok := o.(*Register); ok {
 		return r.ObjValue()
 	}
+	return o
+}
+
+// Deal with references and registers and return the actual value.
+func Value(o Object) Object {
+	o = CopyRegister(o)
 	count := 0
 	for {
 		if r, ok := o.(Reference); ok {
