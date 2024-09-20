@@ -29,7 +29,6 @@ if arr != [0,1,2,3,4] {
 
 // -- repro the boxed text issue --
 
-
 func apply(f, a) {
     if (len(a)==0) {
         []
@@ -38,23 +37,12 @@ func apply(f, a) {
     }
 }
 
-
 func maxWidths(widths) {
     cols := len(widths[0])
     colIndices := 0:cols // Generates [0, 1, 2] for 3 columns
     apply(colIndex => max(apply( row => row[colIndex], widths)), colIndices)
 }
 
+mw := [[1,4,1],[3,2,4],[3,5,1]]
 
-func matrixWidths(matrix) {
-    apply(row => apply(item => width(str(item)), row), matrix)
-}
-
-
-matrix = [
-	["a", "bcde","1"],
-	[123, 45,    "four"],
-	["xyz","hello","6"]
-]
-
-NoErr("matrix max width", maxWidths(matrixWidths(matrix)), `\[3 5 4\]`)
+NoErr("matrix max width", maxWidths(mw), `\[3 5 4\]`)
