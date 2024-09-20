@@ -15,7 +15,7 @@ func (s *State) quote(node ast.Node) object.Quote {
 }
 
 func (s *State) evalUnquoteCalls(quoted ast.Node) ast.Node {
-	return ast.Modify(quoted, func(node ast.Node) ast.Node {
+	return ast.ModifyNoOk(quoted, func(node ast.Node) ast.Node {
 		if !isUnquoteCall(node) {
 			return node
 		}

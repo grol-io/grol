@@ -41,6 +41,6 @@ func maxWidths(widths) {
     apply(colIndex => apply(row => row[colIndex], widths), [0,1])
 }
 
-mw := [[3,5]]
+mw := [[9999,7777]]
 
-NoErr("matrix max width", maxWidths(mw), `\[\[3\] \[5\]\]`)
+NoErr("matrix max width", maxWidths(mw), `\[\[9999\] \[7777\]\]`)

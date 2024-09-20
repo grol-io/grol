@@ -190,7 +190,7 @@ func (e *Environment) MakeRegister(originalName string, v int64) Register {
 	}
 	e.registers[e.numReg] = v
 	tok := token.Intern(token.REGISTER, originalName)
-	r := Register{RefEnv: e, Idx: e.numReg, Base: ast.Base{Token: tok}, Ok: true}
+	r := Register{RefEnv: e, Idx: e.numReg, Base: ast.Base{Token: tok}}
 	e.numReg++
 	return r
 }

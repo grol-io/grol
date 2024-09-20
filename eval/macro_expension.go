@@ -83,7 +83,7 @@ func (s *State) MacroErrorf(fmtmsg string, args ...any) ast.Node {
 }
 
 func (s *State) ExpandMacros(program ast.Node) ast.Node {
-	return ast.Modify(program, func(node ast.Node) ast.Node {
+	return ast.ModifyNoOk(program, func(node ast.Node) ast.Node {
 		callExpression, ok := node.(*ast.CallExpression)
 		if !ok {
 			return node

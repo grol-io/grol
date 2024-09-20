@@ -1108,7 +1108,6 @@ type Register struct {
 	RefEnv *Environment
 	Idx    int
 	Count  int
-	Ok     bool
 }
 
 func (r *Register) Int64() int64 {

@@ -626,7 +626,7 @@ func (s *State) applyFunction(name string, fn object.Object, args []object.Objec
 		return s.NewError("not a function: " + fn.Type().String() + ":" + fn.Inspect())
 	}
 	if v, output, ok := s.cache.Get(function.CacheKey, args); ok {
-		log.Debugf("Cache hit for %s %v", function.CacheKey, args)
+		log.Debugf("Cache hit for %s %v -> %#v", function.CacheKey, args, v)
 		if len(output) > 0 {
 			_, err := s.Out.Write(output)
 			if err != nil {
@@ -716,8 +716,8 @@ func (s *State) extendFunctionEnv(
 		needVariable := true
 		if pval.Type() == object.INTEGER {
 			// We will release all these registers just by returning/dropping the env.
-			register, nbody := setupRegister(env, param.Value().Literal(), pval.(object.Integer).Value, newBody)
-			if register.Ok {
+			_, nbody, ok := setupRegister(env, param.Value().Literal(), pval.(object.Integer).Value, newBody)
+			if ok {
 				newBody = nbody
 				needVariable = false
 			}
@@ -794,37 +794,40 @@ func (s *State) evalIfExpression(ie *ast.IfExpression) object.Object {
 	}
 }
 
-func ModifyRegister(register *object.Register, in ast.Node) ast.Node {
+func ModifyRegister(register *object.Register, in ast.Node) (ast.Node, bool) {
 	switch in := in.(type) {
 	case *ast.Identifier:
 		if in.Literal() == register.Literal() {
 			register.Count++
-			return register
+			return register, true
 		}
 	case *ast.PostfixExpression:
 		if in.Prev.Literal() == register.Literal() {
 			// not handled currently (x--)
-			register.Ok = false
+			return nil, false
 		}
+	case *ast.FunctionLiteral:
+		// skip lambda/functions in functions.
+		return nil, false
 	}
-	return in
+	return in, true
 }
 
-func setupRegister(env *object.Environment, name string, value int64, body ast.Node) (object.Register, ast.Node) {
+func setupRegister(env *object.Environment, name string, value int64, body ast.Node) (object.Register, ast.Node, bool) {
 	register := env.MakeRegister(name, value)
-	newBody := ast.Modify(body, func(in ast.Node) ast.Node {
+	newBody, ok := ast.Modify(body, func(in ast.Node) (ast.Node, bool) {
 		return ModifyRegister(&register, in)
 	})
 	if log.LogVerbose() {
 		out := strings.Builder{}
 		ps := &ast.PrintState{Out: &out, Compact: true}
 		newBody.PrettyPrint(ps)
-		log.LogVf("replaced %d registers - ok = %t: %s", register.Count, register.Ok, out.String())
+		log.LogVf("replaced %d registers - ok = %t: %s", register.Count, ok, out.String())
 	}
-	if register.Count == 0 || !register.Ok {
-		return register, body // original body unchanged.
+	if !ok || register.Count == 0 {
+		return register, body, ok // original body unchanged.
 	}
-	return register, newBody
+	return register, newBody, ok
 }
 
 func (s *State) evalForInteger(fe *ast.ForExpression, start *int64, end int64, name string) object.Object {
@@ -839,13 +842,14 @@ func (s *State) evalForInteger(fe *ast.ForExpression, start *int64, end int64, n
 	if num < 0 {
 		return s.Errorf("for loop with negative count [%d,%d[", startValue, endValue)
 	}
-	var register object.Register
 	var ptr *int64
 	var newBody ast.Node
+	var register object.Register
 	newBody = fe.Body
 	if name != "" {
-		register, newBody = setupRegister(s.env, name, int64(startValue), fe.Body)
-		if !register.Ok {
+		var ok bool
+		register, newBody, ok = setupRegister(s.env, name, int64(startValue), fe.Body)
+		if !ok {
 			return s.Errorf("for loop register %s shouldn't be modified inside the loop", name)
 		}
 		ptr = register.Ptr()
