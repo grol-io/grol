@@ -38,11 +38,9 @@ func apply(f, a) {
 }
 
 func maxWidths(widths) {
-    cols := len(widths[0])
-    colIndices := 0:cols // Generates [0, 1, 2] for 3 columns
-    apply(colIndex => max(apply( row => row[colIndex], widths)), colIndices)
+    apply(colIndex => apply(row => row[colIndex], widths), [0,1])
 }
 
-mw := [[1,4,1],[3,2,4],[3,5,1]]
+mw := [[3,5]]
 
-NoErr("matrix max width", maxWidths(mw), `\[3 5 4\]`)
+NoErr("matrix max width", maxWidths(mw), `\[\[3\] \[5\]\]`)

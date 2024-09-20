@@ -4,11 +4,12 @@ Library of macros for testing
 
 */
 
-/* for older grol versions:
+// When testing regressions using older grol versions (without builtin str):
+
 func str(s) {
 	sprintf("%v",[s])
 }
-*/
+
 
 // Test for absence of error and that the expression's result matches a regexp.
 NoErr = macro(msg, expr, expectedRegexp) {
