@@ -36,6 +36,7 @@ parser-test:
 TINYGO_STACKS:=-stack-size=40mb
 
 wasm: Makefile *.go */*.go $(GEN) wasm/wasm_exec.js wasm/wasm_exec.html wasm/grol_wasm.html
+	sed -i 's/console.warn("scheduleTimeoutEvent: missed timeout event");/this._scheduledTimeouts.delete(id);\nconsole.warn("scheduleTimeoutEvent: missed timeout event");/'  wasm/wasm_exec.js
 #	GOOS=wasip1 GOARCH=wasm go build -o grol.wasm -trimpath -ldflags="-w -s" -tags "$(GO_BUILD_TAGS)" .
 	GOOS=js GOARCH=wasm $(WASM_GO) build -o wasm/grol.wasm -trimpath -ldflags="-w -s" -tags "$(GO_BUILD_TAGS)" ./wasm
 #	GOOS=wasip1 GOARCH=wasm tinygo build -target=wasi -no-debug -o grol_tiny.wasm -tags "$(GO_BUILD_TAGS)" .
