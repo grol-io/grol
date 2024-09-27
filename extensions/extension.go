@@ -326,22 +326,31 @@ func createJSONAndEvalFunctions(c *Config) {
 func createStrFunctions() { //nolint:funlen // we do have quite a few, yes.
 	strFn := object.Extension{
 		MinArgs:  1,
-		MaxArgs:  1,
-		ArgTypes: []object.Type{object.STRING},
+		MaxArgs:  2,
+		ArgTypes: []object.Type{object.STRING, object.BOOLEAN},
 	}
-	strFn.Name = "runes" // like explode.gr explodeRunes but go side and not recursive.
+	strFn.Name = "runes" // like explode.gr explodeRunes but go side and not recursive. option to get as int array.
+	strFn.Help = "optionally as array of integers"
 	strFn.Callback = func(_ any, _ string, args []object.Object) object.Object {
 		inp := args[0].(object.String).Value
+		asInt := len(args) == 2 && args[1].(object.Boolean).Value
 		gorunes := []rune(inp)
 		l := len(gorunes)
 		object.MustBeOk(l)
 		runes := make([]object.Object, l)
 		for i, r := range gorunes {
-			runes[i] = object.String{Value: string(r)}
+			if asInt {
+				runes[i] = object.Integer{Value: int64(r)}
+			} else {
+				runes[i] = object.String{Value: string(r)}
+			}
 		}
 		return object.NewArray(runes)
 	}
 	MustCreate(strFn)
+	strFn.MaxArgs = 1
+	strFn.Help = ""
+	strFn.ArgTypes = []object.Type{object.STRING}
 	strFn.Name = "rune_len"
 	strFn.Callback = func(_ any, _ string, args []object.Object) object.Object {
 		return object.Integer{Value: int64(utf8.RuneCountInString(args[0].(object.String).Value))}
