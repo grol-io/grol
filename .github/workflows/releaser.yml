@@ -16,7 +16,7 @@ jobs:
     permissions: write-all
     steps:
       - name: Checkout
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # pin@v3
+        uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938 # pin@v3
         with:
           fetch-depth: 0
       - uses: docker/setup-qemu-action@49b3bc8e6bdd4a60e6116a5414239cba5943d3cf # pin@v1
