@@ -498,15 +498,15 @@ func (s *State) evalIndexRangeExpression(left object.Object, leftIdx, rightIdx a
 	}
 	l = min(l, int64(num))
 	r = min(r, int64(num))
-	switch {
-	case left.Type() == object.STRING:
+	switch left.Type() {
+	case object.STRING:
 		str := left.(object.String).Value
 		return object.String{Value: str[l:r]}
-	case left.Type() == object.ARRAY:
+	case object.ARRAY:
 		return object.NewArray(object.Elements(left)[l:r])
-	case left.Type() == object.MAP:
+	case object.MAP:
 		return object.Range(left, l, r) // could call that one for all of them...
-	case left.Type() == object.NIL:
+	case object.NIL:
 		return object.NULL
 	default:
 		return s.NewError("range index operator not supported: " + left.Type().String())
