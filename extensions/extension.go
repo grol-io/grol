@@ -654,18 +654,19 @@ func createTimeFunctions() {
 var parseFormats = []string{
 	time.DateTime, //   = "2006-01-02 15:04:05" // first as that's what time.info().str returns (with usec).
 	time.RFC3339,
-	time.ANSIC,    //   = "Mon Jan _2 15:04:05 2006"
-	time.UnixDate, //   = "Mon Jan _2 15:04:05 MST 2006"
-	time.RFC822,   //   = "02 Jan 06 15:04 MST"
-	time.RFC822Z,  //   = "02 Jan 06 15:04 -0700" // RFC822 with numeric zone
-	time.RFC850,   //   = "Monday, 02-Jan-06 15:04:05 MST"
-	time.RFC1123,  //   = "Mon, 02 Jan 2006 15:04:05 MST"
-	time.RFC1123Z, //   = "Mon, 02 Jan 2006 15:04:05 -0700" // RFC1123 with numeric zone
-	time.RFC3339,  //   = "2006-01-02T15:04:05Z07:00"
-	time.Kitchen,  //   = "3:04PM"
-	time.Stamp,    //   = "Jan _2 15:04:05"
-	time.DateOnly, //   = "2006-01-02"
-	time.TimeOnly, //   = "15:04:05"
+	time.ANSIC,            //   = "Mon Jan _2 15:04:05 2006"
+	time.UnixDate,         //   = "Mon Jan _2 15:04:05 MST 2006"
+	time.RFC822,           //   = "02 Jan 06 15:04 MST"
+	time.RFC822Z,          //   = "02 Jan 06 15:04 -0700" // RFC822 with numeric zone
+	time.RFC850,           //   = "Monday, 02-Jan-06 15:04:05 MST"
+	time.RFC1123,          //   = "Mon, 02 Jan 2006 15:04:05 MST"
+	time.RFC1123Z,         //   = "Mon, 02 Jan 2006 15:04:05 -0700" // RFC1123 with numeric zone
+	time.RFC3339,          //   = "2006-01-02T15:04:05Z07:00"
+	"2006-01-02T15:04:05", // ISO8601 without timezone
+	time.Kitchen,          //   = "3:04PM"
+	time.Stamp,            //   = "Jan _2 15:04:05"
+	time.DateOnly,         //   = "2006-01-02"
+	time.TimeOnly,         //   = "15:04:05"
 	"_2 Jan 2006",
 	"_2/1/2006", // try EU (ie sensible) style first.
 	"1/_2/2006",
