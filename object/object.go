@@ -607,7 +607,7 @@ func (f Function) Type() Type { return FUNC }
 // Must be called after the function is fully initialized.
 // Whether a function result should be cached doesn't depend on the Name,
 // so it's not part of the cache key.
-func (f *Function) SetCacheKey() string {
+func SetCacheKey(f *Function) string {
 	out := strings.Builder{}
 	if !f.Lambda {
 		out.WriteString("func ")
@@ -616,7 +616,7 @@ func (f *Function) SetCacheKey() string {
 	return f.CacheKey
 }
 
-func (f *Function) lambdaPrint(ps *ast.PrintState, out *strings.Builder) string {
+func (f Function) lambdaPrint(ps *ast.PrintState, out *strings.Builder) string {
 	if len(f.Parameters) != 1 {
 		out.WriteString(")=>")
 	} else {
@@ -636,7 +636,7 @@ func (f *Function) lambdaPrint(ps *ast.PrintState, out *strings.Builder) string 
 }
 
 // Common part of Inspect and SetCacheKey. Outputs the rest of the function.
-func (f *Function) finishFuncOutput(out *strings.Builder, compact bool) string {
+func (f Function) finishFuncOutput(out *strings.Builder, compact bool) string {
 	needParen := !f.Lambda || len(f.Parameters) != 1
 	if needParen {
 		out.WriteString("(")
@@ -1188,7 +1188,7 @@ type ShortExtFunction func(args []Object) Object
 // name is the function name as registered under.
 type ExtFunction func(eval any, name string, args []Object) Object
 
-func (e *Extension) Usage(out *strings.Builder) {
+func (e Extension) Usage(out *strings.Builder) {
 	for i := 1; i <= e.MinArgs; i++ {
 		if i > 1 {
 			out.WriteString(", ")

@@ -275,7 +275,7 @@ func (s *State) evalInternal(node any) object.Object { //nolint:funlen,gocognit,
 			log.LogVf("Normalizing non-short lambda form to => lambda")
 			fn.Lambda = true
 		}
-		fn.SetCacheKey() // sets cache key
+		object.SetCacheKey(&fn) // sets cache key
 		if name != nil {
 			oerr := s.env.Set(name.Literal(), fn)
 			if oerr.Type() == object.ERROR {
