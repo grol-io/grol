@@ -1,3 +1,4 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Grol</title></head>
 <!--
   Keep grol/wasm/grol_wasm.html and web-site/_includes/grol_wasm.html in sync
   Using `make sync` in web-site/
@@ -38,12 +39,46 @@
 </style>
 <script src="wasm_exec.js"></script>
 <script>
-    function debounce(func) {
+    /**
+     * A singular task ES6++ mutex
+     * inspired by this https://blog.jcoglan.com/2016/07/12/mutexes-and-javascript/
+     */
+    class Lock {
+      #isLocked = false
+      #queue = []
+      constructor(){}
+
+      sync(task) {
+        console.log("SYNC")
+        if (this.#isLocked) {
+          console.log("Lock already has a task, ommiting another one at " + new Date().toString())
+          return
+        }
+
+        this.#queue.push(task)
+        if (!this.#isLocked) this.#dequeue()
+      }
+
+      #dequeue() {
+        this.#isLocked = true
+        const next = this.#queue.shift()
+
+        if (next) this.#execute(next)
+        else this.#isLocked = false
+      }
+
+      async #execute(task) {
+        const thisDequeue = () => this.#dequeue()
+        task().then(thisDequeue, thisDequeue)
+      }
+    }
+
+    function debounce(func, ms = 100) {  // 100ms debounce by default
         let timeout
         return function (...args) {
             const context = this
             clearTimeout(timeout)
-            timeout = setTimeout(() => func.apply(context, args), 100) // 100ms debounce
+            timeout = setTimeout(() => func.apply(context, args), ms)
         }
     }
     if (!WebAssembly.instantiateStreaming) { // polyfill
@@ -68,10 +103,8 @@
     function formatError(error) {
         return `Error: ${error.message}`;
     }
-    let isRunning = false
-    async function run() {
-        if (isRunning) return; // Prevent running multiple times concurrently
-        isRunning = true;
+
+    async function _run() {
         document.getElementById("runButton").disabled = true; // Disable button during execution
         try {
             // console.clear();
@@ -105,20 +138,21 @@
         } finally {
             inst = await WebAssembly.instantiate(mod, go.importObject)
             console.log('Instance reset:', inst)
-            if (isRunning) {
-                isRunning = false; // Allow running again after reset
-                document.getElementById("runButton").disabled = false; // Re-enable the button
-            }
+            document.getElementById("runButton").disabled = false; // Re-enable the button
         }
         resizeTextarea(document.getElementById('input'));
         resizeTextarea(document.getElementById('output'));
         resizeTextarea(document.getElementById('errors'));
     }
-    const debounceRun = debounce(run)
+
+
+    const lock = new Lock()
+    const run = debounce(() => lock.sync(_run), 100)
+
     document.addEventListener('DOMContentLoaded', (event) => {
         document.getElementById('input').addEventListener('keydown', function (e) {
-            if (e.key === 'Enter' && !isRunning) {
-                debounceRun();
+            if (e.key === 'Enter') {
+                run()
             }
         });
     });
@@ -142,7 +176,7 @@ a=[fact(5), "abc", sqrt(2)] // heterogeneous array, math functions
 m={"str key": a, PI: "pi", 42: "str val", 1e3: "a lot"}</textarea>
 </div>
 <div>
-    Hit enter or click <button onClick="debounceRun()" id="runButton" disabled>Run</button> (will also format the code,
+    Hit enter or click <button onClick="run()" id="runButton" disabled>Run</button> (will also format the code,
     also
     try <input type="checkbox" id="compact">compact)
     <button id="addParamButton">Share</button>
@@ -185,3 +219,4 @@ m={"str key": a, PI: "pi", 42: "str val", 1e3: "a lot"}</textarea>
         document.getElementById('input').value = decodeURIComponent(paramValue)
     }
 </script>
+</html>
