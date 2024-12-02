@@ -136,6 +136,7 @@ func initInternal(c *Config) error {
 	if c.UnrestrictedIOs {
 		createShellFunctions()
 	}
+	createIOFunctions()
 	return nil
 }
 
