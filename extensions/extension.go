@@ -521,10 +521,10 @@ func createMisc() {
 			case object.STRING:
 				str := o.(object.String).Value
 				str = strings.TrimSpace(str)
-				str = strings.TrimLeft(str, "0")
 				if str == "" {
 					return object.Integer{Value: 0}
 				}
+				// Supports hex, octal, decimal, binary.
 				i, serr := strconv.ParseInt(str, 0, 64)
 				if serr != nil {
 					return s.Error(serr)
