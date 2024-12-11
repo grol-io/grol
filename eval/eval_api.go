@@ -48,6 +48,7 @@ type State struct {
 	Context context.Context //nolint:containedctx // we need a context for callbacks from extensions and to set it without API change.
 	Cancel  context.CancelFunc
 	PipeVal []byte // value to return from pipe() function
+	NoReg   bool   // don't use registers.
 }
 
 func NewState() *State {

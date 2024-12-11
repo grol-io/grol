@@ -2,9 +2,11 @@ all: generate lint check test run
 
 GO_BUILD_TAGS:=no_net,no_pprof
 
+#GROL_FLAGS:=-no-register
+
 run: grol
 	# Interactive debug run: use logger with file and line numbers
-	LOGGER_IGNORE_CLI_MODE=true GOMEMLIMIT=1GiB ./grol -panic -parse -loglevel debug
+	LOGGER_IGNORE_CLI_MODE=true GOMEMLIMIT=1GiB ./grol -panic -parse -loglevel debug $(GROL_FLAGS)
 
 GEN:=object/type_string.go ast/priority_string.go token/type_string.go
 
@@ -82,10 +84,10 @@ unit-tests:
 	CGO_ENABLED=0 go test -tags $(GO_BUILD_TAGS) ./...
 
 examples: grol
-	GOMEMLIMIT=1GiB ./grol -panic examples/*.gr
+	GOMEMLIMIT=1GiB ./grol -panic $(GROL_FLAGS) examples/*.gr
 
 grol-tests: grol
-	GOMEMLIMIT=1GiB ./grol -panic -shared-state tests/*.gr
+	GOMEMLIMIT=1GiB ./grol -panic -shared-state $(GROL_FLAGS) tests/*.gr
 
 check: grol
 	./check_samples_double_format.sh examples/*.gr

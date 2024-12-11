@@ -1,0 +1,28 @@
+// https://adventofcode.com/2024/day/11
+
+func applyRules(v, depth) {
+	if depth == 0 {
+		1
+	} else if v == 0 {
+		applyRules(1, depth-1)
+	} else {
+		s := str(v)
+		l := len(s)
+		depth = depth - 1
+		if l%2 == 1 {
+			applyRules(2024*v, depth)
+		} else {
+			left := int(s[0:l/2])
+			right := int(trim_left(s[l/2:l], "0"))
+			applyRules(left, depth) + applyRules(right, depth)
+		}
+	}
+}
+
+n :=25
+println(applyRules(125,n)+applyRules(17,n))
+
+// Despite auto memoization, this is still too slow even with the new -no-register
+
+// n = 75
+// println(applyRules(125,n)+applyRules(17,n))

@@ -324,6 +324,8 @@ func createJSONAndEvalFunctions(c *Config) {
 	}
 }
 
+const DefaultTrimSet = " \r\n\t"
+
 func createStrFunctions() { //nolint:funlen // we do have quite a few, yes.
 	strFn := object.Extension{
 		MinArgs:  1,
@@ -457,6 +459,46 @@ func createStrFunctions() { //nolint:funlen // we do have quite a few, yes.
 		return object.String{Value: newStr}
 	}
 	MustCreate(strFn)
+	strFn.Name = "trim"
+	strFn.Help = "trims leading and trailing spaces or characters"
+	strFn.ArgTypes = []object.Type{object.STRING, object.STRING}
+	strFn.MinArgs = 1
+	strFn.MaxArgs = 2
+	strFn.Callback = func(_ any, _ string, args []object.Object) object.Object {
+		inp := args[0].(object.String).Value
+		trim := DefaultTrimSet
+		if len(args) == 2 {
+			trim = args[1].(object.String).Value
+		}
+		return object.String{Value: strings.Trim(inp, trim)}
+	}
+	MustCreate(strFn)
+	strFn.Name = "trim_left"
+	strFn.Help = "trims leading spaces or characters"
+	strFn.ArgTypes = []object.Type{object.STRING, object.STRING}
+	strFn.MaxArgs = 2
+	strFn.Callback = func(_ any, _ string, args []object.Object) object.Object {
+		inp := args[0].(object.String).Value
+		trim := DefaultTrimSet
+		if len(args) == 2 {
+			trim = args[1].(object.String).Value
+		}
+		return object.String{Value: strings.TrimLeft(inp, trim)}
+	}
+	MustCreate(strFn)
+	strFn.Name = "trim_right"
+	strFn.Help = "trims trailing spaces or characters"
+	strFn.ArgTypes = []object.Type{object.STRING, object.STRING}
+	strFn.MaxArgs = 2
+	strFn.Callback = func(_ any, _ string, args []object.Object) object.Object {
+		inp := args[0].(object.String).Value
+		trim := DefaultTrimSet
+		if len(args) == 2 {
+			trim = args[1].(object.String).Value
+		}
+		return object.String{Value: strings.TrimRight(inp, trim)}
+	}
+	MustCreate(strFn)
 }
 
 func createMisc() {
@@ -519,7 +561,12 @@ func createMisc() {
 				}
 				return object.Integer{Value: r}
 			case object.STRING:
-				i, serr := strconv.ParseInt(o.(object.String).Value, 0, 64)
+				str := o.(object.String).Value
+				if str == "" {
+					return object.Integer{Value: 0}
+				}
+				// Supports hex, octal, decimal, binary.
+				i, serr := strconv.ParseInt(str, 0, 64)
 				if serr != nil {
 					return s.Error(serr)
 				}

@@ -25,6 +25,7 @@ type Environment struct {
 	ids       *trie.Trie
 	numSet    int64
 	getMiss   int64
+	cantCache bool
 	function  *Function
 	registers [NumRegisters]int64
 	numReg    int
@@ -261,12 +262,18 @@ func (e *Environment) Get(name string) (Object, bool) {
 // Meant to be used by extensions that for instance return random numbers or change state.
 func (e *Environment) TriggerNoCache() {
 	log.Debugf("TriggerNoCache() GETMISS called at %d %v", e.depth, e.cacheKey)
+	e.cantCache = true
 	e.getMiss++
 }
 
 // GetMisses returns the cumulative number of get misses (a function tried to access up stack, so can't be cached).
 func (e *Environment) GetMisses() int64 {
 	return e.getMiss
+}
+
+// Can't cache is if we called a non cacheable extension (like rand()).
+func (e *Environment) CantCache() bool {
+	return e.cantCache
 }
 
 // Defines constant as all CAPS (with _ ok in the middle) identifiers.

@@ -649,6 +649,7 @@ func (s *State) applyFunction(name string, fn object.Object, args []object.Objec
 	before := s.env.GetMisses()
 	res := s.Eval(newBody) // Need to have the return value unwrapped. Fixes bug #46, also need to count recursion.
 	after := s.env.GetMisses()
+	cantCache := s.env.CantCache()
 	// restore the previous env/state.
 	s.env = curState
 	s.Out = oldOut
@@ -662,8 +663,10 @@ func (s *State) applyFunction(name string, fn object.Object, args []object.Objec
 	}
 	if after != before {
 		log.Debugf("Cache miss for %s %v, %d get misses", function.CacheKey, args, after-before)
-		// A miss here is a miss upstack
-		s.env.TriggerNoCache()
+		// Propagate the can't cache
+		if cantCache {
+			s.env.TriggerNoCache()
+		}
 		return res
 	}
 	// Don't cache errors, as it could be due to binding for instance.
@@ -714,7 +717,7 @@ func (s *State) extendFunctionEnv(
 		// By definition function parameters are local copies, deref argument values:
 		pval := object.Value(args[paramIdx])
 		needVariable := true
-		if pval.Type() == object.INTEGER {
+		if !s.NoReg && pval.Type() == object.INTEGER {
 			// We will release all these registers just by returning/dropping the env.
 			_, nbody, ok := setupRegister(env, param.Value().Literal(), pval.(object.Integer).Value, newBody)
 			if ok {
@@ -846,7 +849,7 @@ func (s *State) evalForInteger(fe *ast.ForExpression, start *int64, end int64, n
 	var newBody ast.Node
 	var register object.Register
 	newBody = fe.Body
-	if name != "" {
+	if name != "" && !s.NoReg {
 		var ok bool
 		register, newBody, ok = setupRegister(s.env, name, int64(startValue), fe.Body)
 		if !ok {
@@ -855,6 +858,9 @@ func (s *State) evalForInteger(fe *ast.ForExpression, start *int64, end int64, n
 		ptr = register.Ptr()
 	}
 	for i := startValue; i < endValue; i++ {
+		if s.NoReg && name != "" {
+			s.env.Set(name, object.Integer{Value: int64(i)})
+		}
 		if ptr != nil {
 			*ptr = int64(i)
 		}

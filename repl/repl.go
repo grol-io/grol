@@ -69,6 +69,7 @@ type Options struct {
 	AllParens   bool // Show all parens in parse tree (default is to simplify using precedence).
 	MaxDuration time.Duration
 	ShebangMode bool // Whether to run in #! script mode (not making a difference here, used in main.go).
+	NoReg       bool // Disable registers.
 }
 
 func AutoLoad(s *eval.State, options Options) error {
@@ -179,6 +180,7 @@ func EvalString(what string) (string, []string, string) {
 // AutoLoad, AutoSave, Compact.
 func EvalStringWithOption(ctx context.Context, o Options, what string) (res string, errs []string, formatted string) {
 	s := eval.NewState()
+	s.NoReg = o.NoReg
 	if o.MaxDepth > 0 {
 		s.MaxDepth = o.MaxDepth
 	}
@@ -217,6 +219,7 @@ func extractHistoryNumber(input string) (int, bool) {
 func Interactive(options Options) int { //nolint:funlen // we do have quite a few cases.
 	options.NilAndErr = true
 	s := eval.NewState()
+	s.NoReg = options.NoReg
 	s.MaxDepth = options.MaxDepth
 	s.MaxValueLen = options.MaxValueLen // 0 is unlimited so ok to copy as is.
 	term, err := terminal.Open(context.Background())
