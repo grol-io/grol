@@ -562,7 +562,6 @@ func createMisc() {
 				return object.Integer{Value: r}
 			case object.STRING:
 				str := o.(object.String).Value
-				str = strings.TrimSpace(str)
 				if str == "" {
 					return object.Integer{Value: 0}
 				}

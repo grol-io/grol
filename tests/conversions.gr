@@ -25,7 +25,7 @@ Assert("int(true) is 1", int(true) == 1)
 Assert("int(false) is 0", int(false) == 0)
 Assert("int(nil) is 0", int(nil) == 0)
 Assert("int(\"\") is 0", int("") == 0)
-Assert("int() with whitespaces work", int("\n  123\n\t") == 123)
+Assert("int() with trim() whitespaces work", int(trim("\n  123\n\t")) == 123)
 Assert("int(\"0\") is 0", int("0") == 0)
 Assert("int(\"0xa\") is 10", int("0xa") == 10)           // hex still working despite leading 0 handling
 Assert("int(\"0755\") octal is 493", int("0755") == 493) // octal still working despite leading 0 handling

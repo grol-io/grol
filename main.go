@@ -70,6 +70,7 @@ func Main() (retcode int) { //nolint:funlen // we do have quite a lot of flags a
 	// Use 0 (unlimited) as default now that you can ^C to stop a script.
 	maxDuration := flag.Duration("max-duration", 0, "Maximum duration for a script to run. 0 for unlimited.")
 	shebangMode := flag.Bool("s", false, "#! script mode: next argument is a script file to run, rest are args to the script")
+	noRegister := flag.Bool("no-register", false, "Don't use registers")
 
 	cli.ArgsHelp = "*.gr files to interpret or `-` for stdin without prompt or no arguments for stdin repl..."
 	cli.MaxArgs = -1
@@ -106,6 +107,7 @@ func Main() (retcode int) { //nolint:funlen // we do have quite a lot of flags a
 		AllParens:   *allParens,
 		MaxDuration: *maxDuration,
 		ShebangMode: *shebangMode,
+		NoReg:       *noRegister,
 	}
 	if hookBefore != nil {
 		retcode = hookBefore()
@@ -144,6 +146,7 @@ func Main() (retcode int) { //nolint:funlen // we do have quite a lot of flags a
 	}
 	options.All = true
 	s := eval.NewState()
+	s.NoReg = *noRegister
 	if options.ShebangMode {
 		script := flag.Arg(0)
 		// remaining := flag.Args()[1:] // actually let's also pass the name of the script as arg[0]
