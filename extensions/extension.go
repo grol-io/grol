@@ -324,6 +324,8 @@ func createJSONAndEvalFunctions(c *Config) {
 	}
 }
 
+const DefaultTrimSet = " \r\n\t"
+
 func createStrFunctions() { //nolint:funlen // we do have quite a few, yes.
 	strFn := object.Extension{
 		MinArgs:  1,
@@ -464,7 +466,7 @@ func createStrFunctions() { //nolint:funlen // we do have quite a few, yes.
 	strFn.MaxArgs = 2
 	strFn.Callback = func(_ any, _ string, args []object.Object) object.Object {
 		inp := args[0].(object.String).Value
-		trim := " \r\n\t"
+		trim := DefaultTrimSet
 		if len(args) == 2 {
 			trim = args[1].(object.String).Value
 		}
@@ -477,7 +479,7 @@ func createStrFunctions() { //nolint:funlen // we do have quite a few, yes.
 	strFn.MaxArgs = 2
 	strFn.Callback = func(_ any, _ string, args []object.Object) object.Object {
 		inp := args[0].(object.String).Value
-		trim := " \r\n\t"
+		trim := DefaultTrimSet
 		if len(args) == 2 {
 			trim = args[1].(object.String).Value
 		}
@@ -490,7 +492,7 @@ func createStrFunctions() { //nolint:funlen // we do have quite a few, yes.
 	strFn.MaxArgs = 2
 	strFn.Callback = func(_ any, _ string, args []object.Object) object.Object {
 		inp := args[0].(object.String).Value
-		trim := " \r\n\t"
+		trim := DefaultTrimSet
 		if len(args) == 2 {
 			trim = args[1].(object.String).Value
 		}
