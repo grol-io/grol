@@ -519,7 +519,13 @@ func createMisc() {
 				}
 				return object.Integer{Value: r}
 			case object.STRING:
-				i, serr := strconv.ParseInt(o.(object.String).Value, 0, 64)
+				str := o.(object.String).Value
+				str = strings.TrimSpace(str)
+				str = strings.TrimLeft(str, "0")
+				if str == "" {
+					return object.Integer{Value: 0}
+				}
+				i, serr := strconv.ParseInt(str, 0, 64)
 				if serr != nil {
 					return s.Error(serr)
 				}
