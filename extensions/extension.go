@@ -457,6 +457,46 @@ func createStrFunctions() { //nolint:funlen // we do have quite a few, yes.
 		return object.String{Value: newStr}
 	}
 	MustCreate(strFn)
+	strFn.Name = "trim"
+	strFn.Help = "trims leading and trailing spaces or characters"
+	strFn.ArgTypes = []object.Type{object.STRING, object.STRING}
+	strFn.MinArgs = 1
+	strFn.MaxArgs = 2
+	strFn.Callback = func(_ any, _ string, args []object.Object) object.Object {
+		inp := args[0].(object.String).Value
+		trim := " \r\n\t"
+		if len(args) == 2 {
+			trim = args[1].(object.String).Value
+		}
+		return object.String{Value: strings.Trim(inp, trim)}
+	}
+	MustCreate(strFn)
+	strFn.Name = "trim_left"
+	strFn.Help = "trims leading spaces or characters"
+	strFn.ArgTypes = []object.Type{object.STRING, object.STRING}
+	strFn.MaxArgs = 2
+	strFn.Callback = func(_ any, _ string, args []object.Object) object.Object {
+		inp := args[0].(object.String).Value
+		trim := " \r\n\t"
+		if len(args) == 2 {
+			trim = args[1].(object.String).Value
+		}
+		return object.String{Value: strings.TrimLeft(inp, trim)}
+	}
+	MustCreate(strFn)
+	strFn.Name = "trim_right"
+	strFn.Help = "trims trailing spaces or characters"
+	strFn.ArgTypes = []object.Type{object.STRING, object.STRING}
+	strFn.MaxArgs = 2
+	strFn.Callback = func(_ any, _ string, args []object.Object) object.Object {
+		inp := args[0].(object.String).Value
+		trim := " \r\n\t"
+		if len(args) == 2 {
+			trim = args[1].(object.String).Value
+		}
+		return object.String{Value: strings.TrimRight(inp, trim)}
+	}
+	MustCreate(strFn)
 }
 
 func createMisc() {

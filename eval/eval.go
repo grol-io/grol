@@ -649,6 +649,7 @@ func (s *State) applyFunction(name string, fn object.Object, args []object.Objec
 	before := s.env.GetMisses()
 	res := s.Eval(newBody) // Need to have the return value unwrapped. Fixes bug #46, also need to count recursion.
 	after := s.env.GetMisses()
+	cantCache := s.env.CantCache()
 	// restore the previous env/state.
 	s.env = curState
 	s.Out = oldOut
@@ -662,8 +663,10 @@ func (s *State) applyFunction(name string, fn object.Object, args []object.Objec
 	}
 	if after != before {
 		log.Debugf("Cache miss for %s %v, %d get misses", function.CacheKey, args, after-before)
-		// A miss here is a miss upstack
-		s.env.TriggerNoCache()
+		// Propagate the can't cache
+		if cantCache {
+			s.env.TriggerNoCache()
+		}
 		return res
 	}
 	// Don't cache errors, as it could be due to binding for instance.
