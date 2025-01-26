@@ -1051,3 +1051,17 @@ func TestDecrRegister(t *testing.T) {
 		t.Errorf("wrong result, got %q", res.Inspect())
 	}
 }
+
+// Test for https://github.com/grol-io/grol/issues/276
+func TestArrayLeftNoPanic(t *testing.T) {
+	inp := `[]=0`
+	s := eval.NewState()
+	res, err := eval.EvalString(s, inp, false)
+	if err == nil {
+		t.Errorf("should have errored: %v", res)
+	}
+	expected := "<err: assignment to non index [] expression *ast.ArrayLiteral []>"
+	if res.Inspect() != expected {
+		t.Errorf("wrong result, got %q", res.Inspect())
+	}
+}
