@@ -23,11 +23,17 @@ func (s *State) evalAssignment(right object.Object, node *ast.InfixExpression) o
 	}
 	switch node.Left.Value().Type() {
 	case token.DOT:
-		idxE := node.Left.(*ast.IndexExpression)
+		idxE, ok := node.Left.(*ast.IndexExpression)
+		if !ok {
+			return s.Errorf("assignment to non index . expression %T %s", node.Left, ast.DebugString(node.Left))
+		}
 		index := object.String{Value: idxE.Index.Value().Literal()}
 		return s.evalIndexAssigment(idxE.Left, index, right)
 	case token.LBRACKET:
-		idxE := node.Left.(*ast.IndexExpression)
+		idxE, ok := node.Left.(*ast.IndexExpression)
+		if !ok {
+			return s.Errorf("assignment to non index [] expression %T %v", node.Left, ast.DebugString(node.Left))
+		}
 		index := s.Eval(idxE.Index)
 		return s.evalIndexAssigment(idxE.Left, index, right)
 	case token.IDENT:
