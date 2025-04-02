@@ -220,7 +220,9 @@ func Interactive(options Options) int { //nolint:funlen // we do have quite a fe
 	options.NilAndErr = true
 	s := eval.NewState()
 	s.NoReg = options.NoReg
-	s.MaxDepth = options.MaxDepth
+	if options.MaxDepth > 0 {
+		s.MaxDepth = options.MaxDepth
+	}
 	s.MaxValueLen = options.MaxValueLen // 0 is unlimited so ok to copy as is.
 	term, err := terminal.Open(context.Background())
 	if err != nil {
@@ -248,7 +250,9 @@ func Interactive(options Options) int { //nolint:funlen // we do have quite a fe
 	term.SetAutoHistory(false)
 	options.DualFormat = true // because terminal doesn't (yet) do well will multi-line commands.
 	term.NewHistory(options.MaxHistory)
-	_ = term.SetHistoryFile(options.HistoryFile)
+	if options.HistoryFile != "" {
+		_ = term.SetHistoryFile(options.HistoryFile)
+	}
 	_ = AutoLoad(s, options) // errors already logged
 	if options.PreInput != nil {
 		options.PreInput(s)
