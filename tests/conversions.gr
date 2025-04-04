@@ -29,3 +29,12 @@ Assert("int() with trim() whitespaces work", int(trim("\n  123\n\t")) == 123)
 Assert("int(\"0\") is 0", int("0") == 0)
 Assert("int(\"0xa\") is 10", int("0xa") == 10)           // hex still working despite leading 0 handling
 Assert("int(\"0755\") octal is 493", int("0755") == 493) // octal still working despite leading 0 handling
+
+// Unrelated for small test for existence of stuff
+func Exists(x) {
+	// log(info.globals)
+	info.globals[x] == true
+}
+Assert("exists false before we set foo", Exists("foo") == false)
+foo=42
+Assert("exists true after we set foo", Exists("foo") == true)

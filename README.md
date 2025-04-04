@@ -48,15 +48,15 @@ $ m=fact(7)
 $ m/n
 == Parse ==> m / n
 == Eval  ==> 7
-$ func fx(n) {if n>0 {return fx(n-1)}; info.all_ids}; fx(3)
-== Parse ==> func fx(n) {
+$ func fx(n,s) {if n>0 {return fx(n-1,s)}; info.stack}; fx(3,"abc")
+== Parse ==> func fx(n, s) {
 	if n > 0 {
-		return fx(n - 1)
+		return fx(n - 1, s)
 	}
-	info.all_ids
+	info.stack
 }
-fx(3)
-== Eval  ==> {0:["E","PI","abs","fact","fx","log2","n","printf"],1:["n","self"],2:["fx","n","self"],3:["fx","n","self"],4:["fx","n","self"]}
+fx(3, "abc")
+== Eval  ==> [{"s":true},{"s":true},{"s":true},{"s":true}] // registers don't show up, so only s does and not n	
 $ info["gofuncs"] // other way to access map keys, for when they aren't strings for instance
 == Parse ==> info["gofuncs"] // other way to access map keys, for when they aren't strings for instance
 == Eval  ==> ["acos","asin","atan","ceil","cos","eval","exp","floor","json","ln","log10","pow","round","sin","sprintf","sqrt","tan","trunc","unjson"]
