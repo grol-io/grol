@@ -95,11 +95,11 @@ func (e *Environment) Info() Object {
 			keys = append(keys, k)
 		}
 		slices.Sort(keys)
-		arr := MakeObjectSlice(len(keys))
+		set := NewMapSize(len(keys))
 		for _, k := range keys {
-			arr = append(arr, String{Value: k})
+			set.Set(String{Value: k}, TRUE)
 		}
-		allKeys[e.depth] = NewArray(arr)
+		allKeys[e.depth] = set
 		if e.outer == nil {
 			break
 		}
