@@ -56,7 +56,7 @@ func (e *Environment) BaseInfo() *BigMap {
 	if baseInfo.kv != nil {
 		return &baseInfo
 	}
-	baseInfo.kv = make([]keyValuePair, 0, 7) // 6 here + all_ids
+	baseInfo.kv = make([]keyValuePair, 0, 8) // 6 here + globals + stack
 	tokInfo := token.Info()
 	keys := make([]Object, 0, len(tokInfo.Keywords))
 	for _, v := range sets.Sort(tokInfo.Keywords) {
@@ -88,25 +88,30 @@ func (e *Environment) BaseInfo() *BigMap {
 }
 
 func (e *Environment) Info() Object {
-	allKeys := make([]Object, e.depth+1)
+	allKeys := make([]Object, e.depth)
+	info := e.BaseInfo()
 	for {
 		keys := make([]string, 0, len(e.store))
 		for k := range e.store {
 			keys = append(keys, k)
 		}
 		slices.Sort(keys)
-		arr := MakeObjectSlice(len(keys))
+		set := NewMapSize(len(keys))
 		for _, k := range keys {
-			arr = append(arr, String{Value: k})
+			set = set.Set(String{Value: k}, TRUE)
 		}
-		allKeys[e.depth] = NewArray(arr)
+		log.LogVf("Info() for %d - %d - keys %v set %v", e.depth, len(e.store), keys, set)
+		if e.depth == 0 {
+			info.Set(String{"globals"}, set) // 0 == globals
+		} else {
+			allKeys[e.depth-1] = set
+		}
 		if e.outer == nil {
 			break
 		}
 		e = e.outer
 	}
-	info := e.BaseInfo()
-	info.Set(String{"all_ids"}, BigArray{elements: allKeys}) // 7
+	info.Set(String{"stack"}, NewArray(allKeys))
 	return info
 }
 
@@ -228,6 +233,7 @@ func (e *Environment) makeRef(name string) (*Reference, bool) {
 
 func (e *Environment) Get(name string) (Object, bool) {
 	if name == "info" {
+		e.TriggerNoCache()
 		return e.Info(), true
 	}
 	if name == "self" {

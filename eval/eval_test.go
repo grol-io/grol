@@ -146,7 +146,7 @@ func TestEvalBooleanExpression(t *testing.T) {
 		{"(1 > 2) == false", true},
 		{`"hello" == "world"`, false},
 		{`"hello" == "hello"`, true},
-		{`info["all_ids"] == info.all_ids`, true},
+		{`info["globals"] == info.globals`, true},
 	}
 
 	for _, tt := range tests {

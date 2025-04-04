@@ -121,8 +121,8 @@ stdout '^3$'
 !stderr .
 
 # eval() runs in the same context as when called
-grol -quiet -c 'func foo(x) {eval("info")};foo("A")["all_ids"][1]'
-stdout '^\["x"\]$'
+grol -quiet -c 'func foo(x) {eval("info")};foo("A")["stack"][0]'
+stdout '^{"x":true}$'
 !stderr .
 
 # json of (nested) arrays
