@@ -7,6 +7,8 @@ Initially created by following along https://interpreterbook.com and making many
 
 There is also now a [discord bot](https://github.com/grol-io/grol-discord-bot#grol-discord-bot) as well as a `wasm` version that runs directly in your browser, try it on [grol.io](https://grol.io/)
 
+And [fortio](https://github.com/fortio/fortio) for instance now embeds it and gives access to programmable network operations like curl and UDP/TCP/HTTP/gRPC load tests.
+
 ## Install
 
 Install/run it:
