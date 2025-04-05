@@ -7,6 +7,8 @@ Initially created by following along https://interpreterbook.com and making many
 
 There is also now a [discord bot](https://github.com/grol-io/grol-discord-bot#grol-discord-bot) as well as a `wasm` version that runs directly in your browser, try it on [grol.io](https://grol.io/)
 
+And [fortio](https://github.com/fortio/fortio) for instance now embeds it and gives access to programmable network operations like curl and UDP/TCP/HTTP/gRPC load tests.
+
 ## Install
 
 Install/run it:
@@ -229,3 +231,7 @@ flags:
 (excluding logger control, see `gorepl help` for all the flags, of note `-logger-no-color` will turn off colors for gorepl too, for development there are also `-profile*` options for pprof, when building without `no_pprof`)
 
 If you don't want to pass a flag and want to permanently change the `grol` history file location from your HOME directory, set `GROL_HISTORY_FILE` in the environment.
+
+### Contributing
+
+Contributions are most welcome! If you use GROL, feel free to open a PR or issue to be listed here.
