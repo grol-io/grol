@@ -231,3 +231,7 @@ flags:
 (excluding logger control, see `gorepl help` for all the flags, of note `-logger-no-color` will turn off colors for gorepl too, for development there are also `-profile*` options for pprof, when building without `no_pprof`)
 
 If you don't want to pass a flag and want to permanently change the `grol` history file location from your HOME directory, set `GROL_HISTORY_FILE` in the environment.
+
+### Contributing
+
+Contributions are most welcome! If you use GROL, feel free to open a PR or issue to be listed here.
