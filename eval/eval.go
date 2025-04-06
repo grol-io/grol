@@ -427,7 +427,7 @@ func (s *State) evalDelete(node ast.Node) object.Object {
 		if name == "" {
 			return s.NewError("delete empty identifier")
 		}
-		return object.String{Value: name}
+		return s.env.Delete(name)
 	case token.DOT:
 		idxE, ok := node.(*ast.IndexExpression)
 		if !ok {
@@ -437,7 +437,8 @@ func (s *State) evalDelete(node ast.Node) object.Object {
 		if index.Type() == object.ERROR {
 			return index
 		}
-		return object.String{Value: "remove map dot:" + index.Inspect()}
+		// TODO implement like below [] case
+		return s.NewError("TODO remove map dot:" + index.Inspect())
 	case token.LBRACKET:
 		// Map/array index
 		idxE := node.(*ast.IndexExpression)
