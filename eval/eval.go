@@ -421,6 +421,7 @@ func (s *State) evalPrintLogError(node *ast.Builtin) object.Object {
 var ErrorKey = object.String{Value: "err"} // can't use error as that's a builtin.
 
 func (s *State) evalDelete(node ast.Node) object.Object {
+	s.env.TriggerNoCache()
 	switch node.Value().Type() {
 	case token.IDENT:
 		name := node.Value().Literal()

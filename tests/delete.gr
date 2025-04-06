@@ -33,3 +33,23 @@ Assert("first delete should be true", del(strmap.foo))
 log("after del str", strmap)
 Assert("2nd delete should be false", del(strmap.foo)==false)
 Assert("strmap should be as expected", strmap == {"baz":"quux"})
+
+x="outer"
+func delTest(x) {
+	log("before del x", x)
+	del(x)
+	log("after del x", x)
+	x
+}
+
+Assert("delTest(str) should return outer", delTest("foo") == "outer")
+IsErr("can't (for now) delete registers", delTest(3), "delete not supported on REGISTER")
+IsErr("del needs to be of identifier/map", del(1+2), "delete not supported on PLUS")
+
+func delTest() {
+	del(x)
+}
+
+Assert("delTest() should be true first time", delTest())
+// Without no cache this wasn't working
+Assert("delTest() should be false second time", delTest() == false)
