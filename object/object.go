@@ -247,12 +247,17 @@ func CompareKeys(a, b keyValuePair) int {
 }
 
 func (m *BigMap) Get(key Object) (Object, bool) {
+	v, found, _ := m.get(key)
+	return v, found
+}
+
+func (m *BigMap) get(key Object) (Object, bool, int) {
 	kv := keyValuePair{Key: key}
 	i, ok := slices.BinarySearchFunc(m.kv, kv, CompareKeys) // log(n) search as we keep it sorted.
 	if !ok {
-		return NULL, false
+		return NULL, false, i
 	}
-	return m.kv[i].Value, true
+	return m.kv[i].Value, true, i
 }
 
 func (m *BigMap) Set(key, value Object) Map {
@@ -325,6 +330,16 @@ func (m *BigMap) Range(l, r int64) Object {
 	return res
 }
 
+func (m *BigMap) Delete(key Object) (Map, bool) {
+	_, found, idx := m.get(key)
+	if !found {
+		return m, false
+	}
+	copy(m.kv[idx:], m.kv[idx+1:])
+	m.kv = m.kv[:len(m.kv)-1]
+	return m, true
+}
+
 func NewMapSize(size int) Map {
 	if size <= MaxSmallMap {
 		return SmallMap{}
@@ -333,30 +348,46 @@ func NewMapSize(size int) Map {
 }
 
 func (m SmallMap) Get(key Object) (Object, bool) {
+	r, found, _ := m.get(key)
+	return r, found
+}
+
+// return the index where the key if not found would be inserted at,
+// replaces slices.BinarySearchFunc(m.smallKV[:m.len], kv, CompareKeys) for small maps.
+func (m SmallMap) get(key Object) (Object, bool, int) {
 	for i := range m.len {
-		if Cmp(m.smallKV[i].Key, key) == 0 {
-			return m.smallKV[i].Value, true
+		c := Cmp(m.smallKV[i].Key, key)
+		switch c {
+		case 1:
+			return NULL, false, i
+		case 0:
+			return m.smallKV[i].Value, true, i
 		}
 	}
-	return NULL, false
+	return NULL, false, m.len
 }
 
 func (m SmallMap) Set(key, value Object) Map {
-	kv := keyValuePair{Key: key, Value: value}
-	i, ok := slices.BinarySearchFunc(m.smallKV[:m.len], kv, CompareKeys)
+	_, ok, i := m.get(key) // slices.BinarySearchFunc(m.smallKV[:m.len], kv, CompareKeys)
 	if ok {
 		m.smallKV[i].Value = value
 		return m
 	}
-	r := slices.Insert(m.smallKV[0:m.len:MaxSmallMap], i, kv)
-	if m.len < MaxSmallMap {
-		copy(m.smallKV[0:MaxSmallMap], r)
-		m.len++
-		return m
+	m.len++
+	if m.len > MaxSmallMap {
+		// We need to switch to a big map.
+		res := &BigMap{kv: make([]keyValuePair, 0, m.len)}
+		res.kv = append(res.kv, m.smallKV[:i]...)
+		res.kv = append(res.kv, keyValuePair{Key: key, Value: value})
+		res.kv = append(res.kv, m.smallKV[i:m.len-1]...)
+		return res
 	}
-	// We need to switch to a real map.
-	res := &BigMap{kv: r}
-	return res
+	// create the space for the new key.
+	for j := m.len - 1; j > i; j-- {
+		m.smallKV[j] = m.smallKV[j-1]
+	}
+	m.smallKV[i] = keyValuePair{Key: key, Value: value}
+	return m
 }
 
 func (m SmallMap) Len() int {
@@ -383,6 +414,18 @@ func (m SmallMap) Range(l, r int64) Object {
 	res := SmallMap{len: int(r - l)}
 	copy(res.smallKV[:], m.smallKV[l:r])
 	return res
+}
+
+func (m SmallMap) Delete(key Object) (Map, bool) {
+	_, found, where := m.get(key)
+	if !found {
+		return m, false
+	}
+	for i := where; i < m.len-1; i++ {
+		m.smallKV[i] = m.smallKV[i+1]
+	}
+	m.len--
+	return m, true
 }
 
 func (m SmallMap) Append(right Map) Map {
@@ -929,6 +972,7 @@ type Map interface {
 	Rest() Object
 	mapElements() []keyValuePair
 	Append(right Map) Map
+	Delete(key Object) (Map, bool)
 }
 
 func NewMap() Map {

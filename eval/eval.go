@@ -420,6 +420,59 @@ func (s *State) evalPrintLogError(node *ast.Builtin) object.Object {
 
 var ErrorKey = object.String{Value: "err"} // can't use error as that's a builtin.
 
+func (s *State) evalDelete(node ast.Node) object.Object {
+	switch node.Value().Type() {
+	case token.IDENT:
+		name := node.Value().Literal()
+		if name == "" {
+			return s.NewError("delete empty identifier")
+		}
+		return object.String{Value: name}
+	case token.DOT:
+		idxE, ok := node.(*ast.IndexExpression)
+		if !ok {
+			return s.Errorf("assignment to non index . expression %T %s", node, ast.DebugString(node))
+		}
+		index := s.Eval(idxE.Index)
+		if index.Type() == object.ERROR {
+			return index
+		}
+		return object.String{Value: "remove map dot:" + index.Inspect()}
+	case token.LBRACKET:
+		// Map/array index
+		idxE := node.(*ast.IndexExpression)
+		if idxE.Left.Value().Type() != token.IDENT {
+			return s.NewError("delete index on non identifier: " + idxE.Left.Value().DebugString())
+		}
+		id := idxE.Left.Value().Literal()
+		obj, ok := s.env.Get(id)
+		if !ok {
+			// Nothing to delete, we're done
+			return object.FALSE
+		}
+		if obj.Type() != object.MAP {
+			return s.NewError("delete index on non map: " + id + " " + obj.Type().String())
+		}
+		index := s.Eval(idxE.Index)
+		if index.Type() == object.ERROR {
+			return index
+		}
+		log.LogVf("remove map/array: %s from %s", index.Inspect(), id)
+		m := obj.(object.Map)
+		m, changed := m.Delete(index)
+		if !changed {
+			return object.FALSE
+		}
+		oerr := s.env.Set(id, m)
+		if oerr.Type() == object.ERROR {
+			return oerr
+		}
+		return object.TRUE
+	default:
+		return s.NewError("delete not supported on " + node.Value().Type().String())
+	}
+}
+
 func (s *State) evalBuiltin(node *ast.Builtin) object.Object {
 	// all take 1 arg exactly except print and log which take 1+.
 	t := node.Type()
@@ -432,8 +485,12 @@ func (s *State) evalBuiltin(node *ast.Builtin) object.Object {
 	if oerr := argCheck(s, node.Literal(), minV, varArg, node.Parameters); oerr != nil {
 		return *oerr
 	}
-	if t == token.QUOTE {
+	// builtins that don't eval arguments (quote, del)
+	switch t {
+	case token.QUOTE:
 		return s.quote(node.Parameters[0])
+	case token.DEL:
+		return s.evalDelete(node.Parameters[0])
 	}
 	var val object.Object
 	var rt object.Type
