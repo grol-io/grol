@@ -264,6 +264,23 @@ func (e *Environment) Get(name string) (Object, bool) {
 	return nil, false
 }
 
+// Delete removes the first entry found under that name from the environment.
+// TODO: check if references need special handling.
+func (e *Environment) Delete(name string) Object {
+	if e.depth == 0 {
+		e.numSet++
+	}
+	if _, ok := e.store[name]; ok {
+		delete(e.store, name)
+		log.Debugf("Delete(%s) found at %d %v", name, e.depth, e.cacheKey)
+		return TRUE
+	}
+	if e.outer != nil {
+		return e.outer.Delete(name)
+	}
+	return FALSE
+}
+
 // TriggerNoCache is used prevent this call stack from caching.
 // Meant to be used by extensions that for instance return random numbers or change state.
 func (e *Environment) TriggerNoCache() {

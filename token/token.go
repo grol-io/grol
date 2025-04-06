@@ -145,6 +145,7 @@ const (
 	LOG
 	ERROR
 	CATCH
+	DEL
 
 	endIdentityTokens
 

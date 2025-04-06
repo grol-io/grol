@@ -420,6 +420,64 @@ func (s *State) evalPrintLogError(node *ast.Builtin) object.Object {
 
 var ErrorKey = object.String{Value: "err"} // can't use error as that's a builtin.
 
+func (s *State) evalDelete(node ast.Node) object.Object {
+	s.env.TriggerNoCache()
+	switch node.Value().Type() {
+	case token.IDENT:
+		name := node.Value().Literal()
+		if name == "" {
+			return s.NewError("delete empty identifier")
+		}
+		return s.env.Delete(name)
+	case token.DOT:
+		idxE := node.(*ast.IndexExpression)
+		// index is the string value and not an identifier to resolve.
+		key := idxE.Index.Value()
+		if key.Type() != token.STRING && key.Type() != token.IDENT {
+			return s.Errorf("del expression with . not a string: %s", key.Literal())
+		}
+		index := object.String{Value: key.Literal()}
+		return s.deleteMapEntry(idxE, index)
+	case token.LBRACKET:
+		// Map/array [] index
+		idxE := node.(*ast.IndexExpression)
+		index := s.Eval(idxE.Index)
+		if index.Type() == object.ERROR {
+			return index
+		}
+		return s.deleteMapEntry(idxE, index)
+	default:
+		return s.NewError("delete not supported on " + node.Value().Type().String())
+	}
+}
+
+func (s *State) deleteMapEntry(idxE *ast.IndexExpression, index object.Object) object.Object {
+	if idxE.Left.Value().Type() != token.IDENT {
+		return s.NewError("delete index on non identifier: " + idxE.Left.Value().DebugString())
+	}
+	id := idxE.Left.Value().Literal()
+	obj, ok := s.env.Get(id)
+	if !ok {
+		// Nothing to delete, we're done
+		return object.FALSE
+	}
+	// TODO: handle arrays too? though delete arr[idx] == arr[0:idx]+arr[idx+1:] so... no point
+	if obj.Type() != object.MAP {
+		return s.NewError("delete index on non map: " + id + " " + obj.Type().String())
+	}
+	log.LogVf("remove map: %s from %s", index.Inspect(), id)
+	m := obj.(object.Map)
+	m, changed := m.Delete(index)
+	if !changed {
+		return object.FALSE
+	}
+	oerr := s.env.Set(id, m)
+	if oerr.Type() == object.ERROR {
+		return oerr
+	}
+	return object.TRUE
+}
+
 func (s *State) evalBuiltin(node *ast.Builtin) object.Object {
 	// all take 1 arg exactly except print and log which take 1+.
 	t := node.Type()
@@ -432,8 +490,13 @@ func (s *State) evalBuiltin(node *ast.Builtin) object.Object {
 	if oerr := argCheck(s, node.Literal(), minV, varArg, node.Parameters); oerr != nil {
 		return *oerr
 	}
-	if t == token.QUOTE {
+	// builtins that don't eval arguments (quote, del)
+	switch t {
+	case token.QUOTE:
 		return s.quote(node.Parameters[0])
+	case token.DEL:
+		return s.evalDelete(node.Parameters[0])
+	default:
 	}
 	var val object.Object
 	var rt object.Type

@@ -49,8 +49,9 @@ func createShellFunctions() {
 				cmd.Stdin = bytes.NewReader(obj)
 			}
 			err := cmd.Run()
-			res := object.MakeQuad(stdout, object.String{Value: sout.String()},
-				stderr, object.String{Value: serr.String()})
+			// keys must be sorted. stdErr before stdOut.
+			res := object.MakeQuad(stderr, object.String{Value: serr.String()},
+				stdout, object.String{Value: sout.String()})
 			if err != nil {
 				res = res.Set(eval.ErrorKey, object.String{Value: err.Error()})
 			} else {

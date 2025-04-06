@@ -1,0 +1,55 @@
+
+smallmap:={1:1,2:2,3:3,4:4}
+
+i:=3
+log("before del", smallmap)
+Assert("first delete should be true", del(smallmap[i-1]))
+log("after del", i-1, smallmap)
+// 2nd delete is false/noop
+Assert("second delete should be false", del(smallmap[i-1])==false)
+Assert("smallmap should be as expected", smallmap == {1:1,3:3,4:4})
+
+Assert("first del i should be true", del(i))
+Assert("second del i should be false", del(i)==false)
+IsErr("i shouldn't exist anymore", i, "identifier not found: i")
+
+largemap:=smallmap + {5:5,6:6,7:7,8:8,9:9,10:10}
+log("before del large", largemap)
+Assert("first delete should be true", del(largemap[10]))
+log("after del large", largemap)
+Assert("2nd delete should be false", del(largemap[10])==false)
+Assert("largemap should be as expected", largemap == {1:1,3:3,4:4,5:5,6:6,7:7,8:8,9:9})
+Assert("first delete should be true", del(largemap[7]))
+log("after del large", largemap)
+Assert("largemap should be as expected", largemap == {1:1,3:3,4:4,5:5,6:6,8:8,9:9})
+
+Assert("deleting whole map", del(largemap))
+IsErr("largemap shouldn't exist anymore", largemap, "identifier not found: largemap")
+
+// string . access syntax
+strmap := {"foo":"bar", "baz":"quux"}
+log("before del str", strmap)
+Assert("first delete should be true", del(strmap.foo))
+log("after del str", strmap)
+Assert("2nd delete should be false", del(strmap.foo)==false)
+Assert("strmap should be as expected", strmap == {"baz":"quux"})
+
+x="outer"
+func delTest(x) {
+	log("before del x", x)
+	del(x)
+	log("after del x", x)
+	x
+}
+
+Assert("delTest(str) should return outer", delTest("foo") == "outer")
+IsErr("can't (for now) delete registers", delTest(3), "delete not supported on REGISTER")
+IsErr("del needs to be of identifier/map", del(1+2), "delete not supported on PLUS")
+
+func delTest() {
+	del(x)
+}
+
+Assert("delTest() should be true first time", delTest())
+// Without no cache this wasn't working
+Assert("delTest() should be false second time", delTest() == false)
