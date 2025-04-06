@@ -460,10 +460,11 @@ func (s *State) deleteMapEntry(idxE *ast.IndexExpression, index object.Object) o
 		// Nothing to delete, we're done
 		return object.FALSE
 	}
+	// TODO: handle arrays too? though delete arr[idx] == arr[0:idx]+arr[idx+1:] so... no point
 	if obj.Type() != object.MAP {
 		return s.NewError("delete index on non map: " + id + " " + obj.Type().String())
 	}
-	log.LogVf("remove map/array: %s from %s", index.Inspect(), id)
+	log.LogVf("remove map: %s from %s", index.Inspect(), id)
 	m := obj.(object.Map)
 	m, changed := m.Delete(index)
 	if !changed {
