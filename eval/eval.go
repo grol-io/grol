@@ -491,6 +491,7 @@ func (s *State) evalBuiltin(node *ast.Builtin) object.Object {
 		return s.quote(node.Parameters[0])
 	case token.DEL:
 		return s.evalDelete(node.Parameters[0])
+	default:
 	}
 	var val object.Object
 	var rt object.Type
