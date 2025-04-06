@@ -429,49 +429,51 @@ func (s *State) evalDelete(node ast.Node) object.Object {
 		}
 		return s.env.Delete(name)
 	case token.DOT:
-		idxE, ok := node.(*ast.IndexExpression)
-		if !ok {
-			return s.Errorf("assignment to non index . expression %T %s", node, ast.DebugString(node))
-		}
-		index := s.Eval(idxE.Index)
-		if index.Type() == object.ERROR {
-			return index
-		}
-		// TODO implement like below [] case
-		return s.NewError("TODO remove map dot:" + index.Inspect())
-	case token.LBRACKET:
-		// Map/array index
 		idxE := node.(*ast.IndexExpression)
-		if idxE.Left.Value().Type() != token.IDENT {
-			return s.NewError("delete index on non identifier: " + idxE.Left.Value().DebugString())
+		// index is the string value and not an identifier to resolve.
+		key := idxE.Index.Value()
+		if key.Type() != token.STRING && key.Type() != token.IDENT {
+			return s.Errorf("del expression with . not a string: %s", key.Literal())
 		}
-		id := idxE.Left.Value().Literal()
-		obj, ok := s.env.Get(id)
-		if !ok {
-			// Nothing to delete, we're done
-			return object.FALSE
-		}
-		if obj.Type() != object.MAP {
-			return s.NewError("delete index on non map: " + id + " " + obj.Type().String())
-		}
+		index := object.String{Value: key.Literal()}
+		return s.deleteMapEntry(idxE, index)
+	case token.LBRACKET:
+		// Map/array [] index
+		idxE := node.(*ast.IndexExpression)
 		index := s.Eval(idxE.Index)
 		if index.Type() == object.ERROR {
 			return index
 		}
-		log.LogVf("remove map/array: %s from %s", index.Inspect(), id)
-		m := obj.(object.Map)
-		m, changed := m.Delete(index)
-		if !changed {
-			return object.FALSE
-		}
-		oerr := s.env.Set(id, m)
-		if oerr.Type() == object.ERROR {
-			return oerr
-		}
-		return object.TRUE
+		return s.deleteMapEntry(idxE, index)
 	default:
 		return s.NewError("delete not supported on " + node.Value().Type().String())
 	}
+}
+
+func (s *State) deleteMapEntry(idxE *ast.IndexExpression, index object.Object) object.Object {
+	if idxE.Left.Value().Type() != token.IDENT {
+		return s.NewError("delete index on non identifier: " + idxE.Left.Value().DebugString())
+	}
+	id := idxE.Left.Value().Literal()
+	obj, ok := s.env.Get(id)
+	if !ok {
+		// Nothing to delete, we're done
+		return object.FALSE
+	}
+	if obj.Type() != object.MAP {
+		return s.NewError("delete index on non map: " + id + " " + obj.Type().String())
+	}
+	log.LogVf("remove map/array: %s from %s", index.Inspect(), id)
+	m := obj.(object.Map)
+	m, changed := m.Delete(index)
+	if !changed {
+		return object.FALSE
+	}
+	oerr := s.env.Set(id, m)
+	if oerr.Type() == object.ERROR {
+		return oerr
+	}
+	return object.TRUE
 }
 
 func (s *State) evalBuiltin(node *ast.Builtin) object.Object {
