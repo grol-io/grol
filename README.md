@@ -29,6 +29,9 @@ brew install grol-io/tap/grol
 Or get one of the [binary releases](https://github.com/grol-io/grol/releases)
 
 ## What it does
+
+See the [Tour of grol](tour) for a more step by step set of examples.
+
 Sample:
 ```go
 $ grol -parse
@@ -58,7 +61,7 @@ $ func fx(n,s) {if n>0 {return fx(n-1,s)}; info.stack}; fx(3,"abc")
 	info.stack
 }
 fx(3, "abc")
-== Eval  ==> [{"s":true},{"s":true},{"s":true},{"s":true}] // registers don't show up, so only s does and not n	
+== Eval  ==> [{"s":true},{"s":true},{"s":true},{"s":true}] // registers don't show up, so only s does and not n
 $ info["gofuncs"] // other way to access map keys, for when they aren't strings for instance
 == Parse ==> info["gofuncs"] // other way to access map keys, for when they aren't strings for instance
 == Eval  ==> ["acos","asin","atan","ceil","cos","eval","exp","floor","json","ln","log10","pow","round","sin","sprintf","sqrt","tan","trunc","unjson"]

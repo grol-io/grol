@@ -1,0 +1,13 @@
+// Script to list help text for all built-in Go functions (gofuncs)
+
+println("--- Built-in Go Functions (gofuncs) Help ---")
+// Iterate through the sorted list of function names
+println("| Function name     | Details |")
+println("|-------------------|---------|")
+for name := info.gofuncs {
+    helpstr := eval(name)
+    printf("|%-18s | ", "`"+name+"`")
+    println(helpstr, "|") // can't use %s for now, it's not a string it's an EXTENSION see issue below
+}
+println("--- End of List ---")
+del(helpstr) // because of https://github.com/grol-io/grol/issues/309
