@@ -30,7 +30,7 @@ Or get one of the [binary releases](https://github.com/grol-io/grol/releases)
 
 ## What it does
 
-See the [Tour of grol](Tour.md) for a more step by step set of examples.
+See the [Tour of grol](https://grol.io/Tour) for a more step by step set of examples.
 
 Sample:
 ```go
