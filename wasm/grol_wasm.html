@@ -36,7 +36,7 @@
         color: red;
     }
 </style>
-<script src="wasm_exec.js"></script>
+<script src="/wasm_exec.js"></script>
 <script>
     function debounce(func) {
         let timeout
@@ -54,7 +54,7 @@
     }
     const go = new Go();
     let mod, inst;
-    WebAssembly.instantiateStreaming(fetch("grol.wasm"), go.importObject).then((result) => {
+    WebAssembly.instantiateStreaming(fetch("/grol.wasm"), go.importObject).then((result) => {
         mod = result.module;
         inst = result.instance;
         document.getElementById("runButton").disabled = false;
