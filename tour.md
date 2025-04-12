@@ -2,7 +2,7 @@
 
 Welcome to Grol! This guide provides a tour of the Grol language, covering its core features and syntax with examples.
 
-> This was auto generated and may not be 100% accurate, please report any issue - it's also a snapshot as of grol 0.80.3 and earlier
+> This was mostly generated and may not be 100% accurate, please report any issue - it's also a snapshot as of grol 0.80.3 and earlier
 
 ### 1. Introduction
 
