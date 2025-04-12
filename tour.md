@@ -20,9 +20,11 @@ Running `grol` without arguments starts the interactive Read-Eval-Print Loop (RE
 * State is auto-saved/loaded from `.gr` in the current directory (use `-no-auto` to disable).
 * Use `help` for basic commands.
 
+```bash
+$ grol -parse # -parse optional for extra information/this example
+```
 ```go
-$ grol
-grol 0.80.3 ... welcome!
+16:53:12.099 [INF] grol 0.80.3 h1:zJkh1KqpnuHFGNO2KdXkXnWiyopY/cBl/XCYVvMiEvw= go1.24.2 arm64 darwin - welcome!
 $ x = 10
 == Parse ==> x = 10
 == Eval  ==> 10
@@ -57,6 +59,8 @@ y = 20
 * **Strings:** Defined with double quotes (`"`). Concatenated with `+`. String indexing accesses bytes, while iteration accesses runes.
 * **Assignment:** Use the `=` operator. The `let` keyword is optional.
 
+Note that `*` `+` etc work on strings, arrays and maps to replicate values or concatenate/append/merge respectively.
+
 ```go
 n = 720            // Integer
 pi_approx = 3.14   // Float
@@ -64,6 +68,7 @@ is_active = true   // Boolean
 message = "Hello" + " " + "Grol" // String concatenation
 greeting = "Hello"
 println(greeting[0]) // Outputs byte value (e.g., 72 for 'H')
+"ABC" * 2 // "ABCABC"
 ```
 
 #### 2.4. Arrays
@@ -129,6 +134,8 @@ Grol provides several `for` loop forms:
   ```go
   for i = 1:4 { println(i) } // Prints 1, 2, 3 (inclusive start, exclusive end)
   ```
+  Note that `-3:7` generates the following array even outside of for context: `[-3,-2,-1,0,1,2,3,4,5,6]`
+
 * **Iterable Loop (Arrays, Maps, Strings):**
   ```go
   // Array
