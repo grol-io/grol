@@ -118,7 +118,7 @@ make # for stripped down executable including build tags etc to make it minimal
 ```
 
 ### Reading notes
-See [Open Issues](https://grol.io/grol/issues) for what's left to do
+See [Open Issues](https://github.com/grol-io/grol/issues) for what's left to do
 
 <details><summary>Click for detailed reading notes</summary>
 
