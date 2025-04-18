@@ -14,6 +14,7 @@ import (
 
 	"fortio.org/cli"
 	"fortio.org/log"
+	"fortio.org/progressbar"
 	"fortio.org/struct2env"
 	"fortio.org/terminal"
 	"grol.io/grol/eval"
@@ -155,14 +156,42 @@ func Main() (retcode int) { //nolint:funlen // we do have quite a lot of flags a
 		log.Infof("Running #! %s with args %s", script, args.Inspect())
 		return processOneFile(script, s, options)
 	}
-	for _, file := range flag.Args() {
+	files := flag.Args()
+	numFiles := len(files)
+	// Only use the progress bar if we have more than 1 file as input. eg. in `make grol-tests`
+	pbar := progressbar.NewBar()
+	pbar.NoPercent = true
+	pbar.UpdateInterval = 0
+	pbar.NoAnsi = !log.Color // reuse logger color/terminal detection.
+	/*
+		if numFiles > 1 {
+			pbarWriter := pbar.Writer()
+			// log.Config.ForceColor = log.Color // preserve color mode before it gets reset by output change.
+			// log.SetOutput(pbarWriter) // TODO: doesn't work... should...
+			s.Out = pbarWriter
+			s.LogOut = pbarWriter
+		}
+	*/
+	for i, file := range files {
+		if numFiles > 1 {
+			perc := float64(i*100.) / float64(numFiles)
+			pbar.UpdateSuffix(fmt.Sprintf(" %d/%d: %s\n", i, numFiles, file))
+			pbar.Progress(perc)
+		}
 		ret := processOneFile(file, s, options)
+		// time.Sleep(1 * time.Second) // test pbar.
 		if ret != 0 {
+			pbar.End()
 			return ret
 		}
 		if !*sharedState {
 			s = eval.NewState()
 		}
+	}
+	if numFiles > 1 {
+		pbar.UpdateSuffix(fmt.Sprintf(" %d/%d: all done!", numFiles, numFiles))
+		pbar.Progress(100)
+		pbar.End()
 	}
 	return 0
 }
