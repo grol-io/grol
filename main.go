@@ -14,6 +14,7 @@ import (
 
 	"fortio.org/cli"
 	"fortio.org/log"
+	"fortio.org/progressbar"
 	"fortio.org/struct2env"
 	"fortio.org/terminal"
 	"grol.io/grol/eval"
@@ -71,6 +72,7 @@ func Main() (retcode int) { //nolint:funlen // we do have quite a lot of flags a
 	maxDuration := flag.Duration("max-duration", 0, "Maximum duration for a script to run. 0 for unlimited.")
 	shebangMode := flag.Bool("s", false, "#! script mode: next argument is a script file to run, rest are args to the script")
 	noRegister := flag.Bool("no-register", false, "Don't use registers")
+	noProgress := flag.Bool("no-progress", false, "Don't show progress bar even when processing multiple files")
 
 	cli.ArgsHelp = "*.gr files to interpret or `-` for stdin without prompt or no arguments for stdin repl..."
 	cli.MaxArgs = -1
@@ -153,37 +155,78 @@ func Main() (retcode int) { //nolint:funlen // we do have quite a lot of flags a
 		options.AutoLoad = false
 		args := s.SetArgs(flag.Args())
 		log.Infof("Running #! %s with args %s", script, args.Inspect())
-		return processOneFile(script, s, options)
+		return processOneFile(script, s, options, false)
 	}
-	for _, file := range flag.Args() {
-		ret := processOneFile(file, s, options)
+	files := flag.Args()
+	numFiles := len(files)
+	// Only use the progress bar if we have more than 1 file as input. eg. in `make grol-tests`
+	// and not disabled and stderr is a tty.
+	usePbar := numFiles > 1 && !*noProgress && log.ConsoleLogging()
+	var pbar *progressbar.Bar
+	if usePbar {
+		cfg := progressbar.DefaultConfig()
+		cfg.NoPercent = true
+		cfg.UpdateInterval = 0
+		log.SetOutput(os.Stdout)     // recalc color mode based on whether stdout is redirected.
+		cfg.NoAnsi = !log.Color      // reuse logger color/terminal detection.
+		cfg.ScreenWriter = os.Stdout // lets use std for grol-tests, examples etc
+		pbar = cfg.NewBar()
+		pbarWriter := pbar.Writer()
+		log.Config.ForceColor = log.Color // preserve color mode before it gets reset by output change.
+		log.SetOutput(pbarWriter)
+		s.Out = pbarWriter
+		s.LogOut = pbarWriter
+	}
+	for i, file := range files {
+		if usePbar {
+			perc := float64(i*100.) / float64(numFiles)
+			pbar.UpdateSuffix(fmt.Sprintf(" %d/%d: %s", i+1, numFiles, file))
+			pbar.Progress(perc)
+		}
+		ret := processOneFile(file, s, options, usePbar)
 		if ret != 0 {
-			return ret
+			return ret // already logged errors.
 		}
 		if !*sharedState {
-			s = eval.NewState()
+			ns := eval.NewState()
+			ns.Out = s.Out
+			ns.LogOut = s.LogOut
+			s = ns
 		}
+	}
+	if usePbar {
+		pbar.UpdateSuffix(fmt.Sprintf(" %d/%d: all done!", numFiles, numFiles))
+		pbar.Progress(100)
+		pbar.End()
 	}
 	return 0
 }
 
 func processOneStream(s *eval.State, in io.Reader, options repl.Options) int {
-	errs := repl.EvalAll(s, in, os.Stdout, options)
-	if len(errs) > 0 {
-		log.Errf("Errors: %v", errs)
+	errs := repl.EvalAll(s, in, s.Out, options)
+	switch n := len(errs); n {
+	case 0:
+		return 0
+	case 1:
+		log.Errf("Error in %s: %v", s.CurrentFile, errs[0])
+		return 1
+	default:
+		log.Errf("Errors in %s: %v", s.CurrentFile, errs)
+		return n
 	}
-	return len(errs)
 }
 
-func processOneFile(file string, s *eval.State, options repl.Options) int {
+func processOneFile(file string, s *eval.State, options repl.Options, usePbar bool) int {
 	if file == "-" {
 		if options.FormatOnly {
 			log.Infof("Formatting stdin")
 		} else {
 			log.Infof("Running on stdin")
 		}
+		s.CurrentFile = "<stdin>"
 		return processOneStream(s, os.Stdin, options)
 	}
+	s.CurrentFile = file
 	f, err := os.Open(file)
 	if err != nil {
 		log.Fatalf("%v", err)
@@ -192,7 +235,7 @@ func processOneFile(file string, s *eval.State, options repl.Options) int {
 	if options.FormatOnly {
 		verb = "Formatting"
 	}
-	if !options.ShebangMode {
+	if !options.ShebangMode && !usePbar {
 		log.Infof("%s %s", verb, file)
 	}
 	code := processOneStream(s, f, options)

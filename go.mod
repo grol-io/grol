@@ -15,6 +15,8 @@ require (
 	golang.org/x/image v0.26.0
 )
 
+require fortio.org/progressbar v1.1.0
+
 require (
 	fortio.org/term v0.29.0-fortio-1 // indirect
 	github.com/kortschak/goroutine v1.1.2 // indirect

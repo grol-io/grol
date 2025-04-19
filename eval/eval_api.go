@@ -49,6 +49,8 @@ type State struct {
 	Cancel  context.CancelFunc
 	PipeVal []byte // value to return from pipe() function
 	NoReg   bool   // don't use registers.
+	// Current file being processed (TODO: use it to have parsing errors showing as filename:line...)
+	CurrentFile string
 }
 
 func NewState() *State {
