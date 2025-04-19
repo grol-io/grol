@@ -45,10 +45,11 @@ type State struct {
 	lastNumSet  int64
 	MaxValueLen int // max length of value to save in files, <= 0 for unlimited.
 	// To enforce a max duration or cancel evals.
-	Context context.Context //nolint:containedctx // we need a context for callbacks from extensions and to set it without API change.
-	Cancel  context.CancelFunc
-	PipeVal []byte // value to return from pipe() function
-	NoReg   bool   // don't use registers.
+	Context     context.Context //nolint:containedctx // we need a context for callbacks from extensions and to set it without API change.
+	Cancel      context.CancelFunc
+	PipeVal     []byte // value to return from pipe() function
+	NoReg       bool   // don't use registers.
+	CurrentFile string // current file being processed (later: have parsing errors filenanme:line...)
 }
 
 func NewState() *State {

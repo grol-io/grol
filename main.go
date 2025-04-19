@@ -185,8 +185,7 @@ func Main() (retcode int) { //nolint:funlen // we do have quite a lot of flags a
 		}
 		ret := processOneFile(file, s, options, usePbar)
 		if ret != 0 {
-			pbar.End()
-			return ret
+			return ret // already logged errors.
 		}
 		if !*sharedState {
 			ns := eval.NewState()
@@ -205,10 +204,16 @@ func Main() (retcode int) { //nolint:funlen // we do have quite a lot of flags a
 
 func processOneStream(s *eval.State, in io.Reader, options repl.Options) int {
 	errs := repl.EvalAll(s, in, s.Out, options)
-	if len(errs) > 0 {
-		log.Errf("Errors: %v", errs)
+	switch n := len(errs); n {
+	case 0:
+		return 0
+	case 1:
+		log.Errf("Error in %s: %v", s.CurrentFile, errs[0])
+		return 1
+	default:
+		log.Errf("Errors in %s: %v", s.CurrentFile, errs)
+		return n
 	}
-	return len(errs)
 }
 
 func processOneFile(file string, s *eval.State, options repl.Options, usePbar bool) int {
@@ -218,8 +223,10 @@ func processOneFile(file string, s *eval.State, options repl.Options, usePbar bo
 		} else {
 			log.Infof("Running on stdin")
 		}
+		s.CurrentFile = "<stdin>"
 		return processOneStream(s, os.Stdin, options)
 	}
+	s.CurrentFile = file
 	f, err := os.Open(file)
 	if err != nil {
 		log.Fatalf("%v", err)
