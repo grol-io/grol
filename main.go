@@ -169,7 +169,7 @@ func Main() (retcode int) { //nolint:funlen // we do have quite a lot of flags a
 		pbar.NoAnsi = !log.Color // reuse logger color/terminal detection.
 		pbarWriter := pbar.Writer()
 		log.Config.ForceColor = log.Color // preserve color mode before it gets reset by output change.
-		log.SetOutput(pbarWriter)         // TODO: doesn't work... should...
+		log.SetOutput(pbarWriter)
 		s.Out = pbarWriter
 		s.LogOut = pbarWriter
 	}
