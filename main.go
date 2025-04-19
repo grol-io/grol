@@ -160,13 +160,16 @@ func Main() (retcode int) { //nolint:funlen // we do have quite a lot of flags a
 	files := flag.Args()
 	numFiles := len(files)
 	// Only use the progress bar if we have more than 1 file as input. eg. in `make grol-tests`
-	usePbar := numFiles > 1 && !*noProgress
+	// and not disabled and stderr is a tty.
+	usePbar := numFiles > 1 && !*noProgress && log.ConsoleLogging()
 	var pbar *progressbar.Bar
 	if usePbar {
-		pbar = progressbar.NewBar()
-		pbar.NoPercent = true
-		pbar.UpdateInterval = 0
-		pbar.NoAnsi = !log.Color // reuse logger color/terminal detection.
+		cfg := progressbar.DefaultConfig()
+		cfg.NoPercent = true
+		cfg.UpdateInterval = 0
+		cfg.NoAnsi = !log.Color      // reuse logger color/terminal detection.
+		cfg.ScreenWriter = os.Stdout // lets use std for grol-tests, examples etc
+		pbar = cfg.NewBar()
 		pbarWriter := pbar.Writer()
 		log.Config.ForceColor = log.Color // preserve color mode before it gets reset by output change.
 		log.SetOutput(pbarWriter)
