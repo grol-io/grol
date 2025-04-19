@@ -167,6 +167,7 @@ func Main() (retcode int) { //nolint:funlen // we do have quite a lot of flags a
 		cfg := progressbar.DefaultConfig()
 		cfg.NoPercent = true
 		cfg.UpdateInterval = 0
+		log.SetOutput(os.Stdout)     // recalc color mode based on whether stdout is redirected.
 		cfg.NoAnsi = !log.Color      // reuse logger color/terminal detection.
 		cfg.ScreenWriter = os.Stdout // lets use std for grol-tests, examples etc
 		pbar = cfg.NewBar()
