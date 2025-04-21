@@ -326,7 +326,7 @@ func createJSONAndEvalFunctions(c *Config) {
 
 const DefaultTrimSet = " \r\n\t"
 
-func createStrFunctions() { //nolint:funlen // we do have quite a few, yes.
+func createStrFunctions() { //nolint:funlen,gocognit,maintidx // we do have quite a few, yes.
 	strFn := object.Extension{
 		MinArgs:  1,
 		MaxArgs:  2,
@@ -497,6 +497,42 @@ func createStrFunctions() { //nolint:funlen // we do have quite a few, yes.
 			trim = args[1].(object.String).Value
 		}
 		return object.String{Value: strings.TrimRight(inp, trim)}
+	}
+	MustCreate(strFn)
+	strFn.Name = "bytes"
+	strFn.MaxArgs = 1
+	strFn.Help = "returns an array of the utf8 bytes forming the string"
+	strFn.ArgTypes = []object.Type{object.STRING}
+	strFn.Callback = func(_ any, _ string, args []object.Object) object.Object {
+		str := []byte(args[0].(object.String).Value)
+		arr := object.MakeObjectSlice(len(str))
+		for _, b := range str {
+			arr = append(arr, object.Integer{Value: int64(b)})
+		}
+		return object.NewArray(arr)
+	}
+	MustCreate(strFn)
+	strFn.Name = "utf8"
+	strFn.Help = "returns a string from an array of bytes, optionally validating utf8"
+	strFn.ArgTypes = []object.Type{object.ARRAY, object.BOOLEAN}
+	strFn.MaxArgs = 2
+	strFn.Callback = func(env any, _ string, args []object.Object) object.Object {
+		s := env.(*eval.State)
+		arr := args[0].(object.Array).Elements()
+		checkUtf8 := (len(args) == 2) && args[1].(object.Boolean).Value
+		buf := make([]byte, len(arr))
+		for i, el := range arr {
+			if el.Type() != object.INTEGER {
+				return s.Errorf("utf8: expected array of integers, got %s", el.Type())
+			}
+			buf[i] = byte(el.(object.Integer).Value)
+		}
+		if checkUtf8 {
+			if !utf8.Valid(buf) {
+				return s.Errorf("utf8: invalid utf8 sequence")
+			}
+		}
+		return object.String{Value: string(buf)}
 	}
 	MustCreate(strFn)
 }
