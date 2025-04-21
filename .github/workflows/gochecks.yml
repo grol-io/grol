@@ -35,12 +35,12 @@ jobs:
         uses: golangci/golangci-lint-action@ec5d18412c0aeab7936cb16880d708ba2a64e1ae # pin@v6
         with:
           version: v1.62.0
-      - name: Install Git Bash
-        run: |
-          choco install git
-          echo "Git Bash installed"
-        shell: pwsh
-        if: runner.os == 'Windows'
+      # - name: Install Git Bash
+      #   run: |
+      #     choco install git
+      #     echo "Git Bash installed"
+      #   shell: pwsh
+      #   if: runner.os == 'Windows'
       - name: Run tests
         run: |
           go version
