@@ -525,7 +525,12 @@ func createStrFunctions() { //nolint:funlen,gocognit,maintidx // we do have quit
 			if el.Type() != object.INTEGER {
 				return s.Errorf("utf8: expected array of integers, got %s", el.Type())
 			}
-			buf[i] = byte(el.(object.Integer).Value)
+			v := el.(object.Integer).Value
+			// allow signed bytes [-128,127] and unsigned bytes [0,255]
+			if v < -128 || v > 255 {
+				return s.Errorf("invalid byte value %d", v)
+			}
+			buf[i] = byte(v)
 		}
 		if checkUtf8 {
 			if !utf8.Valid(buf) {
