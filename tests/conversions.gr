@@ -38,3 +38,14 @@ func Exists(x) {
 Assert("exists false before we set foo", Exists("foo") == false)
 foo=42
 Assert("exists true after we set foo", Exists("foo") == true)
+
+// test utf8
+Assert("utf8 ascii valid", utf8(bytes("hello")) == "hello")
+Assert("utf8 accentuated character", len(bytes("é")) == 2)
+Assert("utf8 accentuated character", utf8(bytes("é")) == "é")
+Assert("utf8 3 bytes asian character", bytes("乒乓") == [228,185,146,228,185,147])
+Assert("truncated invalid utf8", utf8(bytes("é")[0 : 1], false) == "\xc3")
+IsErr("utf8 ascii invalid", utf8(bytes("é")[0 : 1], true), "utf8: invalid utf8 sequence")
+IsErr("utf8 byte out of range", utf8([256]), "invalid byte value 256")
+IsErr("utf8 byte out of range", utf8([-129]), "invalid byte value -129")
+Assert("utf8 signed byte in range", utf8([-128]) == "\x80")
