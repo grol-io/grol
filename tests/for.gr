@@ -8,3 +8,24 @@ for n := 4 {
 if s != 6 {
 	error("Expected 6, got", s) // was 16 before the fix.
 }
+
+// for of array/global (#328)
+
+arr := [1,2,3]
+res := 0
+for i := arr {
+	res = res +i
+}
+Assert("for of array/global", res == 6)
+
+// same inside a function
+
+func testRef() {
+	res := 0
+	for i := arr {
+		res = res + i
+	}
+	return res
+}
+
+NoErr("for global array inside a function", testRef(), "6")

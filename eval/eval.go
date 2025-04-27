@@ -986,9 +986,8 @@ func (s *State) evalForSpecialForms(fe *ast.ForExpression) (object.Object, bool)
 	}
 	// Evaluate:
 	v := s.evalInternal(ie.Right)
+	v = object.Value(v) // Always deref, handle both references (to globals..) and registers.
 	switch v.Type() {
-	case object.REGISTER:
-		return s.evalForInteger(fe, nil, v.(*object.Register).Int64(), name), true
 	case object.INTEGER:
 		return s.evalForInteger(fe, nil, v.(object.Integer).Value, name), true
 	case object.ERROR:
