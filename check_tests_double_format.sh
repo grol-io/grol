@@ -1,7 +1,7 @@
 #! /bin/bash
 set -e
 export GOMEMLIMIT=1GiB
-BIN="./grol -panic -shared-state"
+BIN="./grol -panic -shared-state -no-progress"
 echo "---testing double format for tests ---"
 $BIN -format tests/*.gr > /tmp/format1
 $BIN -format /tmp/format1 > /tmp/format2
