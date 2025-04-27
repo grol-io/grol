@@ -765,10 +765,11 @@ func (p *Parser) isComment() bool {
 // skipCommentIfAny checks if the current token is a comment, logs it if it is, and advances to the next token.
 // Returns true if a comment was skipped, false otherwise.
 func (p *Parser) skipCommentIfAny() bool {
-	if !p.isComment() {
-		return false
+	skipped := false
+	for p.isComment() {
+		log.LogVf("Ignoring comment: %s", p.curToken.Literal())
+		p.nextToken()
+		skipped = true
 	}
-	log.LogVf("Ignoring comment: %s", p.curToken.Literal())
-	p.nextToken()
-	return true
+	return skipped
 }
