@@ -666,12 +666,12 @@ func (p *Parser) parseExpressionList(end token.Type) []ast.Node {
 		return args
 	}
 	p.nextToken()
-	p.skipCommentIfAny()
+	p.skipCommentsIfAny()
 	args = append(args, p.parseExpression(ast.LOWEST))
 	for p.peekTokenIs(token.COMMA) {
 		p.nextToken()
 		p.nextToken()
-		p.skipCommentIfAny()
+		p.skipCommentsIfAny()
 		args = append(args, p.parseExpression(ast.LOWEST))
 	}
 	if !p.expectPeek(end) {
@@ -712,7 +712,7 @@ func (p *Parser) parseMapLiteral() ast.Node {
 		if p.continuationNeeded {
 			return nil
 		}
-		p.skipCommentIfAny()
+		p.skipCommentsIfAny()
 		kv := p.parseExpression(ast.LOWEST)
 		ex, ok := kv.(*ast.InfixExpression)
 		if !ok || ex.Token.Type() != token.COLON {
@@ -762,14 +762,11 @@ func (p *Parser) isComment() bool {
 	return p.curToken.Type() == token.LINECOMMENT || p.curToken.Type() == token.BLOCKCOMMENT
 }
 
-// skipCommentIfAny checks if the current token is a comment, logs it if it is, and advances to the next token.
-// Returns true if a comment was skipped, false otherwise.
-func (p *Parser) skipCommentIfAny() bool {
-	skipped := false
+// skipCommentsIfAny checks if the current token is a comment, logs it if it is, and advances to the next token
+// until it finds a non-comment token.
+func (p *Parser) skipCommentsIfAny() {
 	for p.isComment() {
 		log.LogVf("Ignoring comment: %s", p.curToken.Literal())
 		p.nextToken()
-		skipped = true
 	}
-	return skipped
 }
