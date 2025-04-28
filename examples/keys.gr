@@ -1,5 +1,9 @@
 
-m = {1:"a", 3:"b", 5:"c", 7:"d"}
+m = {1:"a", // map with comment in the middle of values
+    3:"b",
+    5:"c",
+    7:"d" // comment at the end of the map
+}
 
 func keys(m) {
     if (len(m)==0) {

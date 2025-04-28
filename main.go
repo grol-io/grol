@@ -161,7 +161,8 @@ func Main() (retcode int) { //nolint:funlen // we do have quite a lot of flags a
 	numFiles := len(files)
 	// Only use the progress bar if we have more than 1 file as input. eg. in `make grol-tests`
 	// and not disabled and stderr is a tty.
-	usePbar := numFiles > 1 && !*noProgress && log.ConsoleLogging()
+	// progress bar also breaks check_tests_double_format.sh so we disable it for formatting.
+	usePbar := numFiles > 1 && !*noProgress && log.ConsoleLogging() && !options.FormatOnly
 	var pbar *progressbar.Bar
 	if usePbar {
 		cfg := progressbar.DefaultConfig()
@@ -169,7 +170,7 @@ func Main() (retcode int) { //nolint:funlen // we do have quite a lot of flags a
 		cfg.UpdateInterval = 0
 		log.SetOutput(os.Stdout)     // recalc color mode based on whether stdout is redirected.
 		cfg.NoAnsi = !log.Color      // reuse logger color/terminal detection.
-		cfg.ScreenWriter = os.Stdout // lets use std for grol-tests, examples etc
+		cfg.ScreenWriter = os.Stdout // lets use std for grol-tests, examples etc but not formatting.
 		pbar = cfg.NewBar()
 		pbarWriter := pbar.Writer()
 		log.Config.ForceColor = log.Color // preserve color mode before it gets reset by output change.

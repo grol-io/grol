@@ -1,0 +1,15 @@
+// comments in function parameters and arrays
+
+// Parser tests for comments in function parameters and arrays (#327)
+func foo(a, b, c) {a+b+c}
+
+Assert("	foo(1, 2, 3)", foo(1, 2, 3) == 6)
+
+Assert("foo(1, /* comment */ 2, 3)", foo(1, /* comment */ 2, 3) == 6)
+
+Assert("foo(1, // first\n	2, // second\n	3)", foo(1,
+	 // first
+	2, // second
+	// another one
+	3 // last one
+	) == 6)

@@ -1,11 +1,13 @@
 /* fib.gr - compute the 35th Fibonacci number */
-func fib(x) {
+func fib(x // a comment in the definition
+) {
 	if x <= 1 {
 		x
 	} else {
 		fib(x - 1) + fib(x - 2)
 	}
 }
-r = fib(35)
+r = fib(35 // comment in call
+)
 log("fib(35) =", r)
 r

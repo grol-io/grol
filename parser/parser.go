@@ -645,8 +645,11 @@ func (p *Parser) parseFunctionParameters() ([]ast.Node, bool) {
 		ident := &ast.Identifier{}
 		ident.Token = p.curToken
 		identifiers = append(identifiers, ident)
+		p.skipPeekComments()
 	}
+	p.skipPeekComments()
 	if !p.expectPeek(token.RPAREN) {
+		log.Debugf("parseFunctionParameters: nil return 0: %s", p.peekToken.Literal())
 		return nil, false
 	}
 	return identifiers, (p.prevToken.Type() == token.DOTDOT)
@@ -666,13 +669,18 @@ func (p *Parser) parseExpressionList(end token.Type) []ast.Node {
 		return args
 	}
 	p.nextToken()
+	p.skipCommentsIfAny()
 	args = append(args, p.parseExpression(ast.LOWEST))
 	for p.peekTokenIs(token.COMMA) {
 		p.nextToken()
 		p.nextToken()
+		p.skipCommentsIfAny()
 		args = append(args, p.parseExpression(ast.LOWEST))
+		p.skipPeekComments()
 	}
+	p.skipPeekComments()
 	if !p.expectPeek(end) {
+		log.Debugf("parseCallExpression: nil return 0: %s", p.peekToken.Literal())
 		return nil
 	}
 	return args
@@ -710,6 +718,11 @@ func (p *Parser) parseMapLiteral() ast.Node {
 		if p.continuationNeeded {
 			return nil
 		}
+		p.skipCommentsIfAny()
+		// comment at the end of the map
+		if p.curToken.Type() == token.RBRACE {
+			return mapRes
+		}
 		kv := p.parseExpression(ast.LOWEST)
 		ex, ok := kv.(*ast.InfixExpression)
 		if !ok || ex.Token.Type() != token.COLON {
@@ -726,7 +739,7 @@ func (p *Parser) parseMapLiteral() ast.Node {
 		mapRes.Pairs[key] = value
 		mapRes.Order = append(mapRes.Order, key)
 
-		if !p.peekTokenIs(token.RBRACE) && !p.expectPeek(token.COMMA) {
+		if !p.peekComment() && !p.peekTokenIs(token.RBRACE) && !p.expectPeek(token.COMMA) {
 			return nil
 		}
 	}
@@ -753,4 +766,29 @@ func (p *Parser) parseMacroLiteral() ast.Node {
 		return nil
 	}
 	return lit
+}
+
+func (p *Parser) isComment() bool {
+	return p.curToken.Type() == token.LINECOMMENT || p.curToken.Type() == token.BLOCKCOMMENT
+}
+
+// skipCommentsIfAny checks if the current token is a comment, logs it if it is, and advances to the next token
+// until it finds a non-comment token.
+func (p *Parser) skipCommentsIfAny() {
+	for p.isComment() {
+		log.LogVf("Ignoring current token comment: %s", p.curToken.Literal())
+		p.nextToken()
+	}
+}
+
+// peekComment checks if the peek token is a comment.
+func (p *Parser) peekComment() bool {
+	return p.peekTokenIs(token.LINECOMMENT) || p.peekTokenIs(token.BLOCKCOMMENT)
+}
+
+func (p *Parser) skipPeekComments() {
+	for p.peekComment() {
+		p.nextToken()
+		log.LogVf("Ignoring peeked token comment: %s", p.curToken.Literal())
+	}
 }
