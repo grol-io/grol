@@ -50,10 +50,8 @@ const (
 	CategoryMath          = "math"
 	CategoryIntrospection = "introspection"
 	CategoryString        = "string"
-	CategoryMisc          = "misc"
 	CategoryTime          = "time"
 	CategoryIO            = "io"
-	CategoryShell         = "shell"
 	CategoryImage         = "image"
 )
 
@@ -1296,7 +1294,7 @@ func (e Extension) JSON(w io.Writer) error {
 	return err
 }
 
-// String returns the string representation of the extension
+// String returns the string representation of the extension.
 func (e Extension) String() string {
 	return e.Inspect()
 }

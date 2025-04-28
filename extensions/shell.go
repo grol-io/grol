@@ -34,7 +34,7 @@ func createShellFunctions() {
 		MinArgs:  1,
 		MaxArgs:  -1,
 		Help:     "executes a command and returns its stdout, stderr and any error",
-		Category: object.CategoryShell,
+		Category: object.CategoryIO,
 		ArgTypes: []object.Type{object.STRING},
 		Callback: func(env any, _ string, args []object.Object) object.Object {
 			s := env.(*eval.State)
@@ -65,7 +65,6 @@ func createShellFunctions() {
 	MustCreate(shellFn)
 	shellFn.Name = "run"
 	shellFn.Help = "runs a command interactively"
-	shellFn.Category = object.CategoryShell
 	shellFn.Callback = func(env any, _ string, args []object.Object) object.Object {
 		s := env.(*eval.State)
 		if s.Term != nil {

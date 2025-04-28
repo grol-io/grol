@@ -643,7 +643,7 @@ func createMisc() {
 			}
 		},
 		Help:     "converts a value to an integer",
-		Category: object.CategoryMisc,
+		Category: object.CategoryMath,
 	}
 	MustCreate(intFn)
 	intFn.Name = "base64"
