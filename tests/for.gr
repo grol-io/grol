@@ -68,3 +68,18 @@ ext := "X" // commenting this out hides the bug
 res4 := testScoping("b")
 log("res4:", res4)
 Assert("for scoping bug", res3 == ["A", "B"] && res4 == ["A", "B"])
+
+// -- reference deletion with for loop test --
+list := ["A", "B"]
+ext := "X"
+func testForRefDelete() {
+    res := []
+    for x := list {
+        res = res + [[x, ext]]
+    }
+    return res
+}
+
+res := testForRefDelete()
+del(ext)
+Assert("for ref delete", res == [["A", "X"], ["B", "X"]])
