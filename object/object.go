@@ -45,6 +45,16 @@ const (
 	ANY // A marker, for extensions, not a real type.
 )
 
+// Extension categories.
+const (
+	CategoryMath          = "math"
+	CategoryIntrospection = "introspection"
+	CategoryString        = "string"
+	CategoryTime          = "time"
+	CategoryIO            = "io"
+	CategoryImage         = "image"
+)
+
 //go:generate stringer -type=Type
 var _ = ANY.String() // force compile error if go generate is missing.
 
@@ -624,8 +634,8 @@ type Function struct {
 	CacheKey   string
 	Body       *ast.Statements
 	Env        *Environment
-	Variadic   bool
-	Lambda     bool // i.e. has no name.
+	Variadic   bool // i.e. has no name.
+	Lambda     bool
 }
 
 func WriteStrings(out *strings.Builder, list []Object, before, sep, after string) {
@@ -1210,6 +1220,7 @@ type Extension struct {
 	MaxArgs    int         // Maximum number of arguments allowed. -1 for unlimited.
 	ArgTypes   []Type      // Type of each argument, provided at least up to MinArgs.
 	Help       string      // Help text for the function. Appended as a comment when printing the function.
+	Category   string      // Category of the function (math, string, io, etc.)
 	Callback   ExtFunction // The go function or lambda to call when the grol by Name(...) is invoked.
 	ClientData any         // Opaque data that will be passed as first argument of Callback if set (state is, if nil).
 	Variadic   bool        // MaxArgs > MinArgs (or MaxArg == -1)
@@ -1270,7 +1281,9 @@ func (e Extension) Inspect() string {
 	e.Usage(&out)
 	out.WriteString(")")
 	if e.Help != "" {
-		out.WriteString(" // ")
+		out.WriteString(" // [")
+		out.WriteString(e.Category)
+		out.WriteString("] ")
 		out.WriteString(e.Help)
 	}
 	return out.String()
@@ -1279,4 +1292,9 @@ func (e Extension) Inspect() string {
 func (e Extension) JSON(w io.Writer) error {
 	_, err := fmt.Fprintf(w, `{"gofunc":%q}`, e.Inspect())
 	return err
+}
+
+// String returns the string representation of the extension.
+func (e Extension) String() string {
+	return e.Inspect()
 }

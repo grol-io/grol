@@ -16,10 +16,11 @@ var seenEOF = object.FALSE
 func createIOFunctions() {
 	// This can hang so not to be used in wasm/discord/...
 	ioFn := object.Extension{
-		Name:    "read",
-		MinArgs: 0,
-		MaxArgs: 0,
-		Help:    "Reads one line from stdin",
+		Name:     "read",
+		MinArgs:  0,
+		MaxArgs:  0,
+		Help:     "reads one line from stdin",
+		Category: object.CategoryIO,
 		Callback: func(env any, _ string, _ []object.Object) object.Object {
 			s := env.(*eval.State)
 			if s.Term != nil {
@@ -55,7 +56,8 @@ func createIOFunctions() {
 	}
 	MustCreate(ioFn)
 	ioFn.Name = "eof"
-	ioFn.Help = "Returns true if a previous read hit the end of file for stdin"
+	ioFn.Help = "returns true if a previous read hit the end of file for stdin"
+	ioFn.Category = object.CategoryIO
 	ioFn.Callback = func(_ any, _ string, _ []object.Object) object.Object {
 		return seenEOF
 	}

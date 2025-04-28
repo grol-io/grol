@@ -115,6 +115,8 @@ func initInternal(c *Config) error {
 		MaxArgs:  2,
 		ArgTypes: []object.Type{object.FLOAT, object.FLOAT},
 		Callback: object.ShortCallback(pow),
+		Help:     "returns base raised to the power of exp",
+		Category: object.CategoryMath,
 	})
 	if err != nil {
 		return err
@@ -126,6 +128,8 @@ func initInternal(c *Config) error {
 		MaxArgs:  -1,
 		ArgTypes: []object.Type{object.STRING},
 		Callback: object.ShortCallback(sprintf),
+		Help:     "formats a string using the given format and arguments",
+		Category: object.CategoryString,
 	})
 	createMathFunctions()
 	createJSONAndEvalFunctions(c)
@@ -145,24 +149,26 @@ func createMathFunctions() {
 		MinArgs:  1,
 		MaxArgs:  1,
 		ArgTypes: []object.Type{object.FLOAT},
+		Category: object.CategoryMath,
 	}
 	for _, function := range []struct {
 		fn   OneFloatInOutFunc
 		name string
+		help string
 	}{
-		{math.Sin, "sin"},
-		{math.Cos, "cos"},
-		{math.Tan, "tan"},
-		{math.Log, "ln"}, // proper name for natural logarithm and also doesn't conflict with logger builtin.
-		{math.Sqrt, "sqrt"},
-		{math.Exp, "exp"},
-		{math.Asin, "asin"},
-		{math.Acos, "acos"},
-		{math.Atan, "atan"},
-		{math.Log10, "log10"},
-		{math.Floor, "floor"},
-		{math.Ceil, "ceil"},
-		{math.Trunc, "trunc"}, // use int() for the version returning int and using safecast.
+		{math.Sin, "sin", "returns the sine of x in radians"},
+		{math.Cos, "cos", "returns the cosine of x in radians"},
+		{math.Tan, "tan", "returns the tangent of x in radians"},
+		{math.Log, "ln", "returns the natural logarithm of x"},
+		{math.Sqrt, "sqrt", "returns the square root of x"},
+		{math.Exp, "exp", "returns e raised to the power of x"},
+		{math.Asin, "asin", "returns the arcsine of x in radians"},
+		{math.Acos, "acos", "returns the arccosine of x in radians"},
+		{math.Atan, "atan", "returns the arctangent of x in radians"},
+		{math.Log10, "log10", "returns the base-10 logarithm of x"},
+		{math.Floor, "floor", "returns the greatest integer value less than or equal to x"},
+		{math.Ceil, "ceil", "returns the least integer value greater than or equal to x"},
+		{math.Trunc, "trunc", "returns the integer value of x"},
 	} {
 		oneFloat.Callback = object.ShortCallback(func(args []object.Object) object.Object {
 			// Arg len check already done through MinArgs=MaxArgs=1 and
@@ -170,10 +176,12 @@ func createMathFunctions() {
 			return object.Float{Value: function.fn(args[0].(object.Float).Value)}
 		})
 		oneFloat.Name = function.name
+		oneFloat.Help = function.help
 		MustCreate(oneFloat)
 	}
 	// round() is int-returning function using safecast (so does int() for truncate).
 	oneFloat.Name = "round"
+	oneFloat.Help = "returns the nearest integer to x"
 	oneFloat.Callback = func(env any, _ string, args []object.Object) object.Object {
 		s := env.(*eval.State)
 		r, err := safecast.Round[int64](args[0].(object.Float).Value)
@@ -195,6 +203,8 @@ func createMathFunctions() {
 			result := math.Atan2(base, exp)
 			return object.Float{Value: result}
 		}),
+		Help:     "returns the arctangent of y/x in radians",
+		Category: object.CategoryMath,
 	})
 	// rand() and rand(n) functions.
 	MustCreate(object.Extension{
@@ -214,6 +224,8 @@ func createMathFunctions() {
 			return object.Integer{Value: rand.Int64N(n)} //nolint:gosec // no need for crypto/rand here.
 		},
 		DontCache: true,
+		Help:      "returns a random number between 0 and 1, or between 0 and n-1 if n is provided",
+		Category:  object.CategoryMath,
 	})
 }
 
@@ -225,6 +237,7 @@ func createJSONAndEvalFunctions(c *Config) {
 		ArgTypes: []object.Type{object.ANY, object.STRING},
 		Callback: jsonSerGo,
 		Help:     `optional indent e.g json_go(m, "  ")`,
+		Category: object.CategoryIntrospection,
 	})
 	jsonFn := object.Extension{
 		Name:     "json",
@@ -232,6 +245,8 @@ func createJSONAndEvalFunctions(c *Config) {
 		MaxArgs:  1,
 		ArgTypes: []object.Type{object.ANY},
 		Callback: jsonSer,
+		Help:     "converts an object to a JSON string",
+		Category: object.CategoryIntrospection,
 	}
 	MustCreate(jsonFn)
 	jsonFn.Name = "type"
@@ -248,13 +263,16 @@ func createJSONAndEvalFunctions(c *Config) {
 			return object.String{Value: obj.Type().String()}
 		}
 	})
+	jsonFn.Help = "returns the type of an object as a string"
 	MustCreate(jsonFn)
 	jsonFn.Name = "eval"
 	jsonFn.Callback = evalFunc
 	jsonFn.ArgTypes = []object.Type{object.STRING}
+	jsonFn.Help = "evaluates a string as grol code"
 	MustCreate(jsonFn)
 	jsonFn.Name = "unjson"
 	jsonFn.Callback = evalFunc // unjson at the moment is just (like) eval hoping that json is map/array/...
+	jsonFn.Help = "evaluates a JSON string as grol code"
 	MustCreate(jsonFn)
 	jsonFn.Name = "format"
 	jsonFn.Help = "returns a string, pretty printed function object"
@@ -311,6 +329,7 @@ func createJSONAndEvalFunctions(c *Config) {
 		MaxArgs:  1,
 		ArgTypes: []object.Type{object.STRING},
 		Help:     "filename (.gr)",
+		Category: object.CategoryIO,
 	}
 	if c.HasSave {
 		loadSaveFn.Name = "save"
@@ -331,6 +350,7 @@ func createStrFunctions() { //nolint:funlen,gocognit,maintidx // we do have quit
 		MinArgs:  1,
 		MaxArgs:  2,
 		ArgTypes: []object.Type{object.STRING, object.BOOLEAN},
+		Category: object.CategoryString,
 	}
 	strFn.Name = "runes" // like explode.gr explodeRunes but go side and not recursive. option to get as int array.
 	strFn.Help = "optionally as array of integers"
@@ -358,11 +378,13 @@ func createStrFunctions() { //nolint:funlen,gocognit,maintidx // we do have quit
 	strFn.Callback = func(_ any, _ string, args []object.Object) object.Object {
 		return object.Integer{Value: int64(utf8.RuneCountInString(args[0].(object.String).Value))}
 	}
+	strFn.Help = "returns the number of runes in a string"
 	MustCreate(strFn)
 	strFn.Name = "width"
 	strFn.Callback = func(_ any, _ string, args []object.Object) object.Object {
 		return object.Integer{Value: int64(uniseg.StringWidth((args[0].(object.String).Value)))}
 	}
+	strFn.Help = "returns the display width of a string (accounting for full-width characters)"
 	MustCreate(strFn)
 	strFn.Name = "split"
 	strFn.Help = "optional separator"
@@ -412,7 +434,7 @@ func createStrFunctions() { //nolint:funlen,gocognit,maintidx // we do have quit
 	// TODO: Consider adding a cache of all the regexp compilation in the CData or globally
 	// some LRU (like discord bot's fixedmap) maybe. For now we compile on each call.
 	strFn.Name = "regexp"
-	strFn.Help = "returns true if regular expression matches the string (2nd arg)"
+	strFn.Help = "returns true if regular expression (first arg) matches the string (2nd arg), optionally returns an array of matches"
 	strFn.ArgTypes = []object.Type{object.STRING, object.STRING, object.BOOLEAN}
 	strFn.MinArgs = 2
 	strFn.MaxArgs = 3
@@ -561,6 +583,8 @@ func createMisc() {
 		}
 		return minV
 	}
+	minMaxFn.Help = "returns the minimum value among the arguments"
+	minMaxFn.Category = object.CategoryMath
 	MustCreate(minMaxFn)
 	minMaxFn.Name = "max"
 	minMaxFn.Callback = func(_ any, _ string, args []object.Object) object.Object {
@@ -575,6 +599,8 @@ func createMisc() {
 		}
 		return maxV
 	}
+	minMaxFn.Help = "returns the maximum value among the arguments"
+	minMaxFn.Category = object.CategoryMath
 	MustCreate(minMaxFn)
 
 	intFn := object.Extension{
@@ -616,6 +642,8 @@ func createMisc() {
 				return s.Errorf("cannot convert %s to int", o.Type())
 			}
 		},
+		Help:     "converts a value to an integer",
+		Category: object.CategoryMath,
 	}
 	MustCreate(intFn)
 	intFn.Name = "base64"
@@ -639,15 +667,18 @@ func createMisc() {
 		base64.StdEncoding.Encode(encoded, data)
 		return object.String{Value: string(encoded)}
 	}
+	intFn.Help = "encodes a string to base64"
+	intFn.Category = object.CategoryString
 	MustCreate(intFn)
 }
 
 func createTimeFunctions() {
 	MustCreate(object.Extension{
-		Name:    "time.now",
-		MinArgs: 0,
-		MaxArgs: 0,
-		Help:    "Date/time in seconds since epoch",
+		Name:     "time.now",
+		MinArgs:  0,
+		MaxArgs:  0,
+		Help:     "returns the current time in seconds since epoch",
+		Category: object.CategoryTime,
 		Callback: object.ShortCallback(func(_ []object.Object) object.Object {
 			return object.Float{Value: float64(time.Now().UnixMicro()) / 1e6}
 		}),
@@ -658,7 +689,8 @@ func createTimeFunctions() {
 		MinArgs:  1,
 		MaxArgs:  1,
 		ArgTypes: []object.Type{object.FLOAT},
-		Help:     "in seconds",
+		Help:     "sleeps for the specified number of seconds",
+		Category: object.CategoryTime,
 		Callback: func(st any, _ string, args []object.Object) object.Object {
 			s := st.(*eval.State)
 			durSec := args[0].(object.Float).Value
@@ -675,7 +707,8 @@ func createTimeFunctions() {
 		MinArgs:  1,
 		MaxArgs:  2,
 		ArgTypes: []object.Type{object.FLOAT, object.STRING},
-		Help:     "Float as returned by time.now() and time.parse() in seconds since epoch, and optional TimeZone/location",
+		Help:     "returns detailed information about a time value in seconds since epoch",
+		Category: object.CategoryTime,
 		Callback: func(st any, _ string, args []object.Object) object.Object {
 			s := st.(*eval.State)
 			timeUsec := math.Round(args[0].(object.Float).Value * 1e6)
@@ -717,7 +750,8 @@ func createTimeFunctions() {
 		MinArgs:  1,
 		MaxArgs:  2,
 		ArgTypes: []object.Type{object.STRING, object.STRING},
-		Help:     "Parse a time string with optional format, returns seconds since epoch",
+		Help:     "parses a time string and returns seconds since epoch",
+		Category: object.CategoryTime,
 		Callback: func(st any, _ string, args []object.Object) object.Object {
 			s := st.(*eval.State)
 			inp := args[0].(object.String).Value

@@ -847,7 +847,7 @@ func TestExtension(t *testing.T) {
 	}
 	input := `pow`
 	evaluated := testEval(t, input)
-	expected := "pow(float, float)"
+	expected := "pow(float, float) // [math] returns base raised to the power of exp"
 	if evaluated.Inspect() != expected {
 		t.Errorf("object has wrong value. got=%s, want=%s", evaluated.Inspect(), expected)
 	}
@@ -872,7 +872,8 @@ func TestExtension(t *testing.T) {
 	}
 	input = `m={1.5:"a",2: {"str": 42, 3: pow}, -3:42}; json(m)`
 	evaluated = testEval(t, input)
-	expected = `{"-3":42,"1.5":"a","2":{"3":{"gofunc":"pow(float, float)"},"str":42}}`
+	expected = `{"-3":42,"1.5":"a","2":{"3":{"gofunc":"pow(float, float)` +
+		` // [math] returns base raised to the power of exp"},"str":42}}`
 	actual, ok = evaluated.(object.String)
 	if !ok {
 		t.Errorf("object is not string. got=%T (%+v)", evaluated, evaluated)
