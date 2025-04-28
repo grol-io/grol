@@ -149,6 +149,7 @@ func createMathFunctions() {
 		MinArgs:  1,
 		MaxArgs:  1,
 		ArgTypes: []object.Type{object.FLOAT},
+		Category: object.CategoryMath,
 	}
 	for _, function := range []struct {
 		fn   OneFloatInOutFunc
@@ -176,13 +177,11 @@ func createMathFunctions() {
 		})
 		oneFloat.Name = function.name
 		oneFloat.Help = function.help
-		oneFloat.Category = object.CategoryMath
 		MustCreate(oneFloat)
 	}
 	// round() is int-returning function using safecast (so does int() for truncate).
 	oneFloat.Name = "round"
 	oneFloat.Help = "returns the nearest integer to x"
-	oneFloat.Category = object.CategoryMath
 	oneFloat.Callback = func(env any, _ string, args []object.Object) object.Object {
 		s := env.(*eval.State)
 		r, err := safecast.Round[int64](args[0].(object.Float).Value)
