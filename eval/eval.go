@@ -925,6 +925,7 @@ func (s *State) evalForInteger(fe *ast.ForExpression, start *int64, end int64, n
 			return s.Errorf("for loop register %s shouldn't be modified inside the loop", name)
 		}
 		ptr = register.Ptr()
+		defer s.env.ReleaseRegister(register)
 	}
 	for i := startValue; i < endValue; i++ {
 		if s.NoReg && name != "" {
@@ -941,6 +942,7 @@ func (s *State) evalForInteger(fe *ast.ForExpression, start *int64, end int64, n
 			r := nextEval.(object.ReturnValue)
 			switch r.ControlType {
 			case token.BREAK:
+				// log.Infof("break in for integer loop, returning %s", lastEval.Inspect())
 				return lastEval
 			case token.CONTINUE:
 				continue
@@ -952,9 +954,6 @@ func (s *State) evalForInteger(fe *ast.ForExpression, start *int64, end int64, n
 		default:
 			lastEval = nextEval
 		}
-	}
-	if ptr != nil {
-		s.env.ReleaseRegister(register)
 	}
 	return lastEval
 }
@@ -1051,9 +1050,24 @@ func (s *State) evalForExpression(fe *ast.ForExpression) object.Object {
 			if log.LogVerbose() {
 				log.LogVf("for %s is object.TRUE, running body", fe.Condition.Value().DebugString())
 			}
-			lastEval = s.evalInternal(fe.Body)
-			if rt := lastEval.Type(); rt == object.RETURN || rt == object.ERROR {
-				return lastEval
+			nextEval := s.evalInternal(fe.Body)
+			switch nextEval.Type() {
+			case object.ERROR:
+				return nextEval
+			case object.RETURN:
+				r := nextEval.(object.ReturnValue)
+				switch r.ControlType {
+				case token.BREAK:
+					return lastEval
+				case token.CONTINUE:
+					continue
+				case token.RETURN:
+					return r
+				default:
+					return s.Errorf("for loop unexpected control type %s", r.ControlType.String())
+				}
+			default:
+				lastEval = nextEval
 			}
 		case object.FALSE, object.NULL:
 			if log.LogVerbose() {
