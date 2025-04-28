@@ -1008,7 +1008,10 @@ func (s *State) evalForList(fe *ast.ForExpression, list object.Object, name stri
 		if v == nil {
 			return s.NewError("for list element is nil")
 		}
-		s.env.Set(name, v)
+		oerr := s.env.CreateOrSet(name, v, true) // Create new local scope for loop variable
+		if oerr.Type() == object.ERROR {
+			return oerr
+		}
 		// Copy pasta from evalForInteger. hard to share control flow.
 		nextEval := s.evalInternal(fe.Body)
 		switch nextEval.Type() {

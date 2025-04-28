@@ -265,7 +265,8 @@ func (e *Environment) Get(name string) (Object, bool) {
 }
 
 // Delete removes the first entry found under that name from the environment.
-// TODO: check if references need special handling.
+// TODO: check if references need special handling / if variable is in use/referenced somewhere.
+// (had a SEGV in https://github.com/grol-io/grol/issues/335 ).
 func (e *Environment) Delete(name string) Object {
 	if e.depth == 0 {
 		e.numSet++
