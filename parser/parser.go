@@ -776,7 +776,7 @@ func (p *Parser) isComment() bool {
 // until it finds a non-comment token.
 func (p *Parser) skipCommentsIfAny() {
 	for p.isComment() {
-		log.LogVf("Ignoring comment: %s", p.curToken.Literal())
+		log.LogVf("Ignoring current token comment: %s", p.curToken.Literal())
 		p.nextToken()
 	}
 }
@@ -788,7 +788,7 @@ func (p *Parser) peekComment() bool {
 
 func (p *Parser) skipPeekComments() {
 	for p.peekComment() {
-		log.LogVf("Ignoring comment: %s", p.curToken.Literal())
 		p.nextToken()
+		log.LogVf("Ignoring peeked token comment: %s", p.curToken.Literal())
 	}
 }
