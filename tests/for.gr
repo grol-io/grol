@@ -83,3 +83,39 @@ func testForRefDelete() {
 res := testForRefDelete()
 del(ext)
 Assert("for ref delete", res == [["A", "X"], ["B", "X"]])
+
+// -- for and break/continue bug --
+
+func testforbreak(value) {
+    count_aces := 0
+    count_aces++
+    for count_aces > 0 {
+        if value <= 21 {
+            log("early break", value)
+            break
+        }
+        value = value - 10
+        count_aces--
+    }
+    return value
+}
+
+func testforcontinue() {
+    sum := 0
+    for i := 10 { // 0, 1, 2, 3, 4, 5... but we skip 3 and break at 5
+        if i == 3 {
+            continue
+        }
+        if i == 5 {
+            break // will return last eval
+        }
+		// log("summing", i, "sum", sum, "sum+i", sum+i)
+        sum = sum + i
+    }
+}
+
+Assert("early break", testforbreak(12) == 12)
+Assert("do break", testforbreak(25) == 15)
+cv := testforcontinue()
+log("continue+break", cv)
+Assert("continue+break", cv == 7) // 0 + 1 + 2 + 4 = 7 (skips 3, breaks after 4)
