@@ -12,6 +12,7 @@ import (
 	"math/rand/v2"
 	"os"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -564,6 +565,7 @@ func createStrFunctions() { //nolint:funlen,gocognit,maintidx // we do have quit
 	MustCreate(strFn)
 }
 
+//nolint:funlen // we have quite a few extensions here.
 func createMisc() {
 	minMaxFn := object.Extension{
 		MinArgs:  1,
@@ -602,6 +604,48 @@ func createMisc() {
 	minMaxFn.Help = "returns the maximum value among the arguments"
 	minMaxFn.Category = object.CategoryMath
 	MustCreate(minMaxFn)
+
+	// Add sort function
+	MustCreate(object.Extension{
+		Name:     "sort",
+		MinArgs:  1,
+		MaxArgs:  1,
+		ArgTypes: []object.Type{object.ARRAY},
+		Callback: func(_ any, _ string, args []object.Object) object.Object {
+			arr := args[0].(object.Array).Elements()
+			// Create a copy to avoid modifying the original array
+			sorted := make([]object.Object, len(arr))
+			copy(sorted, arr)
+			// Sort using the object.Cmp function
+			sort.Slice(sorted, func(i, j int) bool {
+				return object.Cmp(sorted[i], sorted[j]) < 0
+			})
+			return object.NewArray(sorted)
+		},
+		Help:     "sorts an array",
+		Category: object.CategoryMath,
+	})
+
+	// Add shuffle function
+	MustCreate(object.Extension{
+		Name:     "shuffle",
+		MinArgs:  1,
+		MaxArgs:  1,
+		ArgTypes: []object.Type{object.ARRAY},
+		Callback: func(_ any, _ string, args []object.Object) object.Object {
+			arr := args[0].(object.Array).Elements()
+			// Create a copy to avoid modifying the original array
+			shuffled := make([]object.Object, len(arr))
+			copy(shuffled, arr)
+			rand.Shuffle(len(shuffled), func(i, j int) {
+				shuffled[i], shuffled[j] = shuffled[j], shuffled[i]
+			})
+			return object.NewArray(shuffled)
+		},
+		Help:      "randomly reorders elements in an array",
+		Category:  object.CategoryMath,
+		DontCache: true, // Since it's random, we don't want to cache the result
+	})
 
 	intFn := object.Extension{
 		Name:     "int",
