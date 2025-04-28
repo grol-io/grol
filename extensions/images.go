@@ -189,6 +189,7 @@ func createImageFunctions() { //nolint:funlen // this is a group of related func
 			return args[0]
 		},
 		DontCache: true,
+		Category:  object.CategoryImage,
 	}
 	MustCreate(imgFn)
 	imgFn.Name = "image.set"
@@ -295,6 +296,7 @@ func createVectorImageFunctions(cdata ImageMap) { //nolint:funlen // this is a g
 			img.Vect.MoveTo(float32(x), float32(y))
 			return args[0]
 		},
+		Category: object.CategoryImage,
 	}
 	MustCreate(imgFn)
 	imgFn.Name = "image.line_to"

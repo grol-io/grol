@@ -1295,3 +1295,8 @@ func (e Extension) JSON(w io.Writer) error {
 	_, err := fmt.Fprintf(w, `{"gofunc":%q}`, e.Inspect())
 	return err
 }
+
+// String returns the string representation of the extension
+func (e Extension) String() string {
+	return e.Inspect()
+}

@@ -2,12 +2,18 @@
 
 println("--- Built-in Go Functions (gofuncs) Help ---")
 // Iterate through the sorted list of function names
-println("| Function name     | Details |")
-println("|-------------------|---------|")
+println("| Function name     | Category   | Details |")
+println("|-------------------|------------|---------|")
 for name := info.gofuncs {
-    helpstr := eval(name)
-    printf("|%-18s | ", "`"+name+"`")
+    helpstr := str(eval(name))
+    res := regexp("^(.+)// \\[([^]]+)\\](.*)$", helpstr, true)
+    if len(res) != 4 {
+        log("Error parsing help string for " + name + " " + helpstr)
+        continue
+    }
+    categ := res[2]
+    helpstr = res[1] + ":" + res[3]
+    printf("|%-18s | %-10s | ", "`"+name+"`", categ)
     println(helpstr, "|") // can't use %s for now, it's not a string it's an EXTENSION see issue below
 }
 println("--- End of List ---")
-del(helpstr) // because of https://github.com/grol-io/grol/issues/309

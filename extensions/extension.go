@@ -237,6 +237,7 @@ func createJSONAndEvalFunctions(c *Config) {
 		ArgTypes: []object.Type{object.ANY, object.STRING},
 		Callback: jsonSerGo,
 		Help:     `optional indent e.g json_go(m, "  ")`,
+		Category: object.CategoryIntrospection,
 	})
 	jsonFn := object.Extension{
 		Name:     "json",
@@ -328,6 +329,7 @@ func createJSONAndEvalFunctions(c *Config) {
 		MaxArgs:  1,
 		ArgTypes: []object.Type{object.STRING},
 		Help:     "filename (.gr)",
+		Category: object.CategoryIO,
 	}
 	if c.HasSave {
 		loadSaveFn.Name = "save"
