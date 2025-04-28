@@ -11,4 +11,5 @@ Assert("foo(1, // first\n	2, // second\n	3)", foo(1,
 	 // first
 	2, // second
 	// another one
-	3) == 6)
+	3 // last one
+	) == 6)

@@ -992,3 +992,51 @@ func TestMacroLiteralParsing(t *testing.T) {
 
 	testInfixExpression(t, bodyStmt, "x", "+", "y")
 }
+
+func TestParsingArrayLiteralsWithComments(t *testing.T) {
+	input := `[1, // first
+		2, // second
+		3 // last one
+	]`
+
+	l := lexer.New(input)
+	p := New(l)
+	program := p.ParseProgram()
+	checkParserErrors(t, p)
+
+	array, ok := program.Statements[0].(*ast.ArrayLiteral)
+	if !ok {
+		t.Fatalf("exp not ast.ArrayLiteral. got=%T", program.Statements[0])
+	}
+	if len(array.Elements) != 3 {
+		t.Fatalf("len(array.Elements) not 3. got=%d", len(array.Elements))
+	}
+
+	testIntegerLiteral(t, array.Elements[0], 1)
+	testIntegerLiteral(t, array.Elements[1], 2)
+	testIntegerLiteral(t, array.Elements[2], 3)
+}
+
+func TestParsingFunctionCallsWithComments(t *testing.T) {
+	input := `foo(1, // first
+		2, // second
+		3 // last one
+	)`
+
+	l := lexer.New(input)
+	p := New(l)
+	program := p.ParseProgram()
+	checkParserErrors(t, p)
+
+	call, ok := program.Statements[0].(*ast.CallExpression)
+	if !ok {
+		t.Fatalf("exp not ast.CallExpression. got=%T", program.Statements[0])
+	}
+	if len(call.Arguments) != 3 {
+		t.Fatalf("len(call.Arguments) not 3. got=%d", len(call.Arguments))
+	}
+
+	testIntegerLiteral(t, call.Arguments[0], 1)
+	testIntegerLiteral(t, call.Arguments[1], 2)
+	testIntegerLiteral(t, call.Arguments[2], 3)
+}
