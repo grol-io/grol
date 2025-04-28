@@ -432,7 +432,7 @@ func createStrFunctions() { //nolint:funlen,gocognit,maintidx // we do have quit
 	// TODO: Consider adding a cache of all the regexp compilation in the CData or globally
 	// some LRU (like discord bot's fixedmap) maybe. For now we compile on each call.
 	strFn.Name = "regexp"
-	strFn.Help = "returns true if regular expression matches the string (2nd arg)"
+	strFn.Help = "returns true if regular expression (first arg) matches the string (2nd arg), optionally returns an array of matches"
 	strFn.ArgTypes = []object.Type{object.STRING, object.STRING, object.BOOLEAN}
 	strFn.MinArgs = 2
 	strFn.MaxArgs = 3
