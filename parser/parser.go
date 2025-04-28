@@ -645,15 +645,9 @@ func (p *Parser) parseFunctionParameters() ([]ast.Node, bool) {
 		ident := &ast.Identifier{}
 		ident.Token = p.curToken
 		identifiers = append(identifiers, ident)
-		for p.peekComment() {
-			p.nextToken()
-			log.Debugf("parseFunctionParameters: skipping comment1: %s", p.curToken.DebugString())
-		}
+		p.skipPeekComments()
 	}
-	for p.peekComment() {
-		p.nextToken()
-		log.Debugf("parseFunctionParameters: skipping comment2: %s", p.curToken.DebugString())
-	}
+	p.skipPeekComments()
 	if !p.expectPeek(token.RPAREN) {
 		log.Debugf("parseFunctionParameters: nil return 0: %s", p.peekToken.Literal())
 		return nil, false
@@ -682,15 +676,9 @@ func (p *Parser) parseExpressionList(end token.Type) []ast.Node {
 		p.nextToken()
 		p.skipCommentsIfAny()
 		args = append(args, p.parseExpression(ast.LOWEST))
-		for p.peekComment() {
-			p.nextToken()
-			log.Debugf("parseExpressionList: skipping comment1: %s", p.curToken.DebugString())
-		}
+		p.skipPeekComments()
 	}
-	for p.peekComment() {
-		p.nextToken()
-		log.Debugf("parseExpressionList: skipping comment2: %s", p.curToken.DebugString())
-	}
+	p.skipPeekComments()
 	if !p.expectPeek(end) {
 		log.Debugf("parseCallExpression: nil return 0: %s", p.peekToken.Literal())
 		return nil
@@ -796,4 +784,11 @@ func (p *Parser) skipCommentsIfAny() {
 // peekComment checks if the peek token is a comment.
 func (p *Parser) peekComment() bool {
 	return p.peekTokenIs(token.LINECOMMENT) || p.peekTokenIs(token.BLOCKCOMMENT)
+}
+
+func (p *Parser) skipPeekComments() {
+	for p.peekComment() {
+		log.LogVf("Ignoring comment: %s", p.curToken.Literal())
+		p.nextToken()
+	}
 }
