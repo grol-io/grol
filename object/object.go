@@ -45,7 +45,7 @@ const (
 	ANY // A marker, for extensions, not a real type.
 )
 
-// Extension categories
+// Extension categories.
 const (
 	CategoryMath          = "math"
 	CategoryIntrospection = "introspection"
