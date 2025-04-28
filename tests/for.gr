@@ -29,3 +29,57 @@ func testRef() {
 }
 
 NoErr("for global array inside a function", testRef(), "6")
+
+// scoping bug
+
+list := ["A","B"]
+ext := "X" // commenting this out hides the bug
+
+// -- segv issue: --
+func testScoping2() {
+	res := []
+	for ext := list {
+		res = res + [ext]
+	}
+	return res
+}
+res1 := testScoping2()
+log("res1:", res1)
+del(ext)
+res2 := testScoping2()
+log("res2:", res2)
+Assert("for scoping bug", res2 == ["A", "B"])
+Assert("for scoping bug", res1 == ["A", "B"]) // segv comment out to see next test error
+log("done with scoping bug")
+
+// -- regular scoping bug --
+
+func testScoping(i) {
+	res := []
+	for ext := list {
+		res = res + [ext]
+	}
+	return res
+}
+
+res3 := testScoping("a") // should be ["A","B"] gets ["B", "B"]
+log("res3:", res3)
+ext := "X" // commenting this out hides the bug
+res4 := testScoping("b")
+log("res4:", res4)
+Assert("for scoping bug", res3 == ["A", "B"] && res4 == ["A", "B"])
+
+// -- reference deletion with for loop test --
+list := ["A", "B"]
+ext := "X"
+func testForRefDelete() {
+    res := []
+    for x := list {
+        res = res + [[x, ext]]
+    }
+    return res
+}
+
+res := testForRefDelete()
+del(ext)
+Assert("for ref delete", res == [["A", "X"], ["B", "X"]])

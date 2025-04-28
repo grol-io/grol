@@ -764,6 +764,10 @@ func NewArray(elements []Object) Object {
 	if len(elements) == 0 {
 		return EmptyArray
 	}
+	// Dereference values to current values vs keeping references to captured variables.
+	for i := range elements {
+		elements[i] = Value(elements[i])
+	}
 	if len(elements) <= MaxSmallArray {
 		sa := SmallArray{len: len(elements)}
 		copy(sa.smallArr[:], elements)
@@ -1198,10 +1202,14 @@ type Reference struct {
 }
 
 func (r Reference) ObjValue() Object {
-	if log.LogDebug() {
-		log.Debugf("Reference Value() %s -> %s", r.Name, r.RefEnv.store[r.Name].Inspect())
+	v, ok := r.RefEnv.store[r.Name]
+	if !ok {
+		// Reference points to a deleted variable
+		return Error{Value: "reference to deleted variable " + r.Name}
 	}
-	v := r.RefEnv.store[r.Name]
+	if log.LogDebug() {
+		log.Debugf("Reference Value() %s -> %s", r.Name, v.Inspect())
+	}
 	if v == r {
 		panic("Self reference")
 	}
