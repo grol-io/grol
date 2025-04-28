@@ -199,6 +199,15 @@ func prettyPrintCompact(ps *PrintState, s Node, i int) bool {
 		if i > 0 {
 			_, _ = ps.Out.Write([]byte{' '})
 		}
+	} else if i > 0 {
+		// Add space between identifiers and builtins/function calls
+		_, isIdentifier := s.(*Identifier)
+		_, isBuiltin := s.(*Builtin)
+		_, isCall := s.(*CallExpression)
+		_, prevIsIdentifier := ps.prev.(*Identifier)
+		if (isIdentifier || isBuiltin || isCall) && prevIsIdentifier {
+			_, _ = ps.Out.Write([]byte{' '})
+		}
 	}
 	return false
 }

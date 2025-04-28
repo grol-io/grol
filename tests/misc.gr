@@ -13,3 +13,11 @@ Assert("foo(1, // first\n	2, // second\n	3)", foo(1,
 	// another one
 	3 // last one
 	) == 6)
+
+del(xy) // make sure xy is not defined
+x=1
+y=2
+// should not parse to xy #325
+x y
+
+println("y is", y)
