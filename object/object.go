@@ -675,9 +675,12 @@ func (f Function) lambdaPrint(ps *ast.PrintState, out *strings.Builder) string {
 	} else {
 		out.WriteString("=>")
 	}
-	needBraces := len(f.Body.Statements) != 1 ||
-		f.Body.Statements[0].Value().Type() == token.LBRACE ||
-		f.Body.Statements[0].Value().Type() == token.LAMBDA
+	needBraces := len(f.Body.Statements) != 1 // 0 or > 1 statements.
+	if !needBraces {                          // 1 statement, check which:
+		bType := f.Body.Statements[0].Value().Type()
+		needBraces = bType == token.LBRACE || bType == token.LAMBDA ||
+			bType == token.ASSIGN || bType == token.DEFINE
+	}
 	if needBraces {
 		out.WriteString("{")
 	}
