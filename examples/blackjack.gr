@@ -1,3 +1,4 @@
+#! /usr/bin/env grol -s
 /*
   Blackjack simulation.
   With pluggable dealer and player strategies/scripts/functions.
@@ -66,7 +67,7 @@ bjs := {
     bjs.player_hand = bjs.dealCard()
     bjs.player_hand = bjs.player_hand + bjs.dealCard()
     bjs.end_game = false
-    printf("New turn, dealer hand: [[X] %v]\n", (bjs.dealer_hand)[1:])
+    printf("\nNew turn, dealer hand: [[X] %v]\n", (bjs.dealer_hand)[1:])
     bjs.player_hand_value = bjs.handValue(bjs.player_hand)
     printf("Player hand: %v - pts %d\n", bjs.player_hand, bjs.player_hand_value)
     bjs.earlyPlayerStop()
@@ -110,7 +111,7 @@ bjs := {
   },
   "evaluateGame": () => {
     bjs.player_balance = round(bjs.player_balance + bjs.evaluateGameDetails()*bjs.bet)
-    printf("Player balance: %d\n", bjs.player_balance)
+    printf("New player balance: $%d\n", bjs.player_balance)
     bjs.end_game = true
   },
   "evaluateGameDetails": () => {
@@ -133,10 +134,6 @@ bjs := {
     if bjs.dealer_hand_value > 21 {
       printf("Dealer busts %d\n", bjs.dealer_hand_value)
       return 1
-    }
-    if bjs.dealer_hand_value == 21 {
-      printf("Dealer blackjack\n")
-      return -1
     }
     if bjs.player_hand_value > bjs.dealer_hand_value {
       printf("Player wins %d to %d\n", bjs.player_hand_value, bjs.dealer_hand_value)
@@ -182,21 +179,31 @@ bjs := {
   },
 }
 
+// Run from shell script eg `./blackjack.gr` interactive mode:
+if info.globals.args {
+  printf("Play Blackjack!\n")
+  printf("Player balance: $%d - bet $%d\n", bjs.player_balance, bjs.bet)
+  println("<return> or h to hit, s to stand. (q or eof to quit)")
 
-printf("Player balance: %d - bet %d\n", bjs.player_balance, bjs.bet)
-println("h to hit s to stand.")
-
-bjs.newDecks()
-for !eof() {
-  if bjs.end_game {
-    bjs.newTurn()
-  }
-  inp := trim(read())
-  if inp == "h" {
-    bjs.hit()
-  } else if inp == "s" {
-    bjs.dealerStrategy()
-  } else {
-    printf("Invalid input: %s\n", inp)
+  bjs.newDecks()
+  for !eof() {
+    if bjs.player_balance < bjs.bet {
+      printf("You ran out of money (need $%d min)! Game over, player balance: $%d\n", bjs.bet, bjs.player_balance)
+      break
+    }
+    if bjs.end_game {
+      bjs.newTurn()
+    }
+    inp := trim(read())
+    if inp == "h" || inp == "" {
+      bjs.hit()
+    } else if inp == "s" {
+      bjs.dealerStrategy()
+    } else if inp == "q" {
+      printf("Bye\n")
+      break
+    } else {
+      printf("Invalid input: %s\n", inp)
+    }
   }
 }
