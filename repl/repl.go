@@ -2,7 +2,6 @@ package repl
 
 import (
 	"bufio"
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -147,9 +146,7 @@ func EvalAll(s *eval.State, in io.Reader, out io.Writer, options Options) []stri
 		log.Fatalf("%v", err)
 	}
 	what := string(b)
-	if strings.HasPrefix(what, "#!") {
-		what = what[bytes.IndexByte(b, '\n')+1:]
-	}
+	what = extensions.DropStartingShebang(what)
 	if options.PreInput != nil {
 		options.PreInput(s)
 	}
@@ -273,7 +270,8 @@ func Interactive(options Options) int { //nolint:funlen // we do have quite a fe
 			continue
 		}
 		if err != nil {
-			return log.FErrf("Error reading line: %v", err)
+			log.Warnf("Error reading line: %v", err)
+			continue
 		}
 		ctx = term.Context // context can be changed by shell run command through suspend/resume.
 		log.Debugf("Read: %q", rd)

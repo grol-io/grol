@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 
+	"fortio.org/log"
 	"grol.io/grol/eval"
 	"grol.io/grol/object"
 )
@@ -23,13 +24,16 @@ func createIOFunctions() {
 		Category: object.CategoryIO,
 		Callback: func(env any, _ string, _ []object.Object) object.Object {
 			s := env.(*eval.State)
+			// Flush output buffer before reading
+			s.FlushOutput()
 			if s.Term != nil {
 				s.Term.Suspend()
 				//nolint:fatcontext // we do need to update/reset the context and its cancel function.
 				s.Context, s.Cancel = context.WithCancel(context.Background()) // no timeout.
+				defer func() {
+					s.Context, s.Cancel = s.Term.Resume(context.Background())
+				}()
 			}
-			// Flush output buffer before reading
-			s.FlushOutput()
 			var linebuf strings.Builder
 			// reading one byte at a time is pretty inefficient, but necessary because of the terminal raw mode switch/switchback.
 			var b [1]byte
@@ -46,11 +50,9 @@ func createIOFunctions() {
 					break
 				}
 				if err != nil {
+					log.Errf("Error reading stdin: %v", err)
 					return s.Error(err)
 				}
-			}
-			if s.Term != nil {
-				s.Context, s.Cancel = s.Term.Resume(context.Background())
 			}
 			return object.String{Value: linebuf.String()}
 		},

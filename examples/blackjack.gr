@@ -181,9 +181,9 @@ bjs := {
 }
 bjs.newDecks()
 
-// Run from shell script eg `./blackjack.gr` interactive mode:
-if info.globals.args {
+func playBlackjack() {
   printf("Play Blackjack!\n")
+  bjs.player_balance = 100 // reset balance if called again.
   printf("Player balance: $%d - bet $%d\n", bjs.player_balance, bjs.bet)
   println("<return> or h to hit, s to stand. (q or eof to quit)")
   for !eof() {
@@ -205,5 +205,18 @@ if info.globals.args {
     } else {
       printf("Invalid input: %s\n", inp)
     }
+  }
+}
+
+// Run from shell script eg `./blackjack.gr` interactive mode:
+if info.globals.args {
+  playBlackjack()
+} else {
+  if info.globals.interactive {
+    // load()ed from repl prompt:
+    println("Use playBlackjack() to play interactively")
+  } else {
+    // just part of command line files (like in make tests/checks/...)
+    println("blackjack.gr - loaded as library, use ./blackjack.gr to play interactively")
   }
 }
