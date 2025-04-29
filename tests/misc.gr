@@ -36,3 +36,9 @@ Assert("shuffling an array", s != a)
 Assert("sorting shuffled array", sort(s) == a)
 // check sort didn't modify the s big array
 Assert("shuffling an array", s != a)
+
+
+// empty lambda shouldn't crash
+emptylambda = () => {}
+
+emptylambda()
