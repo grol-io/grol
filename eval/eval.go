@@ -2,6 +2,7 @@ package eval
 
 import (
 	"bytes"
+	"io"
 	"math"
 	"strings"
 
@@ -710,22 +711,19 @@ func (s *State) applyFunction(name string, fn object.Object, args []object.Objec
 	}
 	curState := s.env
 	s.env = nenv
-	oldOut := s.Out
-	buf := bytes.Buffer{}
-	s.Out = &buf
+	oldOut := s.startOutputBuffering()
 	// This is 0 as the env is new, but... we just want to make sure there is
 	// no get() up stack to confirm the function might be cacheable.
 	before := s.env.GetMisses()
 	res := s.Eval(newBody) // Need to have the return value unwrapped. Fixes bug #46, also need to count recursion.
 	after := s.env.GetMisses()
 	cantCache := s.env.CantCache()
+	// gather output
+	output := s.stopOutputBuffering()
 	// restore the previous env/state.
 	s.env = curState
-	s.Out = oldOut
-	var output []byte
-	if buf.Len() > 0 {
-		output = buf.Bytes()
-		_, err := s.Out.Write(output)
+	if len(output) > 0 {
+		_, err := oldOut.Write(output)
 		if err != nil {
 			log.Warnf("output: %v", err)
 		}
@@ -1356,4 +1354,23 @@ func (s *State) evalFloatInfixExpression(operator token.Type, left, right object
 	default:
 		return s.NewError("unknown operator: " + operator.String())
 	}
+}
+
+// startOutputBuffering starts capturing output in a buffer.
+// Returns the previous output writer.
+func (s *State) startOutputBuffering() io.Writer {
+	s.env.OutputBuffer = &bytes.Buffer{}
+	s.env.PrevOut = s.Out
+	s.Out = s.env.OutputBuffer
+	return s.env.PrevOut
+}
+
+// stopOutputBuffering stops capturing output and restores the previous output writer.
+// Returns the buffered output.
+func (s *State) stopOutputBuffering() []byte {
+	output := s.env.OutputBuffer.Bytes()
+	s.Out = s.env.PrevOut
+	s.env.OutputBuffer = nil
+	s.env.PrevOut = nil
+	return output
 }

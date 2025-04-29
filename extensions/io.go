@@ -28,6 +28,8 @@ func createIOFunctions() {
 				//nolint:fatcontext // we do need to update/reset the context and its cancel function.
 				s.Context, s.Cancel = context.WithCancel(context.Background()) // no timeout.
 			}
+			// Flush output buffer before reading
+			s.FlushOutput()
 			var linebuf strings.Builder
 			// reading one byte at a time is pretty inefficient, but necessary because of the terminal raw mode switch/switchback.
 			var b [1]byte

@@ -235,3 +235,16 @@ func (s *State) NumMacros() int {
 func (s *State) GetPipeValue() []byte {
 	return s.PipeVal
 }
+
+// FlushOutput writes any buffered output to the actual output writer.
+// This is needed before read operations to ensure prompts and other output
+// are visible to the user immediately.
+func (s *State) FlushOutput() {
+	// Write buffered output to real output
+	_, err := s.env.PrevOut.Write(s.env.OutputBuffer.Bytes())
+	if err != nil {
+		log.Warnf("flush output: %v", err)
+	}
+	// Clear the buffer but keep it for future writes
+	s.env.OutputBuffer.Reset()
+}

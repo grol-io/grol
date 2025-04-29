@@ -1,6 +1,7 @@
 package object
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"slices"
@@ -29,6 +30,9 @@ type Environment struct {
 	function  *Function
 	registers [NumRegisters]int64
 	numReg    int
+	// Output buffering state
+	OutputBuffer *bytes.Buffer
+	PrevOut      io.Writer
 }
 
 // Truly empty store suitable for macros storage.
