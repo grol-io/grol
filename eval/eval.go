@@ -546,7 +546,7 @@ func (s *State) evalIndexRangeExpression(left object.Object, leftIdx, rightIdx a
 		}
 	}
 	if !object.IsIntType(leftIndex.Type()) || (!nilRight && !object.IsIntType(rightIndex.Type())) {
-		return s.Errorf("range index not integer: %s %s", leftIndex.Inspect(), rightIndex.Inspect())
+		return s.NewError("range index not integer")
 	}
 	num := object.Len(left)
 	l, _ := Int64Value(leftIndex)
