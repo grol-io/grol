@@ -51,6 +51,7 @@ bjs := {
   // Methods
   "newDecks": () => {
     bjs.decks = shuffle(fullDeck()*bjs.num_decks)
+    printf("New decks: %d cards shuffled\n", len(bjs.decks))
   },
   "dealCard": () => {
     card := bjs.decks[0]
@@ -178,14 +179,13 @@ bjs := {
       return [card]
   },
 }
+bjs.newDecks()
 
 // Run from shell script eg `./blackjack.gr` interactive mode:
 if info.globals.args {
   printf("Play Blackjack!\n")
   printf("Player balance: $%d - bet $%d\n", bjs.player_balance, bjs.bet)
   println("<return> or h to hit, s to stand. (q or eof to quit)")
-
-  bjs.newDecks()
   for !eof() {
     if bjs.player_balance < bjs.bet {
       printf("You ran out of money (need $%d min)! Game over, player balance: $%d\n", bjs.bet, bjs.player_balance)

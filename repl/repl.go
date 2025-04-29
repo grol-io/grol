@@ -257,6 +257,7 @@ func Interactive(options Options) int { //nolint:funlen // we do have quite a fe
 	if options.PreInput != nil {
 		options.PreInput(s)
 	}
+	_, _ = eval.EvalString(s, "interactive=true", false)
 	prev := ""
 	for {
 		var ctx context.Context

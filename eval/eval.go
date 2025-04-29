@@ -856,7 +856,7 @@ func (s *State) evalIfExpression(ie *ast.IfExpression) object.Object {
 			log.LogVf("if %s is object.TRUE, picking true branch", ie.Condition.Value().DebugString())
 		}
 		return s.evalInternal(ie.Consequence)
-	case object.FALSE:
+	case object.FALSE, object.NULL:
 		if log.LogVerbose() {
 			log.LogVf("if %s is object.FALSE, picking else branch", ie.Condition.Value().DebugString())
 		}
