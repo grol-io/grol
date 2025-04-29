@@ -238,3 +238,5 @@ If you don't want to pass a flag and want to permanently change the `grol` histo
 ### Contributing
 
 Contributions are most welcome! If you use GROL, feel free to open a PR or issue to be listed here.
+
+If making changes to parser, running `make check` is important (it's pretty slow so not part of the regular CI but probably should be).
