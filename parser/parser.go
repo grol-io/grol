@@ -52,7 +52,7 @@ func (p *Parser) registerPostfix(t token.Type, fn postfixParseFn) {
 	p.postfixParseFns[t] = fn
 }
 
-func New(l *lexer.Lexer) *Parser {
+func New(l *lexer.Lexer) *Parser { //nolint:funlen // yes we have a lot to register.
 	p := &Parser{
 		l:      l,
 		errors: []string{},
@@ -77,6 +77,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.FOR, p.parseForExpression)
 	p.registerPrefix(token.BREAK, p.parseControlExpression)
 	p.registerPrefix(token.CONTINUE, p.parseControlExpression)
+	p.registerPrefix(token.RETURN, p.parseReturnStatement)
 	p.registerPrefix(token.FUNC, p.parseFunctionLiteral)
 	p.registerPrefix(token.STRING, p.parseStringLiteral)
 	p.registerPrefix(token.LEN, p.parseBuiltin)

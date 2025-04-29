@@ -362,7 +362,9 @@ func (i InfixExpression) PrettyPrint(out *PrintState) *PrintState {
 	} else {
 		out.Print(" ", i.Literal(), " ")
 	}
-	if i.Right == nil {
+	if i.Right == nil && i.Token.Type() == token.COLON {
+		// Don't print nil for colon operator in slice expressions
+	} else if i.Right == nil {
 		out.Print("nil")
 	} else {
 		i.Right.PrettyPrint(out)

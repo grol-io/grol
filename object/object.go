@@ -677,8 +677,7 @@ func (f Function) lambdaPrint(ps *ast.PrintState, out *strings.Builder) string {
 	}
 	needBraces := len(f.Body.Statements) != 1 ||
 		f.Body.Statements[0].Value().Type() == token.LBRACE ||
-		f.Body.Statements[0].Value().Type() == token.LAMBDA ||
-		f.Body.Statements[0].Value().Type() == token.RETURN
+		f.Body.Statements[0].Value().Type() == token.LAMBDA
 	if needBraces {
 		out.WriteString("{")
 	}
