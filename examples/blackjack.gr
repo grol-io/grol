@@ -57,8 +57,7 @@ bjs := {
   },
   "newDecks": () => {
     bjs.decks = shuffle(fullDeck()*bjs.num_decks)
-    // rare enough to always print
-    printf("New decks: %d cards shuffled\n", len(bjs.decks))
+    bjs.printf("New decks: %d cards shuffled\n", len(bjs.decks))
   },
   "dealCard": () => {
     card := bjs.decks[0]
@@ -96,24 +95,25 @@ bjs := {
     bjs.printf("Player new hand: %v - pts %d\n", bjs.player_hand, bjs.player_hand_value)
     bjs.earlyPlayerStop()
   },
-  "dealerHit": () => {
+  "dealerHit": (prevValue) => {
     bjs.dealer_hand = bjs.dealer_hand + bjs.dealCard()
     bjs.dealer_hand_value = bjs.handValue(bjs.dealer_hand)
-    bjs.printf("Dealer hit! new hand: %v - pts %d\n", bjs.dealer_hand, bjs.dealer_hand_value)
+    bjs.printf("Dealer hit (%d)! new hand: %v - pts %d\n", prevValue, bjs.dealer_hand, bjs.dealer_hand_value)
     bjs.dealerStrategy()
   },
   "dealerStrategy": () => {
-    if bjs.dealer_hand_value == 0 {
+    if bjs.dealer_hand_value == 0 { // don't recalc it just got calculated in dealerHit except first time
       bjs.dealer_hand_value = bjs.handValue(bjs.dealer_hand)
     }
     // log("dealerStrategy", bjs.dealer_hand_value)
-    if bjs.dealer_hand_value < 17 {
-      bjs.dealerHit()
-    } else if bjs.dealer_hand_value > 21 {
-      bjs.printf("Dealer bust %v: %d\n", bjs.dealer_hand, bjs.dealer_hand_value)
+    prevValue := bjs.dealer_hand_value
+    if prevValue <= 16 {
+      bjs.dealerHit(prevValue)
+    } else if prevValue > 21 {
+      bjs.printf("Dealer bust %v: %d\n", bjs.dealer_hand, prevValue)
       bjs.evaluateGame()
     } else {
-      bjs.printf("Dealer stands %v: %d\n",bjs.dealer_hand, bjs.dealer_hand_value)
+      bjs.printf("Dealer stands %v: %d\n",bjs.dealer_hand, prevValue)
       bjs.evaluateGame()
     }
   },
@@ -208,10 +208,10 @@ func playBlackjack() {
       printf("Bye\n")
       break
     } else if inp == "h" || inp == "" { // newline but not eof
-      printf("Hit requested\n")
+      printf("Player hit requested\n")
       bjs.hit()
     } else if inp == "s" {
-      printf("Stand requested\n")
+      printf("Player stand requested\n")
       bjs.dealerStrategy()
     } else {
       printf("Invalid input: %s\n", inp)
@@ -239,13 +239,15 @@ func blackjackAutoPlay(playerStrategy) {
     turns++
     if bjs.end_game {
       if bjs.player_balance > max_balance {
+        printf("\rTurn %d: New max balance: $%d...", turns, bjs.player_balance)
+        flush()
         max_balance = bjs.player_balance
       }
       bjs.newTurn()
     }
     playerStrategy()
   }
-  println("Player ran out of money in", turns, "turns, max balance:", max_balance)
+  println("\nPlayer ran out of money in", turns, "turns, max balance:", max_balance)
   return [turns, max_balance]
 }
 

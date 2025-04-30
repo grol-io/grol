@@ -69,4 +69,13 @@ func createIOFunctions() {
 		return r
 	}
 	MustCreate(ioFn)
+	ioFn.Name = "flush"
+	ioFn.Help = "flushes output and disable caching/memoization"
+	ioFn.Category = object.CategoryIO
+	ioFn.Callback = func(env any, _ string, _ []object.Object) object.Object {
+		s := env.(*eval.State)
+		s.FlushOutput()
+		return object.NULL
+	}
+	MustCreate(ioFn)
 }
