@@ -209,27 +209,32 @@ func playBlackjack() {
 }
 
 // basic sample strategy, hit until 15
-func playerStrategy15() {
-  for bjs.player_hand_value < 15 {
+hitUntil := 15
+func playerSimpleStrategy() {
+  for bjs.player_hand_value < hitUntil {
     bjs.hit()
   }
   // stand/ end this turn
   bjs.dealerStrategy()
 }
-
+// TODO: somehow using a lambda doesn't work, needs to be a plain global function.
 func blackjackAutoPlay(playerStrategy) {
   bjs.player_balance = 100 // reset balance if called again.
   printf("Player balance: $%d - bet $%d\n", bjs.player_balance, bjs.bet)
   turns := 0
+  max_balance := 0
   for  bjs.player_balance >= bjs.bet {
     turns++
     if bjs.end_game {
+      if bjs.player_balance > max_balance {
+        max_balance = bjs.player_balance
+      }
       bjs.newTurn()
     }
     playerStrategy()
   }
-  println("Player ran out of money in ", turns, " turns")
-  return turns
+  println("Player ran out of money in", turns, "turns, max balance:", max_balance)
+  return [turns, max_balance]
 }
 
 // Run from shell script eg `./blackjack.gr` interactive mode:
@@ -243,6 +248,6 @@ if info.globals.args {
   } else {
     // just part of command line files (like in make tests/checks/...)
     println("blackjack.gr - loaded as library, use ./blackjack.gr to play interactively")
-    println("or load(\"blackjack.gr\") to try blackjackAutoPlay(playerStrategy15)")
+    println("or load(\"blackjack.gr\") to try blackjackAutoPlay(playerSimpleStrategy15)")
   }
 }
