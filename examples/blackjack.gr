@@ -39,7 +39,9 @@ func fullDeck() {
 }
 
 bjs := {
-  "num_decks" : 4,
+  "do_print": true,
+  "num_decks" : 6,
+  "new_decks_at" : 20.0, // new decks shuffle at this % of shoe left
   "decks" : [],
   "player_hand" : [],
   "dealer_hand" : [],
@@ -49,14 +51,21 @@ bjs := {
   "bet" : 10,
   "end_game" : true,
   // Methods
+  "printf": (..) => {
+    if bjs.do_print {
+      printf(..)
+    }
+  },
   "newDecks": () => {
+    remaining := len(bjs.decks)
     bjs.decks = shuffle(fullDeck()*bjs.num_decks)
-    printf("New decks: %d cards shuffled\n", len(bjs.decks))
+    bjs.printf("New decks: %d cards shuffled, %d cards left before\n", len(bjs.decks), remaining)
   },
   "dealCard": () => {
     card := bjs.decks[0]
     bjs.decks = bjs.decks[1:]
-    if len(bjs.decks) == 0 {
+    t:= bjs.new_decks_at*52.*bjs.num_decks/100.
+    if len(bjs.decks) <= t {
       bjs.newDecks()
     }
     return [card]
@@ -68,51 +77,52 @@ bjs := {
     bjs.player_hand = bjs.dealCard()
     bjs.player_hand = bjs.player_hand + bjs.dealCard()
     bjs.end_game = false
-    printf("\nNew turn, dealer hand: [[X] %v]\n", (bjs.dealer_hand)[1:])
+    bjs.printf("\nNew turn, dealer hand: [[X] %v]\n", (bjs.dealer_hand)[1:])
     bjs.player_hand_value = bjs.handValue(bjs.player_hand)
-    printf("Player hand: %v - pts %d\n", bjs.player_hand, bjs.player_hand_value)
+    bjs.printf("Player hand: %v - pts %d\n", bjs.player_hand, bjs.player_hand_value)
     bjs.earlyPlayerStop()
   },
   "earlyPlayerStop": () => {
     // log("earlyPlayerStop", bjs.player_hand_value)
     if bjs.player_hand_value > 21 {
-      printf("Player busts\n")
+      bjs.printf("Player busts\n")
       bjs.dealerStrategy()
     } else if bjs.player_hand_value == 21 {
-      printf("Player 21 (likely win)\n")
+      bjs.printf("Player 21 (likely win)\n")
       bjs.dealerStrategy()
     }
   },
   "hit": () => {
     bjs.player_hand = bjs.player_hand + bjs.dealCard()
     bjs.player_hand_value = bjs.handValue(bjs.player_hand)
-    printf("Player new hand: %v - pts %d\n", bjs.player_hand, bjs.player_hand_value)
+    bjs.printf("Player new hand: %v - pts %d\n", bjs.player_hand, bjs.player_hand_value)
     bjs.earlyPlayerStop()
   },
-  "dealerHit": () => {
+  "dealerHit": (prevValue) => {
     bjs.dealer_hand = bjs.dealer_hand + bjs.dealCard()
     bjs.dealer_hand_value = bjs.handValue(bjs.dealer_hand)
-    printf("Dealer hit! new hand: %v - pts %d\n", bjs.dealer_hand, bjs.dealer_hand_value)
+    bjs.printf("Dealer hit (%d)! new hand: %v - pts %d\n", prevValue, bjs.dealer_hand, bjs.dealer_hand_value)
     bjs.dealerStrategy()
   },
   "dealerStrategy": () => {
-    if bjs.dealer_hand_value == 0 {
+    if bjs.dealer_hand_value == 0 { // don't recalc it just got calculated in dealerHit except first time
       bjs.dealer_hand_value = bjs.handValue(bjs.dealer_hand)
     }
     // log("dealerStrategy", bjs.dealer_hand_value)
-    if bjs.dealer_hand_value < 17 {
-      bjs.dealerHit()
-    } else if bjs.dealer_hand_value > 21 {
-      printf("Dealer bust %v: %d\n", bjs.dealer_hand, bjs.dealer_hand_value)
+    prevValue := bjs.dealer_hand_value
+    if prevValue <= 16 {
+      bjs.dealerHit(prevValue)
+    } else if prevValue > 21 {
+      bjs.printf("Dealer bust %v: %d\n", bjs.dealer_hand, prevValue)
       bjs.evaluateGame()
     } else {
-      printf("Dealer stands %v: %d\n",bjs.dealer_hand, bjs.dealer_hand_value)
+      bjs.printf("Dealer stands %v: %d\n",bjs.dealer_hand, prevValue)
       bjs.evaluateGame()
     }
   },
   "evaluateGame": () => {
     bjs.player_balance = round(bjs.player_balance + bjs.evaluateGameDetails()*bjs.bet)
-    printf("New player balance: $%d\n", bjs.player_balance)
+    bjs.printf("New player balance: $%d\n", bjs.player_balance)
     bjs.end_game = true
   },
   "evaluateGameDetails": () => {
@@ -121,30 +131,30 @@ bjs := {
     dbj := bjs.isBlackjack(bjs.dealer_hand)
     if pbj {
       if dbj {
-        printf("Both blackjack, Push\n")
+        bjs.printf("Both blackjack, Push\n")
         return 0
       } else {
-        printf("Player wins Blackjack to %d\n", bjs.dealer_hand_value)
+        bjs.printf("Player wins Blackjack to %d\n", bjs.dealer_hand_value)
         return 1.5
       }
     }
     if bjs.player_hand_value > 21 {
-      printf("Player busts %d\n", bjs.player_hand_value)
+      bjs.printf("Player busts %d\n", bjs.player_hand_value)
       return -1
     }
     if bjs.dealer_hand_value > 21 {
-      printf("Dealer busts %d\n", bjs.dealer_hand_value)
+      bjs.printf("Dealer busts %d\n", bjs.dealer_hand_value)
       return 1
     }
     if bjs.player_hand_value > bjs.dealer_hand_value {
-      printf("Player wins %d to %d\n", bjs.player_hand_value, bjs.dealer_hand_value)
+      bjs.printf("Player wins %d to %d\n", bjs.player_hand_value, bjs.dealer_hand_value)
       return 1
     }
     if bjs.player_hand_value < bjs.dealer_hand_value {
-      printf("Dealer wins %d to %d\n", bjs.dealer_hand_value, bjs.player_hand_value)
+      bjs.printf("Dealer wins %d to %d\n", bjs.dealer_hand_value, bjs.player_hand_value)
       return -1
     }
-    printf("Push %d - %d\n", bjs.player_hand_value, bjs.dealer_hand_value)
+    bjs.printf("Push %d - %d\n", bjs.player_hand_value, bjs.dealer_hand_value)
     return 0
   },
   "isBlackjack": (hand) => {
@@ -169,39 +179,35 @@ bjs := {
       count_aces--
     }
     return value
-  },
-  "dealCard": () => {
-    card := bjs.decks[0]
-    bjs.decks = bjs.decks[1:]
-    if len(bjs.decks) == 0 {
-      bjs.newDecks()
-    }
-      return [card]
-  },
+  }
 }
 bjs.newDecks()
 
 func playBlackjack() {
   printf("Play Blackjack!\n")
   bjs.player_balance = 100 // reset balance if called again.
+  bjs.do_print = true
+  bjs.end_game = true
   printf("Player balance: $%d - bet $%d\n", bjs.player_balance, bjs.bet)
   println("<return> or h to hit, s to stand. (q or eof to quit)")
-  for !eof() {
+  for true {
     if bjs.player_balance < bjs.bet {
       printf("You ran out of money (need $%d min)! Game over, player balance: $%d\n", bjs.bet, bjs.player_balance)
       break
     }
-    if bjs.end_game {
+    for bjs.end_game { // multiple blackjacks in a row
       bjs.newTurn()
     }
     inp := trim(read())
-    if inp == "h" || inp == "" {
-      bjs.hit()
-    } else if inp == "s" {
-      bjs.dealerStrategy()
-    } else if inp == "q" {
+    if inp == "q" || eof() {
       printf("Bye\n")
       break
+    } else if inp == "h" || inp == "" { // newline but not eof
+      printf("Player hit requested\n")
+      bjs.hit()
+    } else if inp == "s" {
+      printf("Player stand requested\n")
+      bjs.dealerStrategy()
     } else {
       printf("Invalid input: %s\n", inp)
     }
@@ -209,27 +215,35 @@ func playBlackjack() {
 }
 
 // basic sample strategy, hit until 15
-func playerStrategy15() {
-  for bjs.player_hand_value < 15 {
+hitUntil := 15
+func playerSimpleStrategy() {
+  for bjs.player_hand_value < hitUntil {
     bjs.hit()
   }
   // stand/ end this turn
   bjs.dealerStrategy()
 }
-
+// TODO: somehow using a lambda doesn't work, needs to be a plain global function.
 func blackjackAutoPlay(playerStrategy) {
   bjs.player_balance = 100 // reset balance if called again.
+  bjs.do_print = false
   printf("Player balance: $%d - bet $%d\n", bjs.player_balance, bjs.bet)
   turns := 0
+  max_balance := 0
   for  bjs.player_balance >= bjs.bet {
     turns++
     if bjs.end_game {
+      if bjs.player_balance > max_balance {
+        printf("\rTurn %d: New max balance: $%d...", turns, bjs.player_balance)
+        flush()
+        max_balance = bjs.player_balance
+      }
       bjs.newTurn()
     }
     playerStrategy()
   }
-  println("Player ran out of money in ", turns, " turns")
-  return turns
+  println("\nPlayer ran out of money in", turns, "turns, max balance:", max_balance)
+  return [turns, max_balance]
 }
 
 // Run from shell script eg `./blackjack.gr` interactive mode:
@@ -239,10 +253,12 @@ if info.globals.args {
   if info.globals.interactive {
     // load()ed from repl prompt:
     println("Use playBlackjack() to play interactively")
-    println("Use blackjackAutoPlay(playerStrategy) to test a player strategy")
+    println("Use blackjackAutoPlay(playerSimpleStrategy) to test a player strategy")
   } else {
     // just part of command line files (like in make tests/checks/...)
     println("blackjack.gr - loaded as library, use ./blackjack.gr to play interactively")
-    println("or load(\"blackjack.gr\") to try blackjackAutoPlay(playerStrategy15)")
+    println("or load(\"blackjack.gr\") to try blackjackAutoPlay(playerSimpleStrategy)")
   }
 }
+// try somehow it diverges with ever increasing balances!
+// hitUntil=12;maxBal=0;sumTurns=0; for 1000 {r:=blackjackAutoPlay(playerSimpleStrategy); sumTurns=sumTurns+r[0]; maxBal=max(r[1],maxBal)}; [sumTurns, maxBal]
