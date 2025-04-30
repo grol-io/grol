@@ -217,12 +217,14 @@ func playBlackjack() {
 // basic sample strategy, hit until 15
 hitUntil := 15
 func playerSimpleStrategy() {
-  for bjs.player_hand_value < hitUntil {
+  for bjs.player_hand_value < hitUntil && !bjs.end_game {
     bjs.hit()
   }
-  // stand/ end this turn
-  bjs.dealerStrategy()
+  if !bjs.end_game {
+    bjs.dealerStrategy()
+  }
 }
+
 // TODO: somehow using a lambda doesn't work, needs to be a plain global function.
 func blackjackAutoPlay(playerStrategy) {
   bjs.player_balance = 100 // reset balance if called again.
