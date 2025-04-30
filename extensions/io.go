@@ -31,6 +31,7 @@ func createIOFunctions() {
 				//nolint:fatcontext // we do need to update/reset the context and its cancel function.
 				s.Context, s.Cancel = context.WithCancel(context.Background()) // no timeout.
 				defer func() {
+					//nolint:fatcontext // we do need to update/reset the context and its cancel function.
 					s.Context, s.Cancel = s.Term.Resume(context.Background())
 				}()
 			}
