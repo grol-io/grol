@@ -86,10 +86,10 @@ bjs := {
     // log("earlyPlayerStop", bjs.player_hand_value)
     if bjs.player_hand_value > 21 {
       bjs.printf("Player busts\n")
-      bjs.dealerStrategy()
+      bjs.completeDealerTurn()
     } else if bjs.player_hand_value == 21 {
       bjs.printf("Player 21 (likely win)\n")
-      bjs.dealerStrategy()
+      bjs.completeDealerTurn()
     }
   },
   "hit": () => {
@@ -98,27 +98,31 @@ bjs := {
     bjs.printf("Player new hand: %v - pts %d\n", bjs.player_hand, bjs.player_hand_value)
     bjs.earlyPlayerStop()
   },
-  "dealerHit": (prevValue) => {
+  "dealerHit": () => {
+    prevValue := bjs.dealer_hand_value
     bjs.dealer_hand = bjs.dealer_hand + bjs.dealCard()
     bjs.dealer_hand_value = bjs.handValue(bjs.dealer_hand)
     bjs.printf("Dealer hit (%d)! new hand: %v - pts %d\n", prevValue, bjs.dealer_hand, bjs.dealer_hand_value)
-    bjs.dealerStrategy()
   },
+  // like player strategy, true for hit, false for stand
   "dealerStrategy": () => {
     if bjs.dealer_hand_value == 0 { // don't recalc it just got calculated in dealerHit except first time
       bjs.dealer_hand_value = bjs.handValue(bjs.dealer_hand)
     }
-    // log("dealerStrategy", bjs.dealer_hand_value)
-    prevValue := bjs.dealer_hand_value
-    if prevValue <= 16 {
-      bjs.dealerHit(prevValue)
-    } else if prevValue > 21 {
-      bjs.printf("Dealer bust %v: %d\n", bjs.dealer_hand, prevValue)
-      bjs.evaluateGame()
-    } else {
-      bjs.printf("Dealer stands %v: %d\n",bjs.dealer_hand, prevValue)
-      bjs.evaluateGame()
+    // hit until 17 or higher
+    return bjs.dealer_hand_value <= 16
+  },
+  "completeDealerTurn": () => {
+    bjs.dealer_hand_value = bjs.handValue(bjs.dealer_hand)
+    for bjs.dealerStrategy() {
+      bjs.dealerHit()
     }
+    if bjs.dealer_hand_value > 21 {
+      bjs.printf("Dealer bust %v: %d\n", bjs.dealer_hand, bjs.dealer_hand_value)
+    } else {
+      bjs.printf("Dealer stands %v: %d\n", bjs.dealer_hand, bjs.dealer_hand_value)
+    }
+    bjs.evaluateGame()
   },
   "evaluateGame": () => {
     bjs.player_balance = round(bjs.player_balance + bjs.evaluateGameDetails()*bjs.bet)
@@ -139,7 +143,6 @@ bjs := {
       }
     }
     if bjs.player_hand_value > 21 {
-      bjs.printf("Player busts %d\n", bjs.player_hand_value)
       return -1
     }
     if bjs.dealer_hand_value > 21 {
@@ -207,7 +210,7 @@ func playBlackjack() {
       bjs.hit()
     } else if inp == "s" {
       printf("Player stand requested\n")
-      bjs.dealerStrategy()
+      bjs.completeDealerTurn()
     } else {
       printf("Invalid input: %s\n", inp)
     }
@@ -242,9 +245,9 @@ func blackjackAutoPlay(playerStrategy) {
     for !bjs.end_game && playerStrategy() {
       bjs.hit()
     }
-    // if hand still not finished, stand and resolve dealer side
+    // if hand still not finished, resolve dealer side
     if !bjs.end_game {
-      bjs.dealerStrategy()
+      bjs.completeDealerTurn()
     }
   }
   println("\nPlayer ran out of money in", turns, "turns, max balance:", max_balance)
