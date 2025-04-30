@@ -1,0 +1,248 @@
+#! /usr/bin/env grol -s
+/*
+  Blackjack simulation.
+  With pluggable dealer and player strategies/scripts/functions.
+*/
+
+// A hand/current game is, for the player: the 2 dealer cards, first one being hidden, and the player's cards.
+
+
+// Cards map of string to int value
+cards := {
+  "A": 11, // Ace can be 11 or 1
+  "2": 2,
+  "3": 3,
+  "4": 4,
+  "5": 5,
+  "6": 6,
+  "7": 7,
+  "8": 8,
+  "9": 9,
+  "10": 10,
+  "J": 10,
+  "Q": 10,
+  "K": 10,
+}
+
+// Suits
+suits = ["♥", "♦", "♣", "♠"]
+
+// Generate a deck of cards
+func fullDeck() {
+  deck := []
+  for suit := suits {
+    for card := cards {
+      deck = deck + [[card.key, suit]]
+    }
+  }
+  return deck
+}
+
+bjs := {
+  "num_decks" : 4,
+  "decks" : [],
+  "player_hand" : [],
+  "dealer_hand" : [],
+  "player_hand_value" : 0,
+  "dealer_hand_value" : 0,
+  "player_balance" : 100,
+  "bet" : 10,
+  "end_game" : true,
+  // Methods
+  "newDecks": () => {
+    bjs.decks = shuffle(fullDeck()*bjs.num_decks)
+    printf("New decks: %d cards shuffled\n", len(bjs.decks))
+  },
+  "dealCard": () => {
+    card := bjs.decks[0]
+    bjs.decks = bjs.decks[1:]
+    if len(bjs.decks) == 0 {
+      bjs.newDecks()
+    }
+    return [card]
+  },
+  "newTurn": () => {
+    bjs.dealer_hand = bjs.dealCard()
+    bjs.dealer_hand = bjs.dealer_hand + bjs.dealCard()
+    bjs.dealer_hand_value = 0 // don't leak it through logs/don't calculate it yet
+    bjs.player_hand = bjs.dealCard()
+    bjs.player_hand = bjs.player_hand + bjs.dealCard()
+    bjs.end_game = false
+    printf("\nNew turn, dealer hand: [[X] %v]\n", (bjs.dealer_hand)[1:])
+    bjs.player_hand_value = bjs.handValue(bjs.player_hand)
+    printf("Player hand: %v - pts %d\n", bjs.player_hand, bjs.player_hand_value)
+    bjs.earlyPlayerStop()
+  },
+  "earlyPlayerStop": () => {
+    // log("earlyPlayerStop", bjs.player_hand_value)
+    if bjs.player_hand_value > 21 {
+      printf("Player busts\n")
+      bjs.dealerStrategy()
+    } else if bjs.player_hand_value == 21 {
+      printf("Player 21 (likely win)\n")
+      bjs.dealerStrategy()
+    }
+  },
+  "hit": () => {
+    bjs.player_hand = bjs.player_hand + bjs.dealCard()
+    bjs.player_hand_value = bjs.handValue(bjs.player_hand)
+    printf("Player new hand: %v - pts %d\n", bjs.player_hand, bjs.player_hand_value)
+    bjs.earlyPlayerStop()
+  },
+  "dealerHit": () => {
+    bjs.dealer_hand = bjs.dealer_hand + bjs.dealCard()
+    bjs.dealer_hand_value = bjs.handValue(bjs.dealer_hand)
+    printf("Dealer hit! new hand: %v - pts %d\n", bjs.dealer_hand, bjs.dealer_hand_value)
+    bjs.dealerStrategy()
+  },
+  "dealerStrategy": () => {
+    if bjs.dealer_hand_value == 0 {
+      bjs.dealer_hand_value = bjs.handValue(bjs.dealer_hand)
+    }
+    // log("dealerStrategy", bjs.dealer_hand_value)
+    if bjs.dealer_hand_value < 17 {
+      bjs.dealerHit()
+    } else if bjs.dealer_hand_value > 21 {
+      printf("Dealer bust %v: %d\n", bjs.dealer_hand, bjs.dealer_hand_value)
+      bjs.evaluateGame()
+    } else {
+      printf("Dealer stands %v: %d\n",bjs.dealer_hand, bjs.dealer_hand_value)
+      bjs.evaluateGame()
+    }
+  },
+  "evaluateGame": () => {
+    bjs.player_balance = round(bjs.player_balance + bjs.evaluateGameDetails()*bjs.bet)
+    printf("New player balance: $%d\n", bjs.player_balance)
+    bjs.end_game = true
+  },
+  "evaluateGameDetails": () => {
+    // log("evaluateGame", bjs.player_hand_value, bjs.dealer_hand_value)
+    pbj := bjs.isBlackjack(bjs.player_hand)
+    dbj := bjs.isBlackjack(bjs.dealer_hand)
+    if pbj {
+      if dbj {
+        printf("Both blackjack, Push\n")
+        return 0
+      } else {
+        printf("Player wins Blackjack to %d\n", bjs.dealer_hand_value)
+        return 1.5
+      }
+    }
+    if bjs.player_hand_value > 21 {
+      printf("Player busts %d\n", bjs.player_hand_value)
+      return -1
+    }
+    if bjs.dealer_hand_value > 21 {
+      printf("Dealer busts %d\n", bjs.dealer_hand_value)
+      return 1
+    }
+    if bjs.player_hand_value > bjs.dealer_hand_value {
+      printf("Player wins %d to %d\n", bjs.player_hand_value, bjs.dealer_hand_value)
+      return 1
+    }
+    if bjs.player_hand_value < bjs.dealer_hand_value {
+      printf("Dealer wins %d to %d\n", bjs.dealer_hand_value, bjs.player_hand_value)
+      return -1
+    }
+    printf("Push %d - %d\n", bjs.player_hand_value, bjs.dealer_hand_value)
+    return 0
+  },
+  "isBlackjack": (hand) => {
+    return len(hand) == 2 && bjs.handValue(hand) == 21
+  },
+  "handValue": (hand) => {
+    value := 0
+    count_aces := 0
+    for card := hand {
+      card_value := cards[card[0]]
+      // log("card: ", card, "value: ", card_value)
+      if card_value == 11 {
+        count_aces++
+      }
+      value = value + card_value
+    }
+    for count_aces > 0 {
+      if value <= 21 {
+        break
+      }
+      value = value - 10
+      count_aces--
+    }
+    return value
+  },
+  "dealCard": () => {
+    card := bjs.decks[0]
+    bjs.decks = bjs.decks[1:]
+    if len(bjs.decks) == 0 {
+      bjs.newDecks()
+    }
+      return [card]
+  },
+}
+bjs.newDecks()
+
+func playBlackjack() {
+  printf("Play Blackjack!\n")
+  bjs.player_balance = 100 // reset balance if called again.
+  printf("Player balance: $%d - bet $%d\n", bjs.player_balance, bjs.bet)
+  println("<return> or h to hit, s to stand. (q or eof to quit)")
+  for !eof() {
+    if bjs.player_balance < bjs.bet {
+      printf("You ran out of money (need $%d min)! Game over, player balance: $%d\n", bjs.bet, bjs.player_balance)
+      break
+    }
+    if bjs.end_game {
+      bjs.newTurn()
+    }
+    inp := trim(read())
+    if inp == "h" || inp == "" {
+      bjs.hit()
+    } else if inp == "s" {
+      bjs.dealerStrategy()
+    } else if inp == "q" {
+      printf("Bye\n")
+      break
+    } else {
+      printf("Invalid input: %s\n", inp)
+    }
+  }
+}
+
+// basic sample strategy, hit until 15
+func playerStrategy15() {
+  for bjs.player_hand_value < 15 {
+    bjs.hit()
+  }
+  // stand/ end this turn
+  bjs.dealerStrategy()
+}
+
+func blackjackAutoPlay(playerStrategy) {
+  bjs.player_balance = 100 // reset balance if called again.
+  printf("Player balance: $%d - bet $%d\n", bjs.player_balance, bjs.bet)
+  turns := 0
+  for  bjs.player_balance >= bjs.bet {
+    turns++
+    if bjs.end_game {
+      bjs.newTurn()
+    }
+    playerStrategy()
+  }
+  println("Player ran out of money in ", turns, " turns")
+  return turns
+}
+
+// Run from shell script eg `./blackjack.gr` interactive mode:
+if info.globals.args {
+  playBlackjack()
+} else {
+  if info.globals.interactive {
+    // load()ed from repl prompt:
+    println("Use playBlackjack() to play interactively")
+    println("Use blackjackAutoPlay(playerStrategy) to test a player strategy")
+  } else {
+    // just part of command line files (like in make tests/checks/...)
+    println("blackjack.gr - loaded as library, use ./blackjack.gr to play interactively")
+    println("or load(\"blackjack.gr\") to try blackjackAutoPlay(playerStrategy15)")
+  }
+}

@@ -967,11 +967,20 @@ func loadFunc(env any, _ string, args []object.Object) object.Object {
 	if err != nil {
 		return s.Error(err)
 	}
+	what := string(all)
+	what = DropStartingShebang(what)
 	// Eval the content.
-	res, err := eval.EvalString(env, string(all), false)
+	res, err := eval.EvalString(env, what, false)
 	if err != nil {
 		return s.Error(err)
 	}
 	log.Infof("Read/evaluated: %s", file)
 	return res
+}
+
+func DropStartingShebang(what string) string {
+	if strings.HasPrefix(what, "#!") {
+		return what[strings.IndexByte(what, '\n')+1:]
+	}
+	return what
 }

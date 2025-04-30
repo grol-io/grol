@@ -1,3 +1,7 @@
 #! /usr/bin/env grol -s
 // This can be run directly from the shell as ./test_shebang.gr.
+if !info.globals.args {
+	println("Not ran from the shell")
+	return
+}
 println("Hello, world!", args)
