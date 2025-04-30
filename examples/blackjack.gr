@@ -39,6 +39,7 @@ func fullDeck() {
 }
 
 bjs := {
+  "do_print": true,
   "num_decks" : 4,
   "decks" : [],
   "player_hand" : [],
@@ -49,8 +50,14 @@ bjs := {
   "bet" : 10,
   "end_game" : true,
   // Methods
+  "printf": (..) => {
+    if bjs.do_print {
+      printf(..)
+    }
+  },
   "newDecks": () => {
     bjs.decks = shuffle(fullDeck()*bjs.num_decks)
+    // rare enough to always print
     printf("New decks: %d cards shuffled\n", len(bjs.decks))
   },
   "dealCard": () => {
@@ -68,31 +75,31 @@ bjs := {
     bjs.player_hand = bjs.dealCard()
     bjs.player_hand = bjs.player_hand + bjs.dealCard()
     bjs.end_game = false
-    printf("\nNew turn, dealer hand: [[X] %v]\n", (bjs.dealer_hand)[1:])
+    bjs.printf("\nNew turn, dealer hand: [[X] %v]\n", (bjs.dealer_hand)[1:])
     bjs.player_hand_value = bjs.handValue(bjs.player_hand)
-    printf("Player hand: %v - pts %d\n", bjs.player_hand, bjs.player_hand_value)
+    bjs.printf("Player hand: %v - pts %d\n", bjs.player_hand, bjs.player_hand_value)
     bjs.earlyPlayerStop()
   },
   "earlyPlayerStop": () => {
     // log("earlyPlayerStop", bjs.player_hand_value)
     if bjs.player_hand_value > 21 {
-      printf("Player busts\n")
+      bjs.printf("Player busts\n")
       bjs.dealerStrategy()
     } else if bjs.player_hand_value == 21 {
-      printf("Player 21 (likely win)\n")
+      bjs.printf("Player 21 (likely win)\n")
       bjs.dealerStrategy()
     }
   },
   "hit": () => {
     bjs.player_hand = bjs.player_hand + bjs.dealCard()
     bjs.player_hand_value = bjs.handValue(bjs.player_hand)
-    printf("Player new hand: %v - pts %d\n", bjs.player_hand, bjs.player_hand_value)
+    bjs.printf("Player new hand: %v - pts %d\n", bjs.player_hand, bjs.player_hand_value)
     bjs.earlyPlayerStop()
   },
   "dealerHit": () => {
     bjs.dealer_hand = bjs.dealer_hand + bjs.dealCard()
     bjs.dealer_hand_value = bjs.handValue(bjs.dealer_hand)
-    printf("Dealer hit! new hand: %v - pts %d\n", bjs.dealer_hand, bjs.dealer_hand_value)
+    bjs.printf("Dealer hit! new hand: %v - pts %d\n", bjs.dealer_hand, bjs.dealer_hand_value)
     bjs.dealerStrategy()
   },
   "dealerStrategy": () => {
@@ -103,16 +110,16 @@ bjs := {
     if bjs.dealer_hand_value < 17 {
       bjs.dealerHit()
     } else if bjs.dealer_hand_value > 21 {
-      printf("Dealer bust %v: %d\n", bjs.dealer_hand, bjs.dealer_hand_value)
+      bjs.printf("Dealer bust %v: %d\n", bjs.dealer_hand, bjs.dealer_hand_value)
       bjs.evaluateGame()
     } else {
-      printf("Dealer stands %v: %d\n",bjs.dealer_hand, bjs.dealer_hand_value)
+      bjs.printf("Dealer stands %v: %d\n",bjs.dealer_hand, bjs.dealer_hand_value)
       bjs.evaluateGame()
     }
   },
   "evaluateGame": () => {
     bjs.player_balance = round(bjs.player_balance + bjs.evaluateGameDetails()*bjs.bet)
-    printf("New player balance: $%d\n", bjs.player_balance)
+    bjs.printf("New player balance: $%d\n", bjs.player_balance)
     bjs.end_game = true
   },
   "evaluateGameDetails": () => {
@@ -121,30 +128,30 @@ bjs := {
     dbj := bjs.isBlackjack(bjs.dealer_hand)
     if pbj {
       if dbj {
-        printf("Both blackjack, Push\n")
+        bjs.printf("Both blackjack, Push\n")
         return 0
       } else {
-        printf("Player wins Blackjack to %d\n", bjs.dealer_hand_value)
+        bjs.printf("Player wins Blackjack to %d\n", bjs.dealer_hand_value)
         return 1.5
       }
     }
     if bjs.player_hand_value > 21 {
-      printf("Player busts %d\n", bjs.player_hand_value)
+      bjs.printf("Player busts %d\n", bjs.player_hand_value)
       return -1
     }
     if bjs.dealer_hand_value > 21 {
-      printf("Dealer busts %d\n", bjs.dealer_hand_value)
+      bjs.printf("Dealer busts %d\n", bjs.dealer_hand_value)
       return 1
     }
     if bjs.player_hand_value > bjs.dealer_hand_value {
-      printf("Player wins %d to %d\n", bjs.player_hand_value, bjs.dealer_hand_value)
+      bjs.printf("Player wins %d to %d\n", bjs.player_hand_value, bjs.dealer_hand_value)
       return 1
     }
     if bjs.player_hand_value < bjs.dealer_hand_value {
-      printf("Dealer wins %d to %d\n", bjs.dealer_hand_value, bjs.player_hand_value)
+      bjs.printf("Dealer wins %d to %d\n", bjs.dealer_hand_value, bjs.player_hand_value)
       return -1
     }
-    printf("Push %d - %d\n", bjs.player_hand_value, bjs.dealer_hand_value)
+    bjs.printf("Push %d - %d\n", bjs.player_hand_value, bjs.dealer_hand_value)
     return 0
   },
   "isBlackjack": (hand) => {
@@ -184,24 +191,28 @@ bjs.newDecks()
 func playBlackjack() {
   printf("Play Blackjack!\n")
   bjs.player_balance = 100 // reset balance if called again.
+  bjs.do_print = true
+  bjs.end_game = true
   printf("Player balance: $%d - bet $%d\n", bjs.player_balance, bjs.bet)
   println("<return> or h to hit, s to stand. (q or eof to quit)")
-  for !eof() {
+  for true {
     if bjs.player_balance < bjs.bet {
       printf("You ran out of money (need $%d min)! Game over, player balance: $%d\n", bjs.bet, bjs.player_balance)
       break
     }
-    if bjs.end_game {
+    for bjs.end_game { // multiple blackjacks in a row
       bjs.newTurn()
     }
     inp := trim(read())
-    if inp == "h" || inp == "" {
-      bjs.hit()
-    } else if inp == "s" {
-      bjs.dealerStrategy()
-    } else if inp == "q" {
+    if inp == "q" || eof() {
       printf("Bye\n")
       break
+    } else if inp == "h" || inp == "" { // newline but not eof
+      printf("Hit requested\n")
+      bjs.hit()
+    } else if inp == "s" {
+      printf("Stand requested\n")
+      bjs.dealerStrategy()
     } else {
       printf("Invalid input: %s\n", inp)
     }
@@ -220,6 +231,7 @@ func playerSimpleStrategy() {
 // TODO: somehow using a lambda doesn't work, needs to be a plain global function.
 func blackjackAutoPlay(playerStrategy) {
   bjs.player_balance = 100 // reset balance if called again.
+  bjs.do_print = false
   printf("Player balance: $%d - bet $%d\n", bjs.player_balance, bjs.bet)
   turns := 0
   max_balance := 0

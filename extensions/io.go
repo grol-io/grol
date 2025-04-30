@@ -64,7 +64,9 @@ func createIOFunctions() {
 	ioFn.Help = "returns true if a previous read hit the end of file for stdin"
 	ioFn.Category = object.CategoryIO
 	ioFn.Callback = func(_ any, _ string, _ []object.Object) object.Object {
-		return seenEOF
+		r := seenEOF
+		seenEOF = object.FALSE
+		return r
 	}
 	MustCreate(ioFn)
 }
