@@ -40,7 +40,8 @@ func fullDeck() {
 
 bjs := {
   "do_print": true,
-  "num_decks" : 4,
+  "num_decks" : 6,
+  "new_decks_at" : 20.0, // new decks shuffle at this % of shoe left
   "decks" : [],
   "player_hand" : [],
   "dealer_hand" : [],
@@ -56,13 +57,15 @@ bjs := {
     }
   },
   "newDecks": () => {
+    remaining := len(bjs.decks)
     bjs.decks = shuffle(fullDeck()*bjs.num_decks)
-    bjs.printf("New decks: %d cards shuffled\n", len(bjs.decks))
+    bjs.printf("New decks: %d cards shuffled, %d cards left before\n", len(bjs.decks), remaining)
   },
   "dealCard": () => {
     card := bjs.decks[0]
     bjs.decks = bjs.decks[1:]
-    if len(bjs.decks) == 0 {
+    t:= bjs.new_decks_at*52.*bjs.num_decks/100.
+    if len(bjs.decks) <= t {
       bjs.newDecks()
     }
     return [card]
@@ -176,15 +179,7 @@ bjs := {
       count_aces--
     }
     return value
-  },
-  "dealCard": () => {
-    card := bjs.decks[0]
-    bjs.decks = bjs.decks[1:]
-    if len(bjs.decks) == 0 {
-      bjs.newDecks()
-    }
-      return [card]
-  },
+  }
 }
 bjs.newDecks()
 
@@ -258,10 +253,12 @@ if info.globals.args {
   if info.globals.interactive {
     // load()ed from repl prompt:
     println("Use playBlackjack() to play interactively")
-    println("Use blackjackAutoPlay(playerStrategy) to test a player strategy")
+    println("Use blackjackAutoPlay(playerSimpleStrategy) to test a player strategy")
   } else {
     // just part of command line files (like in make tests/checks/...)
     println("blackjack.gr - loaded as library, use ./blackjack.gr to play interactively")
-    println("or load(\"blackjack.gr\") to try blackjackAutoPlay(playerSimpleStrategy15)")
+    println("or load(\"blackjack.gr\") to try blackjackAutoPlay(playerSimpleStrategy)")
   }
 }
+// try somehow it diverges with ever increasing balances!
+// hitUntil=12;maxBal=0;sumTurns=0; for 1000 {r:=blackjackAutoPlay(playerSimpleStrategy); sumTurns=sumTurns+r[0]; maxBal=max(r[1],maxBal)}; [sumTurns, maxBal]
