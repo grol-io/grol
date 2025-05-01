@@ -9,6 +9,12 @@ import (
 	"os"
 
 	"fortio.org/log"
+	"golang.org/x/image/font"
+	"golang.org/x/image/font/gofont/gobold"
+	"golang.org/x/image/font/gofont/goitalic"
+	"golang.org/x/image/font/gofont/goregular"
+	"golang.org/x/image/font/opentype"
+	"golang.org/x/image/math/fixed"
 	"golang.org/x/image/vector"
 	"grol.io/grol/eval"
 	"grol.io/grol/object"
@@ -272,6 +278,83 @@ func createImageFunctions() { //nolint:funlen // this is a group of related func
 			return object.Errorf("error encoding image: %v", err)
 		}
 		return object.String{Value: buf.String()}
+	}
+	MustCreate(imgFn)
+	imgFn.Name = "image.text"
+	imgFn.Help = "draw text on the image at x,y with size, optional color array [R,G,B] or [R,G,B,A], and optional font variant (regular, bold, italic)"
+	imgFn.MinArgs = 5
+	imgFn.MaxArgs = 7
+	imgFn.ArgTypes = []object.Type{object.STRING, object.FLOAT, object.FLOAT, object.FLOAT, object.STRING, object.ARRAY, object.STRING}
+	imgFn.Callback = func(cdata any, _ string, args []object.Object) object.Object {
+		images := cdata.(ImageMap)
+		img, ok := images[args[0]]
+		if !ok {
+			return object.Errorf("image %q not found", args[0].(object.String).Value)
+		}
+
+		x := float64(args[1].(object.Float).Value)
+		y := float64(args[2].(object.Float).Value)
+		size := float64(args[3].(object.Float).Value)
+		text := args[4].(object.String).Value
+
+		// Default color is black
+		textColor := color.NRGBA{0, 0, 0, 255}
+		if len(args) > 5 {
+			colorArray := object.Elements(args[5])
+			var oerr *object.Error
+			textColor, oerr = rgbArrayToRBGAColor(colorArray)
+			if oerr != nil {
+				return oerr
+			}
+		}
+
+		// Default font variant is "regular"
+		fontVariant := "regular"
+		if len(args) > 6 {
+			fontVariant = args[6].(object.String).Value
+		}
+
+		// Select font based on variant
+		var fontData []byte
+		var err error
+		switch fontVariant {
+		case "bold":
+			fontData = gobold.TTF
+		case "italic":
+			fontData = goitalic.TTF
+		case "regular":
+			fontData = goregular.TTF
+		default:
+			return object.Errorf("unknown font variant: %s", fontVariant)
+		}
+
+		// Parse the font
+		ttf, err := opentype.Parse(fontData)
+		if err != nil {
+			return object.Errorf("error parsing font: %v", err)
+		}
+
+		// Create font face with specified size
+		face, err := opentype.NewFace(ttf, &opentype.FaceOptions{
+			Size:    size,
+			DPI:     72,
+			Hinting: font.HintingFull,
+		})
+		if err != nil {
+			return object.Errorf("error creating font face: %v", err)
+		}
+		defer face.Close()
+
+		// Draw the text
+		d := &font.Drawer{
+			Dst:  img.Image,
+			Src:  image.NewUniform(textColor),
+			Face: face,
+			Dot:  fixed.Point26_6{X: fixed.I(int(x)), Y: fixed.I(int(y))},
+		}
+		d.DrawString(text)
+
+		return args[0]
 	}
 	MustCreate(imgFn)
 	createVectorImageFunctions(cdata)
