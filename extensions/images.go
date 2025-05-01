@@ -352,6 +352,9 @@ func createImageFunctions() { //nolint:funlen // this is a group of related func
 		x := float64(args[1].(object.Float).Value)
 		y := float64(args[2].(object.Float).Value)
 		size := float64(args[3].(object.Float).Value)
+		if size < 4 || size > float64(MaxImageDimension) {
+			return object.Errorf("font size must be between 4 and %d", MaxImageDimension)
+		}
 		text := args[4].(object.String).Value
 
 		// Default color is black
