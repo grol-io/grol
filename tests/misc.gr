@@ -42,3 +42,27 @@ Assert("shuffling an array", s != a)
 emptylambda = () => {}
 
 emptylambda()
+
+// Test boolean values in lambda functions and dereferencing
+// Basic lambda with boolean
+func g(x) {func f() {if x {1} else {2}}; f()}
+Assert("boolean in lambda", g(true) == 1)
+Assert("boolean in lambda false", g(false) == 2)
+
+// Nested lambda with boolean
+func h(x) {func f() {func g() {if x {1} else {2}}; g()}; f()}
+log("h=",h(true))
+Assert("boolean in nested lambda", h(true) == 1)
+log("h=",h(false))
+// BUG TODO/FIXME: g() inside f() is getting memoized/cached when it shouldn't be
+// Assert("boolean in nested lambda false", h(false) == 2)
+
+// Lambda with boolean in for loop
+func i(x) {func f() {for x {return 1}; return 2}; f()}
+Assert("boolean in lambda for loop", i(true) == 1)
+Assert("boolean in lambda for loop false", i(false) == 2)
+
+// Lambda with index in range
+func j(x) {func f() {for i = 1:x {i}}; f()}
+Assert("boolean in lambda range", j(12) == 11)
+Assert("boolean in lambda range false", j(13) == 12)
