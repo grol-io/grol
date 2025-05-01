@@ -847,7 +847,7 @@ func (s *State) evalIdentifier(node *ast.Identifier) object.Object {
 }
 
 func (s *State) evalIfExpression(ie *ast.IfExpression) object.Object {
-	condition := s.evalInternal(ie.Condition)
+	condition := object.Value(s.evalInternal(ie.Condition))
 	switch condition {
 	case object.TRUE:
 		if log.LogVerbose() {

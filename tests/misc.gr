@@ -42,3 +42,8 @@ Assert("shuffling an array", s != a)
 emptylambda = () => {}
 
 emptylambda()
+
+// Test boolean values in lambda functions
+func g(x) {func f() {if x {1} else {2}}; f()}
+Assert("boolean in lambda", g(true) == 1)
+Assert("boolean in lambda false", g(false) == 2)
