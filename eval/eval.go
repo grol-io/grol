@@ -969,12 +969,12 @@ func (s *State) evalForSpecialForms(fe *ast.ForExpression) (object.Object, bool)
 	}
 	name := ie.Left.Value().Literal()
 	if ie.Right.Value().Type() == token.COLON {
-		start := s.evalInternal(ie.Right.(*ast.InfixExpression).Left)
+		start := object.Value(s.evalInternal(ie.Right.(*ast.InfixExpression).Left))
 		startInt, ok := Int64Value(start)
 		if !ok {
 			return s.NewError("for var = n:m n not an integer: " + start.Inspect()), true
 		}
-		end := s.evalInternal(ie.Right.(*ast.InfixExpression).Right)
+		end := object.Value(s.evalInternal(ie.Right.(*ast.InfixExpression).Right))
 		endInt, ok := Int64Value(end)
 		if !ok {
 			return s.NewError("for var = n:m m not an integer: " + end.Inspect()), true
@@ -982,8 +982,7 @@ func (s *State) evalForSpecialForms(fe *ast.ForExpression) (object.Object, bool)
 		return s.evalForInteger(fe, &startInt, endInt, name), true
 	}
 	// Evaluate:
-	v := s.evalInternal(ie.Right)
-	v = object.Value(v) // Always deref, handle both references (to globals..) and registers.
+	v := object.Value(s.evalInternal(ie.Right))
 	switch v.Type() {
 	case object.INTEGER:
 		return s.evalForInteger(fe, nil, v.(object.Integer).Value, name), true
@@ -1042,7 +1041,7 @@ func (s *State) evalForExpression(fe *ast.ForExpression) object.Object {
 	var lastEval object.Object
 	lastEval = object.NULL
 	for {
-		condition := s.evalInternal(fe.Condition)
+		condition := object.Value(s.evalInternal(fe.Condition))
 		switch condition {
 		case object.TRUE:
 			if log.LogVerbose() {
