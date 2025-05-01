@@ -31,6 +31,62 @@ type ImageMap map[object.Object]GrolImage
 // TODO: make this configurable and use the slice check as well as some sort of LRU.
 const MaxImageDimension = 1024 // in pixels.
 
+// FontCache stores parsed fonts and font faces.
+type FontCache struct {
+	faces map[string]map[float64]font.Face // variant -> size -> face
+}
+
+var fontCache = &FontCache{
+	faces: make(map[string]map[float64]font.Face),
+}
+
+// getFace returns a cached font face or creates a new one.
+func (fc *FontCache) getFace(variant string, size float64) (font.Face, error) {
+	// Check if we have a cached face
+	if sizes, ok := fc.faces[variant]; ok {
+		if face, ok := sizes[size]; ok {
+			return face, nil
+		}
+	}
+
+	// Select font based on variant
+	var fontData []byte
+	switch variant {
+	case "bold":
+		fontData = gobold.TTF
+	case "italic":
+		fontData = goitalic.TTF
+	case "regular":
+		fontData = goregular.TTF
+	default:
+		return nil, object.Errorf("unknown font variant: %s", variant)
+	}
+
+	// Parse the font
+	ttf, err := opentype.Parse(fontData)
+	if err != nil {
+		return nil, err
+	}
+
+	// Create font face with specified size
+	face, err := opentype.NewFace(ttf, &opentype.FaceOptions{
+		Size:    size,
+		DPI:     72,
+		Hinting: font.HintingFull,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	// Cache the face
+	if fc.faces[variant] == nil {
+		fc.faces[variant] = make(map[float64]font.Face)
+	}
+	fc.faces[variant][size] = face
+
+	return face, nil
+}
+
 // HSLToRGB converts HSL values to RGB. h, s and l in [0,1].
 func HSLToRGB(h, s, l float64) color.NRGBA {
 	var r, g, b float64
@@ -281,7 +337,8 @@ func createImageFunctions() { //nolint:funlen // this is a group of related func
 	}
 	MustCreate(imgFn)
 	imgFn.Name = "image.text"
-	imgFn.Help = "draw text on the image at x,y with size, optional color array [R,G,B] or [R,G,B,A], and optional font variant (regular, bold, italic)"
+	imgFn.Help = "draw text on the image at x,y with size, optional color array [R,G,B] or [R,G,B,A], " +
+		"and optional font variant (regular, bold, italic)"
 	imgFn.MinArgs = 5
 	imgFn.MaxArgs = 7
 	imgFn.ArgTypes = []object.Type{object.STRING, object.FLOAT, object.FLOAT, object.FLOAT, object.STRING, object.ARRAY, object.STRING}
@@ -314,36 +371,11 @@ func createImageFunctions() { //nolint:funlen // this is a group of related func
 			fontVariant = args[6].(object.String).Value
 		}
 
-		// Select font based on variant
-		var fontData []byte
-		var err error
-		switch fontVariant {
-		case "bold":
-			fontData = gobold.TTF
-		case "italic":
-			fontData = goitalic.TTF
-		case "regular":
-			fontData = goregular.TTF
-		default:
-			return object.Errorf("unknown font variant: %s", fontVariant)
-		}
-
-		// Parse the font
-		ttf, err := opentype.Parse(fontData)
+		// Get cached font face
+		face, err := fontCache.getFace(fontVariant, size)
 		if err != nil {
-			return object.Errorf("error parsing font: %v", err)
+			return object.Errorf("error getting font face: %v", err)
 		}
-
-		// Create font face with specified size
-		face, err := opentype.NewFace(ttf, &opentype.FaceOptions{
-			Size:    size,
-			DPI:     72,
-			Hinting: font.HintingFull,
-		})
-		if err != nil {
-			return object.Errorf("error creating font face: %v", err)
-		}
-		defer face.Close()
 
 		// Draw the text
 		d := &font.Drawer{

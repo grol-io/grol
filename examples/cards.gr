@@ -1,0 +1,289 @@
+// Define rectangle dimensions
+func roundedRect(img, x, y, w, h, r) {
+	// Start at top-right corner after the rounded part
+	image.move_to(img, x + r, y)
+
+	// Top edge and top-right corner
+	image.line_to(img, x + w - r, y)
+	image.quad_to(img, x + w, y, x + w, y + r)
+
+	// Right edge and bottom-right corner
+	image.line_to(img, x + w, y + h - r)
+	image.quad_to(img, x + w, y + h, x + w - r, y + h)
+
+	// Bottom edge and bottom-left corner
+	image.line_to(img, x + r, y + h)
+	image.quad_to(img, x, y + h, x, y + h - r)
+
+	// Left edge and top-left corner
+	image.line_to(img, x, y + r)
+	image.quad_to(img, x, y, x + r, y)
+
+	// Close the path
+	image.close_path(img)
+}
+
+// Draw a heart
+func heart(img, x, y, w, h) {
+	centerX := x + w/2
+	centerY := y + h/2
+
+	// Start at the bottom point
+	image.move_to(img, centerX, y + h)
+
+	// Left bump
+	image.cube_to(img,
+		centerX - w/2, y + 2*h/3,     // First control: out to the left
+		centerX - w/3, y,             // Second control: sharp angle at top
+		centerX, y + h/3             // End point: where curves meet
+	)
+	// Right bump
+	image.cube_to(img,
+		centerX + w/3, y,             // First control: sharp angle at top
+		centerX + w/2, y + 2*h/3,     // Second control: out to the right
+		centerX, y + h               // End point: back to bottom
+	)
+	image.close_path(img)
+}
+
+// Function to define the path for a heart shape based on SVG quadratic commands
+// This version directly translates a known working SVG path definition.
+// Corrected to handle Grol's single return value (using arrays).
+/*
+func drawHeartPath(img, x, y, w, h) {
+    // Parameters:
+    // img: The image object to draw on
+    // x, y: Coordinates of the TOP-LEFT corner of the heart's bounding box
+    // w: Total width of the heart's bounding box (corresponds to 20 units in SVG)
+    // h: Total height of the heart's bounding box (corresponds to 20 units in SVG)
+
+    // Scaling factors to map SVG 0-20 range to the desired w, h
+    scaleX := w / 20.0
+    scaleY := h / 20.0
+
+    // Helper function to transform SVG coordinates (0-20 range) to image coordinates
+    // Returns an array [imgX, imgY] as Grol doesn't support direct multiple return values.
+    transform := func(svgX, svgY) {
+        imgX := svgX * scaleX + x
+        imgY := svgY * scaleY + y
+        return [imgX, imgY] // Return coordinates as an array
+    }
+
+    // --- Drawing Commands based on SVG Path ---
+    // The SVG path uses M (move_to), Q (quad_to), T (smooth quad_to), Z (close_path)
+    // T commands require calculating the control point based on the previous Q command.
+
+    // M10,6 - Move to the starting point (top cusp)
+    t := transform(10, 6)
+    startX := t[0]; startY := t[1]
+    image.move_to(img, startX, startY)
+
+    // Q10,0 15,0 - First curve segment (top-right lobe start)
+    t_cp1 := transform(10, 0)
+    cp1X := t_cp1[0]; cp1Y := t_cp1[1]
+    t_p1 := transform(15, 0)
+    p1X := t_p1[0]; p1Y := t_p1[1]
+    image.quad_to(img, cp1X, cp1Y, p1X, p1Y)
+
+    // T20,6 - Smooth curve (top-right lobe end)
+    // Control point for T is reflection of previous control point (10,0) around previous end point (15,0) -> (20,0)
+    t_cp2 := transform(20, 0)
+    cp2X := t_cp2[0]; cp2Y := t_cp2[1]
+    t_p2 := transform(20, 6)
+    p2X := t_p2[0]; p2Y := t_p2[1]
+    image.quad_to(img, cp2X, cp2Y, p2X, p2Y)
+
+    // Q20,10 15,14 - Curve down the right side
+    t_cp3 := transform(20, 10)
+    cp3X := t_cp3[0]; cp3Y := t_cp3[1]
+    t_p3 := transform(15, 14)
+    p3X := t_p3[0]; p3Y := t_p3[1]
+    image.quad_to(img, cp3X, cp3Y, p3X, p3Y)
+
+    // T10,20 - Smooth curve to the bottom tip
+    // Control point for T is reflection of (20,10) around (15,14) -> (10,18)
+    t_cp4 := transform(10, 18)
+    cp4X := t_cp4[0]; cp4Y := t_cp4[1]
+    t_p4 := transform(10, 20) // Bottom tip
+    p4X := t_p4[0]; p4Y := t_p4[1]
+    image.quad_to(img, cp4X, cp4Y, p4X, p4Y)
+
+    // Q10,18 5,14 - Curve up the left side (matches T's calculated control point)
+    t_cp5 := transform(10, 18)
+    cp5X := t_cp5[0]; cp5Y := t_cp5[1]
+    t_p5 := transform(5, 14)
+    p5X := t_p5[0]; p5Y := t_p5[1]
+    image.quad_to(img, cp5X, cp5Y, p5X, p5Y)
+
+    // T0,6 - Smooth curve (top-left lobe end)
+    // Control point for T is reflection of (10,18) around (5,14) -> (0,10)
+    t_cp6 := transform(0, 10)
+    cp6X := t_cp6[0]; cp6Y := t_cp6[1]
+    t_p6 := transform(0, 6)
+    p6X := t_p6[0]; p6Y := t_p6[1]
+    image.quad_to(img, cp6X, cp6Y, p6X, p6Y)
+
+    // Q0,0 5,0 - Curve for top-left lobe start
+    t_cp7 := transform(0, 0)
+    cp7X := t_cp7[0]; cp7Y := t_cp7[1]
+    t_p7 := transform(5, 0)
+    p7X := t_p7[0]; p7Y := t_p7[1]
+    image.quad_to(img, cp7X, cp7Y, p7X, p7Y)
+
+    // T10,6 - Smooth curve back to the starting cusp
+    // Control point for T is reflection of (0,0) around (5,0) -> (10,0)
+    t_cp8 := transform(10, 0)
+    cp8X := t_cp8[0]; cp8Y := t_cp8[1]
+    t_p8 := transform(10, 6) // Back to start point (startX, startY)
+    p8X := t_p8[0]; p8Y := t_p8[1]
+    image.quad_to(img, cp8X, cp8Y, p8X, p8Y)
+
+    // Z - Close the path
+    image.close_path(img)
+}
+*/
+// Function to define the path for a heart shape based on SVG quadratic commands
+// Can draw the heart upright or upside down.
+func drawHeartPath(img, x, y, w, h, upsideDown) {
+    // Parameters:
+    // img: The image object to draw on
+    // x, y: Coordinates of the TOP-LEFT corner of the heart's bounding box
+    // w: Total width of the heart's bounding box (corresponds to 20 units in SVG)
+    // h: Total height of the heart's bounding box (corresponds to 20 units in SVG)
+    // upsideDown: Boolean, if true, draws the heart vertically flipped.
+
+    // Scaling factors to map SVG 0-20 range to the desired w, h
+    scaleX := w / 20.0
+    scaleY := h / 20.0
+
+    // Helper function to transform SVG coordinates (0-20 range) to image coordinates
+    // Adjusts Y coordinate based on the upsideDown flag.
+    func transform(svgX, svgY) {
+        imgX := svgX * scaleX + x
+        imgY := 0.0 // Initialize imgY
+        if upsideDown {
+            // Flip vertically: map SVG Y=0 to bottom (y+h), SVG Y=20 to top (y)
+            imgY = (20.0 - svgY) * scaleY + y
+        } else {
+            // Normal orientation: map SVG Y=0 to top (y), SVG Y=20 to bottom (y+h)
+            imgY = svgY * scaleY + y
+        }
+        return [imgX, imgY] // Return coordinates as an array
+    }
+
+    // --- Drawing Commands based on SVG Path ---
+    // Coordinates are transformed based on the upsideDown flag.
+
+    // M10,6 - Move to the starting point (top cusp or bottom tip if flipped)
+    t := transform(10, 6)
+    startX := t[0]; startY := t[1]
+    image.move_to(img, startX, startY)
+
+    // Q10,0 15,0
+    t_cp1 := transform(10, 0)
+    cp1X := t_cp1[0]; cp1Y := t_cp1[1]
+    t_p1 := transform(15, 0)
+    p1X := t_p1[0]; p1Y := t_p1[1]
+    image.quad_to(img, cp1X, cp1Y, p1X, p1Y)
+
+    // T20,6
+    t_cp2 := transform(20, 0) // Reflected control point
+    cp2X := t_cp2[0]; cp2Y := t_cp2[1]
+    t_p2 := transform(20, 6)
+    p2X := t_p2[0]; p2Y := t_p2[1]
+    image.quad_to(img, cp2X, cp2Y, p2X, p2Y)
+
+    // Q20,10 15,14
+    t_cp3 := transform(20, 10)
+    cp3X := t_cp3[0]; cp3Y := t_cp3[1]
+    t_p3 := transform(15, 14)
+    p3X := t_p3[0]; p3Y := t_p3[1]
+    image.quad_to(img, cp3X, cp3Y, p3X, p3Y)
+
+    // T10,20
+    t_cp4 := transform(10, 18) // Reflected control point
+    cp4X := t_cp4[0]; cp4Y := t_cp4[1]
+    t_p4 := transform(10, 20) // Bottom tip (or top cusp if flipped)
+    p4X := t_p4[0]; p4Y := t_p4[1]
+    image.quad_to(img, cp4X, cp4Y, p4X, p4Y)
+
+    // Q10,18 5,14
+    t_cp5 := transform(10, 18)
+    cp5X := t_cp5[0]; cp5Y := t_cp5[1]
+    t_p5 := transform(5, 14)
+    p5X := t_p5[0]; p5Y := t_p5[1]
+    image.quad_to(img, cp5X, cp5Y, p5X, p5Y)
+
+    // T0,6
+    t_cp6 := transform(0, 10) // Reflected control point
+    cp6X := t_cp6[0]; cp6Y := t_cp6[1]
+    t_p6 := transform(0, 6)
+    p6X := t_p6[0]; p6Y := t_p6[1]
+    image.quad_to(img, cp6X, cp6Y, p6X, p6Y)
+
+    // Q0,0 5,0
+    t_cp7 := transform(0, 0)
+    cp7X := t_cp7[0]; cp7Y := t_cp7[1]
+    t_p7 := transform(5, 0)
+    p7X := t_p7[0]; p7Y := t_p7[1]
+    image.quad_to(img, cp7X, cp7Y, p7X, p7Y)
+
+    // T10,6
+    t_cp8 := transform(10, 0) // Reflected control point
+    cp8X := t_cp8[0]; cp8Y := t_cp8[1]
+    t_p8 := transform(10, 6) // Back to start point
+    p8X := t_p8[0]; p8Y := t_p8[1]
+    image.quad_to(img, cp8X, cp8Y, p8X, p8Y)
+
+    // Z - Close the path
+    image.close_path(img)
+}
+
+
+
+// Function to draw a filled heart
+func drawHeart(img, x, y, w, h, color, upsideDown) {
+    // Define the heart's path
+    drawHeartPath(img, x, y, w, h, upsideDown)
+    // Fill the defined path with the specified color
+    image.draw(img, color)
+    // Alternatively, use image.draw(img, color, thickness) for an outlined heart
+}
+
+// --- Example Usage ---
+// Assuming 'myImage' is your image object and 'red' is a defined color variable
+
+// // Define heart parameters
+// centerX := 100 // Example center X for the bottom tip
+// bottomY := 150 // Example Y for the bottom tip
+// heartWidth := 80 // Example width
+// heartHeight := 70 // Example height
+// heartColor := red // Example color
+
+// // Draw the heart
+// drawHeart(myImage, centerX, bottomY, heartWidth, heartHeight, heartColor)
+
+
+// Create a new image
+w:= 350
+h:= 500
+img = image.new("myimg", w, h)
+
+margin := 10
+
+roundedRect(img, margin, margin, w-2*margin, h-2*margin, 10)
+// Draw with white color
+image.draw(img, [255, 255, 255])
+
+drawHeart(img, 3*margin, 3*margin+(h-w)/2, w-6*margin, w-6*margin, [255, 0, 0], true)
+image.draw(img, [255, 0, 0])
+
+// Draw text with different sizes and variants
+image.text(img, 2*margin, 40, 12, "Small red text", [255, 0, 0])  // Red text
+image.text(img, 2*margin, 80, 24, "Large bold text", [0, 0, 255], "bold")  // Blue bold text
+image.text(img, 2*margin, 160, 18, "Semi-transparent italic green text", [0, 255, 0, 128], "italic")  // Semi-transparent green italic text
+
+// Save to grol.png
+image.save(img)
+
+println("Rounded rectangle saved to grol.png")
