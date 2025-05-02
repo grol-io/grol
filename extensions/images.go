@@ -234,7 +234,7 @@ func getVariant(args []object.Object, variantArgIndex int) string {
 	return "regular"
 }
 
-func createImageFunctions() { //nolint:funlen,gocognit,maintidx // this is a group of related functions.
+func createImageFunctions() { //nolint:funlen,maintidx // this is a group of related functions.
 	// All the functions consistently use args[0] as the image name/reference into the ClientData map.
 	cdata := make(ImageMap)
 	imgFn := object.Extension{
