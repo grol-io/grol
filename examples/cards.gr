@@ -186,16 +186,17 @@ roundedRect(img, margin, margin, w-2*margin, h-2*margin, 10)
 image.draw(img, [255, 255, 255])
 
 // simple heart
-heart(img, 3*margin, 3*margin, 6*margin, 6*margin)
-image.draw(img, [255, 0, 0])
+heart(img, w/2-6*margin, h/2-6*margin, 12*margin, 10*margin)
+image.draw(img, [255, 165, 0])
 
 // more advanced heart from svg
-drawHeart(img, 3*margin, 3*margin+(h-w)/2, w-6*margin, w-6*margin, [255, 0, 0], true)
+drawHeart(img, 3*margin, 3*margin, 6*margin, 6*margin, [255, 0, 0], false)
+drawHeart(img, w-9*margin, h-9*margin, 6*margin, 6*margin, [255, 0, 0], true)
 image.draw(img, [255, 0, 0])
 
 // Draw text with different sizes and variants
-image.text(img, 2*margin, 40, 12, "Small red text", [255, 0, 0])  // Red text
-image.text(img, 2*margin, 80, 24, "Large bold text", [0, 0, 255], "bold")  // Blue bold text
+// image.text(img, 2*margin, 40, 12, "Small blye text", [0, 0, 255])  // Blue text
+// image.text(img, 2*margin, 80, 24, "Large bold text", [255, 255, 0], "bold")  // Yellow bold text
 
 // Draw centered multi-line text with options
 center_text(img, w/2, h/2, "Semi\ntransparent\nitalic green\nhuge text", {
