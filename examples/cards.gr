@@ -433,6 +433,9 @@ for i := 4 {
     }
 }
 
+// simple heart
+heart(img, w/2-6*margin, h/2-6*margin, 12*margin, 10*margin)
+image.draw(img, [255, 165, 0, 128])
 
 // Draw centered multi-line text with options
 center_text(img, w/2, h/2, "Semi\ntransparent\nitalic green\nhuge text", {
