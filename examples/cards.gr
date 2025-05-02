@@ -1,59 +1,41 @@
-// Define rectangle dimensions
+// Rounded corner rectangle
 func roundedRect(img, x, y, w, h, r) {
-	// Start at top-right corner after the rounded part
 	image.move_to(img, x + r, y)
-
-	// Top edge and top-right corner
 	image.line_to(img, x + w - r, y)
 	image.quad_to(img, x + w, y, x + w, y + r)
-
-	// Right edge and bottom-right corner
 	image.line_to(img, x + w, y + h - r)
 	image.quad_to(img, x + w, y + h, x + w - r, y + h)
-
-	// Bottom edge and bottom-left corner
 	image.line_to(img, x + r, y + h)
 	image.quad_to(img, x, y + h, x, y + h - r)
-
-	// Left edge and top-left corner
 	image.line_to(img, x, y + r)
 	image.quad_to(img, x, y, x + r, y)
-
-	// Close the path
 	image.close_path(img)
 }
 
-// Draw a heart
+// Draw a simple-ish heart
 func heart(img, x, y, w, h) {
 	centerX := x + w/2
 	centerY := y + h/2
-
-	// Start at the bottom point
 	image.move_to(img, centerX, y + h)
-
-	// Left bump
 	image.cube_to(img,
-		centerX - w/2, y + 2*h/3,     // First control: out to the left
-		centerX - w/3, y,             // Second control: sharp angle at top
-		centerX, y + h/3             // End point: where curves meet
+		centerX - w/2, y + 2*h/3, // First control: out to the left
+		centerX - w/3, y,         // Second control: sharp angle at top
+		centerX, y + h/3          // End point: where curves meet
 	)
-	// Right bump
 	image.cube_to(img,
-		centerX + w/3, y,             // First control: sharp angle at top
-		centerX + w/2, y + 2*h/3,     // Second control: out to the right
-		centerX, y + h               // End point: back to bottom
+		centerX + w/3, y,         // First control: sharp angle at top
+		centerX + w/2, y + 2*h/3, // Second control: out to the right
+		centerX, y + h            // End point: back to bottom
 	)
 	image.close_path(img)
 }
 
-// Function to define the path for a heart shape based on SVG quadratic commands
+// Fancier heart shape based on SVG quadratic commands translated to grol.
+// All Y coordinates will be flipped if upsideDown is true
 func drawHeartPath(img, x, y, w, h, upsideDown) {
-    // All Y coordinates will be flipped if upsideDown is true
-
-    // Scale factors
+    // Scale factors, original svg was 20x20
     sx := w / 20.0
     sy := h / 20.0
-
     // Helper lambda to flip Y coordinates if upsideDown
     flipY := func(svgY) {
         if upsideDown {
@@ -61,59 +43,49 @@ func drawHeartPath(img, x, y, w, h, upsideDown) {
         }
         return svgY * sy + y
     }
-
     // Starting point (10,6)
     startX := x + 10 * sx
     startY := flipY(6)
-
     // First curve (Q10,0 15,0)
     cp1X := x + 10 * sx
     cp1Y := flipY(0)
     p1X := x + 15 * sx
     p1Y := cp1Y  // Same Y as control point
-
     // Second curve (reflected control point at 20,0)
     cp2X := x + 20 * sx
     cp2Y := cp1Y  // Same Y level
     p2X := x + 20 * sx
     p2Y := startY  // Back to start Y level
-
     // Third curve (Q20,10 15,14)
     cp3X := p2X  // Same X as end of last curve
     cp3Y := flipY(10)
     p3X := x + 15 * sx
     p3Y := flipY(14)
-
     // Fourth curve (reflected control at 10,18)
     cp4X := x + 10 * sx
     cp4Y := flipY(18)
     p4X := x + 10 * sx
     p4Y := flipY(20)  // Bottom tip
-
     // Fifth curve (Q10,18 5,14)
     cp5X := cp4X  // Same X
     cp5Y := cp4Y  // Same Y
     p5X := x + 5 * sx
     p5Y := p3Y  // Mirror of p3Y
-
     // Sixth curve (reflected control at 0,10)
     cp6X := x + 0
     cp6Y := cp3Y  // Mirror of cp3Y
     p6X := cp6X
     p6Y := startY  // Same Y as start
-
     // Seventh curve (Q0,0 5,0)
     cp7X := cp6X
     cp7Y := cp1Y  // Same Y level as first curve
     p7X := x + 5 * sx
     p7Y := cp7Y
-
     // Final curve back to start (reflected control at 10,0)
     cp8X := x + 10 * sx
     cp8Y := cp7Y
     p8X := startX
     p8Y := startY
-
     // Draw the path
     image.move_to(img, startX, startY)
     image.quad_to(img, cp1X, cp1Y, p1X, p1Y)
@@ -129,11 +101,8 @@ func drawHeartPath(img, x, y, w, h, upsideDown) {
 
 // Function to draw a filled heart
 func drawHeart(img, x, y, w, h, color, upsideDown) {
-    // Define the heart's path
     drawHeartPath(img, x, y, w, h, upsideDown)
-    // Fill the defined path with the specified color
     image.draw(img, color)
-    // Alternatively, use image.draw(img, color, thickness) for an outlined heart
 }
 
 // Helper function to return default if value is nil
@@ -222,10 +191,8 @@ func drawDiamond(img, x, y, w, h, color) {
     // Adjust dimensions for better diamond proportions
     adjustedW := w * 0.85
     adjustedH := h * 1.1
-
     // Adjust x position to keep diamond centered with original width
     adjustedX := x + (w - adjustedW)/2
-
     drawDiamondPath(img, adjustedX, y, adjustedW, adjustedH)
     image.draw(img, color)
 }
@@ -280,36 +247,29 @@ func drawClub(img, x, y, w, h, color, upsideDown) {
         y := y + h
         h := -h
     }
-
     // Scale factors
     sx := w / 20.0
     sy := h / 20.0
-
     // Circle radius (relative to width)
     radius := w * 0.23
-
     // Draw the three circles with adjusted spacing
     // Top circle
     centerX := x + w/2
     topY := y + h * 0.22
     drawCircle(img, centerX, topY, radius, color)
-
     // Bottom left circle - tighter spacing
     leftX := centerX - radius * 1.1
     bottomY := y + h * 0.56
     drawCircle(img, leftX, bottomY, radius, color)
-
     // Bottom right circle
     rightX := centerX + radius * 1.1
     drawCircle(img, rightX, bottomY, radius, color)
-
     // Draw a small rectangle to fill the gap
     rectW := w * 0.2
     rectH := h * 0.2
     rectX := x + (w-rectW)/2
     rectY := y + h * 0.4
     drawRect(img, rectX, rectY, rectW, rectH,color)
-
     // Draw stem below circles - even more pointed
     stemH := h * 0.55
     stemY := y + h * 0.46
@@ -324,25 +284,16 @@ func drawSpade(img, x, y, w, h, color, upsideDown) {
         y := y + h
         h := -h
     }
-
     // Draw inverted heart for top part
     heartW := w
     heartH := h * 0.85
     drawHeartPath(img, x - (heartW - w)/2, y, heartW, heartH, true)  // Always true for spade (removed !upsideDown)
     image.draw(img, color)
-
     // Draw stem below heart
     stemH := h * 0.4
     stemY := y + heartH * 0.75
     drawStem(img, x, stemY, w, stemH, color)
     image.draw(img, color)
-}
-
-func sign(x) {
-	if x < 0 {
-		return -1
-	}
-	return 1
 }
 
 func discQuadrant(img, x, y, rx, ry, color) {
