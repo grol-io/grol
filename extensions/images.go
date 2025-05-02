@@ -226,7 +226,7 @@ func ycbrArrayToRBGAColor(arr []object.Object) (color.NRGBA, *object.Error) {
 	return rgba, nil
 }
 
-// getVariant returns the font variant from args or the default "regular" if not specified
+// getVariant returns the font variant from args or the default "regular" if not specified.
 func getVariant(args []object.Object, variantArgIndex int) string {
 	if len(args) > variantArgIndex {
 		return args[variantArgIndex].(object.String).Value
@@ -234,7 +234,7 @@ func getVariant(args []object.Object, variantArgIndex int) string {
 	return "regular"
 }
 
-func createImageFunctions() { //nolint:funlen,gocognit // this is a group of related functions.
+func createImageFunctions() { //nolint:funlen,gocognit,maintidx // this is a group of related functions.
 	// All the functions consistently use args[0] as the image name/reference into the ClientData map.
 	cdata := make(ImageMap)
 	imgFn := object.Extension{
