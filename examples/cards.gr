@@ -266,21 +266,70 @@ func drawStem(img, x, y, w, h, color) {
     image.draw(img, color)
 }
 
+// Function to draw a filled club
+func drawClub(img, x, y, w, h, color, upsideDown) {
+    if upsideDown {
+        // If upside down, flip the y coordinate and drawing order
+        y := y + h
+        h := -h
+    }
+
+    // Scale factors
+    sx := w / 20.0
+    sy := h / 20.0
+
+    // Circle radius (relative to width)
+    radius := w * 0.23
+
+    // Draw the three circles with adjusted spacing
+    // Top circle
+    centerX := x + w/2
+    topY := y + h * 0.22
+    drawCircle(img, centerX, topY, radius, color)
+
+    // Bottom left circle - tighter spacing
+    leftX := centerX - radius * 1.1
+    bottomY := y + h * 0.56
+    drawCircle(img, leftX, bottomY, radius, color)
+
+    // Bottom right circle
+    rightX := centerX + radius * 1.1
+    drawCircle(img, rightX, bottomY, radius, color)
+
+    // Draw a small rectangle to fill the gap
+    rectW := w * 0.2
+    rectH := h * 0.2
+    rectX := x + (w-rectW)/2
+    rectY := y + h * 0.4
+    drawRect(img, rectX, rectY, rectW, rectH,color)
+
+    // Draw stem below circles - even more pointed
+    stemH := h * 0.55
+    stemY := y + h * 0.46
+    stemW := w * 0.7
+    drawStem(img, x + (w-stemW)/2, stemY, stemW, stemH, color)
+}
+
 // Function to draw a filled spade
-func drawSpade(img, x, y, w, h, color) {
-    // Draw inverted heart for top part (wider than tall)
-    heartW := w   // Keep same width ratio
-    heartH := h * 0.85  // Even taller heart (was 0.75)
-    drawHeartPath(img, x - (heartW - w)/2, y, heartW, heartH, true)  // Center the wider heart
+func drawSpade(img, x, y, w, h, color, upsideDown) {
+    if upsideDown {
+        // If upside down, flip the y coordinate and drawing order
+        y := y + h
+        h := -h
+    }
+
+    // Draw inverted heart for top part
+    heartW := w
+    heartH := h * 0.85
+    drawHeartPath(img, x - (heartW - w)/2, y, heartW, heartH, true)  // Always true for spade (removed !upsideDown)
     image.draw(img, color)
 
     // Draw stem below heart
-    stemH := h * 0.4  // Shorter stem (was 0.5)
+    stemH := h * 0.4
     stemY := y + heartH * 0.75
     drawStem(img, x, stemY, w, stemH, color)
     image.draw(img, color)
 }
-
 
 func sign(x) {
 	if x < 0 {
@@ -327,96 +376,73 @@ func drawRect(img, x, y, w, h, color) {
     image.draw(img, color)
 }
 
-// Function to draw a filled club
-func drawClub(img, x, y, w, h, color) {
-    // Scale factors
-    sx := w / 20.0
-    sy := h / 20.0
-
-    // Circle radius (relative to width)
-    radius := w * 0.23
-
-    // Draw the three circles with adjusted spacing
-    // Top circle
-    centerX := x + w/2
-    topY := y + h * 0.22
-    drawCircle(img, centerX, topY, radius, color)
-
-    // Bottom left circle - tighter spacing
-    leftX := centerX - radius * 1.1
-    bottomY := y + h * 0.56
-    drawCircle(img, leftX, bottomY, radius, color)
-
-    // Bottom right circle
-    rightX := centerX + radius * 1.1
-    drawCircle(img, rightX, bottomY, radius, color)
-
-    // Draw a small rectangle to fill the gap
-    rectW := w * 0.2
-    rectH := h * 0.2
-    rectX := x + (w-rectW)/2
-    rectY := y + h * 0.4
-    drawRect(img, rectX, rectY, rectW, rectH,color)
-
-    // Draw stem below circles - even more pointed
-    stemH := h * 0.55
-    stemY := y + h * 0.46
-    stemW := w * 0.7  // Narrower stem for more pointed look (was 0.85)
-    drawStem(img, x + (w-stemW)/2, stemY, stemW, stemH, color)
-}
-
 // Create a new image
-w:= 350
-h:= 500
+cardW := 250  // Larger card width
+cardH := 350  // Larger card height
+margin := 20  // Margin between cards and edges
+suitSize := 50  // Base suit size
+suitMargin := 35  // Margin for suits within cards
+
+// Calculate total width and height needed
+w := 2 * cardW + 3 * margin  // Two cards wide plus margins
+h := 2 * cardH + 3 * margin  // Two cards tall plus margins
 img = image.new("myimg", w, h)
 
-margin := 10
+// Draw four cards in 2x2 grid
+for i := 4 {
+    // Calculate card position (2x2 grid)
+    row := i / 2  // 0 for top row, 1 for bottom row
+    col := i % 2  // 0 for left column, 1 for right column
+    cardX := margin + col * (cardW + margin)
+    cardY := margin + row * (cardH + margin)
 
-roundedRect(img, margin, margin, w-2*margin, h-2*margin, 10)
-// Draw with white color
-image.draw(img, [255, 255, 255])
+    // Draw card background
+    roundedRect(img, cardX, cardY, cardW, cardH, 10)
+    image.draw(img, [255, 255, 255])
 
-// simple heart
-heart(img, w/2-6*margin, h/2-6*margin, 12*margin, 10*margin)
-image.draw(img, [255, 165, 0])
+    // Calculate suit positions
+    topLeftX := cardX + suitMargin
+    topLeftY := cardY + suitMargin
+    bottomRightX := cardX + cardW - suitMargin - suitSize
+    bottomRightY := cardY + cardH - suitMargin - suitSize
 
-// more advanced heart from svg
-// drawHeart(img, 3*margin, 3*margin, 6*margin, 6*margin, [255, 0, 0], false)
-drawHeart(img, w-9*margin, h-9*margin, 6*margin, 6*margin, [255, 0, 0], false)
-image.draw(img, [255, 0, 0])
-
-// Draw a diamond - slightly taller than wide for better proportions
-drawDiamond(img, w-9*margin, 3*margin, 5.5*margin, 7*margin, [255, 0, 0])
-image.draw(img, [255, 0, 0])
-
-// Draw a spade
-drawSpade(img, 3*margin, h-9*margin, 6*margin, 6*margin, [0, 0, 0])
-image.draw(img, [0, 0, 0])
-
-// Draw a club
-drawClub(img, 3*margin, 3*margin, 7*margin, 7*margin, [0, 0, 0])
-image.draw(img, [0, 0, 0])
-
-// Draw text with different sizes and variants
-// image.text(img, 2*margin, 40, 12, "Small blye text", [0, 0, 255])  // Blue text
-// image.text(img, 2*margin, 80, 24, "Large bold text", [255, 255, 0], "bold")  // Yellow bold text
+    // Draw suits based on card index
+    if i == 0 {
+        // Hearts
+        drawHeart(img, topLeftX, topLeftY, suitSize, suitSize, [255, 0, 0], false)
+        drawHeart(img, bottomRightX, bottomRightY, suitSize, suitSize, [255, 0, 0], true)
+    } else if i == 1 {
+        // Diamonds - make it taller
+        drawDiamond(img, topLeftX, topLeftY, suitSize * 0.85, suitSize * 1.1, [255, 0, 0])
+        drawDiamond(img, bottomRightX, bottomRightY, suitSize * 0.85, suitSize * 1.1, [255, 0, 0])
+    } else if i == 2 {
+        // Clubs
+        drawClub(img, topLeftX, topLeftY, suitSize, suitSize, [0, 0, 0], false)
+        drawClub(img, bottomRightX, bottomRightY, suitSize, suitSize, [0, 0, 0], true)
+    } else {
+        // Spades - fix heart inversion logic
+        drawSpade(img, topLeftX, topLeftY, suitSize, suitSize, [0, 0, 0], false)
+        drawSpade(img, bottomRightX, bottomRightY, suitSize, suitSize, [0, 0, 0], true)
+    }
+}
 
 // Draw centered multi-line text with options
 center_text(img, w/2, h/2, "Semi\ntransparent\nitalic green\nhuge text", {
-    "size": 52,
-    "color": [0, 255, 0, 128],
-    "variant": "italic",
-})
+	    "size": 52,
+	    "color": [0, 255, 0, 128],
+	    "variant": "italic",
+	})
 
 center_text(img, w/2, h/2, "purple", {
-    "size": 52,
-    "color": [255, 0, 255, 200],
-    "variant": "bold"
-})
+	    "size": 52,
+	    "color": [255, 0, 255, 200],
+	    "variant": "bold"
+	})
 
 center_text(img, w/2, h/2, "defaults")
+
 
 // Save to grol.png
 image.save(img)
 
-println("Rounded rectangle saved to grol.png")
+println("Cards with suits saved to grol.png")
