@@ -185,6 +185,11 @@ roundedRect(img, margin, margin, w-2*margin, h-2*margin, 10)
 // Draw with white color
 image.draw(img, [255, 255, 255])
 
+// simple heart
+heart(img, 3*margin, 3*margin, 6*margin, 6*margin)
+image.draw(img, [255, 0, 0])
+
+// more advanced heart from svg
 drawHeart(img, 3*margin, 3*margin+(h-w)/2, w-6*margin, w-6*margin, [255, 0, 0], true)
 image.draw(img, [255, 0, 0])
 
