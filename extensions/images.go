@@ -398,7 +398,8 @@ func createImageFunctions() { //nolint:funlen,maintidx // this is a group of rel
 	}
 	MustCreate(imgFn)
 	imgFn.Name = "image.text_size"
-	imgFn.Help = "returns width and height and descent for the given text with size and optional font variant (regular, bold, italic)"
+	imgFn.Help = "returns width, height and horizontal offset and descent for the given text " +
+		"with size and optional font variant (regular, bold, italic)"
 	imgFn.MinArgs = 2
 	imgFn.MaxArgs = 3
 	imgFn.ArgTypes = []object.Type{object.STRING, object.FLOAT, object.STRING}
