@@ -127,12 +127,10 @@ func drawDiamond(img, x, y, w, h, color) {
 
 // Function to draw a filled club
 func drawClub(img, x, y, w, h, color, upsideDown) {
-    delta := h/8.0
     if upsideDown {
         // If upside down, flip the y coordinate and drawing order
         y = y + h
         h = -h
-        delta = -delta
     }
     // Scale factors
     sx := w / 20.0
@@ -152,10 +150,10 @@ func drawClub(img, x, y, w, h, color, upsideDown) {
     rightX := centerX + radius * 1.1
     drawDisc(img, rightX, bottomY, radius, color)
     // Draw stem below circles - even more pointed
-    stemH := h * 0.55 + delta
-    stemY := y + h * 0.46 - delta
+    stemH := h * 0.675
+    stemY := y + h * 0.335
     stemW := w * 0.3
-    drawTriangle(img, centerX, stemY, stemW, stemH, color) // coords already flipped as needed.
+    drawTriangle(img, centerX, stemY, stemW, stemH, color)
     // Draw a small rectangle to fill the gap
     rectW := w * 0.2
     rectH := h * 0.2
@@ -166,12 +164,10 @@ func drawClub(img, x, y, w, h, color, upsideDown) {
 
 // Function to draw a filled spade
 func drawSpade(img, x, y, w, h, color, upsideDown) {
-    delta := h/10.0
     if upsideDown {
         // If upside down, flip the y coordinate and drawing order
         y = y + h
         h = -h
-        delta = -delta
     }
     // Draw inverted heart for top part
     heartW := w
@@ -179,8 +175,8 @@ func drawSpade(img, x, y, w, h, color, upsideDown) {
     drawHeartPath(img, x - (heartW - w)/2, y, heartW, heartH, true)  // Always true for spade (removed !upsideDown)
     image.draw(img, color)
     // Draw stem below heart
-    stemH := h * 0.4 + delta
-    stemY := y + heartH * 0.75 - delta
+    stemH := h * 0.5
+    stemY := y + heartH * 0.65
     drawTriangle(img,  x + w/2.0, stemY, w/3.0, stemH, color)
 }
 
