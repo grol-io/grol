@@ -226,7 +226,15 @@ func ycbrArrayToRBGAColor(arr []object.Object) (color.NRGBA, *object.Error) {
 	return rgba, nil
 }
 
-func createImageFunctions() { //nolint:funlen // this is a group of related functions.
+// getVariant returns the font variant from args or the default "regular" if not specified
+func getVariant(args []object.Object, variantArgIndex int) string {
+	if len(args) > variantArgIndex {
+		return args[variantArgIndex].(object.String).Value
+	}
+	return "regular"
+}
+
+func createImageFunctions() { //nolint:funlen,gocognit // this is a group of related functions.
 	// All the functions consistently use args[0] as the image name/reference into the ClientData map.
 	cdata := make(ImageMap)
 	imgFn := object.Extension{
@@ -368,11 +376,8 @@ func createImageFunctions() { //nolint:funlen // this is a group of related func
 			}
 		}
 
-		// Default font variant is "regular"
-		fontVariant := "regular"
-		if len(args) > 6 {
-			fontVariant = args[6].(object.String).Value
-		}
+		// Get font variant using helper
+		fontVariant := getVariant(args, 6)
 
 		// Get cached font face
 		face, err := fontCache.getFace(fontVariant, size)
@@ -404,11 +409,8 @@ func createImageFunctions() { //nolint:funlen // this is a group of related func
 			return object.Errorf("font size must be between 4 and %d", MaxImageDimension)
 		}
 
-		// Default font variant is "regular"
-		fontVariant := "regular"
-		if len(args) > 2 {
-			fontVariant = args[2].(object.String).Value
-		}
+		// Get font variant using helper
+		fontVariant := getVariant(args, 2)
 
 		// Get cached font face
 		face, err := fontCache.getFace(fontVariant, size)
