@@ -398,7 +398,7 @@ func createImageFunctions() { //nolint:funlen,maintidx // this is a group of rel
 	}
 	MustCreate(imgFn)
 	imgFn.Name = "image.text_size"
-	imgFn.Help = "returns width and height for the given text with size and optional font variant (regular, bold, italic)"
+	imgFn.Help = "returns width and height and descent for the given text with size and optional font variant (regular, bold, italic)"
 	imgFn.MinArgs = 2
 	imgFn.MaxArgs = 3
 	imgFn.ArgTypes = []object.Type{object.STRING, object.FLOAT, object.STRING}
@@ -422,11 +422,17 @@ func createImageFunctions() { //nolint:funlen,maintidx // this is a group of rel
 		bounds, _ := font.BoundString(face, text)
 		width := float64(bounds.Max.X-bounds.Min.X) / 64  // Convert from 26.6 fixed point
 		height := float64(bounds.Max.Y-bounds.Min.Y) / 64 // Convert from 26.6 fixed point
-
-		return object.MakeQuad(
+		log.Debugf("text %q bounds %#v", text, bounds)
+		descent := float64(bounds.Max.Y) / 64 // Descent below baseline in pixels
+		offset := float64(bounds.Min.X) / 64  // Offset of the first letter from start of drawing.
+		m := object.MakeQuad(
 			object.String{Value: "height"}, object.Float{Value: height},
 			object.String{Value: "width"}, object.Float{Value: width},
 		)
+		// Still a "SmallMap" with 4 elements
+		m = m.Set(object.String{Value: "descent"}, object.Float{Value: descent})
+		m = m.Set(object.String{Value: "offset"}, object.Float{Value: offset})
+		return m
 	}
 	MustCreate(imgFn)
 	createVectorImageFunctions(cdata)

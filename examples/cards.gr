@@ -229,6 +229,49 @@ func drawTriangle(img, x, y, w, h, color) {
     image.draw(img, color)
 }
 
+func card(img, x, y, w, h, suit, face) {
+    // Draw card background
+    roundedRect(img, x, y, w, h, 10)
+    image.draw(img, [255, 255, 255])
+    // Calculate suit positions
+    suitSize := h * 0.15
+    suitMargin := h * 0.05
+    topLeftX := x + suitMargin
+    topLeftY := y + suitMargin
+    bottomRightX := x + w - suitMargin - suitSize
+    bottomRightY := y + h - suitMargin - suitSize
+    color := [0, 0, 0] // black
+    // Draw suits based on card index
+    if suit == "♥" {
+        // Hearts
+        color = [255, 0, 0] // red
+        drawHeart(img, topLeftX, topLeftY, suitSize, suitSize, color, false)
+        drawHeart(img, bottomRightX, bottomRightY, suitSize, suitSize, color, true)
+    } else if suit == "♦" {
+        // Diamonds
+        color = [255, 0, 0] // red
+        drawDiamond(img, topLeftX, topLeftY, suitSize, suitSize, color)
+        drawDiamond(img, bottomRightX, bottomRightY, suitSize, suitSize, color)
+    } else if suit == "♣" {
+        // Clubs
+        drawClub(img, topLeftX, topLeftY, suitSize, suitSize, color, false)
+        drawClub(img, bottomRightX, bottomRightY, suitSize, suitSize, color, true)
+    } else if suit == "♠" {
+        // Spades
+        drawSpade(img, topLeftX, topLeftY, suitSize, suitSize, color, false)
+        drawSpade(img, bottomRightX, bottomRightY, suitSize, suitSize, color, true)
+    }
+    // Draw face value
+    faceSize := h * 0.333
+    faceX := x + w / 2
+    faceY := y + h / 2
+    center_text(img, faceX, faceY, face, {
+        "size": faceSize,
+        "color": color,
+        "variant": "bold"
+    })
+}
+
 // ---- text centering ---
 
 // Helper function to return default if value is nil
@@ -247,24 +290,37 @@ func center_text(img, cx, cy, text, ..) {
     color := or(opts.color, [0, 0, 0, 255])  // Default black
     variant := or(opts.variant, "regular")  // Default font
     spacing := or(opts.spacing, 1.)  // Default spacing
+    boundingBox := or(opts.boundingBox, false)  // Default bounding box
 
     // Split text into lines using Grol's split function
     lines := split(text, "\n")
 
-    // Calculate total height with spacing using "Xg" for better height measurement
-    lineHeight := image.text_size("Xg", size, variant).height
+    // Calculate total height with spacing using "Xg" for better height measurement for multi-line text
+    // use the actual text to calculate height for single line text
+    hText := text
+    n := len(lines)
+    if n > 1 {
+        hText = "Xg"
+    }
+    lineInfo := image.text_size(hText, size, variant)
+    lineHeight := lineInfo.height
+    descent := lineInfo.descent
     spacedLineHeight := lineHeight * spacing
-    totalHeight := spacedLineHeight * (len(lines) - 1) + lineHeight  // Last line doesn't need spacing
+    totalHeight := spacedLineHeight * (n-1)
 
     // Start position for first line
-    y := cy - totalHeight/2 + lineHeight/2
+    y := cy - totalHeight/2.0 + lineHeight/2.0 - descent
 
     // Draw each line centered
     for line := lines {
         textSize := image.text_size(line, size, variant)
-        x := cx - textSize.width/2
+        x := cx - textSize.width/2.0 - textSize.offset
         image.text(img, x, y, size, line, color, variant)
         y = y + spacedLineHeight
+    }
+    // Debug line height:
+    if boundingBox {
+        drawRect(img, cx-textSize.width/2., cy-spacedLineHeight/2., textSize.width, spacedLineHeight, [0,0,255,128])
     }
 }
 // ---- text centering ---
@@ -281,63 +337,44 @@ w := 2.0 * cardW + 3.0 * margin  // Two cards wide plus margins
 h := 2.0 * cardH + 3.0 * margin  // Two cards tall plus margins
 img = image.new("myimg", round(w), round(h))
 
-// Draw four cards in 2x2 grid
-for i := 4 {
+// Draw each suit 2x2 grid
+suits = ["♥", "♦", "♣", "♠"]
+i := 0
+cards := [["A","♥"], ["K","♣"], ["Q","♠"], ["J","♦"]]
+for c := cards {
+    suit := c[1]
+    face := c[0]
     // Calculate card position (2x2 grid)
     row := i / 2  // 0 for top row, 1 for bottom row
     col := i % 2  // 0 for left column, 1 for right column
     cardX := margin + col * (cardW + margin)
     cardY := margin + row * (cardH + margin)
 
-    // Draw card background
-    roundedRect(img, cardX, cardY, cardW, cardH, 10)
-    image.draw(img, [255, 255, 255])
-
-    // Calculate suit positions
-    topLeftX := cardX + suitMargin
-    topLeftY := cardY + suitMargin
-    bottomRightX := cardX + cardW - suitMargin - suitSize
-    bottomRightY := cardY + cardH - suitMargin - suitSize
-
-    // Draw suits based on card index
-    if i == 0 {
-        // Hearts
-        drawHeart(img, topLeftX, topLeftY, suitSize, suitSize, [255, 0, 0], false)
-        drawHeart(img, bottomRightX, bottomRightY, suitSize, suitSize, [255, 0, 0], true)
-    } else if i == 1 {
-        // Spades
-        drawSpade(img, topLeftX, topLeftY, suitSize, suitSize, [0, 0, 0], false)
-        drawSpade(img, bottomRightX, bottomRightY, suitSize, suitSize, [0, 0, 0], true)
-    } else if i == 2 {
-        // Clubs
-        drawClub(img, topLeftX, topLeftY, suitSize, suitSize, [0, 0, 0], false)
-        drawClub(img, bottomRightX, bottomRightY, suitSize, suitSize, [0, 0, 0], true)
-    } else {
-        // Diamonds
-        drawDiamond(img, topLeftX, topLeftY, suitSize, suitSize, [255, 0, 0])
-        drawDiamond(img, bottomRightX, bottomRightY, suitSize, suitSize, [255, 0, 0])
-    }
+    card(img, cardX, cardY, cardW, cardH, suit, face)
+    i++
 }
 
 // simple heart
-simpleHeartPath(img, w/2-6*margin, h/2-6*margin, 12*margin, 10*margin)
-image.draw(img, [255, 165, 0, 128])
+//simpleHeartPath(img, w/2-6*margin, h/2-6*margin, 12*margin, 10*margin)
+//image.draw(img, [255, 165, 0, 128])
 
 // Draw centered multi-line text with options
-center_text(img, w/2, h/2, "Semi\ntransparent\nitalic green\nhuge text", {
+
+center_text(img, w/2.0, h/2.0, "Semi\ntransparent\nitalic green\nhuge text", {
 	    "size": 52,
 	    "color": [0, 255, 0, 128],
 	    "variant": "italic",
+        // "spacing": 0.9
 	})
 
-center_text(img, w/2, h/2, "purple", {
-	    "size": 52,
+center_text(img, w/2.0, h/2.0, "Purple", {
+	    "size": 64,
 	    "color": [255, 0, 255, 200],
-	    "variant": "bold"
+	    "variant": "bold",
+        "boundingBox": true
 	})
 
-center_text(img, w/2, h/2, "defaults")
-
+center_text(img, w/2.0, h/2.0, "defaults")
 
 // Save to grol.png
 image.save(img)
