@@ -219,7 +219,14 @@ func drawDiamondPath(img, x, y, w, h) {
 
 // Function to draw a filled diamond
 func drawDiamond(img, x, y, w, h, color) {
-    drawDiamondPath(img, x, y, w, h)
+    // Adjust dimensions for better diamond proportions
+    adjustedW := w * 0.85
+    adjustedH := h * 1.1
+
+    // Adjust x position to keep diamond centered with original width
+    adjustedX := x + (w - adjustedW)/2
+
+    drawDiamondPath(img, adjustedX, y, adjustedW, adjustedH)
     image.draw(img, color)
 }
 
@@ -381,7 +388,7 @@ cardW := 250  // Larger card width
 cardH := 350  // Larger card height
 margin := 20  // Margin between cards and edges
 suitSize := 50  // Base suit size
-suitMargin := 35  // Margin for suits within cards
+suitMargin := 25  // Reduced margin for suits within cards
 
 // Calculate total width and height needed
 w := 2 * cardW + 3 * margin  // Two cards wide plus margins
@@ -412,19 +419,20 @@ for i := 4 {
         drawHeart(img, topLeftX, topLeftY, suitSize, suitSize, [255, 0, 0], false)
         drawHeart(img, bottomRightX, bottomRightY, suitSize, suitSize, [255, 0, 0], true)
     } else if i == 1 {
-        // Diamonds - make it taller
-        drawDiamond(img, topLeftX, topLeftY, suitSize * 0.85, suitSize * 1.1, [255, 0, 0])
-        drawDiamond(img, bottomRightX, bottomRightY, suitSize * 0.85, suitSize * 1.1, [255, 0, 0])
+        // Diamonds
+        drawDiamond(img, topLeftX, topLeftY, suitSize, suitSize, [255, 0, 0])
+        drawDiamond(img, bottomRightX, bottomRightY, suitSize, suitSize, [255, 0, 0])
     } else if i == 2 {
         // Clubs
         drawClub(img, topLeftX, topLeftY, suitSize, suitSize, [0, 0, 0], false)
         drawClub(img, bottomRightX, bottomRightY, suitSize, suitSize, [0, 0, 0], true)
     } else {
-        // Spades - fix heart inversion logic
+        // Spades
         drawSpade(img, topLeftX, topLeftY, suitSize, suitSize, [0, 0, 0], false)
         drawSpade(img, bottomRightX, bottomRightY, suitSize, suitSize, [0, 0, 0], true)
     }
 }
+
 
 // Draw centered multi-line text with options
 center_text(img, w/2, h/2, "Semi\ntransparent\nitalic green\nhuge text", {
