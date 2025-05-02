@@ -47,99 +47,84 @@ func heart(img, x, y, w, h) {
 }
 
 // Function to define the path for a heart shape based on SVG quadratic commands
-// This version directly translates a known working SVG path definition.
 func drawHeartPath(img, x, y, w, h, upsideDown) {
-    // Parameters:
-    // img: The image object to draw on
-    // x, y: Coordinates of the TOP-LEFT corner of the heart's bounding box
-    // w: Total width of the heart's bounding box (corresponds to 20 units in SVG)
-    // h: Total height of the heart's bounding box (corresponds to 20 units in SVG)
-    // upsideDown: Boolean, if true, draws the heart vertically flipped.
+    // SVG coordinates are in 0-20 range, we'll precalculate all points
+    // All Y coordinates will be flipped if upsideDown is true
 
-    // Scaling factors to map SVG 0-20 range to the desired w, h
-    scaleX := w / 20.0
-    scaleY := h / 20.0
+    // Scale factors
+    sx := w / 20.0
+    sy := h / 20.0
 
-    // Helper function to transform SVG coordinates (0-20 range) to image coordinates
-    // Adjusts Y coordinate based on the upsideDown flag.
-    func transform(svgX, svgY) {
-        imgX := svgX * scaleX + x
-        imgY := 0.0 // Initialize imgY
+    // Helper lambda to flip Y coordinates if upsideDown
+    flipY := func(svgY) {
         if upsideDown {
-            // Flip vertically: map SVG Y=0 to bottom (y+h), SVG Y=20 to top (y)
-            imgY = (20.0 - svgY) * scaleY + y
-        } else {
-            // Normal orientation: map SVG Y=0 to top (y), SVG Y=20 to bottom (y+h)
-            imgY = svgY * scaleY + y
+            return (20.0 - svgY) * sy + y
         }
-        return [imgX, imgY] // Return coordinates as an array
+        return svgY * sy + y
     }
 
-    // --- Drawing Commands based on SVG Path ---
-    // Coordinates are transformed based on the upsideDown flag.
+    // Starting point (10,6)
+    startX := x + 10 * sx
+    startY := flipY(6)
 
-    // M10,6 - Move to the starting point (top cusp or bottom tip if flipped)
-    t := transform(10, 6)
-    startX := t[0]; startY := t[1]
+    // First curve (Q10,0 15,0)
+    cp1X := x + 10 * sx
+    cp1Y := flipY(0)
+    p1X := x + 15 * sx
+    p1Y := cp1Y  // Same Y as control point
+
+    // Second curve (reflected control point at 20,0)
+    cp2X := x + 20 * sx
+    cp2Y := cp1Y  // Same Y level
+    p2X := x + 20 * sx
+    p2Y := startY  // Back to start Y level
+
+    // Third curve (Q20,10 15,14)
+    cp3X := p2X  // Same X as end of last curve
+    cp3Y := flipY(10)
+    p3X := x + 15 * sx
+    p3Y := flipY(14)
+
+    // Fourth curve (reflected control at 10,18)
+    cp4X := x + 10 * sx
+    cp4Y := flipY(18)
+    p4X := x + 10 * sx
+    p4Y := flipY(20)  // Bottom tip
+
+    // Fifth curve (Q10,18 5,14)
+    cp5X := cp4X  // Same X
+    cp5Y := cp4Y  // Same Y
+    p5X := x + 5 * sx
+    p5Y := p3Y  // Mirror of p3Y
+
+    // Sixth curve (reflected control at 0,10)
+    cp6X := x + 0
+    cp6Y := cp3Y  // Mirror of cp3Y
+    p6X := cp6X
+    p6Y := startY  // Same Y as start
+
+    // Seventh curve (Q0,0 5,0)
+    cp7X := cp6X
+    cp7Y := cp1Y  // Same Y level as first curve
+    p7X := x + 5 * sx
+    p7Y := cp7Y
+
+    // Final curve back to start (reflected control at 10,0)
+    cp8X := x + 10 * sx
+    cp8Y := cp7Y
+    p8X := startX
+    p8Y := startY
+
+    // Draw the path
     image.move_to(img, startX, startY)
-
-    // Q10,0 15,0
-    t_cp1 := transform(10, 0)
-    cp1X := t_cp1[0]; cp1Y := t_cp1[1]
-    t_p1 := transform(15, 0)
-    p1X := t_p1[0]; p1Y := t_p1[1]
     image.quad_to(img, cp1X, cp1Y, p1X, p1Y)
-
-    // T20,6
-    t_cp2 := transform(20, 0) // Reflected control point
-    cp2X := t_cp2[0]; cp2Y := t_cp2[1]
-    t_p2 := transform(20, 6)
-    p2X := t_p2[0]; p2Y := t_p2[1]
     image.quad_to(img, cp2X, cp2Y, p2X, p2Y)
-
-    // Q20,10 15,14
-    t_cp3 := transform(20, 10)
-    cp3X := t_cp3[0]; cp3Y := t_cp3[1]
-    t_p3 := transform(15, 14)
-    p3X := t_p3[0]; p3Y := t_p3[1]
     image.quad_to(img, cp3X, cp3Y, p3X, p3Y)
-
-    // T10,20
-    t_cp4 := transform(10, 18) // Reflected control point
-    cp4X := t_cp4[0]; cp4Y := t_cp4[1]
-    t_p4 := transform(10, 20) // Bottom tip (or top cusp if flipped)
-    p4X := t_p4[0]; p4Y := t_p4[1]
     image.quad_to(img, cp4X, cp4Y, p4X, p4Y)
-
-    // Q10,18 5,14
-    t_cp5 := transform(10, 18)
-    cp5X := t_cp5[0]; cp5Y := t_cp5[1]
-    t_p5 := transform(5, 14)
-    p5X := t_p5[0]; p5Y := t_p5[1]
     image.quad_to(img, cp5X, cp5Y, p5X, p5Y)
-
-    // T0,6
-    t_cp6 := transform(0, 10) // Reflected control point
-    cp6X := t_cp6[0]; cp6Y := t_cp6[1]
-    t_p6 := transform(0, 6)
-    p6X := t_p6[0]; p6Y := t_p6[1]
     image.quad_to(img, cp6X, cp6Y, p6X, p6Y)
-
-    // Q0,0 5,0
-    t_cp7 := transform(0, 0)
-    cp7X := t_cp7[0]; cp7Y := t_cp7[1]
-    t_p7 := transform(5, 0)
-    p7X := t_p7[0]; p7Y := t_p7[1]
     image.quad_to(img, cp7X, cp7Y, p7X, p7Y)
-
-    // T10,6
-    t_cp8 := transform(10, 0) // Reflected control point
-    cp8X := t_cp8[0]; cp8Y := t_cp8[1]
-    t_p8 := transform(10, 6) // Back to start point
-    p8X := t_p8[0]; p8Y := t_p8[1]
     image.quad_to(img, cp8X, cp8Y, p8X, p8Y)
-
-    // Z - Close the path
     image.close_path(img)
 }
 
