@@ -392,6 +392,41 @@ func createImageFunctions() { //nolint:funlen // this is a group of related func
 		return args[0]
 	}
 	MustCreate(imgFn)
+	imgFn.Name = "image.text_size"
+	imgFn.Help = "returns width and height for the given text with size and optional font variant (regular, bold, italic)"
+	imgFn.MinArgs = 2
+	imgFn.MaxArgs = 3
+	imgFn.ArgTypes = []object.Type{object.STRING, object.FLOAT, object.STRING}
+	imgFn.Callback = func(_ any, _ string, args []object.Object) object.Object {
+		text := args[0].(object.String).Value
+		size := float64(args[1].(object.Float).Value)
+		if size < 4 || size > float64(MaxImageDimension) {
+			return object.Errorf("font size must be between 4 and %d", MaxImageDimension)
+		}
+
+		// Default font variant is "regular"
+		fontVariant := "regular"
+		if len(args) > 2 {
+			fontVariant = args[2].(object.String).Value
+		}
+
+		// Get cached font face
+		face, err := fontCache.getFace(fontVariant, size)
+		if err != nil {
+			return object.Errorf("error getting font face: %v", err)
+		}
+
+		// Calculate bounds
+		bounds, _ := font.BoundString(face, text)
+		width := float64(bounds.Max.X-bounds.Min.X) / 64  // Convert from 26.6 fixed point
+		height := float64(bounds.Max.Y-bounds.Min.Y) / 64 // Convert from 26.6 fixed point
+
+		return object.MakeQuad(
+			object.String{Value: "height"}, object.Float{Value: height},
+			object.String{Value: "width"}, object.Float{Value: width},
+		)
+	}
+	MustCreate(imgFn)
 	createVectorImageFunctions(cdata)
 }
 

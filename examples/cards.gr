@@ -263,6 +263,27 @@ func drawHeart(img, x, y, w, h, color, upsideDown) {
 // // Draw the heart
 // drawHeart(myImage, centerX, bottomY, heartWidth, heartHeight, heartColor)
 
+// Function to center multi-line text at specified coordinates
+func center_text(img, cx, cy, text, size, color, variant, spacing) {
+    // Split text into lines using Grol's split function
+    lines := split(text, "\n")
+
+    // Calculate total height with spacing using "Xg" for better height measurement
+    lineHeight := image.text_size("Xg", size, variant).height
+    spacedLineHeight := lineHeight * spacing
+    totalHeight := spacedLineHeight * (len(lines) - 1) + lineHeight  // Last line doesn't need spacing
+
+    // Start position for first line
+    y := cy - totalHeight/2 + lineHeight/2
+
+    // Draw each line centered
+    for line := lines {
+        textSize := image.text_size(line, size, variant)
+        x := cx - textSize.width/2
+        image.text(img, x, y, size, line, color, variant)
+        y = y + spacedLineHeight
+    }
+}
 
 // Create a new image
 w:= 350
@@ -281,7 +302,10 @@ image.draw(img, [255, 0, 0])
 // Draw text with different sizes and variants
 image.text(img, 2*margin, 40, 12, "Small red text", [255, 0, 0])  // Red text
 image.text(img, 2*margin, 80, 24, "Large bold text", [0, 0, 255], "bold")  // Blue bold text
-image.text(img, 2*margin, 160, 18, "Semi-transparent italic green text", [0, 255, 0, 128], "italic")  // Semi-transparent green italic text
+
+// Draw centered multi-line text with 1.1 line spacing
+center_text(img, w/2, h/2, "Semi\ntransparent\nitalic green\nhuge text", 52, [0, 255, 0, 128], "italic", 1)
+center_text(img, w/2, h/2, "purple", 52, [255, 0, 255, 200], "italic", 1)
 
 // Save to grol.png
 image.save(img)
