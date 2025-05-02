@@ -48,7 +48,6 @@ func heart(img, x, y, w, h) {
 
 // Function to define the path for a heart shape based on SVG quadratic commands
 func drawHeartPath(img, x, y, w, h, upsideDown) {
-    // SVG coordinates are in 0-20 range, we'll precalculate all points
     // All Y coordinates will be flipped if upsideDown is true
 
     // Scale factors
@@ -174,6 +173,198 @@ func center_text(img, cx, cy, text, ..) {
     }
 }
 
+// Function to define the path for a diamond shape
+func drawDiamondPath(img, x, y, w, h) {
+    // Calculate center point
+    centerX := x + w/2
+    centerY := y + h/2
+
+    // Points at top, right, bottom, left
+    topX := centerX
+    topY := y
+    rightX := x + w
+    rightY := centerY
+    bottomX := centerX
+    bottomY := y + h
+    leftX := x
+    leftY := centerY
+
+    // Control points offset - same percentage for both directions
+    offset := w * 0.2  // 20% of width for both horizontal and vertical offset
+
+    // Draw the diamond shape with curves
+    image.move_to(img, topX, topY)
+    // Top right curve
+    image.quad_to(img,
+        topX + offset, rightY - offset,  // Control point moved inside
+        rightX, rightY
+    )
+    // Bottom right curve
+    image.quad_to(img,
+        bottomX + offset, rightY + offset,  // Control point moved inside
+        bottomX, bottomY
+    )
+    // Bottom left curve
+    image.quad_to(img,
+        bottomX - offset, leftY + offset,  // Control point moved inside
+        leftX, leftY
+    )
+    // Top left curve
+    image.quad_to(img,
+        topX - offset, leftY - offset,  // Control point moved inside
+        topX, topY
+    )
+    image.close_path(img)
+}
+
+// Function to draw a filled diamond
+func drawDiamond(img, x, y, w, h, color) {
+    drawDiamondPath(img, x, y, w, h)
+    image.draw(img, color)
+}
+
+// Function to define the path for a stem shape
+func drawStemPath(img, x, y, w, h) {
+    // Scale factors for stem
+    sx := w / 20.0
+    sy := h / 20.0
+
+    // Stem points (triangular shape)
+    stemRightTopX := x + 11 * sx  // Thin connection at top
+    stemRightTopY := y
+
+    stemRightX := x + 12 * sx     // Widens out
+    stemRightY := y + h * 0.5
+
+    stemBaseRightX := x + 13 * sx  // Widest at base
+    stemBaseY := y + h
+
+    stemCenterX := x + 10 * sx
+
+    stemBaseLeftX := x + 7 * sx    // Mirror of right side
+
+    stemLeftX := x + 8 * sx       // Widens out
+    stemLeftY := y + h * 0.5
+
+    stemLeftTopX := x + 9 * sx     // Thin connection at top
+    stemLeftTopY := y
+
+    // Draw the stem shape
+    image.move_to(img, stemRightTopX, stemRightTopY)
+    image.line_to(img, stemRightX, stemRightY)
+    image.line_to(img, stemBaseRightX, stemBaseY)
+    image.line_to(img, stemCenterX, stemBaseY)
+    image.line_to(img, stemBaseLeftX, stemBaseY)
+    image.line_to(img, stemLeftX, stemLeftY)
+    image.line_to(img, stemLeftTopX, stemLeftTopY)
+    image.close_path(img)
+}
+
+// Function to draw a filled stem
+func drawStem(img, x, y, w, h, color) {
+    drawStemPath(img, x, y, w, h)
+    image.draw(img, color)
+}
+
+// Function to draw a filled spade
+func drawSpade(img, x, y, w, h, color) {
+    // Draw inverted heart for top part (wider than tall)
+    heartW := w * 1.1  // Make heart slightly wider than stem
+    heartH := h * 0.6  // Heart takes up top 60% of total height
+    drawHeartPath(img, x - (heartW - w)/2, y, heartW, heartH, true)  // Center the wider heart
+    image.draw(img, color)
+
+    // Draw stem below heart
+    stemH := h * 0.5  // Stem takes up bottom 50% of height, overlapping with heart
+    stemY := y + heartH * 0.8  // Start stem at 80% of heart height for overlap
+    drawStem(img, x, stemY, w, stemH, color)
+    image.draw(img, color)
+}
+
+
+func sign(x) {
+	if x < 0 {
+		return -1
+	}
+	return 1
+}
+
+func discQuadrant(img, x, y, rx, ry, color) {
+	a := 1.00005519
+	b := 0.55342686
+	c := 0.99873585
+	p0x := x + rx*a
+	p0y := y
+	image.move_to(img, x, y)
+	image.line_to(img, p0x, p0y)
+	p2x := x + rx*b
+	p2y := y + ry*c
+	p1x := x + rx*c
+	p1y := y + ry*b
+	p3x := x
+	p3y := y + ry*a
+	image.cube_to(img, p1x, p1y, p2x, p2y, p3x, p3y)
+	// image.line_to(img, x, y) // covered by close_path in draw
+	image.draw(img, color)
+}
+
+// Function to draw a complete circle using discQuadrant
+func drawCircle(img, x, y, radius, color) {
+	// Draw all four quadrants to make a complete circle
+	discQuadrant(img, x, y, radius, radius, color)  // Top-right quadrant
+	discQuadrant(img, x, y, -radius, radius, color)  // Top-left quadrant
+	discQuadrant(img, x, y, -radius, -radius, color)  // Bottom-left quadrant
+	discQuadrant(img, x, y, radius, -radius, color)  // Bottom-right quadrant
+}
+
+// Function to draw a simple filled rectangle
+func drawRect(img, x, y, w, h, color) {
+    image.move_to(img, x, y)
+    image.line_to(img, x + w, y)
+    image.line_to(img, x + w, y + h)
+    image.line_to(img, x, y + h)
+    image.close_path(img)
+    image.draw(img, color)
+}
+
+// Function to draw a filled club
+func drawClub(img, x, y, w, h, color) {
+    // Scale factors
+    sx := w / 20.0
+    sy := h / 20.0
+
+    // Circle radius (relative to width)
+    radius := w * 0.23
+
+    // Draw the three circles with adjusted spacing
+    // Top circle
+    centerX := x + w/2
+    topY := y + h * 0.22
+    drawCircle(img, centerX, topY, radius, color)
+
+    // Bottom left circle - tighter spacing
+    leftX := centerX - radius * 1.1
+    bottomY := y + h * 0.56
+    drawCircle(img, leftX, bottomY, radius, color)
+
+    // Bottom right circle
+    rightX := centerX + radius * 1.1
+    drawCircle(img, rightX, bottomY, radius, color)
+
+    // Draw a small rectangle to fill the gap
+    rectW := w * 0.2
+    rectH := h * 0.2
+    rectX := x + (w-rectW)/2
+    rectY := y + h * 0.4
+    drawRect(img, rectX, rectY, rectW, rectH,color)
+
+    // Draw stem below circles - even more pointed
+    stemH := h * 0.55
+    stemY := y + h * 0.46
+    stemW := w * 0.7  // Narrower stem for more pointed look (was 0.85)
+    drawStem(img, x + (w-stemW)/2, stemY, stemW, stemH, color)
+}
+
 // Create a new image
 w:= 350
 h:= 500
@@ -190,9 +381,21 @@ heart(img, w/2-6*margin, h/2-6*margin, 12*margin, 10*margin)
 image.draw(img, [255, 165, 0])
 
 // more advanced heart from svg
-drawHeart(img, 3*margin, 3*margin, 6*margin, 6*margin, [255, 0, 0], false)
-drawHeart(img, w-9*margin, h-9*margin, 6*margin, 6*margin, [255, 0, 0], true)
+// drawHeart(img, 3*margin, 3*margin, 6*margin, 6*margin, [255, 0, 0], false)
+drawHeart(img, w-9*margin, h-9*margin, 6*margin, 6*margin, [255, 0, 0], false)
 image.draw(img, [255, 0, 0])
+
+// Draw a diamond - slightly taller than wide for better proportions
+drawDiamond(img, w-9*margin, 3*margin, 5.5*margin, 7*margin, [255, 0, 0])
+image.draw(img, [255, 0, 0])
+
+// Draw a spade
+drawSpade(img, 3*margin, h-9*margin, 7*margin, 7*margin, [0, 0, 0])
+image.draw(img, [0, 0, 0])
+
+// Draw a club
+drawClub(img, 3*margin, 3*margin, 7*margin, 7*margin, [0, 0, 0])
+image.draw(img, [0, 0, 0])
 
 // Draw text with different sizes and variants
 // image.text(img, 2*margin, 40, 12, "Small blye text", [0, 0, 255])  // Blue text
