@@ -143,8 +143,6 @@ func drawHeartPath(img, x, y, w, h, upsideDown) {
     image.close_path(img)
 }
 
-
-
 // Function to draw a filled heart
 func drawHeart(img, x, y, w, h, color, upsideDown) {
     // Define the heart's path
@@ -154,8 +152,23 @@ func drawHeart(img, x, y, w, h, color, upsideDown) {
     // Alternatively, use image.draw(img, color, thickness) for an outlined heart
 }
 
+// Helper function to return default if value is nil
+func or(val, default_val) {
+    if val == nil {
+        return default_val
+    }
+    return val
+}
+
 // Function to center multi-line text at specified coordinates
-func center_text(img, cx, cy, text, size, color, variant, spacing) {
+func center_text(img, cx, cy, text, ..) {
+    opts := ..[0] // var args to get last optional argument, which is a map if provided
+    // Set defaults for optional parameters and override with any provided options
+    size := or(opts.size, 18.)  // Default size
+    color := or(opts.color, [0, 0, 0, 255])  // Default black
+    variant := or(opts.variant, "regular")  // Default font
+    spacing := or(opts.spacing, 1.)  // Default spacing
+
     // Split text into lines using Grol's split function
     lines := split(text, "\n")
 
@@ -194,9 +207,20 @@ image.draw(img, [255, 0, 0])
 image.text(img, 2*margin, 40, 12, "Small red text", [255, 0, 0])  // Red text
 image.text(img, 2*margin, 80, 24, "Large bold text", [0, 0, 255], "bold")  // Blue bold text
 
-// Draw centered multi-line text with 1.1 line spacing
-center_text(img, w/2, h/2, "Semi\ntransparent\nitalic green\nhuge text", 52, [0, 255, 0, 128], "italic", 1)
-center_text(img, w/2, h/2, "purple", 52, [255, 0, 255, 200], "italic", 1)
+// Draw centered multi-line text with options
+center_text(img, w/2, h/2, "Semi\ntransparent\nitalic green\nhuge text", {
+    "size": 52,
+    "color": [0, 255, 0, 128],
+    "variant": "italic",
+})
+
+center_text(img, w/2, h/2, "purple", {
+    "size": 52,
+    "color": [255, 0, 255, 200],
+    "variant": "bold"
+})
+
+center_text(img, w/2, h/2, "defaults")
 
 // Save to grol.png
 image.save(img)
