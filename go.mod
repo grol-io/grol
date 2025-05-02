@@ -21,5 +21,6 @@ require (
 	golang.org/x/crypto/x509roots/fallback v0.0.0-20250406160420-959f8f3db0fb // indirect
 	golang.org/x/sys v0.32.0 // indirect
 	golang.org/x/term v0.31.1-0.20250421193057-a809085bff59 // indirect
+	golang.org/x/text v0.24.0 // indirect
 	golang.org/x/tools v0.29.0 // indirect
 )

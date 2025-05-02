@@ -9,6 +9,12 @@ import (
 	"os"
 
 	"fortio.org/log"
+	"golang.org/x/image/font"
+	"golang.org/x/image/font/gofont/gobold"
+	"golang.org/x/image/font/gofont/goitalic"
+	"golang.org/x/image/font/gofont/goregular"
+	"golang.org/x/image/font/opentype"
+	"golang.org/x/image/math/fixed"
 	"golang.org/x/image/vector"
 	"grol.io/grol/eval"
 	"grol.io/grol/object"
@@ -24,6 +30,62 @@ type ImageMap map[object.Object]GrolImage
 
 // TODO: make this configurable and use the slice check as well as some sort of LRU.
 const MaxImageDimension = 1024 // in pixels.
+
+// FontCache stores parsed fonts and font faces.
+type FontCache struct {
+	faces map[string]map[float64]font.Face // variant -> size -> face
+}
+
+var fontCache = &FontCache{
+	faces: make(map[string]map[float64]font.Face),
+}
+
+// getFace returns a cached font face or creates a new one.
+func (fc *FontCache) getFace(variant string, size float64) (font.Face, error) {
+	// Check if we have a cached face
+	if sizes, ok := fc.faces[variant]; ok {
+		if face, ok := sizes[size]; ok {
+			return face, nil
+		}
+	}
+
+	// Select font based on variant
+	var fontData []byte
+	switch variant {
+	case "bold":
+		fontData = gobold.TTF
+	case "italic":
+		fontData = goitalic.TTF
+	case "regular":
+		fontData = goregular.TTF
+	default:
+		return nil, object.Errorf("unknown font variant: %s", variant)
+	}
+
+	// Parse the font
+	ttf, err := opentype.Parse(fontData)
+	if err != nil {
+		return nil, err
+	}
+
+	// Create font face with specified size
+	face, err := opentype.NewFace(ttf, &opentype.FaceOptions{
+		Size:    size,
+		DPI:     72,
+		Hinting: font.HintingFull,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	// Cache the face
+	if fc.faces[variant] == nil {
+		fc.faces[variant] = make(map[float64]font.Face)
+	}
+	fc.faces[variant][size] = face
+
+	return face, nil
+}
 
 // HSLToRGB converts HSL values to RGB. h, s and l in [0,1].
 func HSLToRGB(h, s, l float64) color.NRGBA {
@@ -164,7 +226,15 @@ func ycbrArrayToRBGAColor(arr []object.Object) (color.NRGBA, *object.Error) {
 	return rgba, nil
 }
 
-func createImageFunctions() { //nolint:funlen // this is a group of related functions.
+// getVariant returns the font variant from args or the default "regular" if not specified.
+func getVariant(args []object.Object, variantArgIndex int) string {
+	if len(args) > variantArgIndex {
+		return args[variantArgIndex].(object.String).Value
+	}
+	return "regular"
+}
+
+func createImageFunctions() { //nolint:funlen,maintidx // this is a group of related functions.
 	// All the functions consistently use args[0] as the image name/reference into the ClientData map.
 	cdata := make(ImageMap)
 	imgFn := object.Extension{
@@ -272,6 +342,91 @@ func createImageFunctions() { //nolint:funlen // this is a group of related func
 			return object.Errorf("error encoding image: %v", err)
 		}
 		return object.String{Value: buf.String()}
+	}
+	MustCreate(imgFn)
+	imgFn.Name = "image.text"
+	imgFn.Help = "draw text on the image at x,y with size, optional color array [R,G,B] or [R,G,B,A], " +
+		"and optional font variant (regular, bold, italic)"
+	imgFn.MinArgs = 5
+	imgFn.MaxArgs = 7
+	imgFn.ArgTypes = []object.Type{object.STRING, object.FLOAT, object.FLOAT, object.FLOAT, object.STRING, object.ARRAY, object.STRING}
+	imgFn.Callback = func(cdata any, _ string, args []object.Object) object.Object {
+		images := cdata.(ImageMap)
+		img, ok := images[args[0]]
+		if !ok {
+			return object.Errorf("image %q not found", args[0].(object.String).Value)
+		}
+
+		x := float64(args[1].(object.Float).Value)
+		y := float64(args[2].(object.Float).Value)
+		size := float64(args[3].(object.Float).Value)
+		if size < 4 || size > float64(MaxImageDimension) {
+			return object.Errorf("font size must be between 4 and %d", MaxImageDimension)
+		}
+		text := args[4].(object.String).Value
+
+		// Default color is black
+		textColor := color.NRGBA{0, 0, 0, 255}
+		if len(args) > 5 {
+			colorArray := object.Elements(args[5])
+			var oerr *object.Error
+			textColor, oerr = rgbArrayToRBGAColor(colorArray)
+			if oerr != nil {
+				return oerr
+			}
+		}
+
+		// Get font variant using helper
+		fontVariant := getVariant(args, 6)
+
+		// Get cached font face
+		face, err := fontCache.getFace(fontVariant, size)
+		if err != nil {
+			return object.Errorf("error getting font face: %v", err)
+		}
+
+		// Draw the text
+		d := &font.Drawer{
+			Dst:  img.Image,
+			Src:  image.NewUniform(textColor),
+			Face: face,
+			Dot:  fixed.Point26_6{X: fixed.I(int(x)), Y: fixed.I(int(y))},
+		}
+		d.DrawString(text)
+
+		return args[0]
+	}
+	MustCreate(imgFn)
+	imgFn.Name = "image.text_size"
+	imgFn.Help = "returns width and height for the given text with size and optional font variant (regular, bold, italic)"
+	imgFn.MinArgs = 2
+	imgFn.MaxArgs = 3
+	imgFn.ArgTypes = []object.Type{object.STRING, object.FLOAT, object.STRING}
+	imgFn.Callback = func(_ any, _ string, args []object.Object) object.Object {
+		text := args[0].(object.String).Value
+		size := float64(args[1].(object.Float).Value)
+		if size < 4 || size > float64(MaxImageDimension) {
+			return object.Errorf("font size must be between 4 and %d", MaxImageDimension)
+		}
+
+		// Get font variant using helper
+		fontVariant := getVariant(args, 2)
+
+		// Get cached font face
+		face, err := fontCache.getFace(fontVariant, size)
+		if err != nil {
+			return object.Errorf("error getting font face: %v", err)
+		}
+
+		// Calculate bounds
+		bounds, _ := font.BoundString(face, text)
+		width := float64(bounds.Max.X-bounds.Min.X) / 64  // Convert from 26.6 fixed point
+		height := float64(bounds.Max.Y-bounds.Min.Y) / 64 // Convert from 26.6 fixed point
+
+		return object.MakeQuad(
+			object.String{Value: "height"}, object.Float{Value: height},
+			object.String{Value: "width"}, object.Float{Value: width},
+		)
 	}
 	MustCreate(imgFn)
 	createVectorImageFunctions(cdata)

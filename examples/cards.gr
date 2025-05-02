@@ -1,0 +1,459 @@
+// Define rectangle dimensions
+func roundedRect(img, x, y, w, h, r) {
+	// Start at top-right corner after the rounded part
+	image.move_to(img, x + r, y)
+
+	// Top edge and top-right corner
+	image.line_to(img, x + w - r, y)
+	image.quad_to(img, x + w, y, x + w, y + r)
+
+	// Right edge and bottom-right corner
+	image.line_to(img, x + w, y + h - r)
+	image.quad_to(img, x + w, y + h, x + w - r, y + h)
+
+	// Bottom edge and bottom-left corner
+	image.line_to(img, x + r, y + h)
+	image.quad_to(img, x, y + h, x, y + h - r)
+
+	// Left edge and top-left corner
+	image.line_to(img, x, y + r)
+	image.quad_to(img, x, y, x + r, y)
+
+	// Close the path
+	image.close_path(img)
+}
+
+// Draw a heart
+func heart(img, x, y, w, h) {
+	centerX := x + w/2
+	centerY := y + h/2
+
+	// Start at the bottom point
+	image.move_to(img, centerX, y + h)
+
+	// Left bump
+	image.cube_to(img,
+		centerX - w/2, y + 2*h/3,     // First control: out to the left
+		centerX - w/3, y,             // Second control: sharp angle at top
+		centerX, y + h/3             // End point: where curves meet
+	)
+	// Right bump
+	image.cube_to(img,
+		centerX + w/3, y,             // First control: sharp angle at top
+		centerX + w/2, y + 2*h/3,     // Second control: out to the right
+		centerX, y + h               // End point: back to bottom
+	)
+	image.close_path(img)
+}
+
+// Function to define the path for a heart shape based on SVG quadratic commands
+func drawHeartPath(img, x, y, w, h, upsideDown) {
+    // All Y coordinates will be flipped if upsideDown is true
+
+    // Scale factors
+    sx := w / 20.0
+    sy := h / 20.0
+
+    // Helper lambda to flip Y coordinates if upsideDown
+    flipY := func(svgY) {
+        if upsideDown {
+            return (20.0 - svgY) * sy + y
+        }
+        return svgY * sy + y
+    }
+
+    // Starting point (10,6)
+    startX := x + 10 * sx
+    startY := flipY(6)
+
+    // First curve (Q10,0 15,0)
+    cp1X := x + 10 * sx
+    cp1Y := flipY(0)
+    p1X := x + 15 * sx
+    p1Y := cp1Y  // Same Y as control point
+
+    // Second curve (reflected control point at 20,0)
+    cp2X := x + 20 * sx
+    cp2Y := cp1Y  // Same Y level
+    p2X := x + 20 * sx
+    p2Y := startY  // Back to start Y level
+
+    // Third curve (Q20,10 15,14)
+    cp3X := p2X  // Same X as end of last curve
+    cp3Y := flipY(10)
+    p3X := x + 15 * sx
+    p3Y := flipY(14)
+
+    // Fourth curve (reflected control at 10,18)
+    cp4X := x + 10 * sx
+    cp4Y := flipY(18)
+    p4X := x + 10 * sx
+    p4Y := flipY(20)  // Bottom tip
+
+    // Fifth curve (Q10,18 5,14)
+    cp5X := cp4X  // Same X
+    cp5Y := cp4Y  // Same Y
+    p5X := x + 5 * sx
+    p5Y := p3Y  // Mirror of p3Y
+
+    // Sixth curve (reflected control at 0,10)
+    cp6X := x + 0
+    cp6Y := cp3Y  // Mirror of cp3Y
+    p6X := cp6X
+    p6Y := startY  // Same Y as start
+
+    // Seventh curve (Q0,0 5,0)
+    cp7X := cp6X
+    cp7Y := cp1Y  // Same Y level as first curve
+    p7X := x + 5 * sx
+    p7Y := cp7Y
+
+    // Final curve back to start (reflected control at 10,0)
+    cp8X := x + 10 * sx
+    cp8Y := cp7Y
+    p8X := startX
+    p8Y := startY
+
+    // Draw the path
+    image.move_to(img, startX, startY)
+    image.quad_to(img, cp1X, cp1Y, p1X, p1Y)
+    image.quad_to(img, cp2X, cp2Y, p2X, p2Y)
+    image.quad_to(img, cp3X, cp3Y, p3X, p3Y)
+    image.quad_to(img, cp4X, cp4Y, p4X, p4Y)
+    image.quad_to(img, cp5X, cp5Y, p5X, p5Y)
+    image.quad_to(img, cp6X, cp6Y, p6X, p6Y)
+    image.quad_to(img, cp7X, cp7Y, p7X, p7Y)
+    image.quad_to(img, cp8X, cp8Y, p8X, p8Y)
+    image.close_path(img)
+}
+
+// Function to draw a filled heart
+func drawHeart(img, x, y, w, h, color, upsideDown) {
+    // Define the heart's path
+    drawHeartPath(img, x, y, w, h, upsideDown)
+    // Fill the defined path with the specified color
+    image.draw(img, color)
+    // Alternatively, use image.draw(img, color, thickness) for an outlined heart
+}
+
+// Helper function to return default if value is nil
+func or(val, default_val) {
+    if val == nil {
+        return default_val
+    }
+    return val
+}
+
+// Function to center multi-line text at specified coordinates
+func center_text(img, cx, cy, text, ..) {
+    opts := ..[0] // var args to get last optional argument, which is a map if provided
+    // Set defaults for optional parameters and override with any provided options
+    size := or(opts.size, 18.)  // Default size
+    color := or(opts.color, [0, 0, 0, 255])  // Default black
+    variant := or(opts.variant, "regular")  // Default font
+    spacing := or(opts.spacing, 1.)  // Default spacing
+
+    // Split text into lines using Grol's split function
+    lines := split(text, "\n")
+
+    // Calculate total height with spacing using "Xg" for better height measurement
+    lineHeight := image.text_size("Xg", size, variant).height
+    spacedLineHeight := lineHeight * spacing
+    totalHeight := spacedLineHeight * (len(lines) - 1) + lineHeight  // Last line doesn't need spacing
+
+    // Start position for first line
+    y := cy - totalHeight/2 + lineHeight/2
+
+    // Draw each line centered
+    for line := lines {
+        textSize := image.text_size(line, size, variant)
+        x := cx - textSize.width/2
+        image.text(img, x, y, size, line, color, variant)
+        y = y + spacedLineHeight
+    }
+}
+
+// Function to define the path for a diamond shape
+func drawDiamondPath(img, x, y, w, h) {
+    // Calculate center point
+    centerX := x + w/2
+    centerY := y + h/2
+
+    // Points at top, right, bottom, left
+    topX := centerX
+    topY := y
+    rightX := x + w
+    rightY := centerY
+    bottomX := centerX
+    bottomY := y + h
+    leftX := x
+    leftY := centerY
+
+    // Control points offset - same percentage for both directions
+    offset := w * 0.2  // 20% of width for both horizontal and vertical offset
+
+    // Draw the diamond shape with curves
+    image.move_to(img, topX, topY)
+    // Top right curve
+    image.quad_to(img,
+        topX + offset, rightY - offset,  // Control point moved inside
+        rightX, rightY
+    )
+    // Bottom right curve
+    image.quad_to(img,
+        bottomX + offset, rightY + offset,  // Control point moved inside
+        bottomX, bottomY
+    )
+    // Bottom left curve
+    image.quad_to(img,
+        bottomX - offset, leftY + offset,  // Control point moved inside
+        leftX, leftY
+    )
+    // Top left curve
+    image.quad_to(img,
+        topX - offset, leftY - offset,  // Control point moved inside
+        topX, topY
+    )
+    image.close_path(img)
+}
+
+// Function to draw a filled diamond
+func drawDiamond(img, x, y, w, h, color) {
+    // Adjust dimensions for better diamond proportions
+    adjustedW := w * 0.85
+    adjustedH := h * 1.1
+
+    // Adjust x position to keep diamond centered with original width
+    adjustedX := x + (w - adjustedW)/2
+
+    drawDiamondPath(img, adjustedX, y, adjustedW, adjustedH)
+    image.draw(img, color)
+}
+
+// Function to define the path for a stem shape
+func drawStemPath(img, x, y, w, h) {
+    // Scale factors for stem
+    sx := w / 20.0
+    sy := h / 20.0
+
+    // Stem points (triangular shape)
+    stemRightTopX := x + 11 * sx  // Thin connection at top
+    stemRightTopY := y
+
+    stemRightX := x + 12 * sx     // Widens out
+    stemRightY := y + h * 0.5
+
+    stemBaseRightX := x + 13 * sx  // Widest at base
+    stemBaseY := y + h
+
+    stemCenterX := x + 10 * sx
+
+    stemBaseLeftX := x + 7 * sx    // Mirror of right side
+
+    stemLeftX := x + 8 * sx       // Widens out
+    stemLeftY := y + h * 0.5
+
+    stemLeftTopX := x + 9 * sx     // Thin connection at top
+    stemLeftTopY := y
+
+    // Draw the stem shape
+    image.move_to(img, stemRightTopX, stemRightTopY)
+    image.line_to(img, stemRightX, stemRightY)
+    image.line_to(img, stemBaseRightX, stemBaseY)
+    image.line_to(img, stemCenterX, stemBaseY)
+    image.line_to(img, stemBaseLeftX, stemBaseY)
+    image.line_to(img, stemLeftX, stemLeftY)
+    image.line_to(img, stemLeftTopX, stemLeftTopY)
+    image.close_path(img)
+}
+
+// Function to draw a filled stem
+func drawStem(img, x, y, w, h, color) {
+    drawStemPath(img, x, y, w, h)
+    image.draw(img, color)
+}
+
+// Function to draw a filled club
+func drawClub(img, x, y, w, h, color, upsideDown) {
+    if upsideDown {
+        // If upside down, flip the y coordinate and drawing order
+        y := y + h
+        h := -h
+    }
+
+    // Scale factors
+    sx := w / 20.0
+    sy := h / 20.0
+
+    // Circle radius (relative to width)
+    radius := w * 0.23
+
+    // Draw the three circles with adjusted spacing
+    // Top circle
+    centerX := x + w/2
+    topY := y + h * 0.22
+    drawCircle(img, centerX, topY, radius, color)
+
+    // Bottom left circle - tighter spacing
+    leftX := centerX - radius * 1.1
+    bottomY := y + h * 0.56
+    drawCircle(img, leftX, bottomY, radius, color)
+
+    // Bottom right circle
+    rightX := centerX + radius * 1.1
+    drawCircle(img, rightX, bottomY, radius, color)
+
+    // Draw a small rectangle to fill the gap
+    rectW := w * 0.2
+    rectH := h * 0.2
+    rectX := x + (w-rectW)/2
+    rectY := y + h * 0.4
+    drawRect(img, rectX, rectY, rectW, rectH,color)
+
+    // Draw stem below circles - even more pointed
+    stemH := h * 0.55
+    stemY := y + h * 0.46
+    stemW := w * 0.7
+    drawStem(img, x + (w-stemW)/2, stemY, stemW, stemH, color)
+}
+
+// Function to draw a filled spade
+func drawSpade(img, x, y, w, h, color, upsideDown) {
+    if upsideDown {
+        // If upside down, flip the y coordinate and drawing order
+        y := y + h
+        h := -h
+    }
+
+    // Draw inverted heart for top part
+    heartW := w
+    heartH := h * 0.85
+    drawHeartPath(img, x - (heartW - w)/2, y, heartW, heartH, true)  // Always true for spade (removed !upsideDown)
+    image.draw(img, color)
+
+    // Draw stem below heart
+    stemH := h * 0.4
+    stemY := y + heartH * 0.75
+    drawStem(img, x, stemY, w, stemH, color)
+    image.draw(img, color)
+}
+
+func sign(x) {
+	if x < 0 {
+		return -1
+	}
+	return 1
+}
+
+func discQuadrant(img, x, y, rx, ry, color) {
+	a := 1.00005519
+	b := 0.55342686
+	c := 0.99873585
+	p0x := x + rx*a
+	p0y := y
+	image.move_to(img, x, y)
+	image.line_to(img, p0x, p0y)
+	p2x := x + rx*b
+	p2y := y + ry*c
+	p1x := x + rx*c
+	p1y := y + ry*b
+	p3x := x
+	p3y := y + ry*a
+	image.cube_to(img, p1x, p1y, p2x, p2y, p3x, p3y)
+	// image.line_to(img, x, y) // covered by close_path in draw
+	image.draw(img, color)
+}
+
+// Function to draw a complete circle using discQuadrant
+func drawCircle(img, x, y, radius, color) {
+	// Draw all four quadrants to make a complete circle
+	discQuadrant(img, x, y, radius, radius, color)  // Top-right quadrant
+	discQuadrant(img, x, y, -radius, radius, color)  // Top-left quadrant
+	discQuadrant(img, x, y, -radius, -radius, color)  // Bottom-left quadrant
+	discQuadrant(img, x, y, radius, -radius, color)  // Bottom-right quadrant
+}
+
+// Function to draw a simple filled rectangle
+func drawRect(img, x, y, w, h, color) {
+    image.move_to(img, x, y)
+    image.line_to(img, x + w, y)
+    image.line_to(img, x + w, y + h)
+    image.line_to(img, x, y + h)
+    image.close_path(img)
+    image.draw(img, color)
+}
+
+// Create a new image
+cardW := 250  // Larger card width
+cardH := 350  // Larger card height
+margin := 20  // Margin between cards and edges
+suitSize := 50  // Base suit size
+suitMargin := 25  // Reduced margin for suits within cards
+
+// Calculate total width and height needed
+w := 2 * cardW + 3 * margin  // Two cards wide plus margins
+h := 2 * cardH + 3 * margin  // Two cards tall plus margins
+img = image.new("myimg", w, h)
+
+// Draw four cards in 2x2 grid
+for i := 4 {
+    // Calculate card position (2x2 grid)
+    row := i / 2  // 0 for top row, 1 for bottom row
+    col := i % 2  // 0 for left column, 1 for right column
+    cardX := margin + col * (cardW + margin)
+    cardY := margin + row * (cardH + margin)
+
+    // Draw card background
+    roundedRect(img, cardX, cardY, cardW, cardH, 10)
+    image.draw(img, [255, 255, 255])
+
+    // Calculate suit positions
+    topLeftX := cardX + suitMargin
+    topLeftY := cardY + suitMargin
+    bottomRightX := cardX + cardW - suitMargin - suitSize
+    bottomRightY := cardY + cardH - suitMargin - suitSize
+
+    // Draw suits based on card index
+    if i == 0 {
+        // Hearts
+        drawHeart(img, topLeftX, topLeftY, suitSize, suitSize, [255, 0, 0], false)
+        drawHeart(img, bottomRightX, bottomRightY, suitSize, suitSize, [255, 0, 0], true)
+    } else if i == 1 {
+        // Diamonds
+        drawDiamond(img, topLeftX, topLeftY, suitSize, suitSize, [255, 0, 0])
+        drawDiamond(img, bottomRightX, bottomRightY, suitSize, suitSize, [255, 0, 0])
+    } else if i == 2 {
+        // Clubs
+        drawClub(img, topLeftX, topLeftY, suitSize, suitSize, [0, 0, 0], false)
+        drawClub(img, bottomRightX, bottomRightY, suitSize, suitSize, [0, 0, 0], true)
+    } else {
+        // Spades
+        drawSpade(img, topLeftX, topLeftY, suitSize, suitSize, [0, 0, 0], false)
+        drawSpade(img, bottomRightX, bottomRightY, suitSize, suitSize, [0, 0, 0], true)
+    }
+}
+
+// simple heart
+heart(img, w/2-6*margin, h/2-6*margin, 12*margin, 10*margin)
+image.draw(img, [255, 165, 0, 128])
+
+// Draw centered multi-line text with options
+center_text(img, w/2, h/2, "Semi\ntransparent\nitalic green\nhuge text", {
+	    "size": 52,
+	    "color": [0, 255, 0, 128],
+	    "variant": "italic",
+	})
+
+center_text(img, w/2, h/2, "purple", {
+	    "size": 52,
+	    "color": [255, 0, 255, 200],
+	    "variant": "bold"
+	})
+
+center_text(img, w/2, h/2, "defaults")
+
+
+// Save to grol.png
+image.save(img)
+
+println("Cards with suits saved to grol.png")
