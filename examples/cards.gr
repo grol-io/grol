@@ -269,14 +269,14 @@ func drawStem(img, x, y, w, h, color) {
 // Function to draw a filled spade
 func drawSpade(img, x, y, w, h, color) {
     // Draw inverted heart for top part (wider than tall)
-    heartW := w * 1.1  // Make heart slightly wider than stem
-    heartH := h * 0.6  // Heart takes up top 60% of total height
+    heartW := w   // Keep same width ratio
+    heartH := h * 0.85  // Even taller heart (was 0.75)
     drawHeartPath(img, x - (heartW - w)/2, y, heartW, heartH, true)  // Center the wider heart
     image.draw(img, color)
 
     // Draw stem below heart
-    stemH := h * 0.5  // Stem takes up bottom 50% of height, overlapping with heart
-    stemY := y + heartH * 0.8  // Start stem at 80% of heart height for overlap
+    stemH := h * 0.4  // Shorter stem (was 0.5)
+    stemY := y + heartH * 0.75
     drawStem(img, x, stemY, w, stemH, color)
     image.draw(img, color)
 }
@@ -390,7 +390,7 @@ drawDiamond(img, w-9*margin, 3*margin, 5.5*margin, 7*margin, [255, 0, 0])
 image.draw(img, [255, 0, 0])
 
 // Draw a spade
-drawSpade(img, 3*margin, h-9*margin, 7*margin, 7*margin, [0, 0, 0])
+drawSpade(img, 3*margin, h-9*margin, 6*margin, 6*margin, [0, 0, 0])
 image.draw(img, [0, 0, 0])
 
 // Draw a club
