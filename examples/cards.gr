@@ -320,7 +320,7 @@ func center_text(img, cx, cy, text, ..) {
     }
     // Debug line height:
     if boundingBox {
-        drawRect(img, cx-textSize.width/2., cy-spacedLineHeight/2., textSize.width, spacedLineHeight, [0,0,255,128])
+        drawRect(img, round(cx-textSize.width/2.)-0.5, round(cy-spacedLineHeight/2.), round(textSize.width)+0.5, round(spacedLineHeight), [0,0,255,128])
     }
 }
 // ---- text centering ---

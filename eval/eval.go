@@ -891,8 +891,12 @@ func setupRegister(env *object.Environment, name string, value int64, body ast.N
 	if log.LogVerbose() {
 		out := strings.Builder{}
 		ps := &ast.PrintState{Out: &out, Compact: true}
-		newBody.PrettyPrint(ps)
-		log.LogVf("replaced %d registers - ok = %t: %s", register.Count, ok, out.String())
+		if newBody != nil {
+			newBody.PrettyPrint(ps)
+			log.LogVf("replaced %d registers - ok = %t: %s", register.Count, ok, out.String())
+		} else {
+			log.LogVf("replaced %d registers - ok = %t: AST modification stopped", register.Count, ok)
+		}
 	}
 	if !ok || register.Count == 0 {
 		return register, body, ok // original body unchanged.
