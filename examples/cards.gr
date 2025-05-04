@@ -407,7 +407,7 @@ for c := cards {
     cardX := margin + col * (cardW + margin)
     cardY := margin + row * (cardH + margin)
 
-    // card(img, cardX, cardY, cardW, cardH, suit, face)
+    card(img, cardX, cardY, cardW, cardH, suit, face)
     i++
 }
 
@@ -419,7 +419,6 @@ cardBack(img, w/2-cardW/2, h/2-cardH/2, cardW, cardH)
 
 // Draw centered multi-line text with options
 
-/*
 center_text(img, w/2.0, h/2.0, "Semi\ntransparent\nitalic green\nhuge text", {
 	    "size": 52,
 	    "color": [0, 255, 0, 128],
@@ -435,7 +434,6 @@ center_text(img, w/2.0, h/2.0, "Purple", {
 	})
 
 center_text(img, w/2.0, h/2.0, "defaults")
-*/
 
 // Save to grol.png
 image.save(img)
