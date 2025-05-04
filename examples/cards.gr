@@ -229,6 +229,63 @@ func drawTriangle(img, x, y, w, h, color) {
     image.draw(img, color)
 }
 
+func line(img, x1, y1, x2, y2, color, thickness) {
+	angle := atan2(y2-y1, x2-x1) + PI/2
+	dx := thickness*cos(angle)/2.
+	dy := thickness*sin(angle)/2.
+	image.move_to(img, x1-dx, y1-dy)
+	image.line_to(img, x2-dx, y2-dy)
+	image.line_to(img, x2+dx, y2+dy)
+	image.line_to(img, x1+dx, y1+dy)
+	image.draw(img, color)
+}
+
+func cardBack(img, x, y, w, h) {
+    roundedRect(img, x, y, w, h, 10)
+    image.draw(img, [255, 255, 255])
+    // Inner:
+    offset := 8
+    x = x+offset
+    y = y+offset
+    w = w-2*offset
+    h = h-2*offset
+    roundedRect(img, x-1, y-1, w+2, h+2, 10)
+    image.draw(img, [0, 40, 160])
+    // Diagonal lines:
+    step := 13
+    for i = 1:round(w/step)+round(h/step) {
+        x1 := x + i*step
+        y2 := y + i*step
+        if x1 < x+w {
+            line(img, x1, y, x, y2, [40,160,0], 2)
+        }
+    }
+    y1 := y + h + 1
+    for i = 1:round(w/step)+round(h/step) {
+        x1 := x + i*step
+        y2 := y + h - i*step
+        if x1 < x+w {
+            line(img, x1, y1, x, y2, [170,160,0], 2)
+        }
+    }
+    x1 := x + w + 1
+    for i = 1:round(w/step)+round(h/step) {
+        y1 := y + i*step
+        x2 := x + w - i*step
+        if y1 <= y+h && x2 >= x {
+            line(img, x1, y1, x2, y, [100,60,200], 2)
+        }
+    }
+    y2 := y + h + 1
+    for i = 1:round(w/step)+round(h/step) {
+        y1 := y + h - i*step
+        x2 := x + w - i*step
+        if y1 >= y && x2 >= x {
+            line(img, x1, y1, x2, y2, [200,40,40], 2)
+        }
+    }
+}
+
 func card(img, x, y, w, h, suit, face) {
     // Draw card background
     roundedRect(img, x, y, w, h, 10)
@@ -353,6 +410,8 @@ for c := cards {
     card(img, cardX, cardY, cardW, cardH, suit, face)
     i++
 }
+
+cardBack(img, w/2-cardW/2, h/2-cardH/2, cardW, cardH)
 
 // simple heart
 //simpleHeartPath(img, w/2-6*margin, h/2-6*margin, 12*margin, 10*margin)

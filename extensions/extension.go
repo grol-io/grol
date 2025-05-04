@@ -984,3 +984,18 @@ func DropStartingShebang(what string) string {
 	}
 	return what
 }
+
+// Convert a grol map to a go struct (via json).
+func MapToStruct[T any](inp object.Map, out *T) error {
+	w := bytes.Buffer{}
+	err := inp.JSON(&w)
+	if err != nil {
+		return err
+	}
+	err = json.Unmarshal(w.Bytes(), out)
+	if err != nil {
+		log.Errf("failed to unmarshal json: %v\n%s", err, w.String())
+		return fmt.Errorf("failed to unmarshal: %w", err)
+	}
+	return nil
+}
