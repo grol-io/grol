@@ -994,7 +994,8 @@ func MapToStruct[T any](inp object.Map, out *T) error {
 	}
 	err = json.Unmarshal(w.Bytes(), out)
 	if err != nil {
-		return err
+		log.Errf("failed to unmarshal json: %v\n%s", err, w.String())
+		return fmt.Errorf("failed to unmarshal: %w", err)
 	}
 	return nil
 }
