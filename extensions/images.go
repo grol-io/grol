@@ -255,8 +255,9 @@ func createImageFunctions() { //nolint:funlen,maintidx // this is a group of rel
 				return object.Errorf("image sizes must be positive")
 			}
 			img := image.NewNRGBA(image.Rect(0, 0, x, y))
-			images[args[0]] = GrolImage{Image: img, Vect: vector.NewRasterizer(x, y), W: x, H: y}
-			return args[0]
+			name := args[0]
+			images[name] = GrolImage{Image: img, Vect: vector.NewRasterizer(x, y), W: x, H: y}
+			return name
 		},
 		DontCache: true,
 		Category:  object.CategoryImage,
@@ -435,6 +436,7 @@ func createImageFunctions() { //nolint:funlen,maintidx // this is a group of rel
 		m = m.Set(object.String{Value: "offset"}, object.Float{Value: offset})
 		return m
 	}
+	imgFn.DontCache = false // only one that can be cached.
 	MustCreate(imgFn)
 	createVectorImageFunctions(cdata)
 }
