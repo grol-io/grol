@@ -43,6 +43,28 @@ emptylambda = () => {}
 
 emptylambda()
 
+
+// Memoization issue #358
+func w(n) {
+	state := n
+	.. => {
+		if len(..) == 0 {
+			state
+		} else {
+			state = ..[0]
+		}
+	}
+}
+n = 1
+u = w(n)
+v = w(n)
+u(2)
+v(3)
+log("u=", u())
+log("v=", v())
+Assert("memoization issue v is 3", v() == 3)
+Assert("memoization issue u shouldn't be 3, should be 2", u() == 2)
+
 // Test boolean values in lambda functions and dereferencing
 // Basic lambda with boolean
 func g(x) {func f() {if x {1} else {2}}; f()}

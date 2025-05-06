@@ -741,6 +741,12 @@ func (s *State) applyFunction(name string, fn object.Object, args []object.Objec
 		log.Debugf("Cache miss for %s %v, not caching error result", function.CacheKey, args)
 		return res
 	}
+	// TODO: reduce scope of not caching to a function that captures state (#358)
+	if res.Type() == object.FUNC {
+		log.Debugf("Cache miss for %s %v, not caching function returned", function.CacheKey, args)
+		s.env.TriggerNoCache()
+		return res
+	}
 	s.cache.Set(function.CacheKey, args, res, output)
 	log.Debugf("Cache miss for %s %v", function.CacheKey, args)
 	return res
