@@ -398,6 +398,34 @@ func createImageFunctions() { //nolint:funlen,maintidx // this is a group of rel
 		return args[0]
 	}
 	MustCreate(imgFn)
+	imgFn.Name = "image.size"
+	imgFn.Help = "returns a map of image info (also checks for existence, returns nil if not found)"
+	imgFn.MinArgs = 1
+	imgFn.MaxArgs = 1
+	imgFn.ArgTypes = []object.Type{object.STRING}
+	imgFn.Callback = func(cdata any, _ string, args []object.Object) object.Object {
+		images := cdata.(ImageMap)
+		img, ok := images[args[0]]
+		if !ok {
+			return object.NULL
+		}
+		return object.MakeQuad(
+			object.String{Value: "height"}, object.Integer{Value: int64(img.H)},
+			object.String{Value: "width"}, object.Integer{Value: int64(img.W)},
+		)
+	}
+	MustCreate(imgFn)
+	imgFn.Name = "image.delete"
+	imgFn.Help = "deletes the named image"
+	imgFn.MinArgs = 1
+	imgFn.MaxArgs = 1
+	imgFn.ArgTypes = []object.Type{object.STRING}
+	imgFn.Callback = func(cdata any, _ string, args []object.Object) object.Object {
+		images := cdata.(ImageMap)
+		delete(images, args[0])
+		return object.NULL
+	}
+	MustCreate(imgFn)
 	imgFn.Name = "image.text_size"
 	imgFn.Help = "returns width, height and horizontal offset and descent for the given text " +
 		"with size and optional font variant (regular, bold, italic)"
