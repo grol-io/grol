@@ -66,3 +66,17 @@ Assert("boolean in lambda for loop false", i(false) == 2)
 func j(x) {func f() {for i = 1:x {i}}; f()}
 Assert("boolean in lambda range", j(12) == 11)
 Assert("boolean in lambda range false", j(13) == 12)
+
+
+// Image info/exists/delete tests
+
+img := image.new("somename", 101, 102)
+
+sz := image.size(img)
+log("image.size()=", sz)
+Assert("image.size w", sz.width == 101)
+Assert("image.size h", sz.height == 102)
+Assert("image.delete", image.delete(img) == nil)
+Assert("image.size of deleted image", image.size(img) == nil)
+// extra delete is fine
+Assert("image.delete", image.delete(img) == nil)
