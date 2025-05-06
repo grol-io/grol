@@ -76,7 +76,7 @@ func h(x) {func f() {func g() {if x {1} else {2}}; g()}; f()}
 log("h=",h(true))
 Assert("boolean in nested lambda", h(true) == 1)
 log("h=",h(false))
-// BUG TODO/FIXME: h(false) is getting memoized/cached when it shouldn't be
+// BUG TODO/FIXME: g() inside f() is getting memoized/cached when it shouldn't be
 // Assert("boolean in nested lambda false", h(false) == 2)
 
 // Lambda with boolean in for loop

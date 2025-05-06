@@ -743,10 +743,9 @@ func (s *State) applyFunction(name string, fn object.Object, args []object.Objec
 	}
 	// Don't cache if the result is a function that captures state
 	if res.Type() == object.FUNC {
-		if resFn, ok := res.(object.Function); ok && resFn.Lambda && resFn.Env != nil {
-			log.Debugf("Cache miss for %s %v, not caching lambda with captured state", function.CacheKey, args)
-			return res
-		}
+		log.Debugf("Cache miss for %s %v, not caching function returned", function.CacheKey, args)
+		s.env.TriggerNoCache()
+		return res
 	}
 	s.cache.Set(function.CacheKey, args, res, output)
 	log.Debugf("Cache miss for %s %v", function.CacheKey, args)
