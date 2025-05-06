@@ -399,7 +399,7 @@ func createImageFunctions() { //nolint:funlen,maintidx // this is a group of rel
 	}
 	MustCreate(imgFn)
 	imgFn.Name = "image.size"
-	imgFn.Help = "returns a map of image info (also checks for existance, returns nil if not found)"
+	imgFn.Help = "returns a map of image info (also checks for existence, returns nil if not found)"
 	imgFn.MinArgs = 1
 	imgFn.MaxArgs = 1
 	imgFn.ArgTypes = []object.Type{object.STRING}
