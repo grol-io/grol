@@ -53,3 +53,16 @@ func delTest() {
 Assert("delTest() should be true first time", delTest())
 // Without no cache this wasn't working
 Assert("delTest() should be false second time", delTest() == false)
+
+// - delete map entry inside function (i.e. reference to map)
+
+map:={1:1,2:2,3:3}
+
+func delTest2() {
+	del(map[1])
+}
+
+Assert("delTest2() should be true first time", delTest2())
+Assert("delTest2() should be false second time", delTest2() == false)
+Assert("entry is gone", map[1] == nil)
+Assert("entry is gone", len(map) == 2)
