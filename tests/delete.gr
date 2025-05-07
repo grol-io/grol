@@ -54,7 +54,7 @@ Assert("delTest() should be true first time", delTest())
 // Without no cache this wasn't working
 Assert("delTest() should be false second time", delTest() == false)
 
-// - delete map entry inside function (ie reference to map)
+// - delete map entry inside function (i.e. reference to map)
 
 map:={1:1,2:2,3:3}
 
