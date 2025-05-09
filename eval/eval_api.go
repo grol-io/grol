@@ -241,6 +241,9 @@ func (s *State) GetPipeValue() []byte {
 // are visible to the user immediately.
 func (s *State) FlushOutput() {
 	// Write buffered output to real output
+	if s.env.OutputBuffer == nil {
+		return
+	}
 	_, err := s.env.PrevOut.Write(s.env.OutputBuffer.Bytes())
 	if err != nil {
 		log.Warnf("flush output: %v", err)

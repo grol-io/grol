@@ -1,7 +1,6 @@
 package extensions
 
 import (
-	"context"
 	"errors"
 	"io"
 	"os"
@@ -19,40 +18,67 @@ func createIOFunctions() {
 	ioFn := object.Extension{
 		Name:     "read",
 		MinArgs:  0,
-		MaxArgs:  0,
-		Help:     "reads one line from stdin",
+		MaxArgs:  2,
+		Help:     "reads one line from stdin or just n characters if a number is provided, non blocking if boolean is true",
 		Category: object.CategoryIO,
-		Callback: func(env any, _ string, _ []object.Object) object.Object {
+		ArgTypes: []object.Type{object.INTEGER, object.BOOLEAN},
+		Callback: func(env any, _ string, args []object.Object) object.Object {
 			s := env.(*eval.State)
 			// Flush output buffer before reading
 			s.FlushOutput()
+			// reading one byte at a time is pretty inefficient, but necessary because of the terminal raw mode switch/switchback.
+			lineMode := true
+			from := io.Reader(os.Stdin)
+			to := io.Writer(os.Stdout)
 			if s.Term != nil {
-				s.Term.Suspend()
-				//nolint:fatcontext // we do need to update/reset the context and its cancel function.
-				s.Context, s.Cancel = context.WithCancel(context.Background()) // no timeout.
-				defer func() {
-					//nolint:fatcontext // we do need to update/reset the context and its cancel function.
-					s.Context, s.Cancel = s.Term.Resume(context.Background())
-				}()
+				from = s.Term.IntrReader
+				to = s.Term.Out
+			}
+			sz := 1
+			nonBlocking := false
+			if len(args) >= 1 {
+				lineMode = false
+				sz = int(args[0].(object.Integer).Value)
+				if sz <= 0 {
+					return s.Errorf("Invalid number of bytes to read: %d", sz)
+				}
+				if len(args) >= 2 {
+					nonBlocking = args[1].(object.Boolean).Value
+				}
+				if s.Term == nil && nonBlocking {
+					return s.Errorf("Non-blocking read is not supported on non-terminal input")
+				}
 			}
 			var linebuf strings.Builder
-			// reading one byte at a time is pretty inefficient, but necessary because of the terminal raw mode switch/switchback.
-			var b [1]byte
+			b := make([]byte, sz)
 			for {
-				n, err := os.Stdin.Read(b[:])
-				if n == 1 {
-					linebuf.WriteByte(b[0])
+				var n int
+				var err error
+				if nonBlocking {
+					n, err = s.Term.IntrReader.ReadNonBlocking(b)
+				} else {
+					n, err = from.Read(b)
+				}
+				if lineMode && n > 0 {
+					_, _ = to.Write(b[:n]) // echo
+					if b[n-1] == '\r' {
+						linebuf.Write(b[:n-1])
+						break
+					}
+				}
+				if n >= 1 {
+					linebuf.Write(b[:n])
 				}
 				if errors.Is(err, io.EOF) {
 					seenEOF = object.TRUE
 					break
 				}
-				if b[0] == '\n' {
-					break
-				}
 				if err != nil {
 					log.Errf("Error reading stdin: %v", err)
 					return s.Error(err)
+				}
+				if !lineMode {
+					break
 				}
 			}
 			return object.String{Value: linebuf.String()}
@@ -76,6 +102,24 @@ func createIOFunctions() {
 		s := env.(*eval.State)
 		s.FlushOutput()
 		return object.NULL
+	}
+	MustCreate(ioFn)
+	ioFn.Name = "term.size"
+	ioFn.Help = "Returns the size of the terminal"
+	ioFn.Category = object.CategoryIO
+	ioFn.Callback = func(env any, _ string, _ []object.Object) object.Object {
+		s := env.(*eval.State)
+		if s.Term == nil {
+			return object.NULL
+		}
+		err := s.Term.UpdateSize()
+		if err != nil {
+			return s.Error(err)
+		}
+		return object.MakeQuad(
+			object.String{Value: "width"}, object.Integer{Value: int64(s.Term.Width)},
+			object.String{Value: "height"}, object.Integer{Value: int64(s.Term.Height)},
+		)
 	}
 	MustCreate(ioFn)
 }
