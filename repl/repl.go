@@ -213,6 +213,21 @@ func extractHistoryNumber(input string) (int, bool) {
 	return 0, false
 }
 
+// Adds the interactive terminal to the state and make the input raw mode.
+// Allows for read(1) in raw mode or non-blocking reads.
+// Returns the terminal or nil if there was an error.
+// Caller must defer Close() on the returned terminal to restore the original terminal normal mode.
+func AddTerm(s *eval.State) *terminal.Terminal {
+	term, err := terminal.Open(context.Background())
+	if err != nil {
+		log.Errf("Error creating readline: %v", err)
+		return nil
+	}
+	s.Term = term
+	s.Out = term.Out
+	return term
+}
+
 func Interactive(options Options) int { //nolint:funlen // we do have quite a few cases.
 	options.NilAndErr = true
 	s := eval.NewState()
@@ -221,13 +236,11 @@ func Interactive(options Options) int { //nolint:funlen // we do have quite a fe
 		s.MaxDepth = options.MaxDepth
 	}
 	s.MaxValueLen = options.MaxValueLen // 0 is unlimited so ok to copy as is.
-	term, err := terminal.Open(context.Background())
-	if err != nil {
-		return log.FErrf("Error creating readline: %v", err)
+	term := AddTerm(s)
+	if term == nil {
+		return 1 // error already logged.
 	}
 	defer term.Close()
-	s.Term = term
-	s.Out = term.Out
 	autoComplete := NewCompletion()
 	tokInfo := token.Info()
 	for v := range tokInfo.Keywords {
