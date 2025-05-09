@@ -154,6 +154,11 @@ func Main() (retcode int) { //nolint:funlen // we do have quite a lot of flags a
 		// remaining := flag.Args()[1:] // actually let's also pass the name of the script as arg[0]
 		options.AutoLoad = false
 		args := s.SetArgs(flag.Args())
+		term := repl.AddTerm(s) // Add terminal so scripts like blackjack.gr can use raw input.
+		if term == nil {
+			return 1 // error already logged.
+		}
+		defer term.Close()
 		log.Infof("Running #! %s with args %s", script, args.Inspect())
 		return processOneFile(script, s, options, false)
 	}
