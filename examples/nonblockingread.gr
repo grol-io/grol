@@ -1,0 +1,22 @@
+
+// NonBlockingDemo demonstrates non-blocking read with a spinner.
+
+func NonBlockingDemo() {
+	println("q to quit")
+	i := 0
+	x := ""
+	r := ""
+	spinner := split("⣾⣷⣯⣟⡿⢿⣻⣽", "") // stolen from our own fortio.org/progressbar
+	for true {
+		x = read(1, true)
+		if x == "q" {
+			println()
+			break
+		}
+		r = r + x
+		sleep(0.1)
+		printf("%s %q   \r", spinner[i%len(spinner)], r)
+		i++
+	}
+	r
+}
