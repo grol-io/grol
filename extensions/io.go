@@ -90,6 +90,9 @@ func createIOFunctions() { //nolint:gocognit // we have multiple functions in he
 	ioFn.Name = "eof"
 	ioFn.Help = "returns true if a previous read hit the end of file for stdin"
 	ioFn.Category = object.CategoryIO
+	ioFn.ArgTypes = []object.Type{}
+	ioFn.MinArgs = 0
+	ioFn.MaxArgs = 0
 	ioFn.Callback = func(_ any, _ string, _ []object.Object) object.Object {
 		r := seenEOF
 		seenEOF = object.FALSE

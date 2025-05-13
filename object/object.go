@@ -1255,7 +1255,8 @@ type ShortExtFunction func(args []Object) Object
 type ExtFunction func(eval any, name string, args []Object) Object
 
 func (e Extension) Usage(out *strings.Builder) {
-	for i := 1; i <= e.MinArgs; i++ {
+	minArgs := e.MinArgs
+	for i := 1; i <= minArgs; i++ {
 		if i > 1 {
 			out.WriteString(", ")
 		}
@@ -1263,24 +1264,33 @@ func (e Extension) Usage(out *strings.Builder) {
 		out.WriteString(t)
 	}
 	prefix := ", "
+	suffix := ""
 	if e.MinArgs == 0 {
-		prefix = ""
+		if e.MaxArgs == 0 {
+			prefix = ""
+		} else {
+			out.WriteString("[")
+			out.WriteString(strings.ToLower(e.ArgTypes[0].String()))
+			minArgs = 1
+			suffix = "]"
+		}
 	}
 	switch {
 	case e.MaxArgs < 0:
 		out.WriteString(", ..")
-	case e.MaxArgs == e.MinArgs+1: // only 1 extra optional argument.
+	case e.MaxArgs == minArgs+1: // only 1 extra optional argument.
 		arg := "arg"
-		if len(e.ArgTypes) > e.MinArgs {
-			arg = strings.ToLower(e.ArgTypes[e.MinArgs].String())
+		if len(e.ArgTypes) > minArgs {
+			arg = strings.ToLower(e.ArgTypes[minArgs].String())
 		}
 		out.WriteString(prefix)
 		out.WriteString("[") // to indicate optional
 		out.WriteString(arg)
 		out.WriteString("]")
-	case e.MaxArgs > e.MinArgs:
-		out.WriteString(fmt.Sprintf("%sarg%d..arg%d", prefix, e.MinArgs+1, e.MaxArgs))
+	case e.MaxArgs > minArgs:
+		out.WriteString(fmt.Sprintf("%sarg%d..arg%d", prefix, minArgs+1, e.MaxArgs))
 	}
+	out.WriteString(suffix)
 }
 
 func (e Extension) Unwrap(_ bool) any { return e }
