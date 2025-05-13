@@ -435,7 +435,25 @@ center_text(img, w/2.0, h/2.0, "Purple", {
 
 center_text(img, w/2.0, h/2.0, "defaults")
 
-// Save to grol.png
-image.save(img)
+func kitty(img) {
+    data := image.png(img)
+    chunkSize := 4096 // Spec says 4k but... anything seems to work.
+    for len(data) > chunkSize {
+        chunk := data[0:chunkSize]
+        data = data[chunkSize:]
+        // q=1 no ok ack but keep errors in case there are.
+        // technically we don't need it seems to repeat the f=100, only a=T/m=1 after the first chunk
+        // but it's only a few bytes and cleaner like this.
+        print("\x1b_Ga=T,f=100,q=1,m=1;")
+        print(base64(chunk))
+        print("\x1b\\")
+    }
+    print("\x1b_Ga=T,f=100,q=1;" + base64(data) + "\x1b\\\n") // m=0 is default for last chunk.
+}
 
-println("Cards with suits saved to grol.png")
+kitty(img)
+
+// Save to grol.png
+// image.save(img)
+
+// println("Cards with suits saved to grol.png")
