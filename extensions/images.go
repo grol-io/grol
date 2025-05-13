@@ -234,15 +234,22 @@ func getVariant(args []object.Object, variantArgIndex int) string {
 	return "regular"
 }
 
+// NRGBAtoRGBA converts a non-premultiplied alpha color to a premultiplied alpha color.
+//
+// nolint:gosec // gosec not smart enough to see this stays in range.
 func NRGBAtoRGBA(c color.NRGBA) color.RGBA {
-	a := uint32(c.A)
-	if a == 0 {
+	if c.A == 0xFF {
+		return color.RGBA(c)
+	}
+	if c.A == 0 {
 		return color.RGBA{0, 0, 0, 0}
 	}
+	// Convert non-premultiplied alpha to premultiplied alpha
+	// RGBA = (R * A/255, G * A/255, B * A/255, A)
 	return color.RGBA{
-		R: uint8((uint32(c.R) * 0xffff / a) >> 8),
-		G: uint8((uint32(c.G) * 0xffff / a) >> 8),
-		B: uint8((uint32(c.B) * 0xffff / a) >> 8),
+		R: uint8(uint16(c.R) * uint16(c.A) / 255),
+		G: uint8(uint16(c.G) * uint16(c.A) / 255),
+		B: uint8(uint16(c.B) * uint16(c.A) / 255),
 		A: c.A,
 	}
 }
