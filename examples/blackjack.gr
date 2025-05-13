@@ -201,18 +201,18 @@ func playBlackjack() {
     for bjs.end_game { // multiple blackjacks in a row
       bjs.newTurn()
     }
-    inp := trim(read())
+    inp := read(1)
     if inp == "q" || eof() {
       printf("Bye\n")
       break
-    } else if inp == "h" || inp == "" { // newline but not eof
+    } else if inp == "h" || inp == "\n" || inp == "\r" { // newline but not eof
       printf("Player hit requested\n")
       bjs.hit()
     } else if inp == "s" {
       printf("Player stand requested\n")
       bjs.completeDealerTurn()
     } else {
-      printf("Invalid input: %s\n", inp)
+      printf("Invalid input: %q\n", inp)
     }
   }
 }

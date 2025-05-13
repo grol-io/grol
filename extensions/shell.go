@@ -68,6 +68,7 @@ func createShellFunctions() {
 	shellFn.Callback = func(env any, _ string, args []object.Object) object.Object {
 		s := env.(*eval.State)
 		if s.Term != nil {
+			log.Debugf("Suspending term")
 			s.Term.Suspend()
 		}
 		//nolint:fatcontext // we do need to update/reset the context and its cancel function.
@@ -81,7 +82,9 @@ func createShellFunctions() {
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 		err := cmd.Run()
+		log.Debugf("cmd.Run() done - err: %v", err)
 		if s.Term != nil {
+			log.Debugf("Resuming term")
 			s.Context, s.Cancel = s.Term.Resume(context.Background())
 		}
 		if err != nil {
