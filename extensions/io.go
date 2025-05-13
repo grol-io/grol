@@ -13,7 +13,7 @@ import (
 
 var seenEOF = object.FALSE
 
-func createIOFunctions() {
+func createIOFunctions() { //nolint:gocognit // we have multiple functions in here.
 	// This can hang so not to be used in wasm/discord/...
 	ioFn := object.Extension{
 		Name:     "read",
