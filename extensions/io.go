@@ -51,7 +51,10 @@ func createIOFunctions() { //nolint:gocognit // we have multiple functions in he
 			}
 			var linebuf strings.Builder
 			b := make([]byte, sz)
-			for {
+			for done := false; !done; {
+				if !lineMode {
+					done = true // single read when not wanting a full line.
+				}
 				var n int
 				var err error
 				if nonBlocking {
@@ -60,10 +63,11 @@ func createIOFunctions() { //nolint:gocognit // we have multiple functions in he
 					n, err = from.Read(b)
 				}
 				if lineMode && n > 0 {
-					_, _ = to.Write(b[:n]) // echo
-					if b[n-1] == '\r' {
-						linebuf.Write(b[:n-1])
-						break
+					// In raw terminal mode, the read() call will always return \r when enter is pressed, yet just in case we also check for \n.
+					_, _ = to.Write(b[:n]) // echo including the \r that Out will convert to \r\n
+					if b[n-1] == '\r' || b[n-1] == '\n' {
+						n-- // exclude the \r or \n itself.
+						done = true
 					}
 				}
 				if n >= 1 {
@@ -76,9 +80,6 @@ func createIOFunctions() { //nolint:gocognit // we have multiple functions in he
 				if err != nil {
 					log.Errf("Error reading stdin: %v", err)
 					return s.Error(err)
-				}
-				if !lineMode {
-					break
 				}
 			}
 			return object.String{Value: linebuf.String()}
