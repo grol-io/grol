@@ -236,7 +236,7 @@ func getVariant(args []object.Object, variantArgIndex int) string {
 
 // NRGBAtoRGBA converts a non-premultiplied alpha color to a premultiplied alpha color.
 //
-// nolint:gosec // gosec not smart enough to see this stays in range.
+//nolint:gosec // gosec not smart enough to see this stays in range.
 func NRGBAtoRGBA(c color.NRGBA) color.RGBA {
 	if c.A == 0xFF {
 		return color.RGBA(c)
