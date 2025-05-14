@@ -21,7 +21,7 @@ import (
 )
 
 type GrolImage struct {
-	Image *image.NRGBA
+	Image *image.RGBA
 	Vect  *vector.Rasterizer
 	W, H  int
 }
@@ -234,6 +234,26 @@ func getVariant(args []object.Object, variantArgIndex int) string {
 	return "regular"
 }
 
+// NRGBAtoRGBA converts a non-premultiplied alpha color to a premultiplied alpha color.
+//
+//nolint:gosec // gosec not smart enough to see this stays in range.
+func NRGBAtoRGBA(c color.NRGBA) color.RGBA {
+	if c.A == 0xFF {
+		return color.RGBA(c)
+	}
+	if c.A == 0 {
+		return color.RGBA{0, 0, 0, 0}
+	}
+	// Convert non-premultiplied alpha to premultiplied alpha
+	// RGBA = (R * A/255, G * A/255, B * A/255, A)
+	return color.RGBA{
+		R: uint8(uint16(c.R) * uint16(c.A) / 255),
+		G: uint8(uint16(c.G) * uint16(c.A) / 255),
+		B: uint8(uint16(c.B) * uint16(c.A) / 255),
+		A: c.A,
+	}
+}
+
 func createImageFunctions() { //nolint:funlen,maintidx // this is a group of related functions.
 	// All the functions consistently use args[0] as the image name/reference into the ClientData map.
 	cdata := make(ImageMap)
@@ -254,7 +274,7 @@ func createImageFunctions() { //nolint:funlen,maintidx // this is a group of rel
 			if x < 0 || y < 0 {
 				return object.Errorf("image sizes must be positive")
 			}
-			img := image.NewNRGBA(image.Rect(0, 0, x, y))
+			img := image.NewRGBA(image.Rect(0, 0, x, y))
 			name := args[0]
 			images[name] = GrolImage{Image: img, Vect: vector.NewRasterizer(x, y), W: x, H: y}
 			return name
@@ -292,7 +312,7 @@ func createImageFunctions() { //nolint:funlen,maintidx // this is a group of rel
 		if oerr != nil {
 			return *oerr
 		}
-		img.Image.SetNRGBA(x, y, color)
+		img.Image.SetRGBA(x, y, NRGBAtoRGBA(color))
 		return args[0]
 	}
 	MustCreate(imgFn)
@@ -618,16 +638,16 @@ func createVectorImageFunctions(cdata ImageMap) { //nolint:funlen // this is a g
 	MustCreate(imgFn)
 }
 
-func mergeAdd(img1, img2 *image.NRGBA) {
+func mergeAdd(img1, img2 *image.RGBA) {
 	//nolint:gosec // gosec not smart enough to see the range checks with min - https://github.com/securego/gosec/issues/1212
 	for y := range img1.Bounds().Dy() {
 		for x := range img1.Bounds().Dx() {
-			p1 := img1.NRGBAAt(x, y)
+			p1 := img1.RGBAAt(x, y)
 			if p1.R == 0 && p1.G == 0 && p1.B == 0 { // black is no change
-				img1.SetNRGBA(x, y, img2.NRGBAAt(x, y))
+				img1.SetRGBA(x, y, img2.RGBAAt(x, y))
 				continue
 			}
-			p2 := img2.NRGBAAt(x, y)
+			p2 := img2.RGBAAt(x, y)
 			if p2.R == 0 && p2.G == 0 && p2.B == 0 { // black is no change
 				continue
 			}
@@ -636,7 +656,7 @@ func mergeAdd(img1, img2 *image.NRGBA) {
 			p1.B = uint8(min(255, uint16(p1.B)+uint16(p2.B)))
 			// p1.A = uint8(min(255, uint16(p1.A)+uint16(p2.A))) // summing transparency yield non transparent quickly
 			p1.A = max(p1.A, p2.A)
-			img1.SetNRGBA(x, y, p1)
+			img1.SetRGBA(x, y, p1)
 		}
 	}
 }
