@@ -435,6 +435,7 @@ center_text(img, w/2.0, h/2.0, "Purple", {
 
 center_text(img, w/2.0, h/2.0, "defaults")
 
+// https://sw.kovidgoyal.net/kitty/graphics-protocol/
 func kitty(img) {
     data := image.png(img)
     chunkSize := 4096 // Spec says 4k but... anything seems to work.
@@ -453,7 +454,7 @@ func kitty(img) {
 
 kitty(img)
 
-// Save to grol.png
-// image.save(img)
+// Also save to grol.png for comparison and ghostty rendering issue.
+image.save(img)
 
-// println("Cards with suits saved to grol.png")
+println("Cards with suits saved to grol.png (and displayed above for kitty compatible terminals)")
