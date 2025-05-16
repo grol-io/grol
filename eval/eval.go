@@ -33,10 +33,12 @@ func (s *State) assignNested(node ast.Node, value object.Object) (object.Object,
 		left := n.Left
 		// Evaluate the left side (could be another IndexExpression or Identifier)
 		var base object.Object
+		var identifier string
 		if id, ok := left.(*ast.Identifier); ok {
-			baseObj, ok := s.env.Get(id.Literal())
+			identifier = id.Literal()
+			baseObj, ok := s.env.Get(identifier)
 			if !ok {
-				err := s.NewError("identifier not found: " + id.Literal())
+				err := s.NewError("identifier not found: " + identifier)
 				return err, &err
 			}
 			base = object.Value(baseObj)
@@ -59,7 +61,7 @@ func (s *State) assignNested(node ast.Node, value object.Object) (object.Object,
 			}
 		}
 		// Set the value at this level
-		newBase := s.evalIndexAssignmentValue(base, index, value)
+		newBase := s.evalIndexAssignmentValue(base, index, value, identifier)
 		if newBase.Type() == object.ERROR {
 			err := newBase.(object.Error)
 			return newBase, &err
@@ -106,7 +108,7 @@ func (s *State) evalAssignment(right object.Object, node *ast.InfixExpression) o
 	}
 }
 
-func (s *State) evalIndexAssignmentValue(base, index, value object.Object) object.Object {
+func (s *State) evalIndexAssignmentValue(base, index, value object.Object, identifier string) object.Object {
 	switch base.Type() {
 	case object.ARRAY:
 		idx, ok := Int64Value(index)
@@ -126,7 +128,10 @@ func (s *State) evalIndexAssignmentValue(base, index, value object.Object) objec
 		m := base.(object.Map)
 		return m.Set(index, value)
 	default:
-		return s.Errorf("index assignment to object of unexpected type %s", base.Type().String())
+		if identifier != "" {
+			return s.Errorf("index assignment to %s of unexpected type %s (%s)", identifier, base.Type().String(), base.Inspect())
+		}
+		return s.Errorf("index assignment to object of unexpected type %s (%s)", base.Type().String(), base.Inspect())
 	}
 }
 
