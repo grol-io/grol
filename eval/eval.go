@@ -17,7 +17,7 @@ import (
 // See todo in token about publishing all of them.
 var unquoteToken = token.ByType(token.UNQUOTE)
 
-// Helper to recursively assign into nested structures and propagate the change up to the top-level identifier
+// Helper to recursively assign into nested structures and propagate the change up to the top-level identifier.
 func (s *State) assignNested(node ast.Node, value object.Object) (object.Object, *object.Error) {
 	switch n := node.(type) {
 	case *ast.Identifier:
