@@ -677,6 +677,15 @@ func TestMapIndexExpressions(t *testing.T) {
 			`m={"foo": 37, "bar":42}; m.bar=7; m["bar"]`,
 			7,
 		},
+		// New test cases for nested assignments
+		{
+			`m={"a":3,"b":{"x":42}}; m.b.x=7; m.b.x + m.a`,
+			10,
+		},
+		{
+			`m={"a":false,"b":{"x":42,"y":{"z":1}}}; m.b.y.z=2; m.b.y.z`,
+			2,
+		},
 	}
 
 	for _, tt := range tests {
@@ -1061,7 +1070,7 @@ func TestArrayLeftNoPanic(t *testing.T) {
 	if err == nil {
 		t.Errorf("should have errored: %v", res)
 	}
-	expected := "<err: assignment to non index [] expression *ast.ArrayLiteral []>"
+	expected := "<err: assignment to non identifier: LBRACKET:\"[\">"
 	if res.Inspect() != expected {
 		t.Errorf("wrong result, got %q", res.Inspect())
 	}
