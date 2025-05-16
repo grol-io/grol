@@ -17,26 +17,76 @@ import (
 // See todo in token about publishing all of them.
 var unquoteToken = token.ByType(token.UNQUOTE)
 
+// Helper to recursively assign into nested structures and propagate the change up to the top-level identifier.
+func (s *State) assignNested(node ast.Node, value object.Object) (object.Object, *object.Error) {
+	switch n := node.(type) {
+	case *ast.Identifier:
+		// Top-level variable, update env
+		oerr := s.env.Set(n.Literal(), value)
+		if oerr.Type() == object.ERROR {
+			err := oerr.(object.Error)
+			return oerr, &err
+		}
+		return value, nil
+	case *ast.IndexExpression:
+		// Recursively assign into the left, then update this level
+		left := n.Left
+		// Evaluate the left side (could be another IndexExpression or Identifier)
+		var base object.Object
+		var identifier string
+		if id, ok := left.(*ast.Identifier); ok {
+			identifier = id.Literal()
+			baseObj, ok := s.env.Get(identifier)
+			if !ok {
+				err := s.NewError("identifier not found: " + identifier)
+				return err, &err
+			}
+			base = object.Value(baseObj)
+		} else {
+			base = s.Eval(left)
+			if base.Type() == object.ERROR {
+				err := base.(object.Error)
+				return base, &err
+			}
+		}
+		// Compute the index
+		var index object.Object
+		if n.Token.Type() == token.DOT {
+			index = object.String{Value: n.Index.Value().Literal()}
+		} else {
+			index = s.Eval(n.Index)
+			if index.Type() == object.ERROR {
+				err := index.(object.Error)
+				return index, &err
+			}
+		}
+		// Set the value at this level
+		newBase := s.evalIndexAssignmentValue(base, index, value, identifier)
+		if newBase.Type() == object.ERROR {
+			err := newBase.(object.Error)
+			return newBase, &err
+		}
+		// Recursively assign the updated base to the parent
+		return s.assignNested(left, newBase)
+	default:
+		err := s.NewError("assignment to non identifier: " + node.Value().DebugString())
+		return err, &err
+	}
+}
+
 func (s *State) evalAssignment(right object.Object, node *ast.InfixExpression) object.Object {
 	if rt := right.Type(); rt == object.ERROR {
 		log.Warnf("Not assigning %q", right.Inspect())
 		return right
 	}
 	switch node.Left.Value().Type() {
-	case token.DOT:
-		idxE, ok := node.Left.(*ast.IndexExpression)
-		if !ok {
-			return s.Errorf("assignment to non index . expression %T %s", node.Left, ast.DebugString(node.Left))
+	case token.DOT, token.LBRACKET:
+		// Use the recursive assignNested helper
+		res, oerr := s.assignNested(node.Left, right)
+		if oerr != nil {
+			return res
 		}
-		index := object.String{Value: idxE.Index.Value().Literal()}
-		return s.evalIndexAssigment(idxE.Left, index, right)
-	case token.LBRACKET:
-		idxE, ok := node.Left.(*ast.IndexExpression)
-		if !ok {
-			return s.Errorf("assignment to non index [] expression %T %v", node.Left, ast.DebugString(node.Left))
-		}
-		index := s.Eval(idxE.Index)
-		return s.evalIndexAssigment(idxE.Left, index, right)
+		return right
 	case token.IDENT:
 		id := node.Left.(*ast.Identifier)
 		name := id.Literal()
@@ -58,46 +108,30 @@ func (s *State) evalAssignment(right object.Object, node *ast.InfixExpression) o
 	}
 }
 
-func (s *State) evalIndexAssigment(which ast.Node, index, value object.Object) object.Object {
-	if which.Value().Type() != token.IDENT {
-		return s.NewError("index assignment to non identifier: " + which.Value().DebugString())
-	}
-	id, _ := which.(*ast.Identifier)
-	val, ok := s.env.Get(id.Literal())
-	if !ok {
-		return s.NewError("identifier not found: " + id.Literal())
-	}
-	val = object.Value(val) // deref.
-	switch val.Type() {
+func (s *State) evalIndexAssignmentValue(base, index, value object.Object, identifier string) object.Object {
+	switch base.Type() {
 	case object.ARRAY:
 		idx, ok := Int64Value(index)
 		if !ok {
 			return s.NewError("index assignment to array with non integer index: " + index.Inspect())
 		}
 		if idx < 0 {
-			idx = int64(object.Len(val)) + idx
+			idx = int64(object.Len(base)) + idx
 		}
-		if idx < 0 || idx >= int64(object.Len(val)) {
+		if idx < 0 || idx >= int64(object.Len(base)) {
 			return s.NewError("index assignment out of bounds: " + index.Inspect())
 		}
-		elements := object.Elements(val)
+		elements := object.Elements(base)
 		elements[idx] = value
-		oerr := s.env.Set(id.Literal(), object.NewArray(elements))
-		if oerr.Type() == object.ERROR {
-			return oerr
-		}
-		return value
+		return object.NewArray(elements)
 	case object.MAP:
-		m := val.(object.Map)
-		m = m.Set(index, value)
-		oerr := s.env.Set(id.Literal(), m)
-		if oerr.Type() == object.ERROR {
-			return oerr
-		}
-		return value
+		m := base.(object.Map)
+		return m.Set(index, value)
 	default:
-		return s.Errorf("index assignment to %s of unexpected type %s",
-			id.Literal(), val.Type().String())
+		if identifier != "" {
+			return s.Errorf("index assignment to %s of unexpected type %s (%s)", identifier, base.Type().String(), base.Inspect())
+		}
+		return s.Errorf("index assignment to object of unexpected type %s (%s)", base.Type().String(), base.Inspect())
 	}
 }
 
