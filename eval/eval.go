@@ -59,7 +59,7 @@ func (s *State) assignNested(node ast.Node, value object.Object) (object.Object,
 			}
 		}
 		// Set the value at this level
-		newBase := s.evalIndexAssigmentValue(base, index, value)
+		newBase := s.evalIndexAssignmentValue(base, index, value)
 		if newBase.Type() == object.ERROR {
 			err := newBase.(object.Error)
 			return newBase, &err
@@ -106,7 +106,7 @@ func (s *State) evalAssignment(right object.Object, node *ast.InfixExpression) o
 	}
 }
 
-func (s *State) evalIndexAssigmentValue(base, index, value object.Object) object.Object {
+func (s *State) evalIndexAssignmentValue(base, index, value object.Object) object.Object {
 	switch base.Type() {
 	case object.ARRAY:
 		idx, ok := Int64Value(index)
