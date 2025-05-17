@@ -117,7 +117,7 @@
     const debounceRun = debounce(run)
     document.addEventListener('DOMContentLoaded', (event) => {
         document.getElementById('input').addEventListener('keydown', function (e) {
-            if (e.key === 'Enter' && !isRunning) {
+            if (!isRunning && e.key === 'Enter' && (e.shiftKey || e.altKey || e.ctrlKey || e.metaKey)) {
                 debounceRun();
             }
         });
@@ -142,7 +142,7 @@ a=[fact(5), "abc", sqrt(2)] // heterogeneous array, math functions
 m={"str key": a, PI: "pi", 42: "str val", 1e3: "a lot"}</textarea>
 </div>
 <div>
-    Hit enter or click <button onClick="debounceRun()" id="runButton" disabled>Run</button> (will also format the code,
+    Hit ctrl-enter or click <button onClick="debounceRun()" id="runButton" disabled>Run</button> (will also format the code,
     also
     try <input type="checkbox" id="compact">compact)
     <button id="addParamButton">Share</button>
