@@ -1,5 +1,7 @@
 all: generate lint check test run
 
+# Use that tags to test the non select cases (wasi, windows,...): test_alt_timeoutreader
+# GO_BUILD_TAGS:=no_net,no_pprof,test_alt_timeoutreader
 GO_BUILD_TAGS:=no_net,no_pprof
 
 #GROL_FLAGS:=-no-register
