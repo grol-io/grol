@@ -236,11 +236,6 @@ func Interactive(options Options) int { //nolint:funlen // we do have quite a fe
 		s.MaxDepth = options.MaxDepth
 	}
 	s.MaxValueLen = options.MaxValueLen // 0 is unlimited so ok to copy as is.
-	term := AddTerm(s)
-	if term == nil {
-		return 1 // error already logged.
-	}
-	defer term.Close()
 	autoComplete := NewCompletion()
 	tokInfo := token.Info()
 	for v := range tokInfo.Keywords {
@@ -255,6 +250,14 @@ func Interactive(options Options) int { //nolint:funlen // we do have quite a fe
 	autoComplete.Trie.Insert("history") // add this one as it's not in the language but handled here.
 	// Initial ids and functions.
 	s.RegisterTrie(autoComplete.Trie)
+	// For wasm somehow we need to load the .gr before starting the terminal because if it takes a while we get a weird
+	// hanging before the prompt is shown.
+	_ = AutoLoad(s, options) // errors already logged
+	term := AddTerm(s)
+	if term == nil {
+		return 1 // error already logged.
+	}
+	defer term.Close()
 	term.SetAutoCompleteCallback(autoComplete.AutoComplete())
 	term.SetPrompt(PROMPT)
 	term.SetAutoHistory(false)
@@ -263,7 +266,6 @@ func Interactive(options Options) int { //nolint:funlen // we do have quite a fe
 	if options.HistoryFile != "" {
 		_ = term.SetHistoryFile(options.HistoryFile)
 	}
-	_ = AutoLoad(s, options) // errors already logged
 	if options.PreInput != nil {
 		options.PreInput(s)
 	}

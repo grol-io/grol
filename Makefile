@@ -66,6 +66,13 @@ wasm-release: Makefile *.go */*.go $(GEN) wasm/wasm_exec.js wasm/wasm_exec.html
 	mv "$(shell go env GOPATH)/bin/js_wasm/wasm" wasm/grol.wasm
 	ls -lh wasm/*.wasm
 
+wasi: Makefile *.go */*.go $(GEN)
+	GOOS=wasip1 GOARCH=wasm $(WASM_GO) build -o wasm/grol.wasi -trimpath -ldflags="-w -s" -tags "$(GO_BUILD_TAGS)" .
+	ls -lh wasm/grol.*
+
+wasi-run: wasi
+	wasmtime --env LOGGER_LOG_FILE_AND_LINE=true --env LOGGER_IGNORE_CLI_MODE=true --env HOME=/ --dir .::/ wasm/grol.wasi -loglevel debug
+
 install:
 	CGO_ENABLED=0 go install -trimpath -ldflags="-w -s" -tags "$(GO_BUILD_TAGS)" grol.io/grol@$(GIT_TAG)
 	ls -lh "$(shell go env GOPATH)/bin/grol"
@@ -73,7 +80,8 @@ install:
 
 wasm/wasm_exec.js: Makefile
 #	cp "$(shell tinygo env TINYGOROOT)/targets/wasm_exec.js" ./wasm/
-	cp "$(shell $(WASM_GO) env GOROOT)/misc/wasm/wasm_exec.js" ./wasm/
+#	cp "$(shell $(WASM_GO) env GOROOT)/misc/wasm/wasm_exec.js" ./wasm/
+	cp "$(shell $(WASM_GO) env GOROOT)/lib/wasm/wasm_exec.js" ./wasm/
 
 wasm/wasm_exec.html:
 	cp "$(shell $(WASM_GO) env GOROOT)/misc/wasm/wasm_exec.html" ./wasm/
@@ -117,3 +125,4 @@ lint: .golangci.yml
 	curl -fsS -o .golangci.yml https://raw.githubusercontent.com/fortio/workflows/main/golangci.yml
 
 .PHONY: all lint generate test clean run build wasm tinygo wasm-release tiny_test tinygo-tests check install unit-tests examples grol-tests
+.PHONY: wasi
