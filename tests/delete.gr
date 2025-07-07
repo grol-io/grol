@@ -66,3 +66,17 @@ Assert("delTest2() should be true first time", delTest2())
 Assert("delTest2() should be false second time", delTest2() == false)
 Assert("entry is gone", map[1] == nil)
 Assert("entry is gone", len(map) == 2)
+
+GOLDENRATIO = 1.61803398875
+func delConstTest() {
+	del(GOLDENRATIO)
+}
+IsErr("del can't delete a constant", delConstTest(), "delete constant")
+IsErr("del can't delete a constant", del(GOLDENRATIO), "delete constant")
+Assert("constant still exists",GOLDENRATIO != nil)
+
+map[PI] = PI
+map[GOLDENRATIO] = PI
+Assert("still can delete map key if constant",del(map[PI])==true)
+Assert("still can delete map key if constant",del(map[GOLDENRATIO])==true)
+Assert("still can delete map key if constant",len(map)==2)
