@@ -463,6 +463,9 @@ func (s *State) evalDelete(node ast.Node) object.Object {
 		if name == "" {
 			return s.NewError("delete empty identifier")
 		}
+		if object.Constant(name) {
+			return s.NewError("delete constant")
+		}
 		return s.env.Delete(name)
 	case token.DOT:
 		idxE := node.(*ast.IndexExpression)
