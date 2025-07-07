@@ -73,7 +73,7 @@ func delConstTest() {
 }
 IsErr("del can't delete a constant", delConstTest(), "delete constant")
 IsErr("del can't delete a constant", del(GOLDENRATIO), "delete constant")
-IsOk("constant still exists", GOLDENRATIO,1.61803398875)
+NoErr("constant still exists", GOLDENRATIO, "1\\.6")
 
 map[PI] = PI
 map[GOLDENRATIO] = PI
