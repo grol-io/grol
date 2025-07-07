@@ -460,8 +460,8 @@ func (s *State) evalDelete(node ast.Node) object.Object {
 	switch node.Value().Type() {
 	case token.IDENT:
 		name := node.Value().Literal()
-		if name == "" {
-			return s.NewError("delete empty identifier")
+		if object.Constant(name) {
+			return s.NewError("delete constant")
 		}
 		return s.env.Delete(name)
 	case token.DOT:
