@@ -1,6 +1,21 @@
 <a id="grol"></a>
 <img alt="GROL" src="https://grol.io/grol_mascot.png" width="33%"/>
 
+
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/grol-io/grol)
+[![Go Report Card](https://goreportcard.com/badge/grol.io/grol)](https://goreportcard.com/report/grol.io/grol)
+[![GoDoc](https://godoc.org/grol.io/grol?status.svg)](https://pkg.go.dev/grol.io/grol)
+[![Maintainability](https://api.codeclimate.com/v1/badges/bf83c496d49b169cd744/maintainability)](https://codeclimate.com/github/grol-io/grol/maintainability)
+[![CI Checks](https://github.com/grol-io/grol/actions/workflows/include.yml/badge.svg)](https://github.com/grol-io/grol/actions/workflows/include.yml)
+
+## About
+
+Go Repl Open Language is a small extensible interpreted (for now) language implemented in Go (golang).
+
+Website: [grol.io](https://grol.io/)
+
+Tour: [grol.io/tour](https://grol.io/tour)
+
 ## History
 
 Initially created by following along https://interpreterbook.com and making many changes/simplification/cleanups. And pretty much a complete rewrite in 0.25 with interning, everything a node/expression (flatter ast), etc... (kept the tests though).
