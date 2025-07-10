@@ -6,7 +6,7 @@
 [![Go Report Card](https://goreportcard.com/badge/grol.io/grol)](https://goreportcard.com/report/grol.io/grol)
 [![GoDoc](https://godoc.org/grol.io/grol?status.svg)](https://pkg.go.dev/grol.io/grol)
 [![Maintainability](https://api.codeclimate.com/v1/badges/bf83c496d49b169cd744/maintainability)](https://codeclimate.com/github/grol-io/grol/maintainability)
-[![CI Checks](https://github.com/grol-io/grol/actions/workflows/include.yml/badge.svg)](https://github.com/grol-io/grol/actions/workflows/include.yml)
+[![CI Checks](https://github.com/grol-io/grol/actions/workflows/gochecks.yml/badge.svg)](https://github.com/grol-io/grol/actions/workflows/gochecks.yml)
 
 ## About
 
