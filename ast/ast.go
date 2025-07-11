@@ -34,6 +34,7 @@ const (
 
 var Precedences = map[token.Type]Priority{
 	token.DEFINE:     ASSIGN,
+	token.SUMASSIGN: ASSIGN,
 	token.ASSIGN:     ASSIGN,
 	token.OR:         OR,
 	token.AND:        AND,

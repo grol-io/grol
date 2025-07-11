@@ -90,6 +90,13 @@ func (s *State) evalAssignment(right object.Object, node *ast.InfixExpression) o
 	case token.IDENT:
 		id := node.Left.(*ast.Identifier)
 		name := id.Literal()
+		
+		if node.Type() == token.SUMASSIGN {
+			value := s.evalIdentifier(id)
+			added := s.evalInfixExpression(token.PLUS,value,right)
+			return s.env.CreateOrSet(name,added,false)
+		}
+		
 		log.LogVf("eval assign %#v to %s", right, name)
 		// Propagate possible error (constant, extension names setting).
 		// Distinguish between define and assign, define (:=) forces a new variable.
@@ -258,7 +265,7 @@ func (s *State) evalInternal(node any) object.Object { //nolint:funlen,gocognit,
 			log.LogVf("eval infix %s", node.DebugString())
 		}
 		// Eval and not evalInternal because we need to unwrap "return".
-		if node.Token.Type() == token.ASSIGN || node.Token.Type() == token.DEFINE {
+		if node.Token.Type() == token.ASSIGN || node.Token.Type() == token.DEFINE || node.Token.Type() == token.SUMASSIGN {
 			return s.evalAssignment(s.Eval(node.Right), node)
 		}
 		// Humans expect left to right evaluations.
