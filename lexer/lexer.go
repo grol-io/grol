@@ -77,11 +77,11 @@ func (l *Lexer) NextToken() *token.Token {
 		}
 		return token.ConstantTokenChar(ch)
 	case '+', '-':
-		if nextChar == ch{
+		if nextChar == ch {
 			l.pos++
 			return token.ConstantTokenChar2(ch, nextChar) // increment/decrement
 		}
-		if nextChar == '=' && ch == '+'{ // sumassign
+		if nextChar == '=' && ch == '+' { // sumassign
 			l.pos++
 			return token.ConstantTokenChar2(ch, nextChar)
 		}
