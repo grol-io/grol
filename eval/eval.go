@@ -92,18 +92,7 @@ func (s *State) evalAssignment(right object.Object, node *ast.InfixExpression) o
 		name := id.Literal()
 		nodeType := node.Type()
 		if nodeType > token.DEFINE && nodeType < token.FUNC {
-			opToEval := token.PLUS
-			switch nodeType {
-			case token.SUBASSIGN:
-				opToEval = token.MINUS
-			case token.SUMASSIGN:
-				opToEval = token.PLUS
-			case token.DIVASSIGN:
-				opToEval = token.SLASH
-			case token.PRODASSIGN:
-				opToEval = token.ASTERISK
-			}
-			opToEval = nodeType - 37
+			opToEval := nodeType - 37
 			value := s.evalIdentifier(id)
 			added := s.evalInfixExpression(opToEval, value, right)
 			return s.env.CreateOrSet(name, added, false)
