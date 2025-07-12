@@ -90,17 +90,28 @@ func (s *State) evalAssignment(right object.Object, node *ast.InfixExpression) o
 	case token.IDENT:
 		id := node.Left.(*ast.Identifier)
 		name := id.Literal()
-		
-		if node.Type() == token.SUMASSIGN {
+		nodeType := node.Type()
+		if nodeType > token.DEFINE && nodeType < token.FUNC {
+			opToEval := token.PLUS
+			switch nodeType {
+			case token.SUBASSIGN:
+				opToEval = token.MINUS
+			case token.SUMASSIGN:
+				opToEval = token.PLUS
+			case token.DIVASSIGN:
+				opToEval = token.SLASH
+			case token.PRODASSIGN:
+				opToEval = token.ASTERISK
+			}
+			opToEval = nodeType - 37
 			value := s.evalIdentifier(id)
-			added := s.evalInfixExpression(token.PLUS,value,right)
-			return s.env.CreateOrSet(name,added,false)
+			added := s.evalInfixExpression(opToEval, value, right)
+			return s.env.CreateOrSet(name, added, false)
 		}
-		
 		log.LogVf("eval assign %#v to %s", right, name)
 		// Propagate possible error (constant, extension names setting).
 		// Distinguish between define and assign, define (:=) forces a new variable.
-		return s.env.CreateOrSet(name, right, node.Type() == token.DEFINE)
+		return s.env.CreateOrSet(name, right, nodeType == token.DEFINE)
 	case token.REGISTER:
 		reg := node.Left.(*object.Register)
 		log.LogVf("eval assign %#v to register %d", right, reg.Idx)
@@ -265,7 +276,7 @@ func (s *State) evalInternal(node any) object.Object { //nolint:funlen,gocognit,
 			log.LogVf("eval infix %s", node.DebugString())
 		}
 		// Eval and not evalInternal because we need to unwrap "return".
-		if node.Token.Type() == token.ASSIGN || node.Token.Type() == token.DEFINE || node.Token.Type() == token.SUMASSIGN {
+		if node.Token.Type() == token.ASSIGN || (node.Token.Type() >= token.DEFINE && node.Token.Type() < token.FUNC) {
 			return s.evalAssignment(s.Eval(node.Right), node)
 		}
 		// Humans expect left to right evaluations.

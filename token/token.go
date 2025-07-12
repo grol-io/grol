@@ -117,7 +117,13 @@ const (
 	RIGHTSHIFT
 	LAMBDA // => lambda short cut: `a,b => a+b` alias for `func(a,b) {a+b}`
 	DEFINE // := (force create new variable instead of possible ref to upper scope)
+
 	SUMASSIGN
+	SUBASSIGN
+	_hold
+	PRODASSIGN
+	DIVASSIGN
+
 	endMultiCharTokens
 
 	startIdentityTokens // Tokens whose literal is the lowercase of the Type.String()
@@ -297,6 +303,9 @@ func Init() {
 	assocC2(LEFTSHIFT, "<<")
 	assocC2(RIGHTSHIFT, ">>")
 	assocC2(SUMASSIGN, "+=")
+	assocC2(SUBASSIGN, "-=")
+	assocC2(DIVASSIGN, "/=")
+	assocC2(PRODASSIGN, "*=")
 	assocC2(LAMBDA, "=>")
 	assocC2(DEFINE, ":=")
 }
