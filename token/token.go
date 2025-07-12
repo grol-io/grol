@@ -220,7 +220,7 @@ func assocC2(t Type, str string) {
 	info.Tokens.Add(str)
 }
 
-func Init() {
+func Init() { //nolint:funlen
 	ResetInterning()
 	info.Keywords = sets.New[string]()
 	info.Builtins = sets.New[string]()
