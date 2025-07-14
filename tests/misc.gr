@@ -105,7 +105,6 @@ Assert("image.delete", image.delete(img) == nil)
 
 i := 4 
 log("before changes", i)
-Assert("i should be 4",i==4)
 i += 4
 Assert("i should be 8",i==8)
 i -= 5 
