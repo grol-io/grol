@@ -91,7 +91,7 @@ func (s *State) evalAssignment(right object.Object, node *ast.InfixExpression) o
 		id := node.Left.(*ast.Identifier)
 		name := id.Literal()
 		nodeType := node.Type()
-		if isCompound(*node) {
+		if isCompound(nodeType) {
 			opToEval := nodeType - (token.SUMASSIGN - token.PLUS)
 			value := s.evalIdentifier(id)
 			added := s.evalInfixExpression(opToEval, value, right)
@@ -265,7 +265,7 @@ func (s *State) evalInternal(node any) object.Object { //nolint:funlen,gocognit,
 			log.LogVf("eval infix %s", node.DebugString())
 		}
 		// Eval and not evalInternal because we need to unwrap "return".
-		if isAssignment(*node) {
+		if isAssignment(node.Type()) {
 			return s.evalAssignment(s.Eval(node.Right), node)
 		}
 		// Humans expect left to right evaluations.
@@ -1428,10 +1428,10 @@ func (s *State) stopOutputBuffering() []byte {
 	return output
 }
 
-func isAssignment(node ast.InfixExpression) bool {
-	return node.Token.Type() == token.ASSIGN || node.Token.Type() == token.DEFINE || isCompound(node)
+func isAssignment(tok token.Type) bool {
+	return tok == token.ASSIGN || tok == token.DEFINE || isCompound(tok)
 }
 
-func isCompound(node ast.InfixExpression) bool {
-	return (node.Token.Type() > token.DEFINE && node.Token.Type() < token.FUNC)
+func isCompound(tok token.Type) bool {
+	return (tok > token.DEFINE && tok < token.FUNC)
 }
