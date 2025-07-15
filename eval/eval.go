@@ -222,7 +222,7 @@ func (s *State) evalPostfixExpression(node *ast.PostfixExpression) object.Object
 // Doesn't unwrap return - return bubbles up.
 // Initially this was the one to use internally recursively, except for when evaluating a function
 // but now it's less clear because of the need to unwrap references too. TODO: fix/clarify.
-func (s *State) evalInternal(node any) object.Object { //nolint:funlen,gocognit,gocyclo// quite a lot of cases.
+func (s *State) evalInternal(node any) object.Object { //nolint:funlen,gocognit,gocyclo // quite a lot of cases.
 	if s.Context != nil && s.Context.Err() != nil {
 		return s.Error(s.Context.Err())
 	}
@@ -1433,5 +1433,5 @@ func isAssignment(tok token.Type) bool {
 }
 
 func isCompound(tok token.Type) bool {
-	return (tok > token.DEFINE && tok < token.FUNC)
+	return (tok >= token.SUMASSIGN && tok <= token.DIVASSIGN)
 }
