@@ -119,5 +119,7 @@ _str:= "test"
 log("before changes ",_str)
 _str += " + new string"
 Assert("str should be 'test + new string'",_str=="test + new string")
+_str *= 2
+Assert("str should be 'test + new stringtest + new string'",_str=="test + new stringtest + new string")
 del(_str)
 del(i)
