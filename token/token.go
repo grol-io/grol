@@ -72,10 +72,12 @@ const (
 
 	// Single character operators.
 	ASSIGN
-	PLUS
-	MINUS
+
+	PLUS  // order must be PLUS,MINUS,ASTERISK,SLASH
+	MINUS // additionally, PLUS - SUMASSIGN must = MINUS - SUBASSIGN = ASTERISK - PRODASSIGN = SLASH - DIVASSIGN
 	ASTERISK
 	SLASH
+
 	BANG
 	PERCENT
 	LT

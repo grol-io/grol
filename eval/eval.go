@@ -91,8 +91,8 @@ func (s *State) evalAssignment(right object.Object, node *ast.InfixExpression) o
 		id := node.Left.(*ast.Identifier)
 		name := id.Literal()
 		nodeType := node.Type()
-		if nodeType > token.DEFINE && nodeType < token.FUNC {
-			opToEval := nodeType - 37
+		if isCompound(*node) {
+			opToEval := nodeType - (token.SUMASSIGN - token.PLUS)
 			value := s.evalIdentifier(id)
 			added := s.evalInfixExpression(opToEval, value, right)
 			return s.env.CreateOrSet(name, added, false)
@@ -265,7 +265,7 @@ func (s *State) evalInternal(node any) object.Object { //nolint:funlen,gocognit,
 			log.LogVf("eval infix %s", node.DebugString())
 		}
 		// Eval and not evalInternal because we need to unwrap "return".
-		if node.Token.Type() == token.ASSIGN || (node.Token.Type() >= token.DEFINE && node.Token.Type() < token.FUNC) {
+		if isAssignment(*node) {
 			return s.evalAssignment(s.Eval(node.Right), node)
 		}
 		// Humans expect left to right evaluations.
@@ -1156,6 +1156,7 @@ func (s *State) evalStatements(stmts []ast.Node) object.Object {
 			continue
 		}
 		result = s.evalInternal(statement)
+		log.LogVf("result statement %s", result)
 		if rt := result.Type(); rt == object.RETURN || rt == object.ERROR {
 			return result
 		}
@@ -1425,4 +1426,12 @@ func (s *State) stopOutputBuffering() []byte {
 	s.env.OutputBuffer = nil
 	s.env.PrevOut = nil
 	return output
+}
+
+func isAssignment(node ast.InfixExpression) bool {
+	return node.Token.Type() == token.ASSIGN || node.Token.Type() == token.DEFINE || isCompound(node)
+}
+
+func isCompound(node ast.InfixExpression) bool {
+	return (node.Token.Type() > token.DEFINE && node.Token.Type() < token.FUNC)
 }
