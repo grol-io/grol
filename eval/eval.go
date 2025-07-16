@@ -1433,5 +1433,5 @@ func isAssignment(tok token.Type) bool {
 }
 
 func isCompound(tok token.Type) bool {
-	return tok >= token.SUMASSIGN && tok <= token.DIVASSIGN
+	return (tok >= token.SUMASSIGN) && (tok <= token.DIVASSIGN)
 }

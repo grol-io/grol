@@ -221,7 +221,7 @@ func assocC2(t Type, str string) {
 	info.Tokens.Add(str)
 }
 
-func Init() { //nolint:funlen
+func Init() { //nolint:funlen // we have a lot of file associations
 	ResetInterning()
 	info.Keywords = sets.New[string]()
 	info.Builtins = sets.New[string]()
