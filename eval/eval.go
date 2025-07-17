@@ -55,19 +55,12 @@ func (s *State) compoundAssignNested(node ast.Node, operator token.Type, value o
 			return index, &err
 		}
 	}
-	if value.Type() == object.BOOLEAN {
-		if operator == token.BITAND {
-			operator = token.AND
-		}
-		if operator == token.BITOR {
-			operator = token.OR
-		}
-	}
 	// Set the value at this level
 	indexValue := s.evalIndexExpression(base, n)
 	// evaluate result of operator
 	compounded := s.evalInfixExpression(operator, value, indexValue)
 	newBase := s.evalIndexAssignmentValue(base, index, compounded, identifier)
+	// newBase := s.evalIndexAssignmentValue(base, index, value, identifier)
 	log.LogVf("%s new base", newBase)
 	if newBase.Type() == object.ERROR {
 		err := newBase.(object.Error)
@@ -165,13 +158,6 @@ func (s *State) evalAssignment(right object.Object, node *ast.InfixExpression) o
 		if isCompound(nodeType) {
 			opToEval := nodeType - (token.SUMASSIGN - token.PLUS)
 			value := s.evalIdentifier(id)
-
-			if value.Type() == object.BOOLEAN && opToEval == token.BITAND {
-				opToEval = token.AND
-			}
-			if value.Type() == object.BOOLEAN && opToEval == token.BITOR {
-				opToEval = token.OR
-			}
 			compounded := s.evalInfixExpression(opToEval, value, right)
 			return s.env.CreateOrSet(name, compounded, false)
 		}
