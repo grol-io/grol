@@ -82,10 +82,10 @@ func (l *Lexer) NextToken() *token.Token {
 			return token.ConstantTokenChar2(ch, nextChar) // increment/decrement
 		}
 		return token.ConstantTokenChar(ch)
-	case '%', ';', ',', '{', '}', '(', ')', '[', ']':
+	case '%', ';', ',', '{', '}', '(', ')', '[', ']', '~':
 		// TODO maybe reorder so it's a continuous range for pure single character tokens
 		return token.ConstantTokenChar(ch)
-	case '*', '^', '~':
+	case '*', '^':
 		if nextChar == '=' {
 			l.pos++
 			return token.ConstantTokenChar2(ch, nextChar)

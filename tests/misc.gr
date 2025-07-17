@@ -113,13 +113,32 @@ i *= i
 Assert("i should be 9",i==9)
 i /= 9.
 Assert("i should be 1.",i==1.)
-i/=2
+i /= 2
 Assert("i should be .5",i==.5)
+i = 1
+log("before changes", i)
+i&=2
+Assert("i should be 0",i==0)
+
+i 
+
 _str:= "test"
 log("before changes ",_str)
 _str += " + new string"
 Assert("str should be 'test + new string'",_str=="test + new string")
 _str *= 2
 Assert("str should be 'test + new stringtest + new string'",_str=="test + new stringtest + new string")
+
 del(_str)
 del(i)
+
+
+m={[1,2]: "abc", true: 43}
+log("before changes",m)
+m[[1,2]]*=3 // -> "abcabcabc"
+Assert("m[[1,2]] should be 'abcabcabc'",m[[1,2]]=="abcabcabc")
+
+m[[1,2]]="a"
+m[[1,2]]+="b"
+Assert("m[[1,2]] should be 'ab'",m[[1,2]]=="ab")
+

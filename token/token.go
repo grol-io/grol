@@ -73,7 +73,7 @@ const (
 	// Single character operators.
 	ASSIGN
 
-	PLUS  // order must be PLUS,MINUS,ASTERISK,SLASH,BITAND,BITOR,BITXOR,BITNOT
+	PLUS  // order must be PLUS,MINUS,ASTERISK,SLASH,BITAND,BITOR,BITXOR
 	MINUS // additionally, PLUS - SUMASSIGN must = MINUS - SUBASSIGN = ASTERISK - PRODASSIGN = SLASH - DIVASSIGN
 	ASTERISK
 	SLASH
@@ -120,14 +120,13 @@ const (
 	LAMBDA // => lambda short cut: `a,b => a+b` alias for `func(a,b) {a+b}`
 	DEFINE // := (force create new variable instead of possible ref to upper scope)
 
-	SUMASSIGN
+	SUMASSIGN // order must be sumassign,subassign,prodassign,divassign,andassign,orassign,xorassign
 	SUBASSIGN
 	PRODASSIGN
 	DIVASSIGN
 	ANDASSIGN
 	ORASSIGN
 	XORASSIGN
-	NOTASSIGN
 
 	endMultiCharTokens
 
@@ -314,7 +313,6 @@ func Init() { //nolint:funlen // we have a lot of file associations
 	assocC2(ANDASSIGN, "&=")
 	assocC2(ORASSIGN, "|=")
 	assocC2(XORASSIGN, "^=")
-	assocC2(NOTASSIGN, "~=")
 	assocC2(LAMBDA, "=>")
 	assocC2(DEFINE, ":=")
 }
