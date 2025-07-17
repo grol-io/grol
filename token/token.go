@@ -78,14 +78,14 @@ const (
 	ASTERISK
 	SLASH
 
-	BANG
-	PERCENT
-	LT
-	GT
 	BITAND
 	BITOR
 	BITXOR
 	BITNOT
+	BANG
+	PERCENT
+	LT
+	GT
 
 	// Delimiters.
 	COMMA
@@ -124,6 +124,10 @@ const (
 	SUBASSIGN
 	PRODASSIGN
 	DIVASSIGN
+	ANDASSIGN
+	ORASSIGN
+	XORASSIGN
+	NOTASSIGN
 
 	endMultiCharTokens
 
@@ -307,6 +311,10 @@ func Init() { //nolint:funlen // we have a lot of file associations
 	assocC2(SUBASSIGN, "-=")
 	assocC2(DIVASSIGN, "/=")
 	assocC2(PRODASSIGN, "*=")
+	assocC2(ANDASSIGN, "&=")
+	assocC2(ORASSIGN, "|=")
+	assocC2(XORASSIGN, "^=")
+	assocC2(NOTASSIGN, "~=")
 	assocC2(LAMBDA, "=>")
 	assocC2(DEFINE, ":=")
 }
