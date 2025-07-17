@@ -58,7 +58,7 @@ func (s *State) compoundAssignNested(node ast.Node, operator token.Type, value o
 	// Set the value at this level
 	indexValue := s.evalIndexExpression(base, n)
 	// evaluate result of operator
-	compounded := s.evalInfixExpression(operator, value, indexValue)
+	compounded := s.evalInfixExpression(operator, indexValue, value)
 	newBase := s.evalIndexAssignmentValue(base, index, compounded, identifier)
 	// newBase := s.evalIndexAssignmentValue(base, index, value, identifier)
 	log.LogVf("%s new base", newBase)
