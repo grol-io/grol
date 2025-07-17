@@ -17,6 +17,64 @@ import (
 // See todo in token about publishing all of them.
 var unquoteToken = token.ByType(token.UNQUOTE)
 
+func (s *State) compoundAssignNested(node ast.Node, operator token.Type, value object.Object) (object.Object, *object.Error) {
+	n, ok := node.(*ast.IndexExpression)
+	if !ok {
+		err := s.NewError("assignment to non identifier: " + node.Value().DebugString())
+		return err, &err
+	}
+
+	// Recursively assign into the left, then update this level
+	left := n.Left
+	// Evaluate the left side (could be another IndexExpression or Identifier)
+	var base object.Object
+	var identifier string
+	if id, ok := left.(*ast.Identifier); ok {
+		identifier = id.Literal()
+		baseObj, ok := s.env.Get(identifier)
+		if !ok {
+			err := s.NewError("identifier not found: " + identifier)
+			return err, &err
+		}
+		base = object.Value(baseObj)
+	} else {
+		base = s.Eval(left)
+		if base.Type() == object.ERROR {
+			err := base.(object.Error)
+			return base, &err
+		}
+	}
+	// Compute the index
+	var index object.Object
+	if n.Token.Type() == token.DOT {
+		index = object.String{Value: n.Index.Value().Literal()}
+	} else {
+		index = s.Eval(n.Index)
+		if index.Type() == object.ERROR {
+			err := index.(object.Error)
+			return index, &err
+		}
+	}
+	// Set the value at this level
+	indexValue := s.evalIndexExpression(base, n)
+	// evaluate result of operator
+	compounded := s.evalInfixExpression(operator, value, indexValue)
+	newBase := s.evalIndexAssignmentValue(base, index, compounded, identifier)
+	// newBase := s.evalIndexAssignmentValue(base, index, value, identifier)
+	log.LogVf("%s new base", newBase)
+	if newBase.Type() == object.ERROR {
+		err := newBase.(object.Error)
+		return newBase, &err
+	}
+	// assign the updated base to the parent
+	res, err := s.assignNested(left, newBase)
+	if err != nil {
+		return res, err
+	}
+	return compounded, err
+
+}
+
 // Helper to recursively assign into nested structures and propagate the change up to the top-level identifier.
 func (s *State) assignNested(node ast.Node, value object.Object) (object.Object, *object.Error) {
 	switch n := node.(type) {
@@ -81,6 +139,13 @@ func (s *State) evalAssignment(right object.Object, node *ast.InfixExpression) o
 	}
 	switch node.Left.Value().Type() {
 	case token.DOT, token.LBRACKET:
+		nodeType := node.Type()
+		if isCompound(nodeType) {
+			opToEval := nodeType - (token.SUMASSIGN - token.PLUS)
+			res, _ := s.compoundAssignNested(node.Left, opToEval, right) // un
+			log.LogVf("%s - right", right)
+			return res
+		}
 		// Use the recursive assignNested helper
 		res, oerr := s.assignNested(node.Left, right)
 		if oerr != nil {
@@ -94,8 +159,8 @@ func (s *State) evalAssignment(right object.Object, node *ast.InfixExpression) o
 		if isCompound(nodeType) {
 			opToEval := nodeType - (token.SUMASSIGN - token.PLUS)
 			value := s.evalIdentifier(id)
-			added := s.evalInfixExpression(opToEval, value, right)
-			return s.env.CreateOrSet(name, added, false)
+			compounded := s.evalInfixExpression(opToEval, value, right)
+			return s.env.CreateOrSet(name, compounded, false)
 		}
 		log.LogVf("eval assign %#v to %s", right, name)
 		// Propagate possible error (constant, extension names setting).
