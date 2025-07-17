@@ -79,7 +79,6 @@ func (s *State) compoundAssignNested(node ast.Node, operator token.Type, value o
 		return res, err
 	}
 	return compounded, err
-
 }
 
 // Helper to recursively assign into nested structures and propagate the change up to the top-level identifier.
@@ -167,13 +166,11 @@ func (s *State) evalAssignment(right object.Object, node *ast.InfixExpression) o
 			opToEval := nodeType - (token.SUMASSIGN - token.PLUS)
 			value := s.evalIdentifier(id)
 
-			if value.Type() == object.BOOLEAN {
-				if opToEval == token.BITAND {
-					opToEval = token.AND
-				}
-				if opToEval == token.BITOR {
-					opToEval = token.OR
-				}
+			if value.Type() == object.BOOLEAN && opToEval == token.BITAND {
+				opToEval = token.AND
+			}
+			if value.Type() == object.BOOLEAN && opToEval == token.BITOR {
+				opToEval = token.OR
 			}
 			compounded := s.evalInfixExpression(opToEval, value, right)
 			return s.env.CreateOrSet(name, compounded, false)
