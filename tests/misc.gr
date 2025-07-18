@@ -119,8 +119,16 @@ i = 1
 log("before changes", i)
 i&=2
 Assert("i should be 0",i==0)
-
-i 
+i = 5
+log("before changes",i)
+i &= 12
+Assert("i should be 4",i==4)
+i |= 18
+Assert("i should be 22",i==22)
+i ^= 9
+Assert("i should be 31",i==31)
+i&=1
+Assert("i should be 1",i==1)
 
 _str:= "test"
 log("before changes ",_str)
@@ -142,3 +150,19 @@ m[[1,2]]="a"
 m[[1,2]]+="b"
 Assert("m[[1,2]] should be 'ab'",m[[1,2]]=="ab")
 
+ x = {"a":{"b":{"c":1}}}
+log("before changes x = {a:{b:{c:1}}}",x) 
+ x.a.b.c|=12
+Assert("x.a.b.c should be 13",x.a.b.c==13)
+
+x["a"]["b"]["c"]+=3
+Assert("x[a][b][c] should be 16",x["a"]["b"]["c"]==16)
+
+del(x)
+del(m)
+m = [1,2,3,4]
+log("before changes m is",m)
+m += 5
+Assert("m should be [1,2,3,4,5]",m==[1,2,3,4,5])
+m[4]+=5
+Assert("m[4] should be 10",m[4]==10)
