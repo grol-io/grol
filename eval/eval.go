@@ -17,16 +17,16 @@ import (
 // See todo in token about publishing all of them.
 var unquoteToken = token.ByType(token.UNQUOTE)
 
-// compoundAssignNested is called whenever a compound assignment operator needs to be evaluated on map/array index
+// CompoundAssignNested is called whenever a compound assignment operator needs to be evaluated on map/array index.
 func (s *State) compoundAssignNested(node ast.Node, operator token.Type, value object.Object) (object.Object, *object.Error) {
-	n, ok := node.(*ast.IndexExpression) // no need to switch on node type because we call assignNested after
+	n, ok := node.(*ast.IndexExpression) // No need to switch on node type because we call assignNested after.
 	if !ok {
 		err := s.NewError("assignment to non identifier: " + node.Value().DebugString())
 		return err, &err
 	}
 
 	left := n.Left
-	// Evaluate the left side (could be another IndexExpression or Identifier)
+	// Evaluate the left side (could be another IndexExpression or Identifier).
 	var base object.Object
 	var identifier string
 	if id, ok := left.(*ast.Identifier); ok {
@@ -44,7 +44,7 @@ func (s *State) compoundAssignNested(node ast.Node, operator token.Type, value o
 			return base, &err
 		}
 	}
-	// Compute the index
+	// Compute the index.
 	var index object.Object
 	if n.Token.Type() == token.DOT {
 		index = object.String{Value: n.Index.Value().Literal()}
@@ -55,21 +55,21 @@ func (s *State) compoundAssignNested(node ast.Node, operator token.Type, value o
 			return index, &err
 		}
 	}
-	// get value of element in array/map
+	// Get value of element in array/map.
 	indexValue := s.evalIndexExpression(base, n)
-	// evaluate result of operator
+	// Evaluate result of operator.
 	compounded := s.evalInfixExpression(operator, indexValue, value)
 	newBase := s.evalIndexAssignmentValue(base, index, compounded, identifier)
 	if newBase.Type() == object.ERROR {
 		err := newBase.(object.Error)
 		return newBase, &err
 	}
-	// assign the updated base to the parent
+	// Assign the updated base to the parent.
 	res, err := s.assignNested(left, newBase)
 	if err != nil {
 		return res, err
 	}
-	// return compounded value instead of result
+	// Return compounded value instead of result.
 	return compounded, err
 }
 
