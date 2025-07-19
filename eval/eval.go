@@ -17,14 +17,14 @@ import (
 // See todo in token about publishing all of them.
 var unquoteToken = token.ByType(token.UNQUOTE)
 
+// compoundAssignNested is called in place of assignNested whenever a compound assignment operator needs to be evaluated on a map or array index
 func (s *State) compoundAssignNested(node ast.Node, operator token.Type, value object.Object) (object.Object, *object.Error) {
-	n, ok := node.(*ast.IndexExpression)
+	n, ok := node.(*ast.IndexExpression) // no need to switch on node type because we call assignNested after this function rather than recursively calling
 	if !ok {
 		err := s.NewError("assignment to non identifier: " + node.Value().DebugString())
 		return err, &err
 	}
 
-	// Recursively assign into the left, then update this level
 	left := n.Left
 	// Evaluate the left side (could be another IndexExpression or Identifier)
 	var base object.Object
@@ -55,7 +55,7 @@ func (s *State) compoundAssignNested(node ast.Node, operator token.Type, value o
 			return index, &err
 		}
 	}
-	// Set the value at this level
+	// get value of element in array/map
 	indexValue := s.evalIndexExpression(base, n)
 	// evaluate result of operator
 	compounded := s.evalInfixExpression(operator, indexValue, value)
@@ -69,6 +69,7 @@ func (s *State) compoundAssignNested(node ast.Node, operator token.Type, value o
 	if err != nil {
 		return res, err
 	}
+	// return compounded value instead of result
 	return compounded, err
 }
 

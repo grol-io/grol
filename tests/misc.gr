@@ -103,11 +103,11 @@ Assert("image.size of deleted image", image.size(img) == nil)
 // extra delete is fine
 Assert("image.delete", image.delete(img) == nil)
 
-i := 4 
+i := 4
 log("before changes", i)
 i += 4
 Assert("i should be 8",i==8)
-i -= 5 
+i -= 5
 Assert("i should be 3",i==3)
 i *= i
 Assert("i should be 9",i==9)
@@ -150,19 +150,20 @@ m[[1,2]]="a"
 m[[1,2]]+="b"
 Assert("m[[1,2]] should be 'ab'",m[[1,2]]=="ab")
 
- x = {"a":{"b":{"c":1}}}
-log("before changes x = {a:{b:{c:1}}}",x) 
- x.a.b.c|=12
+x = {"a":{"b":{"c":1}}}
+log("before changes x = {a:{b:{c:1}}}",x)
+x.a.b.c|=12
 Assert("x.a.b.c should be 13",x.a.b.c==13)
 
 x["a"]["b"]["c"]+=3
 Assert("x[a][b][c] should be 16",x["a"]["b"]["c"]==16)
 
 del(x)
-del(m)
 m = [1,2,3,4]
 log("before changes m is",m)
 m += 5
 Assert("m should be [1,2,3,4,5]",m==[1,2,3,4,5])
 m[4]+=5
 Assert("m[4] should be 10",m[4]==10)
+
+del(m)
