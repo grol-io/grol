@@ -17,9 +17,9 @@ import (
 // See todo in token about publishing all of them.
 var unquoteToken = token.ByType(token.UNQUOTE)
 
-// compoundAssignNested is called in place of assignNested whenever a compound assignment operator needs to be evaluated on a map or array index
+// compoundAssignNested is called whenever a compound assignment operator needs to be evaluated on map/array index
 func (s *State) compoundAssignNested(node ast.Node, operator token.Type, value object.Object) (object.Object, *object.Error) {
-	n, ok := node.(*ast.IndexExpression) // no need to switch on node type because we call assignNested after this function rather than recursively calling
+	n, ok := node.(*ast.IndexExpression) // no need to switch on node type because we call assignNested after
 	if !ok {
 		err := s.NewError("assignment to non identifier: " + node.Value().DebugString())
 		return err, &err
