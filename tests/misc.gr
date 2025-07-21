@@ -167,3 +167,13 @@ m[4] += 5
 Assert("m[4] should be 10", m[4] == 10)
 
 del(m)
+
+// bug #384 double eval in print
+
+i := 1
+func foo() {
+	log("foo called with i=", i)
+	++i
+}
+print(foo())
+Assert("i should be 2 after foo()", i == 2)
