@@ -477,7 +477,7 @@ func (s *State) evalMapLiteral(node *ast.MapLiteral) object.Object {
 	return result
 }
 
-func (s *State) evalPrintLogError(node *ast.Builtin) object.Object {
+func (s *State) evalPrintLogError(node *ast.Builtin, firstArg object.Object) object.Object {
 	doLog := (node.Type() == token.LOG)
 	if doLog && (log.GetLogLevel() >= log.Error) {
 		return object.NULL
@@ -487,7 +487,12 @@ func (s *State) evalPrintLogError(node *ast.Builtin) object.Object {
 		if i > 0 {
 			buf.WriteString(" ")
 		}
-		r := s.evalInternal(v)
+		var r object.Object
+		if i == 0 && firstArg != nil { // println doesn't come in with firstArg already evaluated, print does.
+			r = firstArg
+		} else {
+			r = s.evalInternal(v)
+		}
 		// If what we print/println is an error, return it instead. log can log errors.
 		if r.Type() == object.ERROR && !doLog {
 			return r
@@ -619,7 +624,7 @@ func (s *State) evalBuiltin(node *ast.Builtin) object.Object {
 		}
 		return object.MakeQuad(ErrorKey, object.NativeBoolToBooleanObject(isError), object.ValueKey, val)
 	case token.ERROR, token.PRINT, token.PRINTLN, token.LOG:
-		return s.evalPrintLogError(node)
+		return s.evalPrintLogError(node, val)
 	case token.FIRST:
 		return object.First(val)
 	case token.REST:
