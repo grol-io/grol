@@ -18,11 +18,11 @@ import (
 var unquoteToken = token.ByType(token.UNQUOTE)
 
 // CompoundAssignNested is called whenever a compound assignment operator needs to be evaluated on map/array index.
-func (s *State) compoundAssignNested(node ast.Node, operator token.Type, value object.Object) (object.Object, *object.Error) {
+func (s *State) compoundAssignNested(node ast.Node, operator token.Type, value object.Object) object.Object {
 	n, ok := node.(*ast.IndexExpression) // No need to switch on node type because we call assignNested after.
 	if !ok {
 		err := s.NewError("assignment to non identifier: " + node.Value().DebugString())
-		return err, &err
+		return err
 	}
 
 	left := n.Left
@@ -34,14 +34,14 @@ func (s *State) compoundAssignNested(node ast.Node, operator token.Type, value o
 		baseObj, ok := s.env.Get(identifier)
 		if !ok {
 			err := s.NewError("identifier not found: " + identifier)
-			return err, &err
+			return err
 		}
 		base = object.Value(baseObj)
 	} else {
 		base = s.Eval(left)
 		if base.Type() == object.ERROR {
 			err := base.(object.Error)
-			return base, &err
+			return err
 		}
 	}
 	// Compute the index.
@@ -52,7 +52,7 @@ func (s *State) compoundAssignNested(node ast.Node, operator token.Type, value o
 		index = s.Eval(n.Index)
 		if index.Type() == object.ERROR {
 			err := index.(object.Error)
-			return index, &err
+			return err
 		}
 	}
 	// Get value of element in array/map.
@@ -62,15 +62,15 @@ func (s *State) compoundAssignNested(node ast.Node, operator token.Type, value o
 	newBase := s.evalIndexAssignmentValue(base, index, compounded, identifier)
 	if newBase.Type() == object.ERROR {
 		err := newBase.(object.Error)
-		return newBase, &err
+		return err
 	}
 	// Assign the updated base to the parent.
 	res, err := s.assignNested(left, newBase)
 	if err != nil {
-		return res, err
+		return res
 	}
 	// Return compounded value instead of result.
-	return compounded, err
+	return compounded
 }
 
 // Helper to recursively assign into nested structures and propagate the change up to the top-level identifier.
@@ -140,8 +140,7 @@ func (s *State) evalAssignment(right object.Object, node *ast.InfixExpression) o
 		nodeType := node.Type()
 		if isCompound(nodeType) {
 			opToEval := nodeType - (token.SUMASSIGN - token.PLUS)
-			res, _ := s.compoundAssignNested(node.Left, opToEval, right) // no need to check error, res is returned either way.
-			log.LogVf("%s - right", right)
+			res := s.compoundAssignNested(node.Left, opToEval, right)
 			return res
 		}
 		// Use the recursive assignNested helper
