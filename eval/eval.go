@@ -138,8 +138,7 @@ func (s *State) evalAssignment(right object.Object, node *ast.InfixExpression) o
 	switch node.Left.Value().Type() {
 	case token.DOT, token.LBRACKET:
 		nodeType := node.Type()
-		if isCompound(nodeType) {
-			opToEval := nodeType - (token.SUMASSIGN - token.PLUS)
+		if opToEval, ok := isCompound(nodeType); ok {
 			res := s.compoundAssignNested(node.Left, opToEval, right)
 			return res
 		}
@@ -153,8 +152,7 @@ func (s *State) evalAssignment(right object.Object, node *ast.InfixExpression) o
 		id := node.Left.(*ast.Identifier)
 		name := id.Literal()
 		nodeType := node.Type()
-		if isCompound(nodeType) {
-			opToEval := nodeType - (token.SUMASSIGN - token.PLUS)
+		if opToEval, ok := isCompound(nodeType); ok {
 			value := s.evalIdentifier(id)
 			compounded := s.evalInfixExpression(opToEval, value, right)
 			return s.env.CreateOrSet(name, compounded, false)
@@ -1491,9 +1489,10 @@ func (s *State) stopOutputBuffering() []byte {
 }
 
 func isAssignment(tok token.Type) bool {
-	return tok == token.ASSIGN || tok == token.DEFINE || isCompound(tok)
+	_, compound := isCompound(tok)
+	return tok == token.ASSIGN || tok == token.DEFINE || compound
 }
 
-func isCompound(tok token.Type) bool {
-	return tok >= token.SUMASSIGN && tok <= token.XORASSIGN
+func isCompound(tok token.Type) (token.Type, bool) {
+	return tok - (token.SUMASSIGN - token.PLUS), tok >= token.SUMASSIGN && tok <= token.XORASSIGN
 }
