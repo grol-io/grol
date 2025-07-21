@@ -23,10 +23,10 @@ x y
 println("y is", y)
 
 // small array
-a=[3,-7,4,-42]
-Assert("sorting an array", sort(a) == [-42,-7,3,4])
+a=[3, -7, 4, -42]
+Assert("sorting an array", sort(a) == [-42, -7, 3, 4])
 // un modified array
-Assert("un modified array", a == [3,-7,4,-42])
+Assert("un modified array", a == [3, -7, 4, -42])
 
 // big array
 a=1:21
@@ -73,9 +73,9 @@ Assert("boolean in lambda false", g(false) == 2)
 
 // Nested lambda with boolean
 func h(x) {func f() {func g() {if x {1} else {2}}; g()}; f()}
-log("h=",h(true))
+log("h=", h(true))
 Assert("boolean in nested lambda", h(true) == 1)
-log("h=",h(false))
+log("h=", h(false))
 // BUG TODO/FIXME: g() inside f() is getting memoized/cached when it shouldn't be
 // Assert("boolean in nested lambda false", h(false) == 2)
 
@@ -106,64 +106,64 @@ Assert("image.delete", image.delete(img) == nil)
 i := 4
 log("before changes", i)
 i += 4
-Assert("i should be 8",i==8)
+Assert("i should be 8", i == 8)
 i -= 5
-Assert("i should be 3",i==3)
+Assert("i should be 3", i == 3)
 i *= i
-Assert("i should be 9",i==9)
+Assert("i should be 9", i == 9)
 i /= 9.
-Assert("i should be 1.",i==1.)
+Assert("i should be 1.", i == 1.)
 i /= 2
-Assert("i should be .5",i==.5)
+Assert("i should be .5", i == .5)
 i = 1
 log("before changes", i)
-i&=2
-Assert("i should be 0",i==0)
+i &= 2
+Assert("i should be 0", i == 0)
 i = 5
-log("before changes",i)
+log("before changes", i)
 i &= 12
-Assert("i should be 4",i==4)
+Assert("i should be 4", i == 4)
 i |= 18
-Assert("i should be 22",i==22)
+Assert("i should be 22", i == 22)
 i ^= 9
-Assert("i should be 31",i==31)
-i&=1
-Assert("i should be 1",i==1)
+Assert("i should be 31", i == 31)
+i &= 1
+Assert("i should be 1", i  == 1)
 
-_str:= "test"
-log("before changes ",_str)
+_str := "test"
+log("before changes ", _str)
 _str += " + new string"
-Assert("str should be 'test + new string'",_str=="test + new string")
+Assert("str should be 'test + new string'", _str == "test + new string")
 _str *= 2
-Assert("str should be 'test + new stringtest + new string'",_str=="test + new stringtest + new string")
+Assert("str should be 'test + new stringtest + new string'", _str=="test + new stringtest + new string")
 
 del(_str)
 del(i)
 
 
-m={[1,2]: "abc", true: 43}
-log("before changes",m)
-m[[1,2]]*=3 // -> "abcabcabc"
-Assert("m[[1,2]] should be 'abcabcabc'",m[[1,2]]=="abcabcabc")
+m={[1, 2]: "abc", true: 43}
+log("before changes", m)
+m[[1, 2]] *= 3 // -> "abcabcabc"
+Assert("m[[1, 2]] should be 'abcabcabc'", m[[1, 2]] == "abcabcabc")
 
-m[[1,2]]="a"
-m[[1,2]]+="b"
-Assert("m[[1,2]] should be 'ab'",m[[1,2]]=="ab")
+m[[1, 2]] = "a"
+m[[1, 2]] += "b"
+Assert("m[[1, 2]] should be 'ab'", m[[1, 2]] == "ab")
 
 x = {"a":{"b":{"c":1}}}
-log("before changes x = {a:{b:{c:1}}}",x)
-x.a.b.c|=12
-Assert("x.a.b.c should be 13",x.a.b.c==13)
+log("before changes x = {a:{b:{c:1}}}", x)
+x.a.b.c |= 12
+Assert("x.a.b.c should be 13", x.a.b.c==13)
 
-x["a"]["b"]["c"]+=3
-Assert("x[a][b][c] should be 16",x["a"]["b"]["c"]==16)
+x["a"]["b"]["c"] += 3
+Assert("x[a][b][c] should be 16", x["a"]["b"]["c"] == 16)
 
 del(x)
-m = [1,2,3,4]
-log("before changes m is",m)
+m = [1, 2, 3, 4]
+log("before changes m is", m)
 m += 5
-Assert("m should be [1,2,3,4,5]",m==[1,2,3,4,5])
-m[4]+=5
-Assert("m[4] should be 10",m[4]==10)
+Assert("m should be [1, 2, 3, 4, 5]", m == [1, 2, 3, 4, 5])
+m[4] += 5
+Assert("m[4] should be 10", m[4] == 10)
 
 del(m)
