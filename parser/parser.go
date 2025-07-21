@@ -124,6 +124,13 @@ func New(l *lexer.Lexer) *Parser { //nolint:funlen // yes we have a lot to regis
 
 	// no let:
 	p.registerInfix(token.ASSIGN, p.parseInfixExpression)
+	p.registerInfix(token.SUMASSIGN, p.parseInfixExpression)
+	p.registerInfix(token.SUBASSIGN, p.parseInfixExpression)
+	p.registerInfix(token.DIVASSIGN, p.parseInfixExpression)
+	p.registerInfix(token.PRODASSIGN, p.parseInfixExpression)
+	p.registerInfix(token.ANDASSIGN, p.parseInfixExpression)
+	p.registerInfix(token.ORASSIGN, p.parseInfixExpression)
+	p.registerInfix(token.XORASSIGN, p.parseInfixExpression)
 	p.registerInfix(token.DEFINE, p.parseInfixExpression)
 
 	p.postfixParseFns = make(map[token.Type]postfixParseFn)

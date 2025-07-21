@@ -17,6 +17,62 @@ import (
 // See todo in token about publishing all of them.
 var unquoteToken = token.ByType(token.UNQUOTE)
 
+// CompoundAssignNested is called whenever a compound assignment operator needs to be evaluated on map/array index.
+func (s *State) compoundAssignNested(node ast.Node, operator token.Type, value object.Object) object.Object {
+	n, ok := node.(*ast.IndexExpression) // No need to switch on node type because we call assignNested after.
+	if !ok {
+		err := s.NewError("assignment to non identifier: " + node.Value().DebugString())
+		return err
+	}
+
+	left := n.Left
+	// Evaluate the left side (could be another IndexExpression or Identifier).
+	var base object.Object
+	var identifier string
+	if id, ok := left.(*ast.Identifier); ok {
+		identifier = id.Literal()
+		baseObj, ok := s.env.Get(identifier)
+		if !ok {
+			err := s.NewError("identifier not found: " + identifier)
+			return err
+		}
+		base = object.Value(baseObj)
+	} else {
+		base = s.Eval(left)
+		if base.Type() == object.ERROR {
+			err := base.(object.Error)
+			return err
+		}
+	}
+	// Compute the index.
+	var index object.Object
+	if n.Token.Type() == token.DOT {
+		index = object.String{Value: n.Index.Value().Literal()}
+	} else {
+		index = s.Eval(n.Index)
+		if index.Type() == object.ERROR {
+			err := index.(object.Error)
+			return err
+		}
+	}
+	// Get value of element in array/map.
+	indexValue := s.evalIndexExpression(base, n)
+	// Evaluate result of operator.
+	compounded := s.evalInfixExpression(operator, indexValue, value)
+	newBase := s.evalIndexAssignmentValue(base, index, compounded, identifier)
+	if newBase.Type() == object.ERROR {
+		err := newBase.(object.Error)
+		return err
+	}
+	// Assign the updated base to the parent.
+	res, err := s.assignNested(left, newBase)
+	if err != nil {
+		return res
+	}
+	// Return compounded value instead of result.
+	return compounded
+}
+
 // Helper to recursively assign into nested structures and propagate the change up to the top-level identifier.
 func (s *State) assignNested(node ast.Node, value object.Object) (object.Object, *object.Error) {
 	switch n := node.(type) {
@@ -81,6 +137,11 @@ func (s *State) evalAssignment(right object.Object, node *ast.InfixExpression) o
 	}
 	switch node.Left.Value().Type() {
 	case token.DOT, token.LBRACKET:
+		nodeType := node.Type()
+		if opToEval, ok := isCompound(nodeType); ok {
+			res := s.compoundAssignNested(node.Left, opToEval, right)
+			return res
+		}
 		// Use the recursive assignNested helper
 		res, oerr := s.assignNested(node.Left, right)
 		if oerr != nil {
@@ -90,10 +151,16 @@ func (s *State) evalAssignment(right object.Object, node *ast.InfixExpression) o
 	case token.IDENT:
 		id := node.Left.(*ast.Identifier)
 		name := id.Literal()
+		nodeType := node.Type()
+		if opToEval, ok := isCompound(nodeType); ok {
+			value := s.evalIdentifier(id)
+			compounded := s.evalInfixExpression(opToEval, value, right)
+			return s.env.CreateOrSet(name, compounded, false)
+		}
 		log.LogVf("eval assign %#v to %s", right, name)
 		// Propagate possible error (constant, extension names setting).
 		// Distinguish between define and assign, define (:=) forces a new variable.
-		return s.env.CreateOrSet(name, right, node.Type() == token.DEFINE)
+		return s.env.CreateOrSet(name, right, nodeType == token.DEFINE)
 	case token.REGISTER:
 		reg := node.Left.(*object.Register)
 		log.LogVf("eval assign %#v to register %d", right, reg.Idx)
@@ -258,7 +325,7 @@ func (s *State) evalInternal(node any) object.Object { //nolint:funlen,gocognit,
 			log.LogVf("eval infix %s", node.DebugString())
 		}
 		// Eval and not evalInternal because we need to unwrap "return".
-		if node.Token.Type() == token.ASSIGN || node.Token.Type() == token.DEFINE {
+		if isAssignment(node.Type()) {
 			return s.evalAssignment(s.Eval(node.Right), node)
 		}
 		// Humans expect left to right evaluations.
@@ -1149,6 +1216,7 @@ func (s *State) evalStatements(stmts []ast.Node) object.Object {
 			continue
 		}
 		result = s.evalInternal(statement)
+		log.LogVf("result statement %s", result)
 		if rt := result.Type(); rt == object.RETURN || rt == object.ERROR {
 			return result
 		}
@@ -1418,4 +1486,13 @@ func (s *State) stopOutputBuffering() []byte {
 	s.env.OutputBuffer = nil
 	s.env.PrevOut = nil
 	return output
+}
+
+func isAssignment(tok token.Type) bool {
+	_, compound := isCompound(tok)
+	return tok == token.ASSIGN || tok == token.DEFINE || compound
+}
+
+func isCompound(tok token.Type) (token.Type, bool) {
+	return tok - (token.SUMASSIGN - token.PLUS), tok >= token.SUMASSIGN && tok <= token.XORASSIGN
 }

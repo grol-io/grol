@@ -77,13 +77,20 @@ func (l *Lexer) NextToken() *token.Token {
 		}
 		return token.ConstantTokenChar(ch)
 	case '+', '-':
-		if nextChar == ch {
+		if nextChar == ch || nextChar == '=' {
 			l.pos++
 			return token.ConstantTokenChar2(ch, nextChar) // increment/decrement
 		}
 		return token.ConstantTokenChar(ch)
-	case '%', '*', ';', ',', '{', '}', '(', ')', '[', ']', '^', '~':
+	case '%', ';', ',', '{', '}', '(', ')', '[', ']', '~':
 		// TODO maybe reorder so it's a continuous range for pure single character tokens
+		return token.ConstantTokenChar(ch)
+	case '*', '^':
+		if nextChar == '=' {
+			l.pos++
+			return token.ConstantTokenChar2(ch, nextChar)
+		}
+
 		return token.ConstantTokenChar(ch)
 	case '/':
 		if nextChar == '/' {
@@ -92,9 +99,13 @@ func (l *Lexer) NextToken() *token.Token {
 		if nextChar == '*' {
 			return token.Intern(token.BLOCKCOMMENT, l.readBlockComment())
 		}
+		if nextChar == '=' {
+			l.pos++
+			return token.ConstantTokenChar2(ch, nextChar)
+		}
 		return token.ConstantTokenChar(ch)
 	case '|', '&':
-		if nextChar == ch {
+		if nextChar == ch || nextChar == '=' {
 			l.pos++
 			return token.ConstantTokenChar2(ch, nextChar)
 		}

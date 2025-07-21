@@ -72,18 +72,20 @@ const (
 
 	// Single character operators.
 	ASSIGN
-	PLUS
-	MINUS
-	BANG
+
+	PLUS  // order must be PLUS,MINUS,ASTERISK,SLASH,BITAND,BITOR,BITXOR
+	MINUS // additionally, PLUS - SUMASSIGN must = MINUS - SUBASSIGN = ASTERISK - PRODASSIGN = SLASH - DIVASSIGN
 	ASTERISK
 	SLASH
-	PERCENT
-	LT
-	GT
 	BITAND
 	BITOR
 	BITXOR
 	BITNOT
+
+	BANG
+	PERCENT
+	LT
+	GT
 
 	// Delimiters.
 	COMMA
@@ -117,6 +119,14 @@ const (
 	RIGHTSHIFT
 	LAMBDA // => lambda short cut: `a,b => a+b` alias for `func(a,b) {a+b}`
 	DEFINE // := (force create new variable instead of possible ref to upper scope)
+
+	SUMASSIGN // order must be sumassign,subassign,prodassign,divassign,andassign,orassign,xorassign
+	SUBASSIGN
+	PRODASSIGN
+	DIVASSIGN
+	ANDASSIGN
+	ORASSIGN
+	XORASSIGN
 
 	endMultiCharTokens
 
@@ -214,7 +224,7 @@ func assocC2(t Type, str string) {
 	info.Tokens.Add(str)
 }
 
-func Init() {
+func Init() { //nolint:funlen // we have a lot of file associations
 	ResetInterning()
 	info.Keywords = sets.New[string]()
 	info.Builtins = sets.New[string]()
@@ -296,6 +306,13 @@ func Init() {
 	assocC2(AND, "&&")
 	assocC2(LEFTSHIFT, "<<")
 	assocC2(RIGHTSHIFT, ">>")
+	assocC2(SUMASSIGN, "+=")
+	assocC2(SUBASSIGN, "-=")
+	assocC2(DIVASSIGN, "/=")
+	assocC2(PRODASSIGN, "*=")
+	assocC2(ANDASSIGN, "&=")
+	assocC2(ORASSIGN, "|=")
+	assocC2(XORASSIGN, "^=")
 	assocC2(LAMBDA, "=>")
 	assocC2(DEFINE, ":=")
 }
