@@ -81,8 +81,8 @@ func (s *State) compoundAssignNested(node ast.Node, operator token.Type, value o
 	}
 
 	// Assign the updated base to the parent
-	res, oerr := s.assignNested(n.Left, newBase)
-	if oerr != nil {
+	res := s.assignNested(n.Left, newBase)
+	if res.Type() == object.ERROR {
 		return res
 	}
 
@@ -91,36 +91,33 @@ func (s *State) compoundAssignNested(node ast.Node, operator token.Type, value o
 }
 
 // assignNested recursively assigns into nested structures and propagate the change up to the top-level identifier.
-func (s *State) assignNested(node ast.Node, value object.Object) (object.Object, *object.Error) {
+func (s *State) assignNested(node ast.Node, value object.Object) object.Object {
 	switch n := node.(type) {
 	case *ast.Identifier:
 		// Top-level variable, update env
 		oerr := s.env.Set(n.Literal(), value)
 		if oerr.Type() == object.ERROR {
-			err := oerr.(object.Error)
-			return oerr, &err
+			return oerr
 		}
-		return value, nil
+		return value
 	case *ast.IndexExpression:
 		// Use helper to evaluate base and index
 		result := s.evalBaseAndIndex(node)
 		if result.Error != nil {
-			oerr := result.Error.(object.Error)
-			return result.Error, &oerr
+			return result.Error
 		}
 
 		// Set the value at this level
 		newBase := s.evalIndexAssignmentValue(result.Base, result.Index, value, result.Identifier)
 		if newBase.Type() == object.ERROR {
-			err := newBase.(object.Error)
-			return newBase, &err
+			return newBase
 		}
 
 		// Recursively assign the updated base to the parent
 		return s.assignNested(n.Left, newBase)
 	default:
 		err := s.Errorf("assignment to non identifier: %s", node.Value().DebugString())
-		return err, &err
+		return err
 	}
 }
 
@@ -137,8 +134,8 @@ func (s *State) evalAssignment(right object.Object, node *ast.InfixExpression) o
 			return res
 		}
 		// Use the recursive assignNested helper
-		res, oerr := s.assignNested(node.Left, right)
-		if oerr != nil {
+		res := s.assignNested(node.Left, right)
+		if res.Type() == object.ERROR {
 			return res
 		}
 		return right
