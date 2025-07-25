@@ -85,16 +85,16 @@ func (s *State) assignNested(node ast.Node, value object.Object) (object.Object,
 		}
 		return value, nil
 	case *ast.IndexExpression:
-		// Recursively assign into the left, then update this level
-		left := n.Left
 		// Evaluate the left side (could be another IndexExpression or Identifier)
+		left := n.Left
 		var base object.Object
 		var identifier string
+
 		if id, ok := left.(*ast.Identifier); ok {
 			identifier = id.Literal()
 			baseObj, ok := s.env.Get(identifier)
 			if !ok {
-				err := s.NewError("identifier not found: " + identifier)
+				err := s.Errorf("identifier not found: %s", identifier)
 				return err, &err
 			}
 			base = object.Value(baseObj)
@@ -104,7 +104,9 @@ func (s *State) assignNested(node ast.Node, value object.Object) (object.Object,
 				err := base.(object.Error)
 				return base, &err
 			}
+			// identifier remains empty for nested expressions
 		}
+
 		// Compute the index
 		var index object.Object
 		if n.Token.Type() == token.DOT {
@@ -116,17 +118,19 @@ func (s *State) assignNested(node ast.Node, value object.Object) (object.Object,
 				return index, &err
 			}
 		}
+
 		// Set the value at this level
 		newBase := s.evalIndexAssignmentValue(base, index, value, identifier)
 		if newBase.Type() == object.ERROR {
 			err := newBase.(object.Error)
 			return newBase, &err
 		}
+
 		// Recursively assign the updated base to the parent
 		return s.assignNested(left, newBase)
 	default:
-		err := s.NewError("assignment to non identifier: " + node.Value().DebugString())
-		return err, &err
+		err := s.Errorfp("assignment to non identifier: %s", node.Value().DebugString())
+		return err, err
 	}
 }
 
