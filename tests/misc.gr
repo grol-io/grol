@@ -177,3 +177,12 @@ func foo() {
 }
 print(foo())
 Assert("i should be 2 after foo()", i == 2)
+
+// Test error messages for index assignment to unexpected types
+// Case 1: Direct variable assignment (identifier not empty)
+intVar := 42
+IsErr("direct assignment to non-indexable shows variable name", intVar[0] = 5, "index assignment to intVar of unexpected type")
+
+// Case 2: Nested expression assignment (identifier empty)
+func getInt() { 42 }
+IsErr("nested assignment to non-indexable shows generic message", getInt()[0] = 5, "index assignment to object of unexpected type")

@@ -17,116 +17,107 @@ import (
 // See todo in token about publishing all of them.
 var unquoteToken = token.ByType(token.UNQUOTE)
 
-// CompoundAssignNested is called whenever a compound assignment operator needs to be evaluated on map/array index.
-func (s *State) compoundAssignNested(node ast.Node, operator token.Type, value object.Object) object.Object {
-	n, ok := node.(*ast.IndexExpression) // No need to switch on node type because we call assignNested after.
+// baseIndexResult holds the result of evaluating base and index for assignment operations.
+type baseIndexResult struct {
+	Base       object.Object
+	Index      object.Object
+	Identifier string
+	Error      object.Object
+}
+
+// evalBaseAndIndex evaluates the base object and index for assignment operations.
+func (s *State) evalBaseAndIndex(node ast.Node) baseIndexResult {
+	n, ok := node.(*ast.IndexExpression)
 	if !ok {
-		err := s.NewError("assignment to non identifier: " + node.Value().DebugString())
-		return err
+		return baseIndexResult{Error: s.Errorf("assignment to non identifier: %s", node.Value().DebugString())}
+	}
+	var result baseIndexResult
+	left := n.Left
+	// Evaluate the left side (could be another IndexExpression or Identifier)
+	if id, ok := left.(*ast.Identifier); ok {
+		result.Identifier = id.Literal()
+		baseObj, ok := s.env.Get(result.Identifier)
+		if !ok {
+			return baseIndexResult{Error: s.Errorf("identifier not found: %s", result.Identifier)}
+		}
+		result.Base = object.Value(baseObj)
+	} else {
+		result.Base = s.Eval(left)
+		if result.Base.Type() == object.ERROR {
+			return baseIndexResult{Error: result.Base}
+		}
+		// identifier remains empty for nested expressions
+	}
+	// Compute the index
+	if n.Token.Type() == token.DOT {
+		result.Index = object.String{Value: n.Index.Value().Literal()}
+	} else {
+		result.Index = s.Eval(n.Index)
+		if result.Index.Type() == object.ERROR {
+			return baseIndexResult{Error: result.Index}
+		}
+	}
+	return result
+}
+
+// compoundAssignNested is called whenever a compound assignment operator needs to be evaluated on map/array index.
+func (s *State) compoundAssignNested(node ast.Node, operator token.Type, value object.Object) object.Object {
+	result := s.evalBaseAndIndex(node)
+	if result.Error != nil {
+		return result.Error
 	}
 
-	left := n.Left
-	// Evaluate the left side (could be another IndexExpression or Identifier).
-	var base object.Object
-	var identifier string
-	if id, ok := left.(*ast.Identifier); ok {
-		identifier = id.Literal()
-		baseObj, ok := s.env.Get(identifier)
-		if !ok {
-			err := s.NewError("identifier not found: " + identifier)
-			return err
-		}
-		base = object.Value(baseObj)
-	} else {
-		base = s.Eval(left)
-		if base.Type() == object.ERROR {
-			err := base.(object.Error)
-			return err
-		}
-	}
-	// Compute the index.
-	var index object.Object
-	if n.Token.Type() == token.DOT {
-		index = object.String{Value: n.Index.Value().Literal()}
-	} else {
-		index = s.Eval(n.Index)
-		if index.Type() == object.ERROR {
-			err := index.(object.Error)
-			return err
-		}
-	}
-	// Get value of element in array/map.
-	indexValue := s.evalIndexExpression(base, n)
-	// Evaluate result of operator.
+	// Get current value of element in array/map
+	n := node.(*ast.IndexExpression)
+	indexValue := s.evalIndexExpression(result.Base, n)
+
+	// Evaluate result of operator
 	compounded := s.evalInfixExpression(operator, indexValue, value)
-	newBase := s.evalIndexAssignmentValue(base, index, compounded, identifier)
+
+	// Set the new value at this level
+	newBase := s.evalIndexAssignmentValue(result.Base, result.Index, compounded, result.Identifier)
 	if newBase.Type() == object.ERROR {
-		err := newBase.(object.Error)
-		return err
+		return newBase
 	}
-	// Assign the updated base to the parent.
-	res, err := s.assignNested(left, newBase)
-	if err != nil {
+
+	// Assign the updated base to the parent
+	res := s.assignNested(n.Left, newBase)
+	if res.Type() == object.ERROR {
 		return res
 	}
-	// Return compounded value instead of result.
+
+	// Return compounded value instead of result
 	return compounded
 }
 
-// Helper to recursively assign into nested structures and propagate the change up to the top-level identifier.
-func (s *State) assignNested(node ast.Node, value object.Object) (object.Object, *object.Error) {
+// assignNested recursively assigns into nested structures and propagate the change up to the top-level identifier.
+func (s *State) assignNested(node ast.Node, value object.Object) object.Object {
 	switch n := node.(type) {
 	case *ast.Identifier:
 		// Top-level variable, update env
 		oerr := s.env.Set(n.Literal(), value)
 		if oerr.Type() == object.ERROR {
-			err := oerr.(object.Error)
-			return oerr, &err
+			return oerr
 		}
-		return value, nil
+		return value
 	case *ast.IndexExpression:
-		// Recursively assign into the left, then update this level
-		left := n.Left
-		// Evaluate the left side (could be another IndexExpression or Identifier)
-		var base object.Object
-		var identifier string
-		if id, ok := left.(*ast.Identifier); ok {
-			identifier = id.Literal()
-			baseObj, ok := s.env.Get(identifier)
-			if !ok {
-				err := s.NewError("identifier not found: " + identifier)
-				return err, &err
-			}
-			base = object.Value(baseObj)
-		} else {
-			base = s.Eval(left)
-			if base.Type() == object.ERROR {
-				err := base.(object.Error)
-				return base, &err
-			}
+		// Use helper to evaluate base and index
+		result := s.evalBaseAndIndex(node)
+		if result.Error != nil {
+			return result.Error
 		}
-		// Compute the index
-		var index object.Object
-		if n.Token.Type() == token.DOT {
-			index = object.String{Value: n.Index.Value().Literal()}
-		} else {
-			index = s.Eval(n.Index)
-			if index.Type() == object.ERROR {
-				err := index.(object.Error)
-				return index, &err
-			}
-		}
+
 		// Set the value at this level
-		newBase := s.evalIndexAssignmentValue(base, index, value, identifier)
+		newBase := s.evalIndexAssignmentValue(result.Base, result.Index, value, result.Identifier)
 		if newBase.Type() == object.ERROR {
-			err := newBase.(object.Error)
-			return newBase, &err
+			return newBase
 		}
+
 		// Recursively assign the updated base to the parent
-		return s.assignNested(left, newBase)
+		return s.assignNested(n.Left, newBase)
 	default:
-		err := s.NewError("assignment to non identifier: " + node.Value().DebugString())
-		return err, &err
+		err := s.Errorf("assignment to non identifier: %s", node.Value().DebugString())
+		return err
 	}
 }
 
@@ -143,8 +134,8 @@ func (s *State) evalAssignment(right object.Object, node *ast.InfixExpression) o
 			return res
 		}
 		// Use the recursive assignNested helper
-		res, oerr := s.assignNested(node.Left, right)
-		if oerr != nil {
+		res := s.assignNested(node.Left, right)
+		if res.Type() == object.ERROR {
 			return res
 		}
 		return right
