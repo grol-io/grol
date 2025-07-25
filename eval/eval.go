@@ -119,8 +119,8 @@ func (s *State) assignNested(node ast.Node, value object.Object) (object.Object,
 		// Recursively assign the updated base to the parent
 		return s.assignNested(n.Left, newBase)
 	default:
-		err := s.Errorfp("assignment to non identifier: %s", node.Value().DebugString())
-		return *err, err
+		err := s.Errorf("assignment to non identifier: %s", node.Value().DebugString())
+		return err, &err
 	}
 }
 
