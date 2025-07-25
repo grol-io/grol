@@ -21,8 +21,7 @@ var unquoteToken = token.ByType(token.UNQUOTE)
 func (s *State) compoundAssignNested(node ast.Node, operator token.Type, value object.Object) object.Object {
 	n, ok := node.(*ast.IndexExpression) // No need to switch on node type because we call assignNested after.
 	if !ok {
-		err := s.NewError("assignment to non identifier: " + node.Value().DebugString())
-		return err
+		return s.Errorf("assignment to non identifier: %s", node.Value().DebugString())
 	}
 
 	left := n.Left
@@ -33,15 +32,13 @@ func (s *State) compoundAssignNested(node ast.Node, operator token.Type, value o
 		identifier = id.Literal()
 		baseObj, ok := s.env.Get(identifier)
 		if !ok {
-			err := s.NewError("identifier not found: " + identifier)
-			return err
+			return s.Errorf("identifier not found: %s", identifier)
 		}
 		base = object.Value(baseObj)
 	} else {
 		base = s.Eval(left)
 		if base.Type() == object.ERROR {
-			err := base.(object.Error)
-			return err
+			return base
 		}
 	}
 	// Compute the index.
@@ -51,8 +48,7 @@ func (s *State) compoundAssignNested(node ast.Node, operator token.Type, value o
 	} else {
 		index = s.Eval(n.Index)
 		if index.Type() == object.ERROR {
-			err := index.(object.Error)
-			return err
+			return index
 		}
 	}
 	// Get value of element in array/map.
@@ -61,8 +57,7 @@ func (s *State) compoundAssignNested(node ast.Node, operator token.Type, value o
 	compounded := s.evalInfixExpression(operator, indexValue, value)
 	newBase := s.evalIndexAssignmentValue(base, index, compounded, identifier)
 	if newBase.Type() == object.ERROR {
-		err := newBase.(object.Error)
-		return err
+		return newBase
 	}
 	// Assign the updated base to the parent.
 	res, err := s.assignNested(left, newBase)
