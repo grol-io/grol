@@ -1,6 +1,6 @@
 module grol.io/grol
 
-go 1.23.8
+go 1.23.0
 
 require (
 	fortio.org/cli v1.10.0
