@@ -751,7 +751,7 @@ func createTimeFunctions() {
 		MinArgs:  1,
 		MaxArgs:  2,
 		ArgTypes: []object.Type{object.FLOAT, object.STRING},
-		Help:     "returns detailed information about a time value in seconds since epoch",
+		Help:     "returns detailed information about a time value in seconds since epoch (in optional tz)",
 		Category: object.CategoryTime,
 		Callback: func(st any, _ string, args []object.Object) object.Object {
 			s := st.(*eval.State)
@@ -794,7 +794,7 @@ func createTimeFunctions() {
 		MinArgs:  1,
 		MaxArgs:  2,
 		ArgTypes: []object.Type{object.STRING, object.STRING},
-		Help:     "parses a time string and returns seconds since epoch",
+		Help:     "parses a time string (using optional format) and returns seconds since epoch",
 		Category: object.CategoryTime,
 		Callback: func(st any, _ string, args []object.Object) object.Object {
 			s := st.(*eval.State)
