@@ -9,6 +9,7 @@ import (
 	"os"
 
 	"fortio.org/log"
+	"fortio.org/terminal/ansipixels/tcolor"
 	"golang.org/x/image/font"
 	"golang.org/x/image/font/gofont/gobold"
 	"golang.org/x/image/font/gofont/goitalic"
@@ -89,50 +90,8 @@ func (fc *FontCache) getFace(variant string, size float64) (font.Face, error) {
 
 // HSLToRGB converts HSL values to RGB. h, s and l in [0,1].
 func HSLToRGB(h, s, l float64) color.NRGBA {
-	var r, g, b float64
-
-	// h = math.Mod(h, 360.) / 360.
-
-	if s == 0 {
-		r, g, b = l, l, l
-	} else {
-		var q float64
-		if l < 0.5 {
-			q = l * (1. + s)
-		} else {
-			q = l + s - l*s
-		}
-		p := 2*l - q
-		r = hueToRGB(p, q, h+1/3.)
-		g = hueToRGB(p, q, h)
-		b = hueToRGB(p, q, h-1/3.)
-	}
-
-	return color.NRGBA{
-		R: uint8(math.Round(r * 255)),
-		G: uint8(math.Round(g * 255)),
-		B: uint8(math.Round(b * 255)),
-		A: 255,
-	}
-}
-
-func hueToRGB(p, q, t float64) float64 {
-	if t < 0 {
-		t += 1.
-	}
-	if t > 1 {
-		t -= 1.
-	}
-	if t < 1/6. {
-		return p + (q-p)*6*t
-	}
-	if t < 0.5 {
-		return q
-	}
-	if t < 2/3. {
-		return p + (q-p)*(2/3.-t)*6
-	}
-	return p
+	c := tcolor.HSLToRGB(h, s, l)
+	return color.NRGBA{R: c.R, G: c.G, B: c.B, A: 255}
 }
 
 func hslArrayToRBGAColor(arr []object.Object) (color.NRGBA, *object.Error) {
