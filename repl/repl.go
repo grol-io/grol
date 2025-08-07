@@ -302,19 +302,19 @@ func Interactive(options Options) int { //nolint:funlen // we do have quite a fe
 		}
 		term.AddToHistory(rd)
 		l := prev + rd
-		switch {
-		case l == "history":
+		switch l {
+		case "history":
 			h := term.History()
 			slices.Reverse(h)
 			for i, v := range h {
 				fmt.Fprintf(term.Out, "%02d: %s\n", i+1, v)
 			}
 			continue
-		case l == "help":
+		case "help":
 			fmt.Fprintln(term.Out,
 				"Type 'history' to see history, '!n' to repeat history n, 'info' for language builtins, use <tab> for completion.")
 			continue
-		case l == "exit":
+		case "exit":
 			log.Infof("Exit requested")
 			_ = AutoSave(s, options)
 			return 0
