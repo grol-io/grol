@@ -71,7 +71,6 @@ func createShellFunctions() {
 			log.Debugf("Suspending term")
 			s.Term.Suspend()
 		}
-		//nolint:fatcontext // we do need to update/reset the context and its cancel function.
 		s.Context, s.Cancel = context.WithCancel(context.Background()) // no timeout.
 		cmd, oerr := createCmd(*s, args)
 		if oerr != nil {

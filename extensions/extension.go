@@ -565,7 +565,6 @@ func createStrFunctions() { //nolint:funlen,gocognit,maintidx // we do have quit
 	MustCreate(strFn)
 }
 
-//nolint:funlen // we have quite a few extensions here.
 func createMisc() {
 	minMaxFn := object.Extension{
 		MinArgs:  1,

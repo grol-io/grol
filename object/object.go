@@ -1288,7 +1288,7 @@ func (e Extension) Usage(out *strings.Builder) {
 		out.WriteString(arg)
 		out.WriteString("]")
 	case e.MaxArgs > minArgs:
-		out.WriteString(fmt.Sprintf("%sarg%d..arg%d", prefix, minArgs+1, e.MaxArgs))
+		fmt.Fprintf(out, "%sarg%d..arg%d", prefix, minArgs+1, e.MaxArgs)
 	}
 	out.WriteString(suffix)
 }
