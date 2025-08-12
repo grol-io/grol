@@ -584,7 +584,6 @@ func createVectorImageFunctions(cdata ImageMap) { //nolint:funlen // this is a g
 }
 
 func mergeAdd(img1, img2 *image.RGBA) {
-	//nolint:gosec // gosec not smart enough to see the range checks with min - https://github.com/securego/gosec/issues/1212
 	for y := range img1.Bounds().Dy() {
 		for x := range img1.Bounds().Dx() {
 			ansipixels.AddPixel(img1, x, y, img2.RGBAAt(x, y))
