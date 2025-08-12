@@ -101,5 +101,5 @@ r := ysize/2-0.5
 circle(img, cx, cy, r, [190,190,190,180], 1)
 trueCircle(img, cx, cy, r-1, [200,70,70,240])
 trueCircle(img, cx, cy, r+1, [70,200,70,200])
-trueCircle(img, cx, cy, r, [20,20,255,255])
+trueCircle(img, cx, cy, r, [20,20,255,128])
 image.save(img)

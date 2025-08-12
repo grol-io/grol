@@ -9,6 +9,7 @@ import (
 	"os"
 
 	"fortio.org/log"
+	"fortio.org/terminal/ansipixels"
 	"fortio.org/terminal/ansipixels/tcolor"
 	"golang.org/x/image/font"
 	"golang.org/x/image/font/gofont/gobold"
@@ -194,24 +195,7 @@ func getVariant(args []object.Object, variantArgIndex int) string {
 }
 
 // NRGBAtoRGBA converts a non-premultiplied alpha color to a premultiplied alpha color.
-//
-//nolint:gosec // gosec not smart enough to see this stays in range.
-func NRGBAtoRGBA(c color.NRGBA) color.RGBA {
-	if c.A == 0xFF {
-		return color.RGBA(c)
-	}
-	if c.A == 0 {
-		return color.RGBA{0, 0, 0, 0}
-	}
-	// Convert non-premultiplied alpha to premultiplied alpha
-	// RGBA = (R * A/255, G * A/255, B * A/255, A)
-	return color.RGBA{
-		R: uint8(uint16(c.R) * uint16(c.A) / 255),
-		G: uint8(uint16(c.G) * uint16(c.A) / 255),
-		B: uint8(uint16(c.B) * uint16(c.A) / 255),
-		A: c.A,
-	}
-}
+// Moved to ansipixels
 
 func createImageFunctions() { //nolint:funlen,maintidx // this is a group of related functions.
 	// All the functions consistently use args[0] as the image name/reference into the ClientData map.
@@ -256,22 +240,24 @@ func createImageFunctions() { //nolint:funlen,maintidx // this is a group of rel
 			return object.Errorf("image %q not found", args[0].(object.String).Value)
 		}
 		colorArray := object.Elements(args[3])
-		var color color.NRGBA
+		var nCol color.NRGBA
 		var oerr *object.Error
 		switch name {
 		case "image.set_ycbcr":
-			color, oerr = ycbrArrayToRBGAColor(colorArray)
+			nCol, oerr = ycbrArrayToRBGAColor(colorArray)
 		case "image.set_hsl":
-			color, oerr = hslArrayToRBGAColor(colorArray)
+			nCol, oerr = hslArrayToRBGAColor(colorArray)
 		case "image.set":
-			color, oerr = rgbArrayToRBGAColor(colorArray)
+			nCol, oerr = rgbArrayToRBGAColor(colorArray)
 		default:
 			return object.Errorf("unknown image.set function %q", name)
 		}
 		if oerr != nil {
 			return *oerr
 		}
-		img.Image.SetRGBA(x, y, NRGBAtoRGBA(color))
+		// rgbaC := color.RGBA{nCol.R, nCol.G, nCol.B, nCol.A}
+		// img.Image.SetRGBA(x, y, rgbaC)
+		img.Image.SetRGBA(x, y, ansipixels.NRGBAtoRGBA(nCol)) // TODO: demonstrate why this is required.
 		return args[0]
 	}
 	MustCreate(imgFn)
@@ -601,21 +587,7 @@ func mergeAdd(img1, img2 *image.RGBA) {
 	//nolint:gosec // gosec not smart enough to see the range checks with min - https://github.com/securego/gosec/issues/1212
 	for y := range img1.Bounds().Dy() {
 		for x := range img1.Bounds().Dx() {
-			p1 := img1.RGBAAt(x, y)
-			if p1.R == 0 && p1.G == 0 && p1.B == 0 { // black is no change
-				img1.SetRGBA(x, y, img2.RGBAAt(x, y))
-				continue
-			}
-			p2 := img2.RGBAAt(x, y)
-			if p2.R == 0 && p2.G == 0 && p2.B == 0 { // black is no change
-				continue
-			}
-			p1.R = uint8(min(255, uint16(p1.R)+uint16(p2.R)))
-			p1.G = uint8(min(255, uint16(p1.G)+uint16(p2.G)))
-			p1.B = uint8(min(255, uint16(p1.B)+uint16(p2.B)))
-			// p1.A = uint8(min(255, uint16(p1.A)+uint16(p2.A))) // summing transparency yield non transparent quickly
-			p1.A = max(p1.A, p2.A)
-			img1.SetRGBA(x, y, p1)
+			ansipixels.AddPixel(img1, x, y, img2.RGBAAt(x, y))
 		}
 	}
 }
