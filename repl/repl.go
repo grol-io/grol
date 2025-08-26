@@ -270,6 +270,7 @@ func Interactive(options Options) int { //nolint:funlen // we do have quite a fe
 		options.PreInput(s)
 	}
 	_, _ = eval.EvalString(s, "interactive=true", false)
+	_, _ = s.UpdateNumSet() // so we only save if the user actually did some state change after this point.
 	prev := ""
 	for {
 		var ctx context.Context
