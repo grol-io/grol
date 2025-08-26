@@ -124,6 +124,7 @@ func AutoSave(s *eval.State, options Options) error {
 	}
 	f, err := os.CreateTemp(".", ".grol*.tmp")
 	if err != nil {
+		log.Errf("Error creating temp file for autosave: %v", err)
 		return err
 	}
 	// Write to temp file.
