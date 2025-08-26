@@ -1212,7 +1212,9 @@ func (s *State) evalStatements(stmts []ast.Node) object.Object {
 			continue
 		}
 		result = s.evalInternal(statement)
-		log.LogVf("result statement %s", result)
+		if log.LogVerbose() {
+			log.LogVf("result statement %s: %s", result.Type(), result.Inspect())
+		}
 		if rt := result.Type(); rt == object.RETURN || rt == object.ERROR {
 			return result
 		}

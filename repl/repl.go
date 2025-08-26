@@ -124,16 +124,25 @@ func AutoSave(s *eval.State, options Options) error {
 	}
 	f, err := os.CreateTemp(".", ".grol*.tmp")
 	if err != nil {
+		log.Errf("Error creating temp file for autosave: %v", err)
 		return err
 	}
 	// Write to temp file.
 	n, err := s.SaveGlobals(f)
 	if err != nil {
+		log.Errf("Error saving autosave: %v", err)
+		return err
+	}
+	// On windows, we need to close it first
+	err = f.Close()
+	if err != nil {
+		log.Errf("Error closing temp file: %v", err)
 		return err
 	}
 	// Rename "atomically" (not really but close enough).
 	err = os.Rename(f.Name(), AutoSaveFile)
 	if err != nil {
+		log.Errf("Error renaming autosave file: %v", err)
 		return err
 	}
 	log.Infof("Auto saved %d ids/fns (%d set) to: %s", n, updates, AutoSaveFile)
@@ -270,6 +279,7 @@ func Interactive(options Options) int { //nolint:funlen // we do have quite a fe
 		options.PreInput(s)
 	}
 	_, _ = eval.EvalString(s, "interactive=true", false)
+	_, _ = s.UpdateNumSet() // so we only save if the user actually did some state change after this point.
 	prev := ""
 	for {
 		var ctx context.Context
