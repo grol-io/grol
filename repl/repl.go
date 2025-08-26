@@ -112,6 +112,7 @@ func AutoLoad(s *eval.State, options Options) error {
 }
 
 func AutoSave(s *eval.State, options Options) error {
+	log.Infof("XXXX AutoSave called")
 	if !options.AutoSave {
 		log.Debugf("Autosave disabled")
 		return nil
