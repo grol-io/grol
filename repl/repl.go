@@ -133,6 +133,12 @@ func AutoSave(s *eval.State, options Options) error {
 		log.Errf("Error saving autosave: %v", err)
 		return err
 	}
+	// On windows, we need to close it first
+	err = f.Close()
+	if err != nil {
+		log.Errf("Error closing temp file: %v", err)
+		return err
+	}
 	// Rename "atomically" (not really but close enough).
 	err = os.Rename(f.Name(), AutoSaveFile)
 	if err != nil {
