@@ -112,7 +112,6 @@ func AutoLoad(s *eval.State, options Options) error {
 }
 
 func AutoSave(s *eval.State, options Options) error {
-	log.Infof("XXXX AutoSave called")
 	if !options.AutoSave {
 		log.Debugf("Autosave disabled")
 		return nil
@@ -131,11 +130,13 @@ func AutoSave(s *eval.State, options Options) error {
 	// Write to temp file.
 	n, err := s.SaveGlobals(f)
 	if err != nil {
+		log.Errf("Error saving autosave: %v", err)
 		return err
 	}
 	// Rename "atomically" (not really but close enough).
 	err = os.Rename(f.Name(), AutoSaveFile)
 	if err != nil {
+		log.Errf("Error renaming autosave file: %v", err)
 		return err
 	}
 	log.Infof("Auto saved %d ids/fns (%d set) to: %s", n, updates, AutoSaveFile)
