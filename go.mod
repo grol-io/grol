@@ -6,7 +6,7 @@ require (
 	fortio.org/cli v1.10.0
 	fortio.org/log v1.17.2
 	fortio.org/progressbar v1.1.0
-	fortio.org/safecast v1.0.0
+	fortio.org/safecast v1.1.0
 	fortio.org/sets v1.3.0
 	fortio.org/struct2env v0.4.2
 	fortio.org/terminal v0.51.0
