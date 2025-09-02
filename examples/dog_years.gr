@@ -1,3 +1,10 @@
+#! /usr/bin/env grol -quiet -s
+println("Dog Years Calculator")
+println(info.globals)
+if !info.globals.args {
+	println("### To run, use ./dog_years.gr")
+	return
+}
 print("Enter dog birthday: ")
 dogbday := read()
 
