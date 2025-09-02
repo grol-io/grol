@@ -1,0 +1,31 @@
+#! /usr/bin/env grol -quiet -s
+println("Dog Years Calculator")
+println(info.globals)
+if !info.globals.args {
+	println("### To run, use ./dog_years.gr")
+	return
+}
+print("Enter dog birthday: ")
+dogbday := read()
+
+bday = time.parse(trim(dogbday))
+
+println(time.info(bday))
+
+now := time.now()
+age := now - bday
+
+days := age / 86400.
+println("Age in days: ", days)
+years := days / 365.25
+println("Age in years: ", years)
+
+dyears := years * 7
+println("Age in dog years: ", dyears)
+
+to100 := bday + (100*365.25*86400)/7
+
+println("100 dog years is ", time.info(to100).str)
+
+delta := (to100 - now) / 86400
+println("Time until 100 dog years: ", delta, " days")
