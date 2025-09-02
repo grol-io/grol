@@ -1,16 +1,20 @@
 #! /usr/bin/env grol -quiet -s
 println("Dog Years Calculator")
-println(info.globals)
 if !info.globals.args {
 	println("### To run, use ./dog_years.gr")
 	return
 }
 print("Enter dog birthday: ")
 dogbday := read()
+println()
+printf("read %q\n", dogbday)
+// workaround for bracketed paste issue https://github.com/grol-io/grol/issues/418
+clean := regsub("\x1b\\[20[01]~", dogbday, "")
+printf("cleaned to %q\n", clean)
 
-bday = time.parse(trim(dogbday))
+bday = time.parse(trim(clean))
 
-println(time.info(bday))
+println("Parsed as", time.info(bday))
 
 now := time.now()
 age := now - bday
@@ -29,3 +33,5 @@ println("100 dog years is ", time.info(to100).str)
 
 delta := (to100 - now) / 86400
 println("Time until 100 dog years: ", delta, " days")
+
+printf("tclock -text \"Countdown to 100 years old\" -countdown %fh\n", delta*24)
