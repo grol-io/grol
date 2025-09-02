@@ -468,7 +468,7 @@ func createStrFunctions() { //nolint:funlen,gocognit,maintidx // we do have quit
 	strFn.Name = "regsub"
 	strFn.Help = "regexp, input, subst"
 	strFn.ArgTypes = []object.Type{object.STRING, object.STRING, object.STRING}
-	strFn.MaxArgs = 3
+	strFn.MinArgs = 3
 	strFn.Callback = func(env any, _ string, args []object.Object) object.Object {
 		s := env.(*eval.State)
 		regx := args[0].(object.String).Value
