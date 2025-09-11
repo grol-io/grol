@@ -794,7 +794,8 @@ func createTimeFunctions() {
 		MinArgs:  1,
 		MaxArgs:  2,
 		ArgTypes: []object.Type{object.STRING, object.STRING},
-		Help:     "parses a time string (using optional format) and returns seconds since epoch (time is relative to now and local TZ if not specified)",
+		Help: "parses a time string (using optional format) and returns seconds since epoch" +
+			" (time is relative and after current time and local TZ if not specified by the format used)",
 		Category: object.CategoryTime,
 		Callback: func(st any, _ string, args []object.Object) object.Object {
 			s := st.(*eval.State)
@@ -830,6 +831,7 @@ func createTimeFunctions() {
 			}
 			return object.Float{Value: t.Seconds()}
 		},
+		DontCache: true,
 	})
 }
 
