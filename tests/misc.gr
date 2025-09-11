@@ -186,3 +186,8 @@ IsErr("direct assignment to non-indexable shows variable name", intVar[0] = 5, "
 // Case 2: Nested expression assignment (identifier empty)
 func getInt() { 42 }
 IsErr("nested assignment to non-indexable shows generic message", getInt()[0] = 5, "index assignment to object of unexpected type")
+
+dur := time.duration("1w1d3h")
+expected := (7+1)*86400 + 3*3600.0 // need float for == to work
+log("duration 1w1d3h in seconds is", dur, "expecting", expected)
+Assert("time.duration(\"1w1d3h\")", dur == expected)

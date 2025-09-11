@@ -18,6 +18,7 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"fortio.org/duration"
 	"fortio.org/log"
 	"fortio.org/safecast"
 	"fortio.org/terminal"
@@ -793,7 +794,7 @@ func createTimeFunctions() {
 		MinArgs:  1,
 		MaxArgs:  2,
 		ArgTypes: []object.Type{object.STRING, object.STRING},
-		Help:     "parses a time string (using optional format) and returns seconds since epoch",
+		Help:     "parses a time string (using optional format) and returns seconds since epoch (time is relative to now and local TZ if not specified)",
 		Category: object.CategoryTime,
 		Callback: func(st any, _ string, args []object.Object) object.Object {
 			s := st.(*eval.State)
@@ -813,12 +814,30 @@ func createTimeFunctions() {
 			return object.Float{Value: float64(t.UnixMicro()) / 1e6}
 		},
 	})
+	MustCreate(object.Extension{
+		Name:     "time.duration",
+		MinArgs:  1,
+		MaxArgs:  1,
+		ArgTypes: []object.Type{object.STRING},
+		Help:     "parses a duration string (including eg 1d3h) and returns the duration in seconds",
+		Category: object.CategoryTime,
+		Callback: func(st any, _ string, args []object.Object) object.Object {
+			s := st.(*eval.State)
+			inp := args[0].(object.String).Value
+			t, err := duration.Parse(inp)
+			if err != nil {
+				return s.Error(err)
+			}
+			return object.Float{Value: t.Seconds()}
+		},
+	})
 }
 
 // --- implementation of the functions that aren't inlined in lambdas above.
 
 var parseFormats = []string{
-	time.DateTime, //   = "2006-01-02 15:04:05" // first as that's what time.info().str returns (with usec).
+	// Included (and first there too) in duration.ParseDateTime:
+	// time.DateTime, // = "2006-01-02 15:04:05" // first as that's what time.info().str returns (with usec).
 	time.RFC3339,
 	time.ANSIC,            //   = "Mon Jan _2 15:04:05 2006"
 	time.UnixDate,         //   = "Mon Jan _2 15:04:05 MST 2006"
@@ -829,10 +848,12 @@ var parseFormats = []string{
 	time.RFC1123Z,         //   = "Mon, 02 Jan 2006 15:04:05 -0700" // RFC1123 with numeric zone
 	time.RFC3339,          //   = "2006-01-02T15:04:05Z07:00"
 	"2006-01-02T15:04:05", // ISO8601 without timezone
-	time.Kitchen,          //   = "3:04PM"
-	time.Stamp,            //   = "Jan _2 15:04:05"
-	time.DateOnly,         //   = "2006-01-02"
-	time.TimeOnly,         //   = "15:04:05"
+	// Included in duration's parsing: time.Kitchen,          //   = "3:04PM"
+	time.Stamp, //   = "Jan _2 15:04:05"
+	// Included in duration's parsing:
+	// time.DateOnly, //   = "2006-01-02"
+	// and
+	// time.TimeOnly, //   = "15:04:05"
 	"_2 Jan 2006",
 	"_2/1/2006", // try EU (ie sensible) style first.
 	"1/_2/2006",
@@ -842,8 +863,15 @@ var parseFormats = []string{
 }
 
 func TryParseTime(input string) (time.Time, error) {
+	// First try duration's parsing (handles things like "3:04 pm" instead of needing "3:04PM" for instance)
 	var t time.Time
 	var err error
+	t, err = duration.ParseDateTime(time.Now(), input)
+	if err == nil {
+		log.Infof("Parsed %q with duration's parser: %v", input, t)
+		return t, nil
+	}
+	// Otherwise try these
 	for i, format := range parseFormats { // maybe consider grouping formats by length
 		t, err = time.Parse(format, input)
 		if err == nil {
