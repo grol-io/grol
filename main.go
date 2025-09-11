@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"fortio.org/cli"
+	"fortio.org/duration"
 	"fortio.org/log"
 	"fortio.org/progressbar"
 	"fortio.org/struct2env"
@@ -69,7 +70,7 @@ func Main() (retcode int) { //nolint:funlen // we do have quite a lot of flags a
 	maxLen := flag.Int("max-save-len", 4000, "Maximum len of saved identifiers, use 0 for unlimited")
 	panicOk := flag.Bool("panic", false, "Don't catch panic - only for development/debugging")
 	// Use 0 (unlimited) as default now that you can ^C to stop a script.
-	maxDuration := flag.Duration("max-duration", 0, "Maximum duration for a script to run. 0 for unlimited.")
+	maxDuration := duration.Flag("max-duration", 0, "Maximum duration for a script to run. 0 for unlimited.")
 	shebangMode := flag.Bool("s", false, "#! script mode: next argument is a script file to run, rest are args to the script")
 	noRegister := flag.Bool("no-register", false, "Don't use registers")
 	noProgress := flag.Bool("no-progress", false, "Don't show progress bar even when processing multiple files")
