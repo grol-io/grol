@@ -814,6 +814,7 @@ func createTimeFunctions() {
 			}
 			return object.Float{Value: float64(t.UnixMicro()) / 1e6}
 		},
+		DontCache: true,
 	})
 	MustCreate(object.Extension{
 		Name:     "time.duration",
@@ -831,7 +832,6 @@ func createTimeFunctions() {
 			}
 			return object.Float{Value: t.Seconds()}
 		},
-		DontCache: true,
 	})
 }
 
