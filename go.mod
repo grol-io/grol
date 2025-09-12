@@ -4,19 +4,18 @@ go 1.23.0
 
 require (
 	fortio.org/cli v1.11.0
+	fortio.org/duration v1.0.4
 	fortio.org/log v1.17.2
 	fortio.org/progressbar v1.1.0
 	fortio.org/safecast v1.2.0
 	fortio.org/sets v1.3.0
 	fortio.org/struct2env v0.4.2
-	fortio.org/terminal v0.52.1
+	fortio.org/terminal v0.52.2
 	fortio.org/testscript v0.3.2 // only for tests
 	fortio.org/version v1.0.4
 	github.com/rivo/uniseg v0.4.7
 	golang.org/x/image v0.30.0
 )
-
-require fortio.org/duration v1.0.1
 
 require (
 	github.com/kortschak/goroutine v1.1.2 // indirect
