@@ -16,7 +16,7 @@ require (
 	golang.org/x/image v0.30.0
 )
 
-require fortio.org/duration v1.0.1
+require fortio.org/duration v1.0.4
 
 require (
 	github.com/kortschak/goroutine v1.1.2 // indirect
