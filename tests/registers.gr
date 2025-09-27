@@ -44,3 +44,8 @@ func maxWidths(widths) {
 mw := [[9999,7777]]
 
 NoErr("matrix max width", maxWidths(mw), `\[\[9999\] \[7777\]\]`)
+
+
+func bug428(n) {for n%2==0 {n /= 2}}
+
+NoErr("register /= works and returns right value", bug428(8*7), "7")

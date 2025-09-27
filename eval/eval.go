@@ -153,11 +153,20 @@ func (s *State) evalAssignment(right object.Object, node *ast.InfixExpression) o
 		// Distinguish between define and assign, define (:=) forces a new variable.
 		return s.env.CreateOrSet(name, right, nodeType == token.DEFINE)
 	case token.REGISTER:
+		// TODO:Quite a bit of copy-pasta'ing here...
 		reg := node.Left.(*object.Register)
-		log.LogVf("eval assign %#v to register %d", right, reg.Idx)
+		nodeType := node.Type()
+		log.LogVf("eval %s %#v for register %d", nodeType, right, reg.Idx)
 		intVal, ok := Int64Value(right)
 		if !ok {
 			return s.NewError("register assignment of non integer: " + right.Inspect())
+		}
+		if opToEval, ok := isCompound(nodeType); ok {
+			currentValue := *reg.Ptr()
+			compounded := s.evalIntegerInfixExpression(opToEval, currentValue, intVal)
+			log.LogVf("eval compound assign from %d to %#v for register %d", currentValue, compounded, reg.Idx)
+			*reg.Ptr() = compounded.(object.Integer).Value
+			return compounded
 		}
 		*reg.Ptr() = intVal
 		return right
