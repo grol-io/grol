@@ -1306,12 +1306,12 @@ func (s *State) evalInfixExpression(operator token.Type, left, right object.Obje
 		// can't use generics :/ see other comment.
 	case rightIsInt && leftIsInt:
 		return s.evalIntegerInfixExpression(operator, leftVal, rightVal)
+	case left.Type() == object.ARRAY:
+		return s.evalArrayInfixExpression(operator, left, right)
 	case left.Type() == object.FLOAT || right.Type() == object.FLOAT:
 		return s.evalFloatInfixExpression(operator, left, right)
 	case left.Type() == object.STRING:
 		return s.evalStringInfixExpression(operator, left, right)
-	case left.Type() == object.ARRAY:
-		return s.evalArrayInfixExpression(operator, left, right)
 	case left.Type() == object.MAP && right.Type() == object.MAP:
 		return s.evalMapInfixExpression(operator, left, right)
 	default:
