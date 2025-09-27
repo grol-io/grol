@@ -166,7 +166,7 @@ func (s *State) evalAssignment(right object.Object, node *ast.InfixExpression) o
 			compounded := s.evalIntegerInfixExpression(opToEval, currentValue, intVal)
 			log.LogVf("eval compound assign from %d to %#v for register %d", currentValue, compounded, reg.Idx)
 			*reg.Ptr() = compounded.(object.Integer).Value
-			return right
+			return compounded
 		}
 		*reg.Ptr() = intVal
 		return right
