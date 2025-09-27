@@ -191,3 +191,9 @@ dur := time.duration("1w1d3h")
 expected := (7+1)*86400 + 3*3600.0 // need float for == to work
 log("duration 1w1d3h in seconds is", dur, "expecting", expected)
 Assert("time.duration(\"1w1d3h\")", dur == expected)
+
+arr := []
+arr += 1
+arr += true
+arr += "test"
+NoErr("array += 2.1", arr += 2.1, "[1, true, \"test\", 2.1]")
