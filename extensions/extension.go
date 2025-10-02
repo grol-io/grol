@@ -839,8 +839,8 @@ func createTimeFunctions() {
 
 var parseFormats = []string{
 	// Included (and first there too) in duration.ParseDateTime:
-	// time.DateTime, // = "2006-01-02 15:04:05" // first as that's what time.info().str returns (with usec).
-	time.RFC3339,
+	// time.DateTime,      //   = "2006-01-02 15:04:05" // first as that's what time.info().str returns (with usec).
+	time.RFC3339,          //   = "2006-01-02T15:04:05Z07:00"
 	time.ANSIC,            //   = "Mon Jan _2 15:04:05 2006"
 	time.UnixDate,         //   = "Mon Jan _2 15:04:05 MST 2006"
 	time.RFC822,           //   = "02 Jan 06 15:04 MST"
@@ -848,7 +848,6 @@ var parseFormats = []string{
 	time.RFC850,           //   = "Monday, 02-Jan-06 15:04:05 MST"
 	time.RFC1123,          //   = "Mon, 02 Jan 2006 15:04:05 MST"
 	time.RFC1123Z,         //   = "Mon, 02 Jan 2006 15:04:05 -0700" // RFC1123 with numeric zone
-	time.RFC3339,          //   = "2006-01-02T15:04:05Z07:00"
 	"2006-01-02T15:04:05", // ISO8601 without timezone
 	// Included in duration's parsing: time.Kitchen,          //   = "3:04PM"
 	time.Stamp, //   = "Jan _2 15:04:05"
