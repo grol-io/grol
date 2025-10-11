@@ -6,6 +6,7 @@
 stderr 'flag provided but not defined: -foo'
 
 # (short) version
+env LOGGER_LEVEL=Error # because of ignoring cli info log with redirected output
 grol version
 stdout '^dev$'
 !stderr .
@@ -15,6 +16,8 @@ grol buildinfo
 stdout '^dev  go'
 stdout 'path	grol.io/grol'
 !stderr .
+
+env LOGGER_LEVEL=
 
 # most basic expression
 grol -c '1+1'
@@ -32,10 +35,10 @@ stderr 'identifier not found: foo'
 grol sample_test.gr
 !stderr 'Errors'
 cmp stdout sample_test_stdout
-stderr 'I] Running sample_test.gr'
+stderr 'Running sample_test.gr'
 stderr 'called fact 5'
 stderr 'called fact 1'
-stderr 'I] All done'
+stderr 'All done'
 
 # macro output (there is a macro in sample_test.gr, it should show that stage with -parse)
 grol -parse sample_test.gr
@@ -52,13 +55,14 @@ stdout '12586269025\n'
 grol fib_50.gr
 !stderr 'Errors'
 cmp stdout fib50_stdout
-stderr 'I] Running fib_50.gr'
-stderr 'I] All done'
+stderr 'Running fib_50.gr'
+stderr 'All done'
 
 # Bug repro, return aborts the whole program
 grol -c 'f=func(){return 1;2};log(f());f();3'
 stdout '^1\n3$'
 !stderr '\[E\]'
+!stderr 'error'
 
 # lambda version of previous
 grol -c 'f=()=>{return 1;2};log(f());f();3'
@@ -147,21 +151,21 @@ stderr 'identifier not found: save'
 stderr 'identifier not found: load'
 
 !grol -restrict-io -c 'save("/tmp/foo.gr"); load("/tmp/foo.gr")'
-stderr 'invalid character in filename "/tmp/foo.gr": /'
+stderr 'invalid character in filename \\"/tmp/foo.gr\\": /'
 
 grol -restrict-io -c 'load("fib_50")'
 stdout '^12586269025\n$'
 stderr 'Read/evaluated: fib_50.gr'
 
 !grol -restrict-io -c 'load("./fib_50.gr")'
-stderr 'invalid character in filename "./fib_50.gr": \.'
+stderr 'invalid character in filename \\"./fib_50.gr\\": \.'
 
 grol -c 'load("./fib_50.gr")'
 stdout '^12586269025\n$'
 stderr 'Read/evaluated: ./fib_50.gr'
 
 !grol -empty-only -c 'load("fib_50")'
-stderr 'empty only mode, filename must be empty or no arguments, got: "fib_50"'
+stderr 'empty only mode, filename must be empty or no arguments, got: \\"fib_50\\"'
 
 grol -empty-only -c 'save();load()'
 stderr 'Saved .* ids/fns to: .gr'
@@ -268,14 +272,13 @@ stdout '^15$'
 # stack trace in errors
 !grol -quiet -c 'func level1(){1+"x"}; func level2(){level1()}; func level3(){level2()}; level3()'
 stderr 'Total 1 error'
-stderr '^<err: no PLUS on left=1 right="x", stack below:>$'
-stderr '^func level1\(\){1\+"x"}$'
-stderr '^func level2\(\){level1\(\)}$'
-stderr '^func level3\(\){level2\(\)}$'
+stderr 'err: no PLUS on left=1.*, stack below'
+stderr 'func level1\(\)'
+stderr 'func level2\(\)'
+stderr 'func level3\(\)'
 
 !grol -quiet -c 'func level1(){1+"x"}; level1()'
-stderr 'Total 1 error'
-stderr '^<err: no PLUS on left=1 right="x" in func level1\(\){1\+"x"}>$'
+stderr 'Total 1 error:\\n<err: no PLUS on left=1 right=\\"x\\" in func level1\(\){1\+\\"x\\"}>'
 
 # json with some functions
 grol -quiet -c 'f=()=>{{"k":"v"}}; println(json_go(f))'
@@ -286,7 +289,7 @@ stdout '^"\(\)=>{{\\"k\\":\\"v\\"}}"$'
 # prefix operator single error (used to be <err: bitwise not of <err: bitwise not of <err: bitwise not of 1.1>>>)
 !grol -quiet -c '~~~1.1'
 stderr 'Total 1 error'
-stderr '^<err: bitwise not of 1.1>$'
+stderr '<err: bitwise not of 1.1>'
 
 # negative repeat of string shouldn't panic
 !grol -quiet -c '"abc" * -3'
