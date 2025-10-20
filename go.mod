@@ -10,7 +10,7 @@ require (
 	fortio.org/safecast v1.2.0
 	fortio.org/sets v1.3.0
 	fortio.org/struct2env v0.4.2
-	fortio.org/terminal v0.60.1
+	fortio.org/terminal v0.60.2
 	fortio.org/testscript v0.3.2 // only for tests
 	fortio.org/version v1.0.4
 	github.com/rivo/uniseg v0.4.7
