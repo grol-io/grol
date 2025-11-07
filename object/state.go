@@ -436,7 +436,7 @@ func NewFunctionEnvironment(fn Function, current *Environment) (*Environment, bo
 	return env, sameFunction
 }
 
-// Name of the frame/stack.
+// Name returns the name of the frame or stack.
 func (e *Environment) Name() string {
 	if e.function == nil {
 		return ""
