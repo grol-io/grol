@@ -577,7 +577,7 @@ func Errorf(format string, args ...interface{}) Error {
 	return Error{Value: fmt.Sprintf(format, args...)}
 }
 
-// Errorfp pointer version of Errorf. used in code conditionally returning an error (oerr pointer).
+// Errorfp returns a pointer version of Errorf. It is used in code that conditionally returns an error (oerr pointer).
 func Errorfp(format string, args ...interface{}) *Error {
 	return &Error{Value: fmt.Sprintf(format, args...)}
 }
