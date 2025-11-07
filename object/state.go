@@ -299,7 +299,7 @@ func (e *Environment) GetMisses() int64 {
 	return e.getMiss
 }
 
-// CantCache is if we called a non cacheable extension (like rand()).
+// CantCache returns true if a non-cacheable extension (like rand()) was called.
 func (e *Environment) CantCache() bool {
 	return e.cantCache
 }
