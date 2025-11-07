@@ -133,7 +133,7 @@ type Node interface {
 	PrettyPrint(ps *PrintState) *PrintState
 }
 
-// Base is common to all nodes that have a token and avoids repeating the same TokenLiteral() methods.
+// Base contains fields common to all nodes that have a token and avoids repeating the same TokenLiteral() methods.
 type Base struct {
 	*token.Token
 }

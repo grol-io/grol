@@ -120,7 +120,7 @@ func IsIntType(t Type) bool {
 	return t == INTEGER || t == REGISTER
 }
 
-// TypeEqual: registers are considered integer for the purpose of comparison.
+// TypeEqual checks if types are equal, considering registers as integers for comparison purposes.
 func TypeEqual(a, b Type) bool {
 	return a == b || (IsIntType(a) && IsIntType(b))
 }
@@ -571,8 +571,8 @@ type Error struct {
 	Stack []string
 }
 
-// Errorf. Use eval's Errorf() instead whenever possible, to get the stack.
-// This one should only be used by extensions that do not take the state as clientdata.
+// Errorf creates an error object with a formatted message. Use eval's Errorf() instead whenever possible to get the stack.
+// This function should only be used by extensions that do not take the state as clientdata.
 func Errorf(format string, args ...interface{}) Error {
 	return Error{Value: fmt.Sprintf(format, args...)}
 }
@@ -975,7 +975,7 @@ type SmallMap struct {
 	len     int
 }
 
-// BigMap is sorted KV pairs, O(n) insert O(log n) access/same key mutations.
+// BigMap represents a collection of sorted key-value pairs, providing O(n) insert and O(log n) access or mutation for the same key.
 type BigMap struct {
 	kv []keyValuePair
 }
@@ -1164,7 +1164,7 @@ func (m Macro) JSON(w io.Writer) error {
 	return err
 }
 
-// Register is for fast local integer variables skipping the environment map lookup.
+// Register represents fast local integer variables skipping the environment map lookup.
 type Register struct {
 	ast.Base
 	RefEnv *Environment
@@ -1198,7 +1198,7 @@ func (r *Register) PrettyPrint(out *ast.PrintState) *ast.PrintState {
 	return out
 }
 
-// Reference is a pointer to original object up the stack.
+// Reference represents a pointer to the original object up the stack.
 type Reference struct {
 	Name   string
 	RefEnv *Environment
@@ -1224,7 +1224,7 @@ func (r Reference) Type() Type             { return REFERENCE }
 func (r Reference) Inspect() string        { return r.ObjValue().Inspect() }
 func (r Reference) JSON(w io.Writer) error { return r.ObjValue().JSON(w) }
 
-// Extension is for functions implemented in go and exposed to grol.
+// Extension represents functions implemented in Go and exposed to grol.
 type Extension struct {
 	Name       string      // Name to make the function available as in grol.
 	MinArgs    int         // Minimum number of arguments required.
@@ -1238,7 +1238,7 @@ type Extension struct {
 	DontCache  bool        // If true, the result of this function should not be cached (has side effects).
 }
 
-// ShortCallback is an adapter for functions that only need the arguments.
+// ShortCallback adapts functions that only need the arguments.
 func ShortCallback(f ShortExtFunction) ExtFunction {
 	return func(_ any, _ string, args []Object) Object {
 		return f(args)
