@@ -347,7 +347,7 @@ func Interactive(options Options) int { //nolint:funlen // we do have quite a fe
 	}
 }
 
-// Grol is an alternate API for benchmarking and simplicity.
+// Grol provides an alternate API for benchmarking and simplicity.
 type Grol struct {
 	State     *eval.State
 	PrintEval bool
