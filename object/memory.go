@@ -38,7 +38,7 @@ func MustBeOk(n int) {
 	}
 }
 
-// MakeObjectSlice is a memory checking version of make(). To avoid OOM kills / fatal errors.
+// MakeObjectSlice provides a memory checking version of make() to avoid OOM kills and fatal errors.
 func MakeObjectSlice(n int) []Object {
 	MustBeOk(n)
 	return make([]Object, 0, n)
