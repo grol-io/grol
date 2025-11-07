@@ -148,7 +148,7 @@ func (b Base) PrettyPrint(ps *PrintState) *PrintState {
 	return ps.Print(b.Literal())
 }
 
-// ControlExpression: break or continue statement.
+// ControlExpression represents a break or continue statement.
 type ControlExpression struct {
 	Base
 }
