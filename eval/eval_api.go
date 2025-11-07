@@ -20,7 +20,7 @@ import (
 // Exported part of the eval package.
 
 const (
-	// Approximate maximum depth of recursion to avoid:
+	// DefaultMaxDepth is the approximate maximum depth of recursion to avoid:
 	// runtime: goroutine stack exceeds 1000000000-byte limit
 	// fatal error: stack overflow. Was 250k but adding a log
 	// in Error() makes it go over that (somehow).
@@ -98,24 +98,24 @@ func (s *State) ResetCache() {
 	s.cache = NewCache()
 }
 
-// Forward to env to count the number of bindings. Used mostly to know if there are any macros.
+// Len forwards to env to count the number of bindings. Used mostly to know if there are any macros.
 func (s *State) Len() int {
 	return s.env.Len()
 }
 
-// Save() saves the current toplevel state (ids and functions) to the writer, forwards to the object store.
+// SaveGlobals saves the current toplevel state (ids and functions) to the writer, forwards to the object store.
 // Saves the top level (global) environment.
 func (s *State) SaveGlobals(w io.Writer) (int, error) {
 	return s.env.SaveGlobals(w, s.MaxValueLen)
 }
 
-// NumSet returns the previous and current cumulative number of set in the toplevel environment, if that
+// UpdateNumSet returns the previous and current cumulative number of set in the toplevel environment, if that
 // number hasn't changed, no need to autosave.
 func (s *State) UpdateNumSet() (oldvalue, newvalue int64) {
 	oldvalue = s.lastNumSet
 	newvalue = s.env.NumSet()
 	s.lastNumSet = newvalue
-	return
+	return oldvalue, newvalue
 }
 
 // SetContext sets the context for the evaluator, with a maximum duration.
@@ -135,12 +135,12 @@ func (s *State) SetDefaultContext() context.CancelFunc {
 	return s.SetContext(context.Background(), DefaultMaxDuration)
 }
 
-// Final unwrapped result of an evaluation (for instance unwraps the registers which Eval() does not).
+// EvalToplevel is the final unwrapped result of an evaluation (for instance unwraps the registers which Eval() does not).
 func (s *State) EvalToplevel(node any) object.Object {
 	return object.Value(s.Eval(node))
 }
 
-// Does unwrap (so stop bubbling up) return values.
+// Eval does unwrap (so stop bubbling up) return values.
 func (s *State) Eval(node any) object.Object {
 	if s.depth > s.MaxDepth {
 		log.LogVf("max depth %d reached", s.MaxDepth) // will be logged by the panic handler.
@@ -192,7 +192,7 @@ func (s *State) SetArgs(args []string) object.Object {
 	return s.env.SetNoChecks(argsName, object.NewArray(arr), true)
 }
 
-// Evals a string either from entirely blank environment or from the current environment.
+// EvalString evaluates a string either from entirely blank environment or from the current environment.
 // `unjson` uses emptyEnv == true (for now, pending better/safer implementation).
 //
 //nolint:revive // eval.EvalString is fine.

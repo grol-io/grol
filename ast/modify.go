@@ -13,7 +13,7 @@ func ModifyNoOk(node Node, f func(Node) Node) Node {
 	return newNode
 }
 
-// Note, this is somewhat similar to eval.go's eval... both are "apply"ing.
+// Modify, note this is somewhat similar to eval.go's eval... both are "apply"ing.
 func Modify(node Node, f func(Node) (Node, bool)) (Node, bool) { //nolint:funlen,gocyclo,gocognit,maintidx // yeah lots of types.
 	// It's quite ugly all these continuation/ok checks.
 	var cont bool

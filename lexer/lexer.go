@@ -17,17 +17,17 @@ type Lexer struct {
 	lineNumber    int
 }
 
-// Mode with input expected the be complete (multiline/file).
+// New is lexer mode with string input expected the be complete (multiline/file).
 func New(input string) *Lexer {
 	return NewBytes([]byte(input))
 }
 
-// Line by line mode, with possible continuation needed.
+// NewLineMode: line by line mode, with possible continuation needed.
 func NewLineMode(input string) *Lexer {
 	return &Lexer{input: []byte(input), lineMode: true, lineNumber: 1}
 }
 
-// Bytes based full input mode.
+// NewBytes: bytes based full input mode.
 func NewBytes(input []byte) *Lexer {
 	return &Lexer{input: input, lineNumber: 1}
 }
@@ -47,7 +47,7 @@ func (l *Lexer) LastNewLine() int {
 	return l.lastNewLine
 }
 
-// For error handling, somewhat expensive.
+// CurrentLine is for error handling, somewhat expensive.
 // Returns the current line, the current position relative in that line
 // and the current line number.
 func (l *Lexer) CurrentLine() (string, int, int) {

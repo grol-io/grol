@@ -7,7 +7,7 @@ import (
 	"grol.io/grol/object"
 )
 
-// Returns a stack array of the current stack.
+// Stack returns a stack array of the current stack.
 func (s *State) Stack() []string {
 	if s.depth <= 1 {
 		return nil
@@ -24,7 +24,7 @@ func (s *State) Stack() []string {
 	return limited
 }
 
-// Will use top and bottom N/2 elements of the stack to create a string.
+// LimitStack will use top and bottom N/2 elements of the stack to create a string.
 func LimitStack(stack []string, limit int) []string {
 	if len(stack) <= limit {
 		return stack

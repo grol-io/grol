@@ -209,7 +209,7 @@ func EvalStringWithOption(ctx context.Context, o Options, what string) (res stri
 	if !panicked {
 		_ = AutoSave(s, o)
 	}
-	return
+	return res, errs, formatted
 }
 
 func extractHistoryNumber(input string) (int, bool) {
@@ -222,7 +222,7 @@ func extractHistoryNumber(input string) (int, bool) {
 	return 0, false
 }
 
-// Adds the interactive terminal to the state and make the input raw mode.
+// AddTerm adds the interactive terminal to the state and make the input raw mode.
 // Allows for read(1) in raw mode or non-blocking reads.
 // Returns the terminal or nil if there was an error.
 // Caller must defer Close() on the returned terminal to restore the original terminal normal mode.
@@ -347,14 +347,14 @@ func Interactive(options Options) int { //nolint:funlen // we do have quite a fe
 	}
 }
 
-// Alternate API for benchmarking and simplicity.
+// Grol is an alternate API for benchmarking and simplicity.
 type Grol struct {
 	State     *eval.State
 	PrintEval bool
 	program   ast.Node
 }
 
-// Initialize with new empty state.
+// New initializes Grol with new empty state.
 func New() *Grol {
 	g := &Grol{State: eval.NewState()}
 	return g
@@ -418,7 +418,7 @@ func EvalOne(ctx context.Context, s *eval.State, what string, out io.Writer, opt
 	cancel := s.SetContext(ctx, options.MaxDuration)
 	defer cancel() // must be called to avoid leaking timeout context, which caused #204.
 	continuation, errs, formatted = evalOne(s, what, out, options)
-	return
+	return continuation, panicked, errs, formatted
 }
 
 func evalOne(s *eval.State, what string, out io.Writer, options Options) (bool, []string, string) {

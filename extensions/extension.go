@@ -1,4 +1,4 @@
-// Package mappings some go built in functions to grol functions.
+// Package extensions maps go built in functions to grol functions.
 // Same mechanism can be used to map other go functions to grol functions and further extend the language.
 package extensions
 
@@ -38,7 +38,7 @@ var (
 
 const GrolFileExtension = ".gr" // Also the default filename for LoadSaveEmptyOnly.
 
-// Configure restrictions and features.
+// Config is configuration for restrictions and features.
 // Currently about IOs of load and save functions.
 type Config struct {
 	HasLoad           bool // load() only present if this is true.
@@ -137,6 +137,7 @@ func initInternal(c *Config) error {
 	createJSONAndEvalFunctions(c)
 	createStrFunctions()
 	createMisc()
+	createConversionFunctions()
 	createTimeFunctions()
 	createImageFunctions()
 	if c.UnrestrictedIOs {
@@ -646,7 +647,9 @@ func createMisc() {
 		Category:  object.CategoryMath,
 		DontCache: true, // Since it's random, we don't want to cache the result
 	})
+}
 
+func createConversionFunctions() {
 	intFn := object.Extension{
 		Name:     "int",
 		MinArgs:  1,
@@ -1048,7 +1051,7 @@ func DropStartingShebang(what string) string {
 	return what
 }
 
-// Convert a grol map to a go struct (via json).
+// MapToStruct converts a grol map to a go struct (via json).
 func MapToStruct[T any](inp object.Map, out *T) error {
 	w := bytes.Buffer{}
 	err := inp.JSON(&w)

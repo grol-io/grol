@@ -1,4 +1,4 @@
-// There are 2 types of Token, constant ones (with no "value") and the ones with attached
+// Package token defines 2 types of Token, constant ones (with no "value") and the ones with attached
 // value that is variable (e.g. IDENT, INT, FLOAT, STRING, *COMMENT).
 // We might have used the upcoming unique https://tip.golang.org/doc/go1.23#new-unique-package
 // but we want this to run on 1.22 and earlier and rolled our own, not multi threaded.
@@ -32,7 +32,7 @@ type Token struct {
 // Single threaded (famous last words), no need for sync.Map.
 var interning map[Token]*Token
 
-// Lookup a unique pointer to a token of same values, if it exists,
+// InternToken looks up a unique pointer to a token of same values, if it exists,
 // otherwise store the passed in one for future lookups.
 func InternToken(t *Token) *Token {
 	ptr, ok := interning[*t]
@@ -58,6 +58,7 @@ const (
 	startValueTokens
 
 	// Identifiers + literals. with attached value.
+
 	IDENT  // add, foobar, x, y, ...
 	INT    // 1343456
 	FLOAT  // .5, 3.14159,...
@@ -71,6 +72,7 @@ const (
 	startSingleCharTokens
 
 	// Single character operators.
+
 	ASSIGN
 
 	PLUS  // order must be PLUS,MINUS,ASTERISK,SLASH,BITAND,BITOR,BITXOR
@@ -88,6 +90,7 @@ const (
 	GT
 
 	// Delimiters.
+
 	COMMA
 	SEMICOLON
 
@@ -106,6 +109,7 @@ const (
 	startMultiCharTokens
 
 	// LT, GT or equal variants.
+
 	LTEQ
 	GTEQ
 	EQ
@@ -133,6 +137,7 @@ const (
 	startIdentityTokens // Tokens whose literal is the lowercase of the Type.String()
 
 	// Keywords.
+
 	FUNC
 	TRUE
 	FALSE
@@ -143,10 +148,12 @@ const (
 	BREAK
 	CONTINUE
 	// Macro magic.
+
 	MACRO
 	QUOTE
 	UNQUOTE
 	// Built-in functions.
+
 	LEN
 	FIRST
 	REST
