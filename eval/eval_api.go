@@ -20,7 +20,7 @@ import (
 // Exported part of the eval package.
 
 const (
-	// DefaultMaxDepth is the approximate maximum depth of recursion to avoid:
+	// DefaultMaxDepth represents the approximate maximum depth of recursion to avoid
 	// runtime: goroutine stack exceeds 1000000000-byte limit
 	// fatal error: stack overflow. Was 250k but adding a log
 	// in Error() makes it go over that (somehow).
