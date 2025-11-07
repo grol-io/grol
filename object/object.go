@@ -115,7 +115,7 @@ func NativeBoolToBooleanObject(input bool) Boolean {
 	return FALSE
 }
 
-// IsIntType: note that registers are equivalent to integers.
+// IsIntType checks if the type is an integer or a register.
 func IsIntType(t Type) bool {
 	return t == INTEGER || t == REGISTER
 }
