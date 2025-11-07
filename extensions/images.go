@@ -30,6 +30,7 @@ type GrolImage struct {
 
 type ImageMap map[object.Object]GrolImage
 
+// MaxImageDimension is the max image dimension currently allowed, in pixels.
 // TODO: make this configurable and use the slice check as well as some sort of LRU.
 const MaxImageDimension = 1024 // in pixels.
 

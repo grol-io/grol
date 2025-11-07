@@ -7,10 +7,10 @@ import (
 	"runtime/debug"
 )
 
-// Size of the Object interface in bytes.
+// ObjectSize represents the size of the Object interface in bytes.
 const ObjectSize = 2 * bits.UintSize / 8 // also unsafe.Sizeof(interface) == 16 bytes (2 pointers == 2 ints)
 
-// Returns the amount of free memory in bytes.
+// FreeMemory returns the amount of free memory in bytes.
 func FreeMemory() int64 {
 	var memStats runtime.MemStats
 	runtime.ReadMemStats(&memStats)
@@ -38,7 +38,7 @@ func MustBeOk(n int) {
 	}
 }
 
-// Memory checking version of make(). To avoid OOM kills / fatal errors.
+// MakeObjectSlice provides a memory checking version of make() to avoid OOM kills and fatal errors.
 func MakeObjectSlice(n int) []Object {
 	MustBeOk(n)
 	return make([]Object, 0, n)

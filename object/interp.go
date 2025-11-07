@@ -74,7 +74,7 @@ func CreateFunction(cmd Extension) error {
 	return nil
 }
 
-// Returns the table of extended functions to seed the state of an eval.
+// ExtraFunctions returns the table of extended functions to seed the state of an eval.
 func ExtraFunctions() ExtensionMap {
 	// no need to make a copy as each value need to be set to be changed (map of structs, not pointers).
 	return extraFunctions
@@ -85,7 +85,7 @@ func IsExtraFunction(name string) bool {
 	return ok
 }
 
-// Add values to top level environment, e.g "pi" -> 3.14159...
+// AddIdentifier adds values to top level environment, e.g "pi" -> 3.14159...
 // or "printf(){print(sprintf(%s, args...))}".
 func AddIdentifier(name string, value Object) {
 	if !initDone {

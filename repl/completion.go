@@ -19,7 +19,7 @@ func NewCompletion() *AutoComplete {
 func (a *AutoComplete) AutoComplete() terminal.AutoCompleteCallback {
 	return func(t *terminal.Terminal, line string, pos int, key rune) (newLine string, newPos int, ok bool) {
 		if key != '\t' {
-			return // only tab for now
+			return newLine, newPos, ok // only tab for now
 		}
 		return a.autoCompleteCallback(t, line, pos)
 	}
@@ -28,7 +28,7 @@ func (a *AutoComplete) AutoComplete() terminal.AutoCompleteCallback {
 func (a *AutoComplete) autoCompleteCallback(t *terminal.Terminal, line string, pos int) (newLine string, newPos int, ok bool) {
 	l, commands := a.Trie.PrefixAll(line[:pos])
 	if len(commands) == 0 {
-		return
+		return newLine, newPos, ok
 	}
 	if len(commands) > 1 {
 		fmt.Fprint(t.Out, "One of: ")

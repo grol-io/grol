@@ -1,4 +1,4 @@
-// Abstract Syntax Tree for the GROL language.
+// Package ast is for the Abstract Syntax Tree for the GROL language.
 // Everything is Node. Has a Token() and can be PrettyPrint'ed back to source
 // that would parse to the same AST.
 package ast
@@ -99,7 +99,7 @@ func (ps *PrintState) String() string {
 	return ps.Out.(*strings.Builder).String()
 }
 
-// Will print indented to current level. with a newline at the end.
+// Println will print indented to current level. with a newline at the end.
 // Only a single indentation per line.
 func (ps *PrintState) Println(str ...string) *PrintState {
 	ps.Print(str...)
@@ -127,13 +127,13 @@ func (ps *PrintState) Print(str ...string) *PrintState {
 
 // --- AST nodes
 
-// Everything in the tree is a Node.
+// Node represents everything in the tree.
 type Node interface {
 	Value() *token.Token
 	PrettyPrint(ps *PrintState) *PrintState
 }
 
-// Common to all nodes that have a token and avoids repeating the same TokenLiteral() methods.
+// Base contains fields common to all nodes that have a token and avoids repeating the same TokenLiteral() methods.
 type Base struct {
 	*token.Token
 }
@@ -148,7 +148,7 @@ func (b Base) PrettyPrint(ps *PrintState) *PrintState {
 	return ps.Print(b.Literal())
 }
 
-// Break or continue statement.
+// ControlExpression represents a break or continue statement.
 type ControlExpression struct {
 	Base
 }
@@ -447,7 +447,7 @@ func PrintList(out *PrintState, list []Node, sep string) {
 	}
 }
 
-// Similar to CallExpression.
+// Builtin represents a builtin call, similar to CallExpression.
 type Builtin struct {
 	Base       // The 'len' or 'first' or... core builtin token
 	Parameters []Node

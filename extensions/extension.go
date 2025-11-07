@@ -1,4 +1,4 @@
-// Package mappings some go built in functions to grol functions.
+// Package extensions maps go built in functions to grol functions.
 // Same mechanism can be used to map other go functions to grol functions and further extend the language.
 package extensions
 
@@ -38,7 +38,7 @@ var (
 
 const GrolFileExtension = ".gr" // Also the default filename for LoadSaveEmptyOnly.
 
-// Configure restrictions and features.
+// Config contains configuration for restrictions and features.
 // Currently about IOs of load and save functions.
 type Config struct {
 	HasLoad           bool // load() only present if this is true.
@@ -137,6 +137,7 @@ func initInternal(c *Config) error {
 	createJSONAndEvalFunctions(c)
 	createStrFunctions()
 	createMisc()
+	createConversionFunctions()
 	createTimeFunctions()
 	createImageFunctions()
 	if c.UnrestrictedIOs {
@@ -646,7 +647,9 @@ func createMisc() {
 		Category:  object.CategoryMath,
 		DontCache: true, // Since it's random, we don't want to cache the result
 	})
+}
 
+func createConversionFunctions() {
 	intFn := object.Extension{
 		Name:     "int",
 		MinArgs:  1,
@@ -673,6 +676,7 @@ func createMisc() {
 				return object.Integer{Value: r}
 			case object.STRING:
 				str := o.(object.String).Value
+				str = strings.TrimSpace(str)
 				if str == "" {
 					return object.Integer{Value: 0}
 				}
@@ -689,6 +693,40 @@ func createMisc() {
 		Help:     "converts a value to an integer",
 		Category: object.CategoryMath,
 	}
+	MustCreate(intFn)
+	intFn.Name = "float"
+	intFn.Callback = func(st any, _ string, args []object.Object) object.Object {
+		s := st.(*eval.State)
+		o := args[0]
+		switch o.Type() {
+		case object.INTEGER:
+			return object.Float{Value: float64(o.(object.Integer).Value)}
+		case object.NIL:
+			return object.Float{Value: 0}
+		case object.BOOLEAN:
+			if o.(object.Boolean).Value {
+				return object.Float{Value: 1}
+			}
+			return object.Float{Value: 0}
+		case object.FLOAT:
+			return o
+		case object.STRING:
+			str := o.(object.String).Value
+			str = strings.TrimSpace(str)
+			if str == "" {
+				return object.Float{Value: 0}
+			}
+			// Supports fancy notations like "0x1.921FB54442D18p+1"
+			f, serr := strconv.ParseFloat(str, 64)
+			if serr != nil {
+				return s.Error(serr)
+			}
+			return object.Float{Value: f}
+		default:
+			return s.Errorf("cannot convert %s to float", o.Type())
+		}
+	}
+	intFn.Help = "converts a value to a float"
 	MustCreate(intFn)
 	intFn.Name = "base64"
 	intFn.Callback = func(st any, _ string, args []object.Object) object.Object {
@@ -1013,7 +1051,7 @@ func DropStartingShebang(what string) string {
 	return what
 }
 
-// Convert a grol map to a go struct (via json).
+// MapToStruct converts a grol map to a go struct (via json).
 func MapToStruct[T any](inp object.Map, out *T) error {
 	w := bytes.Buffer{}
 	err := inp.JSON(&w)

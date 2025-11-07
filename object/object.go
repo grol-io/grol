@@ -115,12 +115,12 @@ func NativeBoolToBooleanObject(input bool) Boolean {
 	return FALSE
 }
 
-// registers are equivalent to integers.
+// IsIntType checks if the type is an integer or a register.
 func IsIntType(t Type) bool {
 	return t == INTEGER || t == REGISTER
 }
 
-// registers are considered integer for the purpose of comparison.
+// TypeEqual checks if types are equal, considering registers as integers for comparison purposes.
 func TypeEqual(a, b Type) bool {
 	return a == b || (IsIntType(a) && IsIntType(b))
 }
@@ -140,7 +140,7 @@ func CopyRegister(o Object) Object {
 	return o
 }
 
-// Deal with references and registers and return the actual value.
+// Value deals with references and registers and return the actual value.
 func Value(o Object) Object {
 	o = CopyRegister(o)
 	count := 0
@@ -294,14 +294,14 @@ func makeFirst(kv keyValuePair) Map {
 	return MakeQuad(KeyKey, kv.Key, ValueKey, kv.Value)
 }
 
-// Make a (small) map with a single key value pair entry.
+// MakePair makes a (small) map with a single key value pair entry.
 func MakePair(key, value Object) Map {
 	r := SmallMap{len: 1}
 	r.smallKV[0] = keyValuePair{Key: key, Value: value}
 	return r
 }
 
-// Makes a map with 2 key value pairs. Make sure the keys are sorted before calling this.
+// MakeQuad makes a map with 2 key value pairs. Make sure the keys are sorted before calling this.
 // otherwise just use NewMap() + Set() twice.
 func MakeQuad(key1, value1, key2, value2 Object) Map {
 	r := SmallMap{len: 2}
@@ -459,7 +459,7 @@ func (m SmallMap) Append(right Map) Map {
 	return res
 }
 
-// Creates a new Map appending the right map to the left map.
+// Append creates a new Map appending the right map to the left map.
 func (m *BigMap) Append(right Map) Map {
 	// allocate for case of all unique keys.
 	nl := len(m.kv) + right.Len()
@@ -571,13 +571,13 @@ type Error struct {
 	Stack []string
 }
 
-// Use eval's Errorf() instead whenever possible, to get the stack.
-// This one should only be used by extensions that do not take the state as clientdata.
+// Errorf creates an error object with a formatted message. Use eval's Errorf() instead whenever possible to get the stack.
+// This function should only be used by extensions that do not take the state as clientdata.
 func Errorf(format string, args ...interface{}) Error {
 	return Error{Value: fmt.Sprintf(format, args...)}
 }
 
-// Pointer version of Errorf. used in code conditionally returning an error (oerr pointer).
+// Errorfp returns a pointer version of Errorf. It is used in code that conditionally returns an error (oerr pointer).
 func Errorfp(format string, args ...interface{}) *Error {
 	return &Error{Value: fmt.Sprintf(format, args...)}
 }
@@ -657,7 +657,7 @@ func (f Function) Unwrap(forceStringKeys bool) any {
 }
 func (f Function) Type() Type { return FUNC }
 
-// Must be called after the function is fully initialized.
+// SetCacheKey must be called after the function is fully initialized.
 // Whether a function result should be cached doesn't depend on the Name,
 // so it's not part of the cache key.
 func SetCacheKey(f *Function) string {
@@ -975,7 +975,7 @@ type SmallMap struct {
 	len     int
 }
 
-// Sorted KV pairs, O(n) insert O(log n) access/same key mutations.
+// BigMap represents a collection of sorted key-value pairs, providing O(n) insert and O(log n) access or mutation for the same key.
 type BigMap struct {
 	kv []keyValuePair
 }
@@ -1164,7 +1164,7 @@ func (m Macro) JSON(w io.Writer) error {
 	return err
 }
 
-// Registers are fast local integer variables skipping the environment map lookup.
+// Register represents fast local integer variables skipping the environment map lookup.
 type Register struct {
 	ast.Base
 	RefEnv *Environment
@@ -1198,7 +1198,7 @@ func (r *Register) PrettyPrint(out *ast.PrintState) *ast.PrintState {
 	return out
 }
 
-// References are pointer to original object up the stack.
+// Reference represents a pointer to the original object up the stack.
 type Reference struct {
 	Name   string
 	RefEnv *Environment
@@ -1224,7 +1224,7 @@ func (r Reference) Type() Type             { return REFERENCE }
 func (r Reference) Inspect() string        { return r.ObjValue().Inspect() }
 func (r Reference) JSON(w io.Writer) error { return r.ObjValue().JSON(w) }
 
-// Extensions are functions implemented in go and exposed to grol.
+// Extension represents functions implemented in Go and exposed to grol.
 type Extension struct {
 	Name       string      // Name to make the function available as in grol.
 	MinArgs    int         // Minimum number of arguments required.
@@ -1238,7 +1238,7 @@ type Extension struct {
 	DontCache  bool        // If true, the result of this function should not be cached (has side effects).
 }
 
-// Adapter for functions that only need the argumants.
+// ShortCallback adapts functions that only need the arguments.
 func ShortCallback(f ShortExtFunction) ExtFunction {
 	return func(_ any, _ string, args []Object) Object {
 		return f(args)

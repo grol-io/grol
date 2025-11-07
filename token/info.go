@@ -2,7 +2,7 @@ package token
 
 import "fortio.org/sets"
 
-// Info enables introspection of known keywords and tokens and operators.
+// GrolInfo enables introspection of known keywords and tokens and operators.
 type GrolInfo struct {
 	// Keywords is a map of all known keywords.
 	Keywords sets.Set[string]

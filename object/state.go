@@ -35,7 +35,7 @@ type Environment struct {
 	PrevOut      io.Writer
 }
 
-// Truly empty store suitable for macros storage.
+// NewMacroEnvironment creates a truly empty store suitable for macros storage.
 func NewMacroEnvironment() *Environment {
 	return &Environment{store: make(map[string]Object)}
 }
@@ -131,7 +131,7 @@ func record(ids *trie.Trie, key string, t Type) {
 	ids.Insert(key)
 }
 
-// Records the current toplevel ids and functions as well
+// RegisterTrie records the current toplevel ids and functions as well
 // as sets up the callback to for future ids additions.
 func (e *Environment) RegisterTrie(t *trie.Trie) {
 	for e.outer != nil {
@@ -144,7 +144,7 @@ func (e *Environment) RegisterTrie(t *trie.Trie) {
 	t.Insert("info ") // magic extra identifier (need the space).
 }
 
-// Returns the number of ids written. maxValueLen <= 0 means no limit.
+// SaveGlobals saves and returns the number of ids written. maxValueLen <= 0 means no limit.
 func (e *Environment) SaveGlobals(to io.Writer, maxValueLen int) (int, error) {
 	for e.outer != nil {
 		e = e.outer
@@ -299,12 +299,12 @@ func (e *Environment) GetMisses() int64 {
 	return e.getMiss
 }
 
-// Can't cache is if we called a non cacheable extension (like rand()).
+// CantCache returns true if a non-cacheable extension (like rand()) was called.
 func (e *Environment) CantCache() bool {
 	return e.cantCache
 }
 
-// Defines constant as all CAPS (with _ ok in the middle) identifiers.
+// Constant defines constant as all CAPS (with _ ok in the middle) identifiers.
 // Note that we use []byte as all identifiers are ASCII.
 func Constant(name string) bool {
 	for i, v := range name {
@@ -364,7 +364,7 @@ func (e *Environment) update(name string, found, val Object) Object {
 	return val
 }
 
-// create force the creation of a new entry, even if had a previous value or ref.
+// SetNoChecks forces the creation of a new entry, even if had a previous value or ref.
 // (eg. function parameters are always new).
 func (e *Environment) SetNoChecks(name string, val Object, create bool) Object {
 	if create {
@@ -410,7 +410,7 @@ func NewEnclosedEnvironment(outer *Environment) *Environment {
 	return env
 }
 
-// Create a new environment either based on original function definitions' environment
+// NewFunctionEnvironment creates a new environment either based on original function definitions' environment
 // or the current one if the function is the same, that allows a function to set some values
 // visible through recursion to itself.
 //
@@ -436,7 +436,7 @@ func NewFunctionEnvironment(fn Function, current *Environment) (*Environment, bo
 	return env, sameFunction
 }
 
-// Frame/stack name.
+// Name returns the name of the frame or stack.
 func (e *Environment) Name() string {
 	if e.function == nil {
 		return ""
@@ -444,7 +444,7 @@ func (e *Environment) Name() string {
 	return e.function.Inspect()
 }
 
-// Allows eval and others to walk up the stack of envs themselves
+// StackParent allows eval and others to walk up the stack of envs themselves
 // (using Name() to produce a stack trace for instance).
 func (e *Environment) StackParent() *Environment {
 	return e.stack

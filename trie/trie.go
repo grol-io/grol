@@ -1,4 +1,4 @@
-// Trie implements a byte trie data structure.
+// Package trie implements a byte trie data structure.
 // It is fast as it uses arrays instead of maps and no bound checks.
 package trie // import "grol.io/grol/trie"
 
@@ -70,7 +70,7 @@ func (t *Trie) IsValid() bool {
 	return t != nil && t.valid
 }
 
-// Returns all the matches for the given prefix and the
+// PrefixAll returns all the matches for the given prefix and the
 // length of the longest common prefix.
 func (t *Trie) PrefixAll(prefix string) (int, []string) {
 	return t.Prefix(prefix).All(prefix)
