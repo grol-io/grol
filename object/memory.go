@@ -7,7 +7,7 @@ import (
 	"runtime/debug"
 )
 
-// ObjectSize is the size of the Object interface in bytes.
+// ObjectSize represents the size of the Object interface in bytes.
 const ObjectSize = 2 * bits.UintSize / 8 // also unsafe.Sizeof(interface) == 16 bytes (2 pointers == 2 ints)
 
 // FreeMemory returns the amount of free memory in bytes.
