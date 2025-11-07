@@ -127,7 +127,7 @@ func (ps *PrintState) Print(str ...string) *PrintState {
 
 // --- AST nodes
 
-// Node: everything in the tree is a Node.
+// Node represents everything in the tree.
 type Node interface {
 	Value() *token.Token
 	PrettyPrint(ps *PrintState) *PrintState
