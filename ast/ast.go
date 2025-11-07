@@ -447,7 +447,7 @@ func PrintList(out *PrintState, list []Node, sep string) {
 	}
 }
 
-// Builtin is similar to CallExpression.
+// Builtin represents a builtin call, similar to CallExpression.
 type Builtin struct {
 	Base       // The 'len' or 'first' or... core builtin token
 	Parameters []Node
