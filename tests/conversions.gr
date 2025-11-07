@@ -29,6 +29,7 @@ Assert("int() with trim() whitespaces work", int(trim("\n  123\n\t")) == 123)
 Assert("int(\"0\") is 0", int("0") == 0)
 Assert("int(\"0xa\") is 10", int("0xa") == 10)           // hex still working despite leading 0 handling
 Assert("int(\"0755\") octal is 493", int("0755") == 493) // octal still working despite leading 0 handling
+Assert("int(\" 42\\n\") is 42", int(" 42\n") == 42) // whitespaces trimmed
 
 // Unrelated for small test for existence of stuff
 func Exists(x) {
@@ -49,3 +50,11 @@ IsErr("utf8 ascii invalid", utf8(bytes("é")[0 : 1], true), "utf8: invalid utf8 
 IsErr("utf8 byte out of range", utf8([256]), "invalid byte value 256")
 IsErr("utf8 byte out of range", utf8([-129]), "invalid byte value -129")
 Assert("utf8 signed byte in range", utf8([-128]) == "\x80")
+
+
+// float()
+Assert("float int to float", float(42) == 42.)
+Assert("float int is float", type(float(42)) == "FLOAT")
+Assert("float of string", float("3.14") == 3.14)
+IsErr("float of invalid string", float("hello"), "invalid syntax")
+Assert("Float of hex float string", float("0x1.921FB54442D18p+1") == PI)
