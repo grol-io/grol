@@ -27,7 +27,7 @@ func NewLineMode(input string) *Lexer {
 	return &Lexer{input: []byte(input), lineMode: true, lineNumber: 1}
 }
 
-// NewBytes: bytes based full input mode.
+// NewBytes creates a lexer in bytes based full input mode.
 func NewBytes(input []byte) *Lexer {
 	return &Lexer{input: input, lineNumber: 1}
 }
