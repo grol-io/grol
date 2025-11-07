@@ -135,7 +135,7 @@ func (s *State) SetDefaultContext() context.CancelFunc {
 	return s.SetContext(context.Background(), DefaultMaxDuration)
 }
 
-// EvalToplevel is the final unwrapped result of an evaluation (for instance unwraps the registers which Eval() does not).
+// EvalToplevel returns the final unwrapped result of an evaluation, unwrapping registers which Eval does not.
 func (s *State) EvalToplevel(node any) object.Object {
 	return object.Value(s.Eval(node))
 }
