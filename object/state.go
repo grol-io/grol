@@ -35,7 +35,7 @@ type Environment struct {
 	PrevOut      io.Writer
 }
 
-// NewMacroEnvironment is a truly empty store suitable for macros storage.
+// NewMacroEnvironment creates a truly empty store suitable for macros storage.
 func NewMacroEnvironment() *Environment {
 	return &Environment{store: make(map[string]Object)}
 }

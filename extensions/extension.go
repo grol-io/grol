@@ -38,7 +38,7 @@ var (
 
 const GrolFileExtension = ".gr" // Also the default filename for LoadSaveEmptyOnly.
 
-// Config is configuration for restrictions and features.
+// Config contains configuration for restrictions and features.
 // Currently about IOs of load and save functions.
 type Config struct {
 	HasLoad           bool // load() only present if this is true.
