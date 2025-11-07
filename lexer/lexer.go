@@ -17,7 +17,7 @@ type Lexer struct {
 	lineNumber    int
 }
 
-// New is lexer mode with string input expected the be complete (multiline/file).
+// New creates a lexer in mode with string input expected to be complete (multiline/file).
 func New(input string) *Lexer {
 	return NewBytes([]byte(input))
 }
