@@ -22,7 +22,7 @@ func New(input string) *Lexer {
 	return NewBytes([]byte(input))
 }
 
-// NewLineMode: line by line mode, with possible continuation needed.
+// NewLineMode creates a lexer in line by line mode, with possible continuation needed.
 func NewLineMode(input string) *Lexer {
 	return &Lexer{input: []byte(input), lineMode: true, lineNumber: 1}
 }
