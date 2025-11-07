@@ -47,9 +47,8 @@ func (l *Lexer) LastNewLine() int {
 	return l.lastNewLine
 }
 
-// CurrentLine is for error handling, somewhat expensive.
-// Returns the current line, the current position relative in that line
-// and the current line number.
+// CurrentLine returns the current line as a string, the position within that line,
+// and the current line number. Useful for error handling. This operation may be somewhat expensive.
 func (l *Lexer) CurrentLine() (string, int, int) {
 	p := min(l.pos, len(l.input))
 	nextNewline := bytes.IndexByte(l.input[p:], '\n')
