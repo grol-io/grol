@@ -184,22 +184,22 @@ func TestShellExec_Success(t *testing.T) {
 	}{
 		{
 			name:     "true command",
-			cmd:      "/usr/bin/true",
+			cmd:      "true",
 			wantCode: 0,
 		},
 		{
 			name:     "false command",
-			cmd:      "/usr/bin/false",
+			cmd:      "false",
 			wantCode: 1,
 		},
 		{
 			name:     "echo with args",
-			cmd:      "/usr/bin/echo hello world",
+			cmd:      "echo hello world",
 			wantCode: 0,
 		},
 		{
 			name:     "command with quotes",
-			cmd:      `/usr/bin/echo "hello world"`,
+			cmd:      `echo "hello world"`,
 			wantCode: 0,
 		},
 	}
