@@ -1,5 +1,4 @@
 //go:build !no_pprof
-// +build !no_pprof
 
 package main
 

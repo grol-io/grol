@@ -3,14 +3,14 @@ module grol.io/grol
 go 1.23.0
 
 require (
-	fortio.org/cli v1.12.2
+	fortio.org/cli v1.12.3
 	fortio.org/duration v1.0.4
-	fortio.org/log v1.18.2
+	fortio.org/log v1.18.3
 	fortio.org/progressbar v1.2.0
 	fortio.org/safecast v1.2.0
 	fortio.org/sets v1.3.0
 	fortio.org/struct2env v0.4.2
-	fortio.org/terminal v0.60.2
+	fortio.org/terminal v0.60.3
 	fortio.org/testscript v0.3.2 // only for tests
 	fortio.org/version v1.0.4
 	github.com/rivo/uniseg v0.4.7
@@ -24,5 +24,5 @@ require (
 	golang.org/x/sys v0.35.0 // indirect
 	golang.org/x/term v0.34.0 // indirect
 	golang.org/x/text v0.28.0 // indirect
-	golang.org/x/tools v0.35.0 // indirect
+	golang.org/x/tools v0.36.0 // indirect
 )

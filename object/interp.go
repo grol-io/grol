@@ -3,6 +3,7 @@ package object
 import (
 	"errors"
 	"fmt"
+	"maps"
 	"strings"
 
 	"grol.io/grol/lexer"
@@ -111,9 +112,7 @@ func initialIdentifiersCopy() map[string]Object {
 	// we'd use maps.Clone except for tinygo not having it.
 	// https://github.com/tinygo-org/tinygo/issues/4382
 	copied := make(map[string]Object, len(extraIdentifiers))
-	for k, v := range extraIdentifiers {
-		copied[k] = v
-	}
+	maps.Copy(copied, extraIdentifiers)
 	return copied
 }
 

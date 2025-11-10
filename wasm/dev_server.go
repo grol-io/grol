@@ -1,5 +1,4 @@
 //go:build !wasm
-// +build !wasm
 
 // Not to be used for anything but localhost testing
 package main

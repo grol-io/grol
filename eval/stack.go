@@ -51,12 +51,12 @@ func (s *State) ErrorAddStack(e object.Error) object.Error {
 }
 
 // Errorf formats and create an object.Error using given format and args.
-func (s *State) Errorf(format string, args ...interface{}) object.Error {
+func (s *State) Errorf(format string, args ...any) object.Error {
 	return s.NewError(fmt.Sprintf(format, args...))
 }
 
 // Errorfp formats and create an *object.Error using given format and args.
-func (s *State) Errorfp(format string, args ...interface{}) *object.Error {
+func (s *State) Errorfp(format string, args ...any) *object.Error {
 	e := s.Errorf(format, args...)
 	return &e
 }

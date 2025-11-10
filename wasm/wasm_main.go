@@ -1,5 +1,4 @@
 //go:build wasm
-// +build wasm
 
 /*
 Web assembly main for grol, exposing grol (repl.EvalString for now) to JS
