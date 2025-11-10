@@ -216,7 +216,8 @@ func Main() (retcode int) { //nolint:funlen // we do have quite a lot of flags a
 
 // splitCommand splits a command string into parts, handling quoted strings.
 // Supports single quotes (no escaping), double quotes (backslash escaping), and basic escaping with backslash.
-func splitCommand(cmd string) []string {
+// Returns an error if quotes are unclosed or escape sequences are unterminated.
+func splitCommand(cmd string) ([]string, error) {
 	var parts []string
 	var current strings.Builder
 	inQuote := rune(0)
@@ -264,14 +265,25 @@ func splitCommand(cmd string) []string {
 		}
 		current.WriteRune(r)
 	}
+	// Check for unterminated escape sequence
+	if escaped {
+		return nil, fmt.Errorf("unterminated escape sequence: command ends with backslash")
+	}
+	// Check for unclosed quotes
+	if inQuote != 0 {
+		return nil, fmt.Errorf("unclosed quote: missing closing %c", inQuote)
+	}
 	if current.Len() > 0 {
 		parts = append(parts, current.String())
 	}
-	return parts
+	return parts, nil
 }
 
 func ShellExec(cmd string) int {
-	parts := splitCommand(cmd)
+	parts, err := splitCommand(cmd)
+	if err != nil {
+		return log.FErrf("Error parsing command: %v", err)
+	}
 	if len(parts) == 0 {
 		return log.FErrf("No command provided for exec")
 	}
