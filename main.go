@@ -80,7 +80,7 @@ func Main() (retcode int) { //nolint:funlen // we do have quite a lot of flags a
 	cli.ArgsHelp = "*.gr files to interpret or `-` for stdin without prompt or no arguments for stdin repl..."
 	cli.MaxArgs = -1
 	cli.Main()
-	if cmd, ok := strings.CutPrefix(*commandFlag, "exec "); ok {
+	if cmd, ok := strings.CutPrefix(*commandFlag, "exec "); ok && !*restrictIOs {
 		return ShellExec(cmd)
 	}
 	var histFile string
@@ -293,8 +293,7 @@ func ShellExec(cmd string) int {
 	}
 	execArgs := parts[1:]
 	log.Infof("Executing command: %s %v", execCmd, execArgs)
-	env := syscall.Environ() // or your own env
-
+	env := syscall.Environ() // inherit current environment
 	err = syscall.Exec(execCmd, append([]string{execCmd}, execArgs...), env)
 	if err != nil {
 		return log.FErrf("Error exec'ing process %q: %v", execCmd, err)
