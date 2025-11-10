@@ -5,7 +5,7 @@ go 1.23.0
 require (
 	fortio.org/cli v1.12.2
 	fortio.org/duration v1.0.4
-	fortio.org/log v1.18.1
+	fortio.org/log v1.18.2-0.20251110001121-0a0569efbfa8
 	fortio.org/progressbar v1.2.0
 	fortio.org/safecast v1.2.0
 	fortio.org/sets v1.3.0

@@ -8,6 +8,7 @@ import (
 	"io"
 	"math"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime/debug"
 	"strings"
@@ -78,6 +79,9 @@ func Main() (retcode int) { //nolint:funlen // we do have quite a lot of flags a
 	cli.ArgsHelp = "*.gr files to interpret or `-` for stdin without prompt or no arguments for stdin repl..."
 	cli.MaxArgs = -1
 	cli.Main()
+	if cmd, ok := strings.CutPrefix(*commandFlag, "exec "); ok {
+		return ShellExec(cmd)
+	}
 	var histFile string
 	if !*shebangMode { //nolint:nestif // shebang mode skips a few things like history, memory and welcome message.
 		histFile = *historyFile
@@ -205,6 +209,95 @@ func Main() (retcode int) { //nolint:funlen // we do have quite a lot of flags a
 		pbar.UpdateSuffix(fmt.Sprintf(" %d/%d: all done!", numFiles, numFiles))
 		pbar.Progress(100)
 		pbar.End()
+	}
+	return 0
+}
+
+// splitCommand splits a command string into parts, handling quoted strings.
+// Supports single quotes (no escaping), double quotes (backslash escaping), and basic escaping with backslash.
+func splitCommand(cmd string) []string {
+	var parts []string
+	var current strings.Builder
+	inQuote := rune(0)
+	escaped := false
+
+	for _, r := range cmd {
+		// Handle escaping - but only outside single quotes or inside double quotes
+		if escaped {
+			current.WriteRune(r)
+			escaped = false
+			continue
+		}
+		// Backslash handling depends on quote context
+		if r == '\\' {
+			if inQuote == '\'' {
+				// Inside single quotes, backslash is literal
+				current.WriteRune(r)
+			} else {
+				// Outside quotes or inside double quotes, backslash escapes next char
+				escaped = true
+			}
+			continue
+		}
+		// Inside a quoted string
+		if inQuote != 0 {
+			if r == inQuote {
+				inQuote = 0
+			} else {
+				current.WriteRune(r)
+			}
+			continue
+		}
+		// Start of a quoted string
+		if r == '"' || r == '\'' {
+			inQuote = r
+			continue
+		}
+		// Whitespace outside quotes separates arguments
+		if r == ' ' || r == '\t' || r == '\n' {
+			if current.Len() > 0 {
+				parts = append(parts, current.String())
+				current.Reset()
+			}
+			continue
+		}
+		current.WriteRune(r)
+	}
+	if current.Len() > 0 {
+		parts = append(parts, current.String())
+	}
+	return parts
+}
+
+func ShellExec(cmd string) int {
+	parts := splitCommand(cmd)
+	if len(parts) == 0 {
+		log.Errf("No command provided for exec")
+		return 1
+	}
+	execCmd, err := exec.LookPath(parts[0])
+	if err != nil {
+		log.Errf("Error finding command %q: %v", parts[0], err)
+		return 1
+	}
+	execArgs := parts[1:]
+	log.Infof("Executing shell command: %s %v", execCmd, execArgs)
+	procAttr := os.ProcAttr{
+		Files: []*os.File{os.Stdin, os.Stdout, os.Stderr},
+	}
+	process, err := os.StartProcess(execCmd, append([]string{execCmd}, execArgs...), &procAttr)
+	if err != nil {
+		log.Errf("Error starting process %q: %v", execCmd, err)
+		return 1
+	}
+	state, err := process.Wait()
+	if err != nil {
+		log.Errf("Error waiting for process %q: %v", execCmd, err)
+		return 1
+	}
+	if !state.Success() {
+		log.Errf("Process %q exited with code %d", execCmd, state.ExitCode())
+		return state.ExitCode()
 	}
 	return 0
 }
