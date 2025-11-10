@@ -249,6 +249,8 @@ flags:
 
 If you don't want to pass a flag and want to permanently change the `grol` history file location from your HOME directory, set `GROL_HISTORY_FILE` in the environment.
 
+There is a special variant of `-c` if the string starts with `exec ` the subsequent command will replace grol and be exec'ed like a shell would.
+
 ### Contributing
 
 Contributions are most welcome! If you use GROL, feel free to open a PR or issue to be listed here.
