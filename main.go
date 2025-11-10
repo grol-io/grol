@@ -3,6 +3,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -267,7 +268,7 @@ func splitCommand(cmd string) ([]string, error) {
 	}
 	// Check for unterminated escape sequence
 	if escaped {
-		return nil, fmt.Errorf("unterminated escape sequence: command ends with backslash")
+		return nil, errors.New("unterminated escape sequence: command ends with backslash")
 	}
 	// Check for unclosed quotes
 	if inQuote != 0 {
