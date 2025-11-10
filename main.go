@@ -281,8 +281,7 @@ func ShellExec(cmd string) int {
 	}
 	execArgs := parts[1:]
 	log.Infof("Executing command: %s %v", execCmd, execArgs)
-	env := syscall.Environ() // or your own env
-
+	env := syscall.Environ() // inherit current environment
 	err = syscall.Exec(execCmd, append([]string{execCmd}, execArgs...), env)
 	if err != nil {
 		return log.FErrf("Error exec'ing process %q: %v", execCmd, err)
