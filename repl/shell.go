@@ -90,7 +90,7 @@ func ShellExec(cmd string) int {
 		return log.FErrf("Error finding command %q: %v", parts[0], err)
 	}
 	execArgs := parts[1:]
-	log.Infof("Executing command: %s %v", execCmd, execArgs)
+	log.Infof("Executing command: %s %d args (%v)", execCmd, len(execArgs), execArgs)
 	env := syscall.Environ() // inherit current environment
 	err = syscall.Exec(execCmd, append([]string{execCmd}, execArgs...), env)
 	if err != nil {

@@ -351,6 +351,23 @@ stdout '^false$'
 grol -quiet -c 'url="http://debug.fortio.org:80/abc?foo=bar#anchor"; regexp(`^http://([^/:]+)(:([^/]*))?(/[^#]*)?(#.*)?$`, url, true)'
 stdout '^\["http://debug.fortio.org:80/abc\?foo=bar#anchor","debug.fortio.org",":80","80","/abc\?foo=bar","#anchor"\]$'
 
+# New special `-c "exec ..."` mode that executes the command directly, no REPL loop
+grol -c 'exec dirname "foo bar/x"'
+stdout '^foo bar$'
+stderr 'Executing command: .*/dirname 1 args \(\[foo bar/x\]\)'
+
+grol -quiet -c 'exec echo "foo bar"'
+stdout '^foo bar$'
+!stderr .
+
+!grol -quiet -c 'exec false'
+!stdout .
+!stderr .
+
+grol -quiet -c 'exec true'
+!stdout .
+!stderr .
+
 -- println_output --
 func (fmtstr, ..) {
 	print(sprintf(fmtstr, ..))
