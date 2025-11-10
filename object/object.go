@@ -573,12 +573,12 @@ type Error struct {
 
 // Errorf creates an error object with a formatted message. Use eval's Errorf() instead whenever possible to get the stack.
 // This function should only be used by extensions that do not take the state as clientdata.
-func Errorf(format string, args ...interface{}) Error {
+func Errorf(format string, args ...any) Error {
 	return Error{Value: fmt.Sprintf(format, args...)}
 }
 
 // Errorfp returns a pointer version of Errorf. It is used in code that conditionally returns an error (oerr pointer).
-func Errorfp(format string, args ...interface{}) *Error {
+func Errorfp(format string, args ...any) *Error {
 	return &Error{Value: fmt.Sprintf(format, args...)}
 }
 

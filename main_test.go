@@ -1,5 +1,4 @@
 //go:build !tinygo && !windows
-// +build !tinygo,!windows
 
 package main_test
 

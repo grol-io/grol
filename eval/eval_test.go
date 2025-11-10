@@ -189,7 +189,7 @@ func testBooleanObject(t *testing.T, obj object.Object, expected bool) {
 func TestIfElseExpressions(t *testing.T) {
 	tests := []struct {
 		input    string
-		expected interface{}
+		expected any
 	}{
 		{"", nil},
 		{"if (true) {return} else {return 3}", nil},
@@ -461,7 +461,7 @@ func TestStringConcatenation(t *testing.T) {
 func TestBuiltinFunctions(t *testing.T) {
 	tests := []struct {
 		input    string
-		expected interface{}
+		expected any
 	}{
 		{`len("")`, 0},
 		{`len("four")`, 4},
@@ -513,7 +513,7 @@ func TestArrayLiterals(t *testing.T) {
 func TestArrayIndexExpressions(t *testing.T) {
 	tests := []struct {
 		input    string
-		expected interface{}
+		expected any
 	}{
 		{
 			"[1, 2, 3][0]",
@@ -627,7 +627,7 @@ func TestMapLiterals(t *testing.T) {
 func TestMapIndexExpressions(t *testing.T) {
 	tests := []struct {
 		input    string
-		expected interface{}
+		expected any
 	}{
 		{
 			`{"foo": 5}["foo"]`,
