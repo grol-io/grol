@@ -1,6 +1,7 @@
 package repl
 
 import (
+	"errors"
 	"os"
 	"os/exec"
 	"testing"
@@ -167,7 +168,7 @@ func TestShellExec_ErrorCases(t *testing.T) {
 	}
 }
 
-// TestShellExec_Success tests successful execution via subprocess
+// TestShellExec_Success tests successful execution via subprocess.
 func TestShellExec_Success(t *testing.T) {
 	// Check if we're being run as a subprocess
 	if os.Getenv("GO_TEST_SUBPROCESS") == "1" {
@@ -217,10 +218,13 @@ func TestShellExec_Success(t *testing.T) {
 			var gotCode int
 			if err == nil {
 				gotCode = 0
-			} else if exitErr, ok := err.(*exec.ExitError); ok {
-				gotCode = exitErr.ExitCode()
 			} else {
-				t.Fatalf("ShellExec(%q) unexpected error type: %v", tt.cmd, err)
+				var exitErr *exec.ExitError
+				if errors.As(err, &exitErr) {
+					gotCode = exitErr.ExitCode()
+				} else {
+					t.Fatalf("ShellExec(%q) unexpected error type: %v", tt.cmd, err)
+				}
 			}
 
 			if gotCode != tt.wantCode {
