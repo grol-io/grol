@@ -4,6 +4,7 @@ import (
 	"errors"
 	"os"
 	"os/exec"
+	"runtime"
 	"testing"
 )
 
@@ -170,6 +171,9 @@ func TestShellExec_ErrorCases(t *testing.T) {
 
 // TestShellExec_Success tests successful execution via subprocess.
 func TestShellExec_Success(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("Skipping ShellExec tests on Windows")
+	}
 	// Check if we're being run as a subprocess
 	if os.Getenv("GO_TEST_SUBPROCESS") == "1" {
 		// This will replace the process, so the test never returns here on success
