@@ -78,6 +78,9 @@ func Main() (retcode int) { //nolint:funlen // we do have quite a lot of flags a
 	cli.ArgsHelp = "*.gr files to interpret or `-` for stdin without prompt or no arguments for stdin repl..."
 	cli.MaxArgs = -1
 	cli.Main()
+	if cmd, ok := strings.CutPrefix(*commandFlag, "exec "); ok && !*restrictIOs {
+		return repl.ShellExec(cmd)
+	}
 	var histFile string
 	if !*shebangMode { //nolint:nestif // shebang mode skips a few things like history, memory and welcome message.
 		histFile = *historyFile
