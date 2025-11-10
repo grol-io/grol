@@ -80,7 +80,7 @@ func Main() (retcode int) { //nolint:funlen // we do have quite a lot of flags a
 	cli.ArgsHelp = "*.gr files to interpret or `-` for stdin without prompt or no arguments for stdin repl..."
 	cli.MaxArgs = -1
 	cli.Main()
-	if cmd, ok := strings.CutPrefix(*commandFlag, "exec "); ok {
+	if cmd, ok := strings.CutPrefix(*commandFlag, "exec "); ok && !*restrictIOs {
 		return ShellExec(cmd)
 	}
 	var histFile string
