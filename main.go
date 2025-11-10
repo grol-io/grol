@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"runtime/debug"
 	"strings"
+	"syscall"
 
 	"fortio.org/cli"
 	"fortio.org/duration"
@@ -272,34 +273,22 @@ func splitCommand(cmd string) []string {
 func ShellExec(cmd string) int {
 	parts := splitCommand(cmd)
 	if len(parts) == 0 {
-		log.Errf("No command provided for exec")
-		return 1
+		return log.FErrf("No command provided for exec")
 	}
 	execCmd, err := exec.LookPath(parts[0])
 	if err != nil {
-		log.Errf("Error finding command %q: %v", parts[0], err)
-		return 1
+		return log.FErrf("Error finding command %q: %v", parts[0], err)
 	}
 	execArgs := parts[1:]
-	log.Infof("Executing shell command: %s %v", execCmd, execArgs)
-	procAttr := os.ProcAttr{
-		Files: []*os.File{os.Stdin, os.Stdout, os.Stderr},
-	}
-	process, err := os.StartProcess(execCmd, append([]string{execCmd}, execArgs...), &procAttr)
+	log.Infof("Executing command: %s %v", execCmd, execArgs)
+	env := syscall.Environ() // or your own env
+
+	err = syscall.Exec(execCmd, append([]string{execCmd}, execArgs...), env)
 	if err != nil {
-		log.Errf("Error starting process %q: %v", execCmd, err)
-		return 1
+		return log.FErrf("Error exec'ing process %q: %v", execCmd, err)
 	}
-	state, err := process.Wait()
-	if err != nil {
-		log.Errf("Error waiting for process %q: %v", execCmd, err)
-		return 1
-	}
-	if !state.Success() {
-		log.Errf("Process %q exited with code %d", execCmd, state.ExitCode())
-		return state.ExitCode()
-	}
-	return 0
+	// not reached if Exec is successful
+	panic("unreachable")
 }
 
 func processOneStream(s *eval.State, in io.Reader, options repl.Options) int {
