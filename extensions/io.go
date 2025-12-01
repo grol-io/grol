@@ -29,7 +29,7 @@ func createIOFunctions() { //nolint:gocognit // we have multiple functions in he
 			// reading one byte at a time is pretty inefficient, but necessary because of the terminal raw mode switch/switchback.
 			lineMode := true
 			from := io.Reader(os.Stdin)
-			to := io.Writer(os.Stdout)
+			to := io.Discard
 			if s.Term != nil {
 				from = s.Term.IntrReader
 				to = s.Term.Out
