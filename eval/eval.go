@@ -1089,6 +1089,43 @@ func (s *State) evalForInteger(fe *ast.ForExpression, start *int64, end int64, i
 	return lastEval
 }
 
+// evalForRangeExpr handles the for i := start:end or for i := start:end:incr forms.
+func (s *State) evalForRangeExpr(fe *ast.ForExpression, rangeExpr *ast.InfixExpression, name string) (object.Object, bool) {
+	// Check for 3-part form: start:end:incr parsed as (start:end):incr
+	if rangeExpr.Left.Value().Type() == token.COLON {
+		// 3-part form: ((start:end):incr)
+		innerRange := rangeExpr.Left.(*ast.InfixExpression)
+		start := object.Value(s.evalInternal(innerRange.Left))
+		startInt, ok := Int64Value(start)
+		if !ok {
+			return s.NewError("for var = n:m:i n not an integer: " + start.Inspect()), true
+		}
+		end := object.Value(s.evalInternal(innerRange.Right))
+		endInt, ok := Int64Value(end)
+		if !ok {
+			return s.NewError("for var = n:m:i m not an integer: " + end.Inspect()), true
+		}
+		incr := object.Value(s.evalInternal(rangeExpr.Right))
+		incrInt, ok := Int64Value(incr)
+		if !ok {
+			return s.NewError("for var = n:m:i i not an integer: " + incr.Inspect()), true
+		}
+		return s.evalForInteger(fe, &startInt, endInt, &incrInt, name), true
+	}
+	// 2-part form: start:end
+	start := object.Value(s.evalInternal(rangeExpr.Left))
+	startInt, ok := Int64Value(start)
+	if !ok {
+		return s.NewError("for var = n:m n not an integer: " + start.Inspect()), true
+	}
+	end := object.Value(s.evalInternal(rangeExpr.Right))
+	endInt, ok := Int64Value(end)
+	if !ok {
+		return s.NewError("for var = n:m m not an integer: " + end.Inspect()), true
+	}
+	return s.evalForInteger(fe, &startInt, endInt, nil, name), true
+}
+
 func (s *State) evalForSpecialForms(fe *ast.ForExpression) (object.Object, bool) {
 	ie, ok := fe.Condition.(*ast.InfixExpression)
 	if !ok {
@@ -1103,39 +1140,7 @@ func (s *State) evalForSpecialForms(fe *ast.ForExpression) (object.Object, bool)
 	name := ie.Left.Value().Literal()
 	if ie.Right.Value().Type() == token.COLON {
 		rangeExpr := ie.Right.(*ast.InfixExpression)
-		// Check for 3-part form: start:end:incr parsed as (start:end):incr
-		if rangeExpr.Left.Value().Type() == token.COLON {
-			// 3-part form: ((start:end):incr)
-			innerRange := rangeExpr.Left.(*ast.InfixExpression)
-			start := object.Value(s.evalInternal(innerRange.Left))
-			startInt, ok := Int64Value(start)
-			if !ok {
-				return s.NewError("for var = n:m:i n not an integer: " + start.Inspect()), true
-			}
-			end := object.Value(s.evalInternal(innerRange.Right))
-			endInt, ok := Int64Value(end)
-			if !ok {
-				return s.NewError("for var = n:m:i m not an integer: " + end.Inspect()), true
-			}
-			incr := object.Value(s.evalInternal(rangeExpr.Right))
-			incrInt, ok := Int64Value(incr)
-			if !ok {
-				return s.NewError("for var = n:m:i i not an integer: " + incr.Inspect()), true
-			}
-			return s.evalForInteger(fe, &startInt, endInt, &incrInt, name), true
-		}
-		// 2-part form: start:end
-		start := object.Value(s.evalInternal(rangeExpr.Left))
-		startInt, ok := Int64Value(start)
-		if !ok {
-			return s.NewError("for var = n:m n not an integer: " + start.Inspect()), true
-		}
-		end := object.Value(s.evalInternal(rangeExpr.Right))
-		endInt, ok := Int64Value(end)
-		if !ok {
-			return s.NewError("for var = n:m m not an integer: " + end.Inspect()), true
-		}
-		return s.evalForInteger(fe, &startInt, endInt, nil, name), true
+		return s.evalForRangeExpr(fe, rangeExpr, name)
 	}
 	// Evaluate:
 	v := object.Value(s.evalInternal(ie.Right))
