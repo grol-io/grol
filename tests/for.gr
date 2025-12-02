@@ -148,3 +148,25 @@ func testForNegIncr() {
     return res
 }
 Assert("for start:end:negative incr", testForNegIncr() == [10, 8, 6, 4, 2])
+
+// Test with variables and expressions (not just literals)
+func testForIncrWithVars() {
+    start := 5
+    end := 37
+    inc := 5
+    res := []
+    for i := start:end:inc {
+        res = res + [i]
+    }
+    return res
+}
+Assert("for start:end:incr with variables", testForIncrWithVars() == [5, 10, 15, 20, 25, 30, 35])
+
+func testForIncrWithExprs() {
+    res := []
+    for i := 2+3:40+1:2*2+1 {
+        res = res + [i]
+    }
+    return res
+}
+Assert("for start:end:incr with expressions", testForIncrWithExprs() == [5, 10, 15, 20, 25, 30, 35, 40])
