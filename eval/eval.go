@@ -1018,17 +1018,26 @@ func setupRegister(env *object.Environment, name string, value int64, body ast.N
 	return register, newBody, ok
 }
 
-func (s *State) evalForInteger(fe *ast.ForExpression, start *int64, end int64, name string) object.Object {
+func (s *State) evalForInteger(fe *ast.ForExpression, start *int64, end int64, incr *int64, name string) object.Object {
 	var lastEval object.Object
 	lastEval = object.NULL
-	startValue := 0
+	startValue := int64(0)
 	if start != nil {
-		startValue = int(*start)
+		startValue = *start
 	}
-	endValue := int(end)
-	num := endValue - startValue
-	if num < 0 {
-		return s.Errorf("for loop with negative count [%d,%d[", startValue, endValue)
+	endValue := end
+	incrValue := int64(1)
+	if incr != nil {
+		incrValue = *incr
+	}
+	if incrValue == 0 {
+		return s.Errorf("for loop with zero increment")
+	}
+	if incrValue > 0 && endValue < startValue {
+		return s.Errorf("for loop with negative count [%d,%d[ incr %d", startValue, endValue, incrValue)
+	}
+	if incrValue < 0 && endValue > startValue {
+		return s.Errorf("for loop with positive range but negative increment [%d,%d[ incr %d", startValue, endValue, incrValue)
 	}
 	var ptr *int64
 	var newBody ast.Node
@@ -1036,19 +1045,25 @@ func (s *State) evalForInteger(fe *ast.ForExpression, start *int64, end int64, n
 	newBody = fe.Body
 	if name != "" && !s.NoReg {
 		var ok bool
-		register, newBody, ok = setupRegister(s.env, name, int64(startValue), fe.Body)
+		register, newBody, ok = setupRegister(s.env, name, startValue, fe.Body)
 		if !ok {
 			return s.Errorf("for loop register %s shouldn't be modified inside the loop", name)
 		}
 		ptr = register.Ptr()
 		defer s.env.ReleaseRegister(register)
 	}
-	for i := startValue; i < endValue; i++ {
+	loopCond := func(i int64) bool {
+		if incrValue > 0 {
+			return i < endValue
+		}
+		return i > endValue
+	}
+	for i := startValue; loopCond(i); i += incrValue {
 		if s.NoReg && name != "" {
-			s.env.Set(name, object.Integer{Value: int64(i)})
+			s.env.Set(name, object.Integer{Value: i})
 		}
 		if ptr != nil {
-			*ptr = int64(i)
+			*ptr = i
 		}
 		nextEval := s.evalInternal(newBody)
 		switch nextEval.Type() {
@@ -1087,23 +1102,46 @@ func (s *State) evalForSpecialForms(fe *ast.ForExpression) (object.Object, bool)
 	}
 	name := ie.Left.Value().Literal()
 	if ie.Right.Value().Type() == token.COLON {
-		start := object.Value(s.evalInternal(ie.Right.(*ast.InfixExpression).Left))
+		rangeExpr := ie.Right.(*ast.InfixExpression)
+		// Check for 3-part form: start:end:incr parsed as (start:end):incr
+		if rangeExpr.Left.Value().Type() == token.COLON {
+			// 3-part form: ((start:end):incr)
+			innerRange := rangeExpr.Left.(*ast.InfixExpression)
+			start := object.Value(s.evalInternal(innerRange.Left))
+			startInt, ok := Int64Value(start)
+			if !ok {
+				return s.NewError("for var = n:m:i n not an integer: " + start.Inspect()), true
+			}
+			end := object.Value(s.evalInternal(innerRange.Right))
+			endInt, ok := Int64Value(end)
+			if !ok {
+				return s.NewError("for var = n:m:i m not an integer: " + end.Inspect()), true
+			}
+			incr := object.Value(s.evalInternal(rangeExpr.Right))
+			incrInt, ok := Int64Value(incr)
+			if !ok {
+				return s.NewError("for var = n:m:i i not an integer: " + incr.Inspect()), true
+			}
+			return s.evalForInteger(fe, &startInt, endInt, &incrInt, name), true
+		}
+		// 2-part form: start:end
+		start := object.Value(s.evalInternal(rangeExpr.Left))
 		startInt, ok := Int64Value(start)
 		if !ok {
 			return s.NewError("for var = n:m n not an integer: " + start.Inspect()), true
 		}
-		end := object.Value(s.evalInternal(ie.Right.(*ast.InfixExpression).Right))
+		end := object.Value(s.evalInternal(rangeExpr.Right))
 		endInt, ok := Int64Value(end)
 		if !ok {
 			return s.NewError("for var = n:m m not an integer: " + end.Inspect()), true
 		}
-		return s.evalForInteger(fe, &startInt, endInt, name), true
+		return s.evalForInteger(fe, &startInt, endInt, nil, name), true
 	}
 	// Evaluate:
 	v := object.Value(s.evalInternal(ie.Right))
 	switch v.Type() {
 	case object.INTEGER:
-		return s.evalForInteger(fe, nil, v.(object.Integer).Value, name), true
+		return s.evalForInteger(fe, nil, v.(object.Integer).Value, nil, name), true
 	case object.ERROR:
 		return v, true
 	case object.ARRAY, object.MAP, object.STRING:
@@ -1194,9 +1232,9 @@ func (s *State) evalForExpression(fe *ast.ForExpression) object.Object {
 			case object.ERROR:
 				return condition
 			case object.REGISTER:
-				return s.evalForInteger(fe, nil, condition.(*object.Register).Int64(), "")
+				return s.evalForInteger(fe, nil, condition.(*object.Register).Int64(), nil, "")
 			case object.INTEGER:
-				return s.evalForInteger(fe, nil, condition.(object.Integer).Value, "")
+				return s.evalForInteger(fe, nil, condition.(object.Integer).Value, nil, "")
 			default:
 				return s.NewError("for condition is not a boolean nor integer nor assignment: " + condition.Inspect())
 			}
