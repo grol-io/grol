@@ -1019,8 +1019,7 @@ func setupRegister(env *object.Environment, name string, value int64, body ast.N
 }
 
 func (s *State) evalForInteger(fe *ast.ForExpression, start *int64, end int64, incr *int64, name string) object.Object {
-	var lastEval object.Object
-	lastEval = object.NULL
+	var lastEval object.Object = object.NULL
 	startValue := int64(0)
 	if start != nil {
 		startValue = *start
@@ -1052,41 +1051,52 @@ func (s *State) evalForInteger(fe *ast.ForExpression, start *int64, end int64, i
 		ptr = register.Ptr()
 		defer s.env.ReleaseRegister(register)
 	}
-	loopCond := func(i int64) bool {
-		if incrValue > 0 {
-			return i < endValue
-		}
-		return i > endValue
-	}
-	for i := startValue; loopCond(i); i += incrValue {
-		if s.NoReg && name != "" {
-			s.env.Set(name, object.Integer{Value: i})
-		}
-		if ptr != nil {
-			*ptr = i
-		}
-		nextEval := s.evalInternal(newBody)
-		switch nextEval.Type() {
-		case object.ERROR:
-			return nextEval
-		case object.RETURN:
-			r := nextEval.(object.ReturnValue)
-			switch r.ControlType {
-			case token.BREAK:
-				// log.Infof("break in for integer loop, returning %s", lastEval.Inspect())
-				return lastEval
-			case token.CONTINUE:
-				continue
-			case token.RETURN:
-				return r
-			default:
-				return s.Errorf("for loop unexpected control type %s", r.ControlType.String())
+	// Use separate loops for positive and negative increments to avoid lambda overhead
+	if incrValue > 0 {
+		for i := startValue; i < endValue; i += incrValue {
+			if result := s.evalForIntegerBody(name, i, ptr, newBody, &lastEval); result != nil {
+				return result
 			}
-		default:
-			lastEval = nextEval
+		}
+	} else {
+		for i := startValue; i > endValue; i += incrValue {
+			if result := s.evalForIntegerBody(name, i, ptr, newBody, &lastEval); result != nil {
+				return result
+			}
 		}
 	}
 	return lastEval
+}
+
+// evalForIntegerBody executes one iteration of the for loop body.
+// Returns non-nil to exit the loop early (error, return, break), nil to continue.
+func (s *State) evalForIntegerBody(name string, i int64, ptr *int64, newBody ast.Node, lastEval *object.Object) object.Object {
+	if s.NoReg && name != "" {
+		s.env.Set(name, object.Integer{Value: i})
+	}
+	if ptr != nil {
+		*ptr = i
+	}
+	nextEval := s.evalInternal(newBody)
+	switch nextEval.Type() {
+	case object.ERROR:
+		return nextEval
+	case object.RETURN:
+		r := nextEval.(object.ReturnValue)
+		switch r.ControlType {
+		case token.BREAK:
+			return *lastEval
+		case token.CONTINUE:
+			return nil // continue to next iteration
+		case token.RETURN:
+			return r
+		default:
+			return s.Errorf("for loop unexpected control type %s", r.ControlType.String())
+		}
+	default:
+		*lastEval = nextEval
+		return nil
+	}
 }
 
 // evalForRangeExpr handles the for i := start:end or for i := start:end:incr forms.
