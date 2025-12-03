@@ -49,3 +49,19 @@ NoErr("matrix max width", maxWidths(mw), `\[\[9999\] \[7777\]\]`)
 func bug428(n) {for n%2==0 {n /= 2}}
 
 NoErr("register /= works and returns right value", bug428(8*7), "7")
+
+// Test for bug #432 - assigning register to variable should copy the value, not the reference
+func maxAt(arr) {
+    maxv := arr[0]
+    maxi := 0
+    for i := 1:len(arr) {
+        if arr[i] > maxv {
+            maxv = arr[i]
+            maxi = i  // This should copy the current value of i, not a reference
+        }
+    }
+    return [maxv, maxi]
+}
+
+// Expected: maxv=9 at index 6, not 14 (the last value of i)
+NoErr("register to variable assignment copies value", maxAt([8,1,8,1,8,1,9,1,1,1,1,2,1,1,1]), `\[9 6\]`)
