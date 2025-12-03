@@ -169,7 +169,7 @@ func (s *State) evalAssignment(right object.Object, node *ast.InfixExpression) o
 			return compounded
 		}
 		*reg.Ptr() = intVal
-		return right
+		return object.CopyRegister(right)
 	default:
 		return s.NewError("assignment to non identifier: " + node.Left.Value().DebugString())
 	}

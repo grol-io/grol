@@ -348,10 +348,8 @@ func (e *Environment) create(name string, val Object) Object {
 }
 
 func (e *Environment) update(name string, found, val Object) Object {
-	if vref, ok := val.(Reference); ok {
-		log.Debugf("Not setting %q to a reference %q", name, vref.Name)
-		val = Value(val)
-	}
+	// Dereference registers and references to store actual values, not pointers.
+	val = Value(val)
 	if rr, ok := found.(Reference); ok {
 		log.Debugf("SetNoChecks(%s) updating ref %s in %d", name, rr.Name, rr.RefEnv.depth)
 		e = rr.RefEnv
@@ -378,7 +376,8 @@ func (e *Environment) SetNoChecks(name string, val Object, create bool) Object {
 	// New name... let's see if it's really new or making it a ref.
 	if ref, ok := e.makeRef(name); ok {
 		log.Debugf("SetNoChecks(%s) created ref %s in %d", name, ref.Name, ref.RefEnv.depth)
-		ref.RefEnv.store[ref.Name] = Value(val) // kinda neat to make aliases but it can create loops, so not for now.
+		val = Value(val) // Dereference to store actual value, not a register/reference pointer.
+		ref.RefEnv.store[ref.Name] = val
 		return val
 	}
 	log.Debugf("SetNoChecks(%s) brand new to %d and above", name, e.depth)
