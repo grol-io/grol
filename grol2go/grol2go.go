@@ -44,8 +44,7 @@ func main() {
 		errorAndExit("Error initializing extensions: %v", err)
 	}
 	s := eval.NewState()
-	o := repl.Options{
-	}
+	o := repl.Options{}
 	_, _, errs, _ := repl.EvalOne(context.Background(), s, grolCode, os.Stdout, o)
 	if len(errs) > 0 {
 		errorAndExit("Errors during execution: %v", errs)
