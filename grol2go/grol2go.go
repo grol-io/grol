@@ -1,4 +1,4 @@
-// Grol2go transpiles grol scripts to Go code.
+// Grol2go (will eventually) transpile grol scripts to Go code.
 // Doesn't yet transpile, it just makes a go binary that runs the grol code.
 package main
 
@@ -17,6 +17,7 @@ func main() {
 	os.Exit(Main())
 }
 
+// mainCode is the current generated main.go file content.
 const mainCode = `package main
 
 import (
@@ -53,6 +54,9 @@ func main() {
 
 const grolCode = ` + "`"
 
+// Main is the primary entry point for grol2go. It reads grol source files,
+// generates a Go module with embedded grol code, and runs go mod tidy.
+// Returns 0 on success, or a non-zero error code on failure.
 func Main() int {
 	cli.MinArgs = 1
 	cli.MaxArgs = -1 // unlimited
@@ -74,7 +78,11 @@ func Main() int {
 	}
 	// go mod init in dest:
 	moduleName := deriveModuleName(files[0])
-	log.Infof("Transpiling %d grol files to Go in %q using module name %q", len(files), dest, moduleName)
+	log.Infof("Compiling %d grol %s to Go in %q using module name %q",
+		len(files),
+		cli.Plural(len(files), "file"),
+		dest,
+		moduleName)
 	if err := runCommand(dest, "go", "mod", "init", moduleName); err != nil {
 		return log.FErrf("Failed to initialize go module: %v", err)
 	}
@@ -105,7 +113,7 @@ func Main() int {
 	if err := runCommand(dest, "go", "mod", "tidy"); err != nil {
 		return log.FErrf("Failed to run 'go mod tidy': %v", err)
 	}
-	log.Infof("Transpilation completed successfully.")
+	log.Infof("Code embedding completed successfully.Run with:\ngo build %s\n./%s", dest, moduleName)
 	return 0
 }
 
