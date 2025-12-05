@@ -113,7 +113,11 @@ func Main() int {
 	if err := runCommand(dest, "go", "mod", "tidy"); err != nil {
 		return log.FErrf("Failed to run 'go mod tidy': %v", err)
 	}
-	log.Infof("Code embedding completed successfully.Run with:\ngo build %s\n./%s", dest, moduleName)
+	log.Infof("Running 'go build %s'", dest)
+	if err := runCommand(dest, "go", "build", "."); err != nil {
+		return log.FErrf("Failed to run 'go build': %v", err)
+	}
+	log.Infof("Code embedding completed successfully. Run with:\n%s/%s", dest, moduleName)
 	return 0
 }
 
