@@ -4,7 +4,7 @@ package main
 
 import (
 	"flag"
-	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -118,17 +118,15 @@ func Main() int {
 }
 
 func transpileFileToGo(srcFile string, mainFile *os.File) error {
-	data, err := os.ReadFile(srcFile)
+	f, err := os.Open(srcFile)
 	if err != nil {
 		return err
 	}
+	defer f.Close()
 	// Implementation of the transpilation logic goes here (eventually).
-	n, err := mainFile.Write(data)
+	_, err = io.Copy(mainFile, f)
 	if err != nil {
 		return err
-	}
-	if n != len(data) {
-		return fmt.Errorf("incomplete write: wrote %d of %d bytes", n, len(data))
 	}
 	_, err = mainFile.WriteString("\n")
 	if err != nil {
