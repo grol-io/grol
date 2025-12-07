@@ -1,0 +1,35 @@
+// Test for register used as map index
+// https://github.com/grol-io/grol/issues/...
+
+func testMapIndexWithRegister(n) {
+    nbeams := {}
+    for i := n {
+        nbeams[i] = 0
+    }
+    return nbeams
+}
+
+Assert("map index with register", testMapIndexWithRegister(3) == {0:0, 1:0, 2:0})
+
+// Test with different values to ensure they're independent
+func testMapIndexWithRegisterValues(n) {
+    m := {}
+    for i := n {
+        m[i] = i * 10
+    }
+    return m
+}
+
+Assert("map index with register values", testMapIndexWithRegisterValues(3) == {0:0, 1:10, 2:20})
+
+// Test map literals with register keys
+func testMapLiteralWithRegister(n) {
+    result := []
+    for i := n {
+        m := {i: i * 10}
+        result += [m]
+    }
+    return result
+}
+
+Assert("map literal with register key", testMapLiteralWithRegister(3) == [{0:0}, {1:10}, {2:20}])
