@@ -701,7 +701,6 @@ func TestMapIndexExpressions(t *testing.T) {
 
 func TestMapIndexWithRegister(t *testing.T) {
 	// Test for issue where using a register as a map index only sets the last value
-	// https://github.com/grol-io/grol/issues/...
 	input := `func step2(n) {
 		nbeams := {}
 		for i := n {
