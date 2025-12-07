@@ -730,8 +730,8 @@ func TestMapIndexWithRegister(t *testing.T) {
 	}
 
 	for expectedKey, expectedValue := range expected {
-		v, ok := result.Get(object.Integer{Value: expectedKey})
-		if !ok {
+		v, found := result.Get(object.Integer{Value: expectedKey})
+		if !found {
 			t.Errorf("no value for given key %d in map", expectedKey)
 		}
 		testIntegerObject(t, v, expectedValue)
@@ -764,8 +764,8 @@ func TestMapIndexWithRegister(t *testing.T) {
 	}
 
 	for expectedKey, expectedValue := range expected2 {
-		v, ok := result2.Get(object.Integer{Value: expectedKey})
-		if !ok {
+		v, found := result2.Get(object.Integer{Value: expectedKey})
+		if !found {
 			t.Errorf("no value for given key %d in map", expectedKey)
 		}
 		testIntegerObject(t, v, expectedValue)
@@ -783,8 +783,8 @@ func TestMapIndexWithRegister(t *testing.T) {
 	test(3)`
 
 	evaluated3 := testEval(t, input3)
-	arr, ok := evaluated3.(object.Array)
-	if !ok {
+	arr, ok3 := evaluated3.(object.Array)
+	if !ok3 {
 		t.Fatalf("Eval didn't return Array. got=%T (%+v)", evaluated3, evaluated3)
 	}
 
@@ -800,8 +800,8 @@ func TestMapIndexWithRegister(t *testing.T) {
 	}
 
 	for i, expectedMap := range expectedMaps {
-		mapObj, ok := arr.Elements()[i].(object.Map)
-		if !ok {
+		mapObj, isMap := arr.Elements()[i].(object.Map)
+		if !isMap {
 			t.Fatalf("Array element %d is not a Map. got=%T", i, arr.Elements()[i])
 		}
 
@@ -810,8 +810,8 @@ func TestMapIndexWithRegister(t *testing.T) {
 		}
 
 		for key, value := range expectedMap {
-			v, ok := mapObj.Get(object.Integer{Value: key})
-			if !ok {
+			v, found := mapObj.Get(object.Integer{Value: key})
+			if !found {
 				t.Errorf("Map %d: no value for given key %d", i, key)
 			}
 			testIntegerObject(t, v, value)
