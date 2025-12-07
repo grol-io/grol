@@ -193,7 +193,7 @@ func (s *State) evalIndexAssignmentValue(base, index, value object.Object, ident
 		return object.NewArray(elements)
 	case object.MAP:
 		m := base.(object.Map)
-		return m.Set(index, value)
+		return m.Set(object.Value(index), value)
 	default:
 		if identifier != "" {
 			return s.Errorf("index assignment to %s of unexpected type %s (%s)", identifier, base.Type().String(), base.Inspect())
@@ -472,7 +472,7 @@ func (s *State) evalMapLiteral(node *ast.MapLiteral) object.Object {
 			return s.NewError("key " + key.Inspect() + " is not hashable")
 		}
 		value := s.Eval(valueNode)
-		result = result.Set(key, value)
+		result = result.Set(object.Value(key), value)
 	}
 	return result
 }

@@ -699,6 +699,126 @@ func TestMapIndexExpressions(t *testing.T) {
 	}
 }
 
+func TestMapIndexWithRegister(t *testing.T) {
+	// Test for issue where using a register as a map index only sets the last value
+	input := `func step2(n) {
+		nbeams := {}
+		for i := n {
+			nbeams[i] = 0
+		}
+		nbeams
+	}
+	step2(5)`
+
+	evaluated := testEval(t, input)
+	result, ok := evaluated.(object.Map)
+	if !ok {
+		t.Fatalf("Eval didn't return Map. got=%T (%+v)", evaluated, evaluated)
+	}
+
+	// Should have 5 entries: {0:0, 1:0, 2:0, 3:0, 4:0}
+	expected := map[int64]int64{
+		0: 0,
+		1: 0,
+		2: 0,
+		3: 0,
+		4: 0,
+	}
+
+	if result.Len() != len(expected) {
+		t.Fatalf("Map has wrong num of pairs. got=%d, want=%d", result.Len(), len(expected))
+	}
+
+	for expectedKey, expectedValue := range expected {
+		v, found := result.Get(object.Integer{Value: expectedKey})
+		if !found {
+			t.Errorf("no value for given key %d in map", expectedKey)
+		}
+		testIntegerObject(t, v, expectedValue)
+	}
+
+	// Also test with different values to make sure they're independent
+	input2 := `func test(n) {
+		m := {}
+		for i := n {
+			m[i] = i * 10
+		}
+		m
+	}
+	test(3)`
+
+	evaluated2 := testEval(t, input2)
+	result2, ok := evaluated2.(object.Map)
+	if !ok {
+		t.Fatalf("Eval didn't return Map. got=%T (%+v)", evaluated2, evaluated2)
+	}
+
+	expected2 := map[int64]int64{
+		0: 0,
+		1: 10,
+		2: 20,
+	}
+
+	if result2.Len() != len(expected2) {
+		t.Fatalf("Map has wrong num of pairs. got=%d, want=%d", result2.Len(), len(expected2))
+	}
+
+	for expectedKey, expectedValue := range expected2 {
+		v, found := result2.Get(object.Integer{Value: expectedKey})
+		if !found {
+			t.Errorf("no value for given key %d in map", expectedKey)
+		}
+		testIntegerObject(t, v, expectedValue)
+	}
+
+	// Test map literals with register keys
+	input3 := `func test(n) {
+		result := []
+		for i := n {
+			m := {i: i * 10}
+			result += [m]
+		}
+		result
+	}
+	test(3)`
+
+	evaluated3 := testEval(t, input3)
+	arr, ok3 := evaluated3.(object.Array)
+	if !ok3 {
+		t.Fatalf("Eval didn't return Array. got=%T (%+v)", evaluated3, evaluated3)
+	}
+
+	if arr.Len() != 3 {
+		t.Fatalf("Array has wrong length. got=%d, want=3", arr.Len())
+	}
+
+	// Verify each map in the array has the correct key-value pair
+	expectedMaps := []map[int64]int64{
+		{0: 0},
+		{1: 10},
+		{2: 20},
+	}
+
+	for i, expectedMap := range expectedMaps {
+		mapObj, isMap := arr.Elements()[i].(object.Map)
+		if !isMap {
+			t.Fatalf("Array element %d is not a Map. got=%T", i, arr.Elements()[i])
+		}
+
+		if mapObj.Len() != 1 {
+			t.Fatalf("Map %d has wrong num of pairs. got=%d, want=1", i, mapObj.Len())
+		}
+
+		for key, value := range expectedMap {
+			v, found := mapObj.Get(object.Integer{Value: key})
+			if !found {
+				t.Errorf("Map %d: no value for given key %d", i, key)
+			}
+			testIntegerObject(t, v, value)
+		}
+	}
+}
+
 func TestQuote(t *testing.T) {
 	tests := []struct {
 		input    string
