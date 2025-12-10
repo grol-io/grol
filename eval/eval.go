@@ -472,7 +472,7 @@ func (s *State) evalMapLiteral(node *ast.MapLiteral) object.Object {
 			return s.NewError("key " + key.Inspect() + " is not hashable")
 		}
 		value := s.Eval(valueNode)
-		result = result.Set(object.Value(key), value)
+		result = result.Set(object.Value(key), object.Value(value))
 	}
 	return result
 }

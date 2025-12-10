@@ -819,6 +819,46 @@ func TestMapIndexWithRegister(t *testing.T) {
 	}
 }
 
+func TestMapLiteralValueWithRegister(t *testing.T) {
+	// Test for issue where using a register as a map value only stores the last value
+	// (all values would reference the same register)
+	input := `func test(n) {
+		result := []
+		for i := n {
+			m := {"key": "value", "index": i}
+			result += [m]
+		}
+		result
+	}
+	test(3)`
+
+	evaluated := testEval(t, input)
+	arr, ok := evaluated.(object.Array)
+	if !ok {
+		t.Fatalf("Eval didn't return Array. got=%T (%+v)", evaluated, evaluated)
+	}
+
+	if arr.Len() != 3 {
+		t.Fatalf("Array has wrong length. got=%d, want=3", arr.Len())
+	}
+
+	// Verify each map has the correct index value (not all 2)
+	expectedIndices := []int64{0, 1, 2}
+
+	for i, expectedIndex := range expectedIndices {
+		mapObj, isMap := arr.Elements()[i].(object.Map)
+		if !isMap {
+			t.Fatalf("Array element %d is not a Map. got=%T", i, arr.Elements()[i])
+		}
+
+		v, found := mapObj.Get(object.String{Value: "index"})
+		if !found {
+			t.Errorf("Map %d: no value for key 'index'", i)
+		}
+		testIntegerObject(t, v, expectedIndex)
+	}
+}
+
 func TestQuote(t *testing.T) {
 	tests := []struct {
 		input    string
