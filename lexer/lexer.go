@@ -313,7 +313,7 @@ func (l *Lexer) readRune() (rune, bool) {
 			// Found closing quote - decode what we collected
 			content := l.input[startPos:l.pos]
 			r, size := utf8.DecodeRune(content)
-			if r == utf8.RuneError || size != len(content) {
+			if (r == utf8.RuneError && size == 1) || size != len(content) {
 				// Invalid UTF-8 or more than one rune
 				return 0, false
 			}
