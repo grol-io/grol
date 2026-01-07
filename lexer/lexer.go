@@ -2,7 +2,9 @@ package lexer
 
 import (
 	"bytes"
+	"strconv"
 	"strings"
+	"unicode/utf8"
 
 	"grol.io/grol/token"
 )
@@ -58,6 +60,7 @@ func (l *Lexer) CurrentLine() (string, int, int) {
 	return string(l.input[l.lastNewLine : p+nextNewline]), p - l.lastNewLine, l.lineNumber
 }
 
+//nolint:gocyclo,funlen // yes it's getting quite involved.
 func (l *Lexer) NextToken() *token.Token {
 	l.skipWhitespace()
 	ch := l.readChar()
@@ -126,6 +129,12 @@ func (l *Lexer) NextToken() *token.Token {
 			return l.EOLEOF()
 		}
 		return token.Intern(token.STRING, str)
+	case '\'':
+		r, ok := l.readRune()
+		if !ok {
+			return l.EOLEOF()
+		}
+		return token.Intern(token.INT, strconv.Itoa(int(r)))
 	case 0:
 		return l.EOLEOF()
 	case '.':
@@ -217,6 +226,28 @@ func (l *Lexer) readUnicode32() rune {
 	return hb | lb
 }
 
+// processEscape handles escape sequences and returns the resulting rune.
+// For \u and \U, it returns utf8.RuneError to indicate the caller should
+// handle these specially (by calling readUnicode16/32).
+func (l *Lexer) processEscape(escapeChar byte) rune {
+	switch escapeChar {
+	case 'r':
+		return '\r'
+	case 'n':
+		return '\n'
+	case 't':
+		return '\t'
+	case '\'', '"', '\\':
+		return rune(escapeChar)
+	case 'x':
+		return rune(l.readHex())
+	case 'u', 'U':
+		return utf8.RuneError // signal to caller to handle unicode
+	default:
+		return utf8.RuneError
+	}
+}
+
 func (l *Lexer) readString(sep byte) (string, bool) {
 	doubleQuotes := (sep == '"')
 	buf := strings.Builder{}
@@ -224,29 +255,80 @@ func (l *Lexer) readString(sep byte) (string, bool) {
 		ch := l.readChar()
 		switch {
 		case doubleQuotes && ch == '\\':
-			ch = l.readChar()
-			switch ch {
-			case 'r':
-				ch = '\r'
-			case 'n':
-				ch = '\n'
-			case 't':
-				ch = '\t'
-			case 'u':
+			escapeChar := l.readChar()
+			if escapeChar == 'u' {
 				buf.WriteRune(l.readUnicode16())
 				continue
-			case 'U':
+			}
+			if escapeChar == 'U' {
 				buf.WriteRune(l.readUnicode32())
 				continue
-			case 'x':
-				ch = l.readHex()
 			}
+			ch = byte(l.processEscape(escapeChar))
 		case ch == sep:
 			return buf.String(), true
 		case ch == 0:
 			return buf.String(), false
 		}
 		buf.WriteByte(ch)
+	}
+}
+
+func (l *Lexer) readRune() (rune, bool) {
+	startPos := l.pos
+	ch := l.readChar()
+	var r rune
+	// Handle escape sequences
+	if ch == '\\' { //nolint:nestif // yeah it's getting ugly
+		escapeChar := l.readChar()
+		switch escapeChar {
+		case 'u':
+			r = l.readUnicode16()
+			if l.readChar() != '\'' {
+				return 0, false
+			}
+			return r, true
+		case 'U':
+			r = l.readUnicode32()
+			if l.readChar() != '\'' {
+				return 0, false
+			}
+			return r, true
+		default:
+			r = l.processEscape(escapeChar)
+			if r == utf8.RuneError {
+				return 0, false
+			}
+		}
+		if l.readChar() != '\'' {
+			return 0, false
+		}
+		return r, true
+	}
+	// Empty character literal or immediate close quote
+	if ch == 0 || ch == '\'' {
+		return 0, false
+	}
+	// Multi byte utf8 literal:
+	// Find the closing quote by reading bytes
+	for {
+		nextCh := l.peekChar()
+		if nextCh == '\'' {
+			// Found closing quote - decode what we collected
+			content := l.input[startPos:l.pos]
+			r, size := utf8.DecodeRune(content)
+			if r == utf8.RuneError || size != len(content) {
+				// Invalid UTF-8 or more than one rune
+				return 0, false
+			}
+			l.pos++ // consume the closing quote
+			return r, true
+		}
+		if nextCh == 0 || nextCh == '\n' {
+			// No closing quote found
+			return 0, false
+		}
+		l.pos++
 	}
 }
 

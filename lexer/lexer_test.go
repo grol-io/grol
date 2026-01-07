@@ -1,6 +1,7 @@
 package lexer
 
 import (
+	"fmt"
 	"testing"
 
 	"grol.io/grol/token"
@@ -339,6 +340,78 @@ func TestReadIntNumber(t *testing.T) {
 		}
 		if result != tt.expected {
 			t.Errorf("input: %q, expected: %q, got: %q", tt.input, tt.expected, result)
+		}
+	}
+}
+
+func TestReadCharLiteral(t *testing.T) {
+	tests := []struct {
+		input       string
+		expectedVal int  // expected rune value
+		shouldFail  bool // true if we expect EOF/EOL (error)
+	}{
+		// Valid single ASCII characters
+		{"'A'", 65, false},
+		{"'Z'", 90, false},
+		{"'a'", 97, false},
+		{"'z'", 122, false},
+		{"'0'", 48, false},
+		{"'9'", 57, false},
+		{"' '", 32, false},
+		// Escape sequences
+		{"'\\n'", 10, false},
+		{"'\\t'", 9, false},
+		{"'\\r'", 13, false},
+		{"'\\''", 39, false},
+		{"'\\\\'", 92, false},
+		{"'\\x41'", 65, false},           // hex escape for 'A'
+		{"'\\u0041'", 65, false},         // unicode escape for 'A'
+		{"'\\u263A'", 9786, false},       // unicode smiley
+		{"'\\U0001F600'", 128512, false}, // unicode emoji
+		// Multi-byte UTF-8 characters
+		{"'☺'", 9786, false},
+		{"'😀'", 128512, false},
+		{"'€'", 8364, false},
+		// Invalid cases - multiple characters
+		{"'AB'", 0, true},
+		{"'abc'", 0, true},
+		{"'AA'", 0, true},
+		{"'\\n\\n'", 0, true},
+		// Invalid cases - empty
+		{"''", 0, true},
+		// Invalid cases - no closing quote
+		{"'A", 0, true},
+		{"'", 0, true},
+		// Invalid cases - newline before close
+		{"'A\n'", 0, true},
+	}
+
+	for _, tt := range tests {
+		l := New(tt.input)
+		tok := l.NextToken()
+
+		if tt.shouldFail {
+			if tok.Type() != token.EOF {
+				t.Errorf("input: %q, expected EOF/EOL (failure), got: %#v", tt.input, tok.DebugString())
+			}
+			continue
+		}
+
+		if tok.Type() != token.INT {
+			t.Errorf("input: %q, expected INT token, got: %#v", tt.input, tok.DebugString())
+			continue
+		}
+
+		// Parse the literal as an integer
+		var val int
+		_, err := fmt.Sscanf(tok.Literal(), "%d", &val)
+		if err != nil {
+			t.Errorf("input: %q, failed to parse literal %q as int: %v", tt.input, tok.Literal(), err)
+			continue
+		}
+
+		if val != tt.expectedVal {
+			t.Errorf("input: %q, expected rune value: %d, got: %d", tt.input, tt.expectedVal, val)
 		}
 	}
 }
