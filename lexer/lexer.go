@@ -313,7 +313,7 @@ func (l *Lexer) readRune() (rune, bool) {
 	if ch == 0 || ch == '\'' {
 		return 0, false
 	}
-	// Multi byte utf8 literal:
+	// Multi-byte UTF-8 literal:
 	// Find the closing quote by reading bytes
 	for {
 		nextCh := l.peekChar()
