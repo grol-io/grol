@@ -58,3 +58,10 @@ Assert("float int is float", type(float(42)) == "FLOAT")
 Assert("float of string", float("3.14") == 3.14)
 IsErr("float of invalid string", float("hello"), "invalid syntax")
 Assert("Float of hex float string", float("0x1.921FB54442D18p+1") == PI)
+
+
+// Single quote runes
+
+Assert("Various single quote runes",
+	['A', 'Z', 'a', 'z', '0', '9', '\n','\t', '\r', '☺', '😀', '\x41', '\u0041'] ==
+	[65,  90,  97,  122, 48,  57,  10,   9,   13, 9786, 128512, 65, 65])
