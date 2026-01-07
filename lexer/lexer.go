@@ -226,25 +226,23 @@ func (l *Lexer) readUnicode32() rune {
 	return hb | lb
 }
 
-// processEscape handles escape sequences and returns the resulting rune.
-// For \u and \U, it returns utf8.RuneError to indicate the caller should
-// handle these specially (by calling readUnicode16/32).
-func (l *Lexer) processEscape(escapeChar byte) rune {
+// processEscape handles simple escape sequences.
+// Returns the rune and true if successful, or 0 and false for invalid/unicode escapes.
+// Caller should handle 'u' and 'U' separately by calling readUnicode16/32.
+func (l *Lexer) processEscape(escapeChar byte) (rune, bool) {
 	switch escapeChar {
 	case 'r':
-		return '\r'
+		return '\r', true
 	case 'n':
-		return '\n'
+		return '\n', true
 	case 't':
-		return '\t'
+		return '\t', true
 	case '\'', '"', '\\':
-		return rune(escapeChar)
+		return rune(escapeChar), true
 	case 'x':
-		return rune(l.readHex())
-	case 'u', 'U':
-		return utf8.RuneError // signal to caller to handle unicode
+		return rune(l.readHex()), true
 	default:
-		return utf8.RuneError
+		return 0, false
 	}
 }
 
@@ -256,19 +254,20 @@ func (l *Lexer) readString(sep byte) (string, bool) {
 		switch {
 		case doubleQuotes && ch == '\\':
 			escapeChar := l.readChar()
-			if escapeChar == 'u' {
+			switch escapeChar {
+			case 'u':
 				buf.WriteRune(l.readUnicode16())
 				continue
-			}
-			if escapeChar == 'U' {
+			case 'U':
 				buf.WriteRune(l.readUnicode32())
 				continue
+			default:
+				r, ok := l.processEscape(escapeChar)
+				if !ok {
+					return buf.String(), false
+				}
+				ch = byte(r)
 			}
-			r := l.processEscape(escapeChar)
-			if r == utf8.RuneError {
-				return buf.String(), false
-			}
-			ch = byte(r)
 		case ch == sep:
 			return buf.String(), true
 		case ch == 0:
@@ -281,29 +280,23 @@ func (l *Lexer) readString(sep byte) (string, bool) {
 func (l *Lexer) readRune() (rune, bool) {
 	startPos := l.pos
 	ch := l.readChar()
-	var r rune
 	// Handle escape sequences
-	if ch == '\\' { //nolint:nestif // yeah it's getting ugly
+	if ch == '\\' {
 		escapeChar := l.readChar()
+		var r rune
 		switch escapeChar {
 		case 'u':
 			r = l.readUnicode16()
-			if l.readChar() != '\'' {
-				return 0, false
-			}
-			return r, true
 		case 'U':
 			r = l.readUnicode32()
-			if l.readChar() != '\'' {
-				return 0, false
-			}
-			return r, true
 		default:
-			r = l.processEscape(escapeChar)
-			if r == utf8.RuneError {
+			var ok bool
+			r, ok = l.processEscape(escapeChar)
+			if !ok {
 				return 0, false
 			}
 		}
+		// Verify closing quote
 		if l.readChar() != '\'' {
 			return 0, false
 		}
@@ -313,8 +306,7 @@ func (l *Lexer) readRune() (rune, bool) {
 	if ch == 0 || ch == '\'' {
 		return 0, false
 	}
-	// Multi-byte UTF-8 literal:
-	// Find the closing quote by reading bytes
+	// Multi-byte UTF-8 literal: find the closing quote
 	for {
 		nextCh := l.peekChar()
 		if nextCh == '\'' {
