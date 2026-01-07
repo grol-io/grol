@@ -264,7 +264,11 @@ func (l *Lexer) readString(sep byte) (string, bool) {
 				buf.WriteRune(l.readUnicode32())
 				continue
 			}
-			ch = byte(l.processEscape(escapeChar))
+			r := l.processEscape(escapeChar)
+			if r == utf8.RuneError {
+				return buf.String(), false
+			}
+			ch = byte(r)
 		case ch == sep:
 			return buf.String(), true
 		case ch == 0:
