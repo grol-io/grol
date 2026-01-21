@@ -227,7 +227,11 @@ func extractHistoryNumber(input string) (int, bool) {
 // Returns the terminal or nil if there was an error.
 // Caller must defer Close() on the returned terminal to restore the original terminal normal mode.
 func AddTerm(s *eval.State) *terminal.Terminal {
-	term, err := terminal.Open(context.Background())
+	term := terminal.New()
+	if os.Getenv("FORCE_TERMINAL") == "1" {
+		term.ForceTerminal = true
+	}
+	err := term.Setup(context.Background())
 	if err != nil {
 		log.Errf("Error creating readline: %v", err)
 		return nil
