@@ -1,0 +1,2 @@
+// Test for precedence bug
+digit := num % 10 << (index * 4)
