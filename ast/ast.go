@@ -371,7 +371,20 @@ func (i InfixExpression) PrettyPrint(out *PrintState) *PrintState {
 	}
 	// Can be nil and shouldn't print nil for colon operator in slice expressions
 	if i.Right != nil {
-		i.Right.PrettyPrint(out)
+		// For the right side, we need to check if it's an infix expression with a different operator
+		// at the same precedence level. If so, we need to temporarily increase the precedence
+		// to force parentheses. This implements left-associativity: a << b * c means (a << b) * c,
+		// so to write a << (b * c) we need the parentheses.
+		// But a + b + c doesn't need parens because + is the same operator (associative).
+		if rightInfix, ok := i.Right.(*InfixExpression); ok && rightInfix.Token.Type() != i.Token.Type() {
+			// Different operators, increase precedence to force parens if needed
+			out.ExpressionPrecedence++
+			i.Right.PrettyPrint(out)
+			out.ExpressionPrecedence--
+		} else {
+			// Same operator or not an infix expression, normal printing
+			i.Right.PrettyPrint(out)
+		}
 	}
 	if needParen {
 		out.Print(")")

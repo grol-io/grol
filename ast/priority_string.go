@@ -29,9 +29,9 @@ const _Priority_name = "LOWESTASSIGNORANDLAMBDAEQUALSLESSGREATERSUMPRODUCTDIVIDE
 var _Priority_index = [...]uint8{0, 6, 12, 14, 17, 23, 29, 40, 43, 50, 56, 62, 66, 71, 79}
 
 func (i Priority) String() string {
-	i -= 1
-	if i < 0 || i >= Priority(len(_Priority_index)-1) {
-		return "Priority(" + strconv.FormatInt(int64(i+1), 10) + ")"
+	idx := int(i) - 1
+	if i < 1 || idx >= len(_Priority_index)-1 {
+		return "Priority(" + strconv.FormatInt(int64(i), 10) + ")"
 	}
-	return _Priority_name[_Priority_index[i]:_Priority_index[i+1]]
+	return _Priority_name[_Priority_index[idx]:_Priority_index[idx+1]]
 }
