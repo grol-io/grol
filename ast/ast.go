@@ -343,14 +343,12 @@ func (ps *PrintState) needParen(t *token.Token) (bool, Priority, token.Type) {
 	oldParentOp := ps.ParentOperator
 	ps.ExpressionPrecedence = newPrecedence
 	ps.ParentOperator = t.Type()
-
 	// Algorithm for determining if we need parentheses:
 	// 1. if prec(child) < prec(parent) → parens
 	// 2. if prec(child) > prec(parent) → no parens
 	// 3. if equal prec:
 	//    - if parentOp is associative: no parens
 	//    - else: if child is RIGHT operand: parens, else: no parens
-
 	needParen := ps.AllParens
 	if !needParen && newPrecedence < oldPrecedence {
 		needParen = true
