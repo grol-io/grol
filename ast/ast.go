@@ -26,6 +26,7 @@ const (
 	SUM         // +
 	PRODUCT     // *
 	DIVIDE      // /
+	BITWISE     // shifts
 	PREFIX      // -X or !X
 	CALL        // myFunction(X)
 	INDEX       // array[index]
@@ -59,8 +60,8 @@ var Precedences = map[token.Type]Priority{
 	token.BITAND:     PRODUCT,
 	token.ASTERISK:   PRODUCT,
 	token.PERCENT:    PRODUCT,
-	token.LEFTSHIFT:  PRODUCT,
-	token.RIGHTSHIFT: PRODUCT,
+	token.LEFTSHIFT:  BITWISE,
+	token.RIGHTSHIFT: BITWISE,
 	token.SLASH:      DIVIDE,
 	token.INCR:       PREFIX,
 	token.DECR:       PREFIX,

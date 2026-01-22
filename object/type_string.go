@@ -32,8 +32,9 @@ const _Type_name = "UNKNOWNINTEGERFLOATBOOLEANNILERRORRETURNFUNCSTRINGARRAYMAPQU
 var _Type_index = [...]uint8{0, 7, 14, 19, 26, 29, 34, 40, 44, 50, 55, 58, 63, 68, 77, 86, 94, 97}
 
 func (i Type) String() string {
-	if i >= Type(len(_Type_index)-1) {
+	idx := int(i) - 0
+	if i < 0 || idx >= len(_Type_index)-1 {
 		return "Type(" + strconv.FormatInt(int64(i), 10) + ")"
 	}
-	return _Type_name[_Type_index[i]:_Type_index[i+1]]
+	return _Type_name[_Type_index[idx]:_Type_index[idx+1]]
 }

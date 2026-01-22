@@ -18,20 +18,21 @@ func _() {
 	_ = x[SUM-8]
 	_ = x[PRODUCT-9]
 	_ = x[DIVIDE-10]
-	_ = x[PREFIX-11]
-	_ = x[CALL-12]
-	_ = x[INDEX-13]
-	_ = x[DOTINDEX-14]
+	_ = x[BITWISE-11]
+	_ = x[PREFIX-12]
+	_ = x[CALL-13]
+	_ = x[INDEX-14]
+	_ = x[DOTINDEX-15]
 }
 
-const _Priority_name = "LOWESTASSIGNORANDLAMBDAEQUALSLESSGREATERSUMPRODUCTDIVIDEPREFIXCALLINDEXDOTINDEX"
+const _Priority_name = "LOWESTASSIGNORANDLAMBDAEQUALSLESSGREATERSUMPRODUCTDIVIDEBITWISEPREFIXCALLINDEXDOTINDEX"
 
-var _Priority_index = [...]uint8{0, 6, 12, 14, 17, 23, 29, 40, 43, 50, 56, 62, 66, 71, 79}
+var _Priority_index = [...]uint8{0, 6, 12, 14, 17, 23, 29, 40, 43, 50, 56, 63, 69, 73, 78, 86}
 
 func (i Priority) String() string {
-	i -= 1
-	if i < 0 || i >= Priority(len(_Priority_index)-1) {
-		return "Priority(" + strconv.FormatInt(int64(i+1), 10) + ")"
+	idx := int(i) - 1
+	if i < 1 || idx >= len(_Priority_index)-1 {
+		return "Priority(" + strconv.FormatInt(int64(i), 10) + ")"
 	}
-	return _Priority_name[_Priority_index[i]:_Priority_index[i+1]]
+	return _Priority_name[_Priority_index[idx]:_Priority_index[idx+1]]
 }
