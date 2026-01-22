@@ -24,8 +24,7 @@ const (
 	EQUALS      // ==
 	LESSGREATER // > or <
 	SUM         // +
-	PRODUCT     // *
-	DIVIDE      // /
+	PRODUCT     // * / % << >> &
 	PREFIX      // -X or !X
 	CALL        // myFunction(X)
 	INDEX       // array[index]
@@ -61,7 +60,7 @@ var Precedences = map[token.Type]Priority{
 	token.PERCENT:    PRODUCT,
 	token.LEFTSHIFT:  PRODUCT,
 	token.RIGHTSHIFT: PRODUCT,
-	token.SLASH:      DIVIDE,
+	token.SLASH:      PRODUCT,
 	token.INCR:       PREFIX,
 	token.DECR:       PREFIX,
 	token.LPAREN:     CALL,
@@ -72,13 +71,27 @@ var Precedences = map[token.Type]Priority{
 //go:generate stringer -type=Priority
 var _ = DOTINDEX.String() // force compile error if go generate is missing.
 
+// isAssociative returns true if the operator is associative.
+// Associative operators: +, *, &, |, ^
+// Non-associative: -, /, %, <<, >>, ==, !=, <, <=, >, >=, &&, ||, =
+func isAssociative(t token.Type) bool {
+	switch t {
+	case token.PLUS, token.ASTERISK, token.BITAND, token.BITOR, token.BITXOR:
+		return true
+	default:
+		return false
+	}
+}
+
 type PrintState struct {
 	Out                  io.Writer
 	IndentLevel          int
 	ExpressionPrecedence Priority
-	IndentationDone      bool // already put N number of tabs, reset on each new line
-	Compact              bool // don't indent at all (compact mode), no newlines, fewer spaces, no comments
-	AllParens            bool // print all expressions fully parenthesized.
+	ParentOperator       token.Type    // The parent operator token type for associativity checking
+	IsRightChild         bool          // True when printing the right child of an infix expression
+	IndentationDone      bool          // already put N number of tabs, reset on each new line
+	Compact              bool          // don't indent at all (compact mode), no newlines, fewer spaces, no comments
+	AllParens            bool          // print all expressions fully parenthesized.
 	prev                 Node
 	last                 string
 }
@@ -307,14 +320,34 @@ type PrefixExpression struct {
 	Right Node
 }
 
-func (ps *PrintState) needParen(t *token.Token) (bool, Priority) {
+func (ps *PrintState) needParen(t *token.Token) (bool, Priority, token.Type) {
 	newPrecedence, ok := Precedences[t.Type()]
 	if !ok {
 		panic("precedence not found for " + t.Literal())
 	}
 	oldPrecedence := ps.ExpressionPrecedence
+	oldParentOp := ps.ParentOperator
 	ps.ExpressionPrecedence = newPrecedence
-	return ps.AllParens || newPrecedence < oldPrecedence, oldPrecedence
+	ps.ParentOperator = t.Type()
+	
+	// Algorithm for determining if we need parentheses:
+	// 1. if prec(child) < prec(parent) → parens
+	// 2. if prec(child) > prec(parent) → no parens
+	// 3. if equal prec:
+	//    - if parentOp is associative: no parens
+	//    - else: if child is RIGHT operand: parens, else: no parens
+	
+	needParen := ps.AllParens
+	if !needParen && newPrecedence < oldPrecedence {
+		needParen = true
+	} else if newPrecedence == oldPrecedence {
+		// Equal precedence - check associativity and position
+		if !isAssociative(oldParentOp) && ps.IsRightChild {
+			needParen = true
+		}
+	}
+	
+	return needParen, oldPrecedence, oldParentOp
 }
 
 func (p PrefixExpression) PrettyPrint(out *PrintState) *PrintState {
@@ -339,7 +372,7 @@ type PostfixExpression struct {
 }
 
 func (p PostfixExpression) PrettyPrint(out *PrintState) *PrintState {
-	needParen, oldPrecedence := out.needParen(p.Token)
+	needParen, oldPrecedence, oldParentOp := out.needParen(p.Token)
 	if needParen {
 		out.Print("(")
 	}
@@ -349,6 +382,7 @@ func (p PostfixExpression) PrettyPrint(out *PrintState) *PrintState {
 		out.Print(")")
 	}
 	out.ExpressionPrecedence = oldPrecedence
+	out.ParentOperator = oldParentOp
 	return out
 }
 
@@ -359,10 +393,13 @@ type InfixExpression struct {
 }
 
 func (i InfixExpression) PrettyPrint(out *PrintState) *PrintState {
-	needParen, oldPrecedence := out.needParen(i.Token)
+	needParen, oldPrecedence, oldParentOp := out.needParen(i.Token)
 	if needParen {
 		out.Print("(")
 	}
+	// Print left child - mark as not right child
+	oldIsRightChild := out.IsRightChild
+	out.IsRightChild = false
 	i.Left.PrettyPrint(out)
 	if out.Compact {
 		out.Print(i.Literal())
@@ -371,12 +408,16 @@ func (i InfixExpression) PrettyPrint(out *PrintState) *PrintState {
 	}
 	// Can be nil and shouldn't print nil for colon operator in slice expressions
 	if i.Right != nil {
+		// Print right child - mark as right child
+		out.IsRightChild = true
 		i.Right.PrettyPrint(out)
 	}
 	if needParen {
 		out.Print(")")
 	}
 	out.ExpressionPrecedence = oldPrecedence
+	out.ParentOperator = oldParentOp
+	out.IsRightChild = oldIsRightChild
 	return out
 }
 
@@ -544,7 +585,7 @@ type IndexExpression struct {
 }
 
 func (ie IndexExpression) PrettyPrint(out *PrintState) *PrintState {
-	needParen, oldExpressionPrecedence := out.needParen(ie.Token)
+	needParen, oldExpressionPrecedence, oldParentOp := out.needParen(ie.Token)
 	if needParen {
 		out.Print("(")
 	}
@@ -559,6 +600,7 @@ func (ie IndexExpression) PrettyPrint(out *PrintState) *PrintState {
 		out.Print(")")
 	}
 	out.ExpressionPrecedence = oldExpressionPrecedence
+	out.ParentOperator = oldParentOp
 	return out
 }
 

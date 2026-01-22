@@ -332,6 +332,56 @@ e = "f"`,
 			"a\n[1]",
 			"a [1]",
 		},
+		{ // https://github.com/grol-io/grol/issues/<issue_number> formatting precedence bug
+			"num % 10 << (index * 4)",
+			"num % 10 << (index * 4)",
+			"num%10<<(index*4)",
+		},
+		{ // Test associative operators don't get parens: a + b + c should stay a + b + c
+			"a + b + c",
+			"a + b + c",
+			"a+b+c",
+		},
+		{ // Test associative operators: a * b * c should stay a * b * c
+			"a * b * c",
+			"a * b * c",
+			"a*b*c",
+		},
+		{ // Test non-associative on right needs parens: a - (b - c)
+			"a - (b - c)",
+			"a - (b - c)",
+			"a-(b-c)",
+		},
+		{ // Test non-associative on left doesn't need parens: (a - b) - c -> a - b - c
+			"(a - b) - c",
+			"a - b - c",
+			"a-b-c",
+		},
+		{ // Test division: a / (b * c) must keep parens
+			"a / (b * c)",
+			"a / (b * c)",
+			"a/(b*c)",
+		},
+		{ // Test division left associativity: (a / b) / c -> a / b / c
+			"(a / b) / c",
+			"a / b / c",
+			"a/b/c",
+		},
+		{ // Test division right needs parens: a / (b / c)
+			"a / (b / c)",
+			"a / (b / c)",
+			"a/(b/c)",
+		},
+		{ // Test shift operators: a << (b + c) needs parens
+			"a << (b + c)",
+			"a << (b + c)",
+			"a<<(b+c)",
+		},
+		{ // Test modulo right side needs parens with same precedence: a % (b * c)
+			"a % (b * c)",
+			"a % (b * c)",
+			"a%(b*c)",
+		},
 	}
 	for i, tt := range tests {
 		l := lexer.New(tt.input)
