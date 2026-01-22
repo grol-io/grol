@@ -198,11 +198,11 @@ arr += true
 arr += "test"
 NoErr("array += 2.1", arr += 2.1, "[1, true, \"test\", 2.1]")
 
-// Test precedence bug: operators at same precedence level should be left-associative
-// but parentheses should be preserved when needed
+// Test precedence: multiplication binds tighter than shifts (like C/C++/Java/Python)
+// This makes parentheses preservation automatic and code simpler
 num := 123
 index := 2
-digit1 := num % 10 << (index * 4) // should evaluate to 768: 3 << 8
-digit2 := num % 10 << index * 4   // should evaluate to 48: (3 << 2) * 4
-Assert("num % 10 << (index * 4) with parens", digit1 == 768)
-Assert("num % 10 << index * 4 without parens", digit2 == 48)
+digit1 := num % 10 << (index * 4) // explicit parens: 3 << 8 = 768
+digit2 := num % 10 << index * 4   // mult binds tighter: 3 << (2 * 4) = 3 << 8 = 768
+Assert("num % 10 << (index * 4) with explicit parens", digit1 == 768)
+Assert("num % 10 << index * 4 - mult binds tighter", digit2 == 768)

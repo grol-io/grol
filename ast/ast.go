@@ -24,7 +24,9 @@ const (
 	EQUALS      // ==
 	LESSGREATER // > or <
 	SUM         // +
-	PRODUCT     // *
+	SHIFT       // << >>
+	BITAND      // &
+	PRODUCT     // * %
 	DIVIDE      // /
 	PREFIX      // -X or !X
 	CALL        // myFunction(X)
@@ -56,11 +58,11 @@ var Precedences = map[token.Type]Priority{
 	token.MINUS:      SUM,
 	token.BITOR:      SUM,
 	token.BITXOR:     SUM,
-	token.BITAND:     PRODUCT,
+	token.LEFTSHIFT:  SHIFT,
+	token.RIGHTSHIFT: SHIFT,
+	token.BITAND:     BITAND,
 	token.ASTERISK:   PRODUCT,
 	token.PERCENT:    PRODUCT,
-	token.LEFTSHIFT:  PRODUCT,
-	token.RIGHTSHIFT: PRODUCT,
 	token.SLASH:      DIVIDE,
 	token.INCR:       PREFIX,
 	token.DECR:       PREFIX,
@@ -371,32 +373,7 @@ func (i InfixExpression) PrettyPrint(out *PrintState) *PrintState {
 	}
 	// Can be nil and shouldn't print nil for colon operator in slice expressions
 	if i.Right != nil {
-		// For the right side, we need to check if it's an infix expression with a different operator
-		// at the same precedence level. If so, we need to temporarily increase the precedence
-		// to force parentheses. This implements left-associativity.
-		//
-		// Example: In "a << (b * c)", both << and * have PRODUCT precedence.
-		// Without parens it would be parsed as "(a << b) * c" due to left-associativity.
-		// To preserve the original semantics "a << (b * c)", we need the parentheses.
-		//
-		// But "a + b + c" doesn't need parens because + is the same operator (associative).
-		if rightInfix, ok := i.Right.(*InfixExpression); ok {
-			// Get precedences for both operators
-			currentPrec, currentOk := Precedences[i.Token.Type()]
-			rightPrec, rightOk := Precedences[rightInfix.Token.Type()]
-			// If both have the same precedence but are different operators, force parens
-			if currentOk && rightOk && currentPrec == rightPrec && rightInfix.Token.Type() != i.Token.Type() {
-				out.ExpressionPrecedence++
-				i.Right.PrettyPrint(out)
-				out.ExpressionPrecedence--
-			} else {
-				// Same operator or different precedence, normal printing
-				i.Right.PrettyPrint(out)
-			}
-		} else {
-			// Not an infix expression, normal printing
-			i.Right.PrettyPrint(out)
-		}
+		i.Right.PrettyPrint(out)
 	}
 	if needParen {
 		out.Print(")")
