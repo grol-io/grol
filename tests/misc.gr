@@ -197,3 +197,11 @@ arr += 1
 arr += true
 arr += "test"
 NoErr("array += 2.1", arr += 2.1, "[1, true, \"test\", 2.1]")
+// Test precedence bug: operators at same precedence level should be left-associative
+// but parentheses should be preserved when needed
+num := 123
+index := 2
+digit1 := num % 10 << (index * 4) // should evaluate to 768: 3 << 8
+digit2 := num % 10 << index * 4   // should evaluate to 48: (3 << 2) * 4
+Assert("num % 10 << (index * 4) with parens", digit1 == 768)
+Assert("num % 10 << index * 4 without parens", digit2 == 48)
