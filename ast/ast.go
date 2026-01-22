@@ -73,20 +73,21 @@ var _ = DOTINDEX.String() // force compile error if go generate is missing.
 
 // isAssociative returns true if the operator is associative.
 // Associative operators (can be grouped left-to-right without changing result):
-//   +  (addition)
-//   *  (multiplication)
-//   &  (bitwise AND)
-//   |  (bitwise OR)
-//   ^  (bitwise XOR)
+//   - + (addition)
+//   - * (multiplication)
+//   - &  (bitwise AND)
+//   - |  (bitwise OR)
+//   - ^  (bitwise XOR)
+//
 // Non-associative operators (require parentheses for right operand when at same precedence):
-//   -  (subtraction)
-//   /  (division)
-//   %  (modulo)
-//   << (left shift)
-//   >> (right shift)
-//   == != < <= > >= (comparison operators)
-//   && || (logical operators)
-//   = (assignment operators)
+//   - - (subtraction)
+//   - /  (division)
+//   - %  (modulo)
+//   - << (left shift)
+//   - >> (right shift)
+//   - == != < <= > >= (comparison operators)
+//   - && || (logical operators)
+//   - = (assignment operators)
 func isAssociative(t token.Type) bool {
 	switch t {
 	case token.PLUS, token.ASTERISK, token.BITAND, token.BITOR, token.BITXOR:
@@ -100,11 +101,11 @@ type PrintState struct {
 	Out                  io.Writer
 	IndentLevel          int
 	ExpressionPrecedence Priority
-	ParentOperator       token.Type    // The parent operator token type for associativity checking
-	IsRightChild         bool          // True when printing the right child of an infix expression
-	IndentationDone      bool          // already put N number of tabs, reset on each new line
-	Compact              bool          // don't indent at all (compact mode), no newlines, fewer spaces, no comments
-	AllParens            bool          // print all expressions fully parenthesized.
+	ParentOperator       token.Type // The parent operator token type for associativity checking
+	IsRightChild         bool       // True when printing the right child of an infix expression
+	IndentationDone      bool       // already put N number of tabs, reset on each new line
+	Compact              bool       // don't indent at all (compact mode), no newlines, fewer spaces, no comments
+	AllParens            bool       // print all expressions fully parenthesized.
 	prev                 Node
 	last                 string
 }

@@ -114,7 +114,7 @@ func (s *State) ExpandMacros(program ast.Node) ast.Node {
 }
 
 func quoteArgs(exp *ast.CallExpression) []object.Quote {
-	args := []object.Quote{}
+	args := make([]object.Quote, 0, len(exp.Arguments))
 
 	for _, a := range exp.Arguments {
 		args = append(args, object.Quote{Node: a})
