@@ -332,7 +332,7 @@ e = "f"`,
 			"a\n[1]",
 			"a [1]",
 		},
-		{ // https://github.com/grol-io/grol/issues/<issue_number> formatting precedence bug
+		{ // Formatting precedence bug: num % 10 << (index * 4) was incorrectly formatted to num % 10 << index * 4
 			"num % 10 << (index * 4)",
 			"num % 10 << (index * 4)",
 			"num%10<<(index*4)",

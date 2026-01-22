@@ -23,7 +23,7 @@ const (
 	LAMBDA      // =>
 	EQUALS      // ==
 	LESSGREATER // > or <
-	SUM         // +
+	SUM         // + - | ^
 	PRODUCT     // * / % << >> &
 	PREFIX      // -X or !X
 	CALL        // myFunction(X)
@@ -72,8 +72,21 @@ var Precedences = map[token.Type]Priority{
 var _ = DOTINDEX.String() // force compile error if go generate is missing.
 
 // isAssociative returns true if the operator is associative.
-// Associative operators: +, *, &, |, ^
-// Non-associative: -, /, %, <<, >>, ==, !=, <, <=, >, >=, &&, ||, =
+// Associative operators (can be grouped left-to-right without changing result):
+//   +  (addition)
+//   *  (multiplication)
+//   &  (bitwise AND)
+//   |  (bitwise OR)
+//   ^  (bitwise XOR)
+// Non-associative operators (require parentheses for right operand when at same precedence):
+//   -  (subtraction)
+//   /  (division)
+//   %  (modulo)
+//   << (left shift)
+//   >> (right shift)
+//   == != < <= > >= (comparison operators)
+//   && || (logical operators)
+//   = (assignment operators)
 func isAssociative(t token.Type) bool {
 	switch t {
 	case token.PLUS, token.ASTERISK, token.BITAND, token.BITOR, token.BITXOR:
@@ -329,14 +342,14 @@ func (ps *PrintState) needParen(t *token.Token) (bool, Priority, token.Type) {
 	oldParentOp := ps.ParentOperator
 	ps.ExpressionPrecedence = newPrecedence
 	ps.ParentOperator = t.Type()
-	
+
 	// Algorithm for determining if we need parentheses:
 	// 1. if prec(child) < prec(parent) → parens
 	// 2. if prec(child) > prec(parent) → no parens
 	// 3. if equal prec:
 	//    - if parentOp is associative: no parens
 	//    - else: if child is RIGHT operand: parens, else: no parens
-	
+
 	needParen := ps.AllParens
 	if !needParen && newPrecedence < oldPrecedence {
 		needParen = true
@@ -346,7 +359,7 @@ func (ps *PrintState) needParen(t *token.Token) (bool, Priority, token.Type) {
 			needParen = true
 		}
 	}
-	
+
 	return needParen, oldPrecedence, oldParentOp
 }
 
