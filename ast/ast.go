@@ -23,11 +23,11 @@ const (
 	LAMBDA      // =>
 	EQUALS      // ==
 	LESSGREATER // > or <
-	SUM         // +
+	SUM         // + - | ^
 	SHIFT       // << >>
 	BITAND      // &
 	PRODUCT     // * %
-	DIVIDE      // /
+	DIVIDE      // / (same precedence as PRODUCT)
 	PREFIX      // -X or !X
 	CALL        // myFunction(X)
 	INDEX       // array[index]
