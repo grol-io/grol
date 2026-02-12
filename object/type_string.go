@@ -11,29 +11,31 @@ func _() {
 	_ = x[UNKNOWN-0]
 	_ = x[INTEGER-1]
 	_ = x[FLOAT-2]
-	_ = x[BOOLEAN-3]
-	_ = x[NIL-4]
-	_ = x[ERROR-5]
-	_ = x[RETURN-6]
-	_ = x[FUNC-7]
-	_ = x[STRING-8]
-	_ = x[ARRAY-9]
-	_ = x[MAP-10]
-	_ = x[QUOTE-11]
-	_ = x[MACRO-12]
-	_ = x[EXTENSION-13]
-	_ = x[REFERENCE-14]
-	_ = x[REGISTER-15]
-	_ = x[ANY-16]
+	_ = x[BIGINT-3]
+	_ = x[BOOLEAN-4]
+	_ = x[NIL-5]
+	_ = x[ERROR-6]
+	_ = x[RETURN-7]
+	_ = x[FUNC-8]
+	_ = x[STRING-9]
+	_ = x[ARRAY-10]
+	_ = x[MAP-11]
+	_ = x[QUOTE-12]
+	_ = x[MACRO-13]
+	_ = x[EXTENSION-14]
+	_ = x[REFERENCE-15]
+	_ = x[REGISTER-16]
+	_ = x[ANY-17]
 }
 
-const _Type_name = "UNKNOWNINTEGERFLOATBOOLEANNILERRORRETURNFUNCSTRINGARRAYMAPQUOTEMACROEXTENSIONREFERENCEREGISTERANY"
+const _Type_name = "UNKNOWNINTEGERFLOATBIGINTBOOLEANNILERRORRETURNFUNCSTRINGARRAYMAPQUOTEMACROEXTENSIONREFERENCEREGISTERANY"
 
-var _Type_index = [...]uint8{0, 7, 14, 19, 26, 29, 34, 40, 44, 50, 55, 58, 63, 68, 77, 86, 94, 97}
+var _Type_index = [...]uint8{0, 7, 14, 19, 25, 32, 35, 40, 46, 50, 56, 61, 64, 69, 74, 83, 92, 100, 103}
 
 func (i Type) String() string {
-	if i >= Type(len(_Type_index)-1) {
+	idx := int(i) - 0
+	if i < 0 || idx >= len(_Type_index)-1 {
 		return "Type(" + strconv.FormatInt(int64(i), 10) + ")"
 	}
-	return _Type_name[_Type_index[i]:_Type_index[i+1]]
+	return _Type_name[_Type_index[idx]:_Type_index[idx+1]]
 }

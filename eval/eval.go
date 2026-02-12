@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"io"
 	"math"
+	"math/big"
 	"strings"
 
 	"fortio.org/log"
@@ -240,6 +241,9 @@ func (s *State) evalPrefixIncrDecr(operator token.Type, node ast.Node) object.Ob
 		return s.env.Set(id, object.Integer{Value: val.Value + toAdd})
 	case object.Float:
 		return s.env.Set(id, object.Float{Value: val.Value + float64(toAdd)}) // So PI++ fails not silently.
+	case object.BigInt:
+		result := new(big.Int).Add(val.Value, big.NewInt(toAdd))
+		return s.env.Set(id, object.BigInt{Value: result}.Normalize())
 	default:
 		return s.NewError("can't prefix increment/decrement " + val.Type().String())
 	}
@@ -270,6 +274,9 @@ func (s *State) evalPostfixExpression(node *ast.PostfixExpression) object.Object
 		oerr = s.env.Set(id, object.Integer{Value: val.Value + toAdd})
 	case object.Float:
 		oerr = s.env.Set(id, object.Float{Value: val.Value + float64(toAdd)}) // So PI++ fails not silently.
+	case object.BigInt:
+		result := new(big.Int).Add(val.Value, big.NewInt(toAdd))
+		oerr = s.env.Set(id, object.BigInt{Value: result}.Normalize())
 	default:
 		return s.NewError("can't postfix increment/decrement " + val.Type().String())
 	}
@@ -352,6 +359,8 @@ func (s *State) evalInternal(node any) object.Object { //nolint:funlen,gocognit,
 
 	case *ast.IntegerLiteral:
 		return object.Integer{Value: node.Val}
+	case *ast.BigIntLiteral:
+		return object.BigInt{Value: node.Val}
 	case *ast.FloatLiteral:
 		return object.Float{Value: node.Val}
 	case *ast.Boolean:
@@ -777,6 +786,13 @@ func (s *State) applyExtension(fn object.Extension, args []object.Object) object
 		// Auto promote integer to float if needed.
 		if fn.ArgTypes[i] == object.FLOAT && arg.Type() == object.INTEGER {
 			args[i] = object.Float{Value: float64(arg.(object.Integer).Value)}
+			continue
+		}
+		// Auto promote bigint to float if needed.
+		if fn.ArgTypes[i] == object.FLOAT && arg.Type() == object.BIGINT {
+			v := arg.(object.BigInt).Value
+			f, _ := new(big.Float).SetInt(v).Float64()
+			args[i] = object.Float{Value: f}
 			continue
 		}
 		if fn.ArgTypes[i] != arg.Type() {
@@ -1298,6 +1314,10 @@ func (s *State) evalPrefixExpression(operator token.Type, right object.Object) o
 		if ok {
 			return object.Integer{Value: ^rightVal}
 		}
+		if right.Type() == object.BIGINT {
+			v := right.(object.BigInt).Value
+			return object.BigInt{Value: new(big.Int).Not(v)}.Normalize()
+		}
 		return s.NewError("bitwise not of " + right.Inspect())
 	case token.PLUS:
 		// nothing do with unary plus, just return the value.
@@ -1331,6 +1351,9 @@ func (s *State) evalMinusPrefixOperatorExpression(right object.Object) object.Ob
 	case object.FLOAT:
 		value := right.(object.Float).Value
 		return object.Float{Value: -value}
+	case object.BIGINT:
+		value := right.(object.BigInt).Value
+		return object.BigInt{Value: new(big.Int).Neg(value)}.Normalize()
 	default:
 		return s.NewError("minus of " + right.Inspect())
 	}
@@ -1359,6 +1382,8 @@ func (s *State) evalInfixExpression(operator token.Type, left, right object.Obje
 		// can't use generics :/ see other comment.
 	case rightIsInt && leftIsInt:
 		return s.evalIntegerInfixExpression(operator, leftVal, rightVal)
+	case left.Type() == object.BIGINT || right.Type() == object.BIGINT:
+		return s.evalBigIntInfixExpression(operator, left, right)
 	case left.Type() == object.ARRAY:
 		return s.evalArrayInfixExpression(operator, left, right)
 	case left.Type() == object.FLOAT || right.Type() == object.FLOAT:
@@ -1486,12 +1511,73 @@ func (s *State) evalIntegerInfixExpression(operator token.Type, leftVal, rightVa
 	}
 }
 
+func (s *State) evalBigIntInfixExpression(operator token.Type, left, right object.Object) object.Object {
+	leftVal, lok := object.BigIntValue(left)
+	if !lok {
+		// BigInt + Float => promote to float.
+		if left.Type() == object.FLOAT {
+			return s.evalFloatInfixExpression(operator, left, right)
+		}
+		return s.NewError("not converting to bigint: " + left.Type().String())
+	}
+	rightVal, rok := object.BigIntValue(right)
+	if !rok {
+		// BigInt + Float => promote to float.
+		if right.Type() == object.FLOAT {
+			return s.evalFloatInfixExpression(operator, left, right)
+		}
+		return s.NewError("not converting to bigint: " + right.Type().String())
+	}
+	var result *big.Int
+	switch operator {
+	case token.PLUS:
+		result = new(big.Int).Add(leftVal, rightVal)
+	case token.MINUS:
+		result = new(big.Int).Sub(leftVal, rightVal)
+	case token.ASTERISK:
+		result = new(big.Int).Mul(leftVal, rightVal)
+	case token.SLASH:
+		if rightVal.Sign() == 0 {
+			return s.NewError("division by zero")
+		}
+		result = new(big.Int).Quo(leftVal, rightVal)
+	case token.PERCENT:
+		if rightVal.Sign() == 0 {
+			return s.NewError("modulo by zero")
+		}
+		result = new(big.Int).Rem(leftVal, rightVal)
+	case token.LEFTSHIFT:
+		if !rightVal.IsInt64() || rightVal.Int64() < 0 {
+			return s.NewError("shift amount too large or negative")
+		}
+		result = new(big.Int).Lsh(leftVal, uint(rightVal.Int64()))
+	case token.RIGHTSHIFT:
+		if !rightVal.IsInt64() || rightVal.Int64() < 0 {
+			return s.NewError("shift amount too large or negative")
+		}
+		result = new(big.Int).Rsh(leftVal, uint(rightVal.Int64()))
+	case token.BITAND:
+		result = new(big.Int).And(leftVal, rightVal)
+	case token.BITOR:
+		result = new(big.Int).Or(leftVal, rightVal)
+	case token.BITXOR:
+		result = new(big.Int).Xor(leftVal, rightVal)
+	default:
+		return s.NewError("unknown operator: " + operator.String())
+	}
+	return object.BigInt{Value: result}.Normalize()
+}
+
 func GetFloatValue(o object.Object) (float64, *object.Error) {
 	switch o.Type() {
 	case object.REGISTER:
 		return float64(o.(*object.Register).Int64()), nil
 	case object.INTEGER:
 		return float64(o.(object.Integer).Value), nil
+	case object.BIGINT:
+		v := o.(object.BigInt).Value
+		f, _ := new(big.Float).SetInt(v).Float64()
+		return f, nil
 	case object.FLOAT:
 		return o.(object.Float).Value, nil
 	default:

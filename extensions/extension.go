@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"math"
+	"math/big"
 	"math/rand/v2"
 	"os"
 	"regexp"
@@ -661,6 +662,12 @@ func createConversionFunctions() {
 			switch o.Type() {
 			case object.INTEGER:
 				return o
+			case object.BIGINT:
+				v := o.(object.BigInt).Value
+				if v.IsInt64() {
+					return object.Integer{Value: v.Int64()}
+				}
+				return s.Errorf("bigint %s out of int64 range", v.String())
 			case object.NIL:
 				return object.Integer{Value: 0}
 			case object.BOOLEAN:
@@ -701,6 +708,10 @@ func createConversionFunctions() {
 		switch o.Type() {
 		case object.INTEGER:
 			return object.Float{Value: float64(o.(object.Integer).Value)}
+		case object.BIGINT:
+			v := o.(object.BigInt).Value
+			f, _ := new(big.Float).SetInt(v).Float64()
+			return object.Float{Value: f}
 		case object.NIL:
 			return object.Float{Value: 0}
 		case object.BOOLEAN:
@@ -752,6 +763,53 @@ func createConversionFunctions() {
 	intFn.Help = "encodes a string to base64"
 	intFn.Category = object.CategoryString
 	MustCreate(intFn)
+	// big() conversion function for arbitrary precision integers.
+	MustCreate(object.Extension{
+		Name:     "big",
+		MinArgs:  1,
+		MaxArgs:  1,
+		ArgTypes: []object.Type{object.ANY},
+		Callback: func(st any, _ string, args []object.Object) object.Object {
+			s := st.(*eval.State)
+			o := args[0]
+			switch o.Type() {
+			case object.BIGINT:
+				return o
+			case object.INTEGER:
+				return object.NewBigInt(o.(object.Integer).Value)
+			case object.REGISTER:
+				return object.NewBigInt(o.(*object.Register).Int64())
+			case object.BOOLEAN:
+				if o.(object.Boolean).Value {
+					return object.NewBigInt(1)
+				}
+				return object.NewBigInt(0)
+			case object.FLOAT:
+				v := o.(object.Float).Value
+				bi, _ := new(big.Float).SetFloat64(v).Int(nil)
+				if bi == nil {
+					return s.Errorf("cannot convert float %v to bigint", v)
+				}
+				return object.BigInt{Value: bi}
+			case object.STRING:
+				str := o.(object.String).Value
+				str = strings.TrimSpace(str)
+				if str == "" {
+					return object.NewBigInt(0)
+				}
+				v := new(big.Int)
+				_, ok := v.SetString(str, 0)
+				if !ok {
+					return s.Errorf("cannot convert %q to bigint", str)
+				}
+				return object.BigInt{Value: v}
+			default:
+				return s.Errorf("cannot convert %s to bigint", o.Type())
+			}
+		},
+		Help:     "converts a value to an arbitrary precision integer (bigint)",
+		Category: object.CategoryMath,
+	})
 }
 
 func createTimeFunctions() {

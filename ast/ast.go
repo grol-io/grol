@@ -5,6 +5,7 @@ package ast
 
 import (
 	"io"
+	"math/big"
 	"strconv"
 	"strings"
 
@@ -312,6 +313,11 @@ func (c Comment) PrettyPrint(out *PrintState) *PrintState {
 type IntegerLiteral struct {
 	Base
 	Val int64
+}
+
+type BigIntLiteral struct {
+	Base
+	Val *big.Int
 }
 
 type FloatLiteral struct {

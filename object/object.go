@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math/big"
 	"slices"
 	"strconv"
 	"strings"
@@ -28,7 +29,8 @@ type Object interface {
 const (
 	UNKNOWN Type = iota
 	INTEGER
-	FLOAT // These 2 must stay in that order for areIntFloat to work.
+	FLOAT  // These 2 must stay in that order for areIntFloat to work.
+	BIGINT // big.Int arbitrary precision integer.
 	BOOLEAN
 	NIL
 	ERROR
@@ -74,7 +76,7 @@ type Number interface {
 func Hashable(o Object) bool {
 	switch o.Type() { //nolint:exhaustive // We have all the types that are hashable + default for the others.
 	// register because it's a pointer though dubious whether it's hashable for cache key.
-	case INTEGER, FLOAT, BOOLEAN, NIL, STRING, REGISTER:
+	case INTEGER, FLOAT, BIGINT, BOOLEAN, NIL, STRING, REGISTER:
 		return true
 	case ARRAY:
 		if sa, ok := o.(SmallArray); ok {
@@ -101,7 +103,7 @@ func Hashable(o Object) bool {
 
 func UnwrapHashable(o Object) any {
 	switch o.Type() {
-	case INTEGER, FLOAT, BOOLEAN, NIL, ERROR, STRING:
+	case INTEGER, FLOAT, BIGINT, BOOLEAN, NIL, ERROR, STRING:
 		return o.Unwrap(false)
 	default:
 		return o.Inspect()
@@ -115,14 +117,19 @@ func NativeBoolToBooleanObject(input bool) Boolean {
 	return FALSE
 }
 
-// IsIntType checks if the type is an integer or a register.
+// IsIntType checks if the type is an integer (or register, but not bigint).
 func IsIntType(t Type) bool {
 	return t == INTEGER || t == REGISTER
 }
 
+// IsAnyIntType checks if the type is an integer, bigint, or register.
+func IsAnyIntType(t Type) bool {
+	return t == INTEGER || t == REGISTER || t == BIGINT
+}
+
 // TypeEqual checks if types are equal, considering registers as integers for comparison purposes.
 func TypeEqual(a, b Type) bool {
-	return a == b || (IsIntType(a) && IsIntType(b))
+	return a == b || (IsAnyIntType(a) && IsAnyIntType(b))
 }
 
 func Equals(left, right Object) bool {
@@ -174,6 +181,25 @@ func Cmp(ei, ej Object) int {
 			v2 = float64(ej.(Integer).Value)
 		}
 		return cmp.Compare(v1, v2)
+	}
+	// Handle BigInt cross-type comparisons.
+	if ti == BIGINT || tj == BIGINT {
+		bi, ok1 := BigIntValue(ei)
+		bj, ok2 := BigIntValue(ej)
+		if ok1 && ok2 {
+			return bi.Cmp(bj)
+		}
+		// BigInt vs Float (or Float vs BigInt): convert BigInt to float64 for comparison.
+		if ok1 && tj == FLOAT {
+			bf := new(big.Float).SetInt(bi)
+			fj := new(big.Float).SetFloat64(ej.(Float).Value)
+			return bf.Cmp(fj)
+		}
+		if ok2 && ti == FLOAT {
+			fi := new(big.Float).SetFloat64(ei.(Float).Value)
+			bf := new(big.Float).SetInt(bj)
+			return fi.Cmp(bf)
+		}
 	}
 	if ti < tj {
 		return -1
@@ -230,6 +256,8 @@ func Cmp(ei, ej Object) int {
 		return 0
 	case INTEGER:
 		return cmp.Compare(ei.(Integer).Value, ej.(Integer).Value)
+	case BIGINT:
+		return ei.(BigInt).Value.Cmp(ej.(BigInt).Value)
 	case FLOAT:
 		return cmp.Compare(ei.(Float).Value, ej.(Float).Value)
 	case BOOLEAN:
@@ -491,6 +519,49 @@ func (i Integer) Unwrap(_ bool) any {
 
 func (i Integer) Type() Type {
 	return INTEGER
+}
+
+// BigInt returns a new BigInt object from an int64.
+func NewBigInt(v int64) BigInt {
+	return BigInt{Value: big.NewInt(v)}
+}
+
+// BigInt represents an arbitrary precision integer.
+type BigInt struct {
+	Value *big.Int
+}
+
+func (b BigInt) JSON(w io.Writer) error {
+	_, err := fmt.Fprintf(w, "%s", b.Value.String())
+	return err
+}
+
+func (b BigInt) Inspect() string {
+	return b.Value.String()
+}
+
+func (b BigInt) Unwrap(_ bool) any {
+	return b.Value
+}
+
+func (b BigInt) Type() Type {
+	return BIGINT
+}
+
+// IsSmall returns true if the BigInt fits in an int64 and the int64 value.
+func (b BigInt) IsSmall() (int64, bool) {
+	if b.Value.IsInt64() {
+		return b.Value.Int64(), true
+	}
+	return 0, false
+}
+
+// Normalize returns an Integer if the BigInt fits in an int64, otherwise returns the BigInt.
+func (b BigInt) Normalize() Object {
+	if v, ok := b.IsSmall(); ok {
+		return Integer{Value: v}
+	}
+	return b
 }
 
 type Float struct {
@@ -1000,6 +1071,20 @@ func areIntFloat(a, b Type) bool {
 	l := min(a, b)
 	h := max(a, b)
 	return l == INTEGER && h == FLOAT
+}
+
+// BigIntValue extracts a *big.Int from Integer, BigInt, or Register.
+func BigIntValue(o Object) (*big.Int, bool) {
+	switch o.Type() {
+	case BIGINT:
+		return o.(BigInt).Value, true
+	case INTEGER:
+		return big.NewInt(o.(Integer).Value), true
+	case REGISTER:
+		return big.NewInt(o.(*Register).Int64()), true
+	default:
+		return nil, false
+	}
 }
 
 func (ao BigArray) Less(i, j int) bool {
