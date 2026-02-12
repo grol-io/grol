@@ -5,6 +5,7 @@ import (
 	"io"
 	"math"
 	"math/big"
+	"math/bits"
 	"strings"
 
 	"fortio.org/log"
@@ -166,8 +167,12 @@ func (s *State) evalAssignment(right object.Object, node *ast.InfixExpression) o
 			currentValue := *reg.Ptr()
 			compounded := s.evalIntegerInfixExpression(opToEval, currentValue, intVal)
 			log.LogVf("eval compound assign from %d to %#v for register %d", currentValue, compounded, reg.Idx)
-			*reg.Ptr() = compounded.(object.Integer).Value
-			return compounded
+			if iv, isInt := compounded.(object.Integer); isInt {
+				*reg.Ptr() = iv.Value
+				return compounded
+			}
+			// Overflow promoted to BigInt — can't store in register, escape to normal variable.
+			return s.NewError("register overflow: result is bigint " + compounded.Inspect())
 		}
 		*reg.Ptr() = intVal
 		return object.CopyRegister(right)
@@ -289,7 +294,7 @@ func (s *State) evalPostfixExpression(node *ast.PostfixExpression) object.Object
 // Doesn't unwrap return - return bubbles up.
 // Initially this was the one to use internally recursively, except for when evaluating a function
 // but now it's less clear because of the need to unwrap references too. TODO: fix/clarify.
-func (s *State) evalInternal(node any) object.Object { //nolint:funlen,gocognit,gocyclo // quite a lot of cases.
+func (s *State) evalInternal(node any) object.Object { //nolint:funlen,gocognit,gocyclo,maintidx // quite a lot of cases.
 	if s.Context != nil && s.Context.Err() != nil {
 		return s.Error(s.Context.Err())
 	}
@@ -1474,20 +1479,76 @@ func Int64Value(o object.Object) (int64, bool) {
 // can't use fields directly in generic code,
 // https://github.com/golang/go/issues/48522
 // would need getters/setters which is not very go idiomatic.
-func (s *State) evalIntegerInfixExpression(operator token.Type, leftVal, rightVal int64) object.Object {
+// promoteToBigInt promotes an int64 binary operation to BigInt when the result overflows.
+func promoteToBigInt(op func(*big.Int, *big.Int, *big.Int) *big.Int, leftVal, rightVal int64) object.Object {
+	l := big.NewInt(leftVal)
+	r := big.NewInt(rightVal)
+	return object.BigInt{Value: op(new(big.Int), l, r)}
+}
+
+func (s *State) evalIntegerInfixExpression(operator token.Type, leftVal, rightVal int64) object.Object { //nolint:gocyclo // yes...
 	switch operator {
 	case token.PLUS:
-		return object.Integer{Value: leftVal + rightVal}
+		result := leftVal + rightVal
+		// Signed overflow: operands have same sign but result sign differs.
+		if (rightVal^leftVal) >= 0 && (result^leftVal) < 0 {
+			return promoteToBigInt((*big.Int).Add, leftVal, rightVal)
+		}
+		return object.Integer{Value: result}
 	case token.MINUS:
-		return object.Integer{Value: leftVal - rightVal}
+		result := leftVal - rightVal
+		// Signed overflow: operands have different signs and result sign differs from left.
+		if (rightVal^leftVal) < 0 && (result^leftVal) < 0 {
+			return promoteToBigInt((*big.Int).Sub, leftVal, rightVal)
+		}
+		return object.Integer{Value: result}
 	case token.ASTERISK:
-		return object.Integer{Value: leftVal * rightVal}
+		result := leftVal * rightVal
+		if leftVal != 0 && rightVal != 0 {
+			// Use math/bits.Mul64 on absolute values to detect overflow.
+			la, ra := leftVal, rightVal
+			if la < 0 {
+				la = -la
+			}
+			if ra < 0 {
+				ra = -ra
+			}
+			hi, _ := bits.Mul64(uint64(la), uint64(ra)) //nolint:gosec // la,ra are absolute values, non-negative.
+			// hi != 0 means the product doesn't fit in 64 bits (unsigned).
+			// Also check sign correctness: if both same sign, result must be positive.
+			if hi != 0 || (leftVal > 0 && rightVal > 0 && result <= 0) ||
+				(leftVal < 0 && rightVal < 0 && result <= 0) ||
+				(leftVal > 0 && rightVal < 0 && result >= 0) ||
+				(leftVal < 0 && rightVal > 0 && result >= 0) {
+				return promoteToBigInt((*big.Int).Mul, leftVal, rightVal)
+			}
+		}
+		return object.Integer{Value: result}
 	case token.SLASH:
+		if rightVal == 0 {
+			return s.NewError("division by zero")
+		}
+		// MinInt64 / -1 overflows.
+		if leftVal == math.MinInt64 && rightVal == -1 {
+			return promoteToBigInt((*big.Int).Quo, leftVal, rightVal)
+		}
 		return object.Integer{Value: leftVal / rightVal}
 	case token.PERCENT:
+		if rightVal == 0 {
+			return s.NewError("modulo by zero")
+		}
 		return object.Integer{Value: leftVal % rightVal}
 	case token.LEFTSHIFT:
-		return object.Integer{Value: leftVal << rightVal}
+		if rightVal < 0 {
+			return s.NewError("negative shift amount")
+		}
+		result := leftVal << rightVal
+		// Check roundtrip: shifting back should yield the original value.
+		if result>>rightVal != leftVal {
+			l := big.NewInt(leftVal)
+			return object.BigInt{Value: new(big.Int).Lsh(l, uint(rightVal))}
+		}
+		return object.Integer{Value: result}
 	case token.RIGHTSHIFT:
 		return object.Integer{Value: int64(uint64(leftVal) >> rightVal)} //nolint:gosec // we want to be able to shift the hight bit.
 	case token.BITAND:
@@ -1550,12 +1611,12 @@ func (s *State) evalBigIntInfixExpression(operator token.Type, left, right objec
 		if !rightVal.IsInt64() || rightVal.Int64() < 0 {
 			return s.NewError("shift amount too large or negative")
 		}
-		result = new(big.Int).Lsh(leftVal, uint(rightVal.Int64()))
+		result = new(big.Int).Lsh(leftVal, uint(rightVal.Int64())) //nolint:gosec // guarded non-negative above.
 	case token.RIGHTSHIFT:
 		if !rightVal.IsInt64() || rightVal.Int64() < 0 {
 			return s.NewError("shift amount too large or negative")
 		}
-		result = new(big.Int).Rsh(leftVal, uint(rightVal.Int64()))
+		result = new(big.Int).Rsh(leftVal, uint(rightVal.Int64())) //nolint:gosec // guarded non-negative above.
 	case token.BITAND:
 		result = new(big.Int).And(leftVal, rightVal)
 	case token.BITOR:

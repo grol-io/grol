@@ -164,7 +164,7 @@ func Value(o Object) Object {
 	}
 }
 
-func Cmp(ei, ej Object) int {
+func Cmp(ei, ej Object) int { //nolint:gocognit,gocyclo,funlen // big switch...
 	// dereference references
 	ei = Value(ei)
 	ej = Value(ej)
@@ -521,7 +521,7 @@ func (i Integer) Type() Type {
 	return INTEGER
 }
 
-// BigInt returns a new BigInt object from an int64.
+// NewBigInt returns a new BigInt object from an int64.
 func NewBigInt(v int64) BigInt {
 	return BigInt{Value: big.NewInt(v)}
 }

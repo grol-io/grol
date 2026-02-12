@@ -650,7 +650,7 @@ func createMisc() {
 	})
 }
 
-func createConversionFunctions() {
+func createConversionFunctions() { //nolint:gocyclo,gocognit,funlen // just a bunch of functions created.
 	intFn := object.Extension{
 		Name:     "int",
 		MinArgs:  1,
