@@ -171,7 +171,7 @@ func Test_OperatorPrecedenceParsing(t *testing.T) {
 		},
 		{
 			"3 + 4; -5 * 5",
-			"3 + 4;\n-5 * 5", // semicolon needed to prevent -5 being parsed as infix subtraction
+			"3 + 4\n-5 * 5", // long form doesn't need semicolon, newline is sufficient separation
 		},
 		{
 			"5 > 4 == 3 < 4",
