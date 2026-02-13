@@ -6,28 +6,21 @@ Web assembly main for grol.
 Existing API (textarea/batch mode):
   - grol(input, compact) → {result, errors, formatted, image}
 
-New xterm.js interactive mode:
+xterm.js interactive mode:
   - grolStartREPL(cols, rows) → starts an interactive REPL goroutine
   - grolSetTermSize(cols, rows) → updates terminal dimensions
   - Requires JS-side stdin/stdout bridge via globalThis.fs overrides
-  - Uses golang.org/x/term.Terminal for line editing (same as fortio.org/terminal internally)
-
-NOTE: Once fortio.org/terminal adds WASM support (MakeRaw/IsTerminal stubs),
-this can be simplified to just call repl.Interactive() directly.
+    (see xterm.html for the bridge implementation)
+  - JS side must set globalThis.TerminalConnected = true before go.run()
+    for fortio.org/terminal to detect the terminal emulator
 */
 
 package main
 
 import (
 	"context"
-	"errors"
-	"fmt"
-	"io"
-	"os"
 	"runtime"
 	"runtime/debug"
-	"slices"
-	"strconv"
 	"strings"
 	"sync"
 	"syscall/js"
@@ -37,13 +30,9 @@ import (
 	"fortio.org/log"
 	"fortio.org/terminal"
 	"fortio.org/version"
-	"golang.org/x/term"
 	"grol.io/grol/eval"
 	"grol.io/grol/extensions"
-	"grol.io/grol/object"
 	"grol.io/grol/repl"
-	"grol.io/grol/token"
-	"grol.io/grol/trie"
 )
 
 var (
@@ -102,16 +91,14 @@ func jsEval(this js.Value, args []js.Value) interface{} {
 
 var (
 	TinyGoVersion string
-	grolVer       string // package-level version string for REPL welcome message
 )
 
-// --- xterm.js Interactive REPL via x/term.Terminal ---
+// --- xterm.js Interactive REPL ---
 
-// xtermTerminal is the x/term.Terminal used for line editing.
-// It's package-level so jsSetTermSize can update it.
+// wasmTerm holds the fortio.org/terminal.Terminal for resize updates.
 var (
-	xtermTerminal *term.Terminal
-	xtermMu       sync.Mutex
+	wasmTerm *terminal.Terminal
+	wasmMu   sync.Mutex
 )
 
 // jsStartREPL starts the interactive REPL loop in a goroutine.
@@ -123,7 +110,24 @@ func jsStartREPL(_ js.Value, args []js.Value) interface{} {
 		cols = args[0].Int()
 		rows = args[1].Int()
 	}
-	go wasmInteractive(cols, rows)
+	// Set initial size globals for fortio.org/terminal's platformGetSize
+	global := js.Global()
+	global.Set("TerminalCols", cols)
+	global.Set("TerminalRows", rows)
+	go func() {
+		options := repl.Options{
+			ShowEval:    true,
+			MaxDepth:    WasmMaxDepth,
+			MaxDuration: WasmMaxDuration,
+		}
+		// Capture the terminal object via PreInput so we can update size on resize
+		options.PreInput = func(s *eval.State) {
+			wasmMu.Lock()
+			wasmTerm = s.Term
+			wasmMu.Unlock()
+		}
+		repl.Interactive(options)
+	}()
 	return nil
 }
 
@@ -134,213 +138,18 @@ func jsSetTermSize(_ js.Value, args []js.Value) interface{} {
 	}
 	cols := args[0].Int()
 	rows := args[1].Int()
-	xtermMu.Lock()
-	defer xtermMu.Unlock()
-	if xtermTerminal != nil {
-		_ = xtermTerminal.SetSize(cols, rows)
+	// Update JS globals so platformGetSize returns the new values
+	global := js.Global()
+	global.Set("TerminalCols", cols)
+	global.Set("TerminalRows", rows)
+	// Tell the fortio.org/terminal.Terminal to re-read the size
+	wasmMu.Lock()
+	t := wasmTerm
+	wasmMu.Unlock()
+	if t != nil {
+		_ = t.UpdateSize()
 	}
 	return nil
-}
-
-// wasmInteractive runs an interactive REPL loop similar to repl.Interactive()
-// but using x/term.Terminal directly for line editing (works in WASM because
-// x/term.Terminal is platform-independent — it just needs an io.ReadWriter
-// and produces/consumes ANSI escape sequences, which xterm.js handles perfectly).
-//
-// This replicates the core logic of repl.Interactive() including:
-// - Line editing via ANSI escape sequences (handled by x/term.Terminal)
-// - Tab completion
-// - Command history
-// - Multi-line continuation for incomplete input
-// - Special commands: history, help, exit, !n
-func wasmInteractive(cols, rows int) { //nolint:funlen,gocognit // mirrors repl.Interactive complexity
-	// Set up eval state
-	s := eval.NewState()
-	s.MaxDepth = WasmMaxDepth
-
-	options := repl.Options{
-		ShowEval:    true,
-		NilAndErr:   true,
-		DualFormat:  true,
-		MaxDuration: WasmMaxDuration,
-	}
-
-	// Set up autocomplete trie
-	autoTrie := trie.NewTrie()
-	tokInfo := token.Info()
-	for v := range tokInfo.Keywords {
-		autoTrie.Insert(v + " ")
-	}
-	for v := range tokInfo.Builtins {
-		autoTrie.Insert(v + "(")
-	}
-	for k := range object.ExtraFunctions() {
-		autoTrie.Insert(k + "(")
-	}
-	autoTrie.Insert("history")
-	s.RegisterTrie(autoTrie)
-
-	// Create the x/term.Terminal with stdin/stdout as the ReadWriter.
-	// In WASM, these are bridged to xterm.js via globalThis.fs overrides.
-	rw := struct {
-		io.Reader
-		io.Writer
-	}{os.Stdin, os.Stdout}
-	t := term.NewTerminal(rw, repl.PROMPT)
-	_ = t.SetSize(cols, rows)
-
-	// Store for resize updates
-	xtermMu.Lock()
-	xtermTerminal = t
-	xtermMu.Unlock()
-
-	// Set up history (using fortio.org/terminal.TermHistory which implements term.History)
-	history := terminal.NewHistory(terminal.DefaultHistoryCapacity)
-	history.AutoHistory = false // We manage history manually like repl.Interactive does
-	t.History = history
-
-	// Set up autocomplete callback
-	t.AutoCompleteCallback = func(line string, pos int, key rune) (string, int, bool) {
-		if key != '\t' {
-			return line, pos, false
-		}
-		prefix := line[:pos]
-		l, commands := autoTrie.PrefixAll(prefix)
-		if len(commands) == 0 {
-			return line, pos, false
-		}
-		if len(commands) > 1 {
-			fmt.Fprint(t, "\nOne of: ")
-			for _, c := range commands {
-				if strings.HasSuffix(c, "(") {
-					fmt.Fprint(t, c, ") ")
-				} else {
-					fmt.Fprint(t, c)
-				}
-			}
-			fmt.Fprintln(t)
-		}
-		return commands[0][:l], l, true
-	}
-
-	// Direct all eval output through the terminal (handles CRLF conversion)
-	s.Out = t
-	s.LogOut = t
-
-	// Force color mode on: xterm.js supports ANSI colors but fortio.org/log's
-	// auto-detection fails in WASM because IsTerminal() returns false.
-	log.Config.ForceColor = true
-	log.SetColorMode()
-
-	// Set interactive=true
-	_, _ = eval.EvalString(s, "interactive=true", false)
-	_, _ = s.UpdateNumSet()
-
-	// Welcome message
-	fmt.Fprintf(t, "GROL %s - type 'help' for help, 'info' for builtins, <tab> for completion\n", grolVer)
-
-	// Main REPL loop (mirrors repl.Interactive)
-	prev := ""
-	for {
-		rd, err := t.ReadLine()
-		if errors.Is(err, io.EOF) {
-			log.Infof("EOF, exiting REPL")
-			return
-		}
-		if errors.Is(err, term.ErrPasteIndicator) {
-			// Paste mode, treat as normal input
-			err = nil
-		}
-		if err != nil {
-			log.Warnf("Error reading line: %v", err)
-			// On interrupt/error, reset continuation
-			if prev != "" {
-				prev = ""
-				t.SetPrompt(repl.PROMPT)
-			}
-			continue
-		}
-
-		log.Debugf("Read: %q", rd)
-
-		// Handle !n history recall
-		if idx, ok := extractHistoryNumber(rd); ok {
-			h := getHistory(t.History)
-			slices.Reverse(h)
-			if idx < 1 || idx > len(h) {
-				fmt.Fprintf(t, "Invalid history index %d\n", idx)
-				continue
-			}
-			rd = h[idx-1]
-			fmt.Fprintf(t, "Repeating history %d: %s\n", idx, rd)
-		}
-		history.UnconditionalAdd(rd)
-
-		l := prev + rd
-
-		// Handle special commands (only when not in continuation)
-		if prev == "" {
-			switch l {
-			case "history":
-				h := getHistory(t.History)
-				slices.Reverse(h)
-				for i, v := range h {
-					fmt.Fprintf(t, "%02d: %s\n", i+1, v)
-				}
-				continue
-			case "help":
-				fmt.Fprintln(t,
-					"Type 'history' to see history, '!n' to repeat history n,"+
-						" 'info' for language builtins, use <tab> for completion.")
-				continue
-			case "exit":
-				log.Infof("Exit requested")
-				fmt.Fprintln(t, "Goodbye!")
-				return
-			case "clear":
-				// Send ANSI clear screen sequence
-				fmt.Fprint(t, "\033[2J\033[H")
-				continue
-			}
-		}
-
-		// Evaluate
-		ctx := context.Background()
-		contNeeded, _, errs, formatted := repl.EvalOne(ctx, s, l, t, options)
-		if contNeeded {
-			prev = l + "\n"
-			t.SetPrompt(repl.CONTINUATION)
-		} else {
-			if prev != "" && len(formatted) > 0 {
-				// Also add the single-line formatted version to history
-				history.UnconditionalAdd(formatted)
-			}
-			prev = ""
-			t.SetPrompt(repl.PROMPT)
-		}
-		_ = errs // errors already printed by EvalOne
-		// Update autocomplete with any new identifiers
-		s.RegisterTrie(autoTrie)
-	}
-}
-
-// extractHistoryNumber extracts the history number from "!n" input.
-func extractHistoryNumber(input string) (int, bool) {
-	if len(input) > 1 && input[0] == '!' {
-		if num, err := strconv.Atoi(input[1:]); err == nil {
-			return num, true
-		}
-	}
-	return 0, false
-}
-
-// getHistory returns all history entries as a slice.
-func getHistory(h term.History) []string {
-	res := make([]string, 0, h.Len())
-	for i := range h.Len() {
-		res = append(res, h.At(i))
-	}
-	return res
 }
 
 func main() {
@@ -351,7 +160,6 @@ func main() {
 		cli.LongVersion = grolVersion
 		cli.ShortVersion = TinyGoVersion
 	}
-	grolVer = grolVersion // store for REPL init
 	prev := debug.SetMemoryLimit(WasmMemLimit)
 	log.Infof("Grol wasm main %s - prev memory limit %d now %d", grolVersion, prev, WasmMemLimit)
 	global := js.Global()

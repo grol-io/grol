@@ -139,9 +139,18 @@
         xterm.open(document.getElementById('terminal-container'));
         fitAddon.fit();
 
+        // Set terminal globals for fortio.org/terminal WASM detection.
+        // These must be set before go.run() so IsTerminal() returns true.
+        globalThis.TerminalConnected = true;
+        globalThis.TerminalCols = xterm.cols;
+        globalThis.TerminalRows = xterm.rows;
+
         window.addEventListener('resize', () => {
             fitAddon.fit();
-            // Update Go-side terminal size
+            // Update globals for fortio.org/terminal's platformGetSize
+            globalThis.TerminalCols = xterm.cols;
+            globalThis.TerminalRows = xterm.rows;
+            // Also notify Go directly if the function is registered
             if (typeof grolSetTermSize === 'function') {
                 grolSetTermSize(xterm.cols, xterm.rows);
             }
@@ -208,6 +217,29 @@
         const origFsRead = globalThis.fs.read.bind(globalThis.fs);
         const origFsWrite = globalThis.fs.write.bind(globalThis.fs);
         const origFsWriteSync = globalThis.fs.writeSync.bind(globalThis.fs);
+
+        // Override fs.fstat: make fd 0,1,2 report as character devices.
+        // Go's os.File.Stat() calls syscall.Fstat which calls globalThis.fs.fstat.
+        // Go's log.ConsoleLogging() checks (Mode & ModeCharDevice) to decide
+        // between console (color) vs JSON logging. Without this, WASM gets JSON.
+        // S_IFCHR = 0o20000 = 8192. mode = S_IFCHR | 0o620 (owner rw, group w).
+        const origFsFstat = globalThis.fs.fstat.bind(globalThis.fs);
+        const S_IFCHR = 0o20000;
+        const charDevMode = S_IFCHR | 0o620;
+        const now = Date.now();
+        globalThis.fs.fstat = function(fd, callback) {
+            if (fd <= 2) {
+                callback(null, {
+                    dev: 0, ino: 0, mode: charDevMode, nlink: 1,
+                    uid: 0, gid: 0, rdev: 0, size: 0,
+                    blksize: 4096, blocks: 0,
+                    atimeMs: now, mtimeMs: now, ctimeMs: now,
+                    isDirectory() { return false; },
+                });
+                return;
+            }
+            origFsFstat(fd, callback);
+        };
 
         // Override fs.read: bridge fd=0 (stdin) to xterm.js input buffer
         globalThis.fs.read = function(fd, buffer, offset, length, position, callback) {
@@ -286,6 +318,15 @@
         }
 
         const go = new Go();
+        // Set environment variables for the Go runtime.
+        // LOGGER_FORCE_COLOR: force fortio.org/log to emit ANSI colors
+        // COLORTERM: signal 24-bit color support (xterm.js supports truecolor)
+        go.env = go.env || {};
+        // go.env["LOGGER_FORCE_COLOR"] = "true";
+        go.env["TERM"] = "xterm-256color"; // Ensure Go's term package enables color support
+        go.env["COLORTERM"] = "truecolor";
+        // go.env["LOGGER_JSON"] = "false"; // Disable JSON output since we're a terminal, not a structured log consumer.
+        // go.env["LOGGER_IGNORE_CLI_MODE"] = "true"; // Disable fortio.org/log's CLI mode detection (which looks for isatty) since we're always a terminal here.
 
         WebAssembly.instantiateStreaming(fetch("/grol.wasm"), go.importObject).then((result) => {
             // Start Go runtime. main() registers JS functions then blocks on select{}.
@@ -298,6 +339,8 @@
 
             // Start the interactive REPL goroutine.
             // It will read from os.Stdin (bridged above) and write to os.Stdout.
+            // Terminal globals are already set, so fortio.org/terminal.IsTerminal()
+            // returns true and repl.Interactive() works.
             grolStartREPL(xterm.cols, xterm.rows);
 
             xterm.focus();
