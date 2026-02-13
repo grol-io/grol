@@ -1,19 +1,22 @@
 <!doctype html>
 <html>
 <!--
-  xterm.js based interactive REPL for grol.
+  ghostty-web based interactive REPL for grol.
   Uses globalThis.fs overrides to bridge stdin/stdout/stderr between
-  the Go WASM runtime and xterm.js. The Go side uses x/term.Terminal
-  for line editing (ANSI escape sequences), which xterm.js renders.
+  the Go WASM runtime and ghostty-web. The Go side uses x/term.Terminal
+  for line editing (ANSI escape sequences), which ghostty-web renders.
 
-  Keep grol/wasm/xterm.html and web-site/_includes/xterm.html in sync.
+  Alternative to xterm.html using https://github.com/coder/ghostty-web
+  (ghostty's terminal emulator compiled to WASM, xterm.js-compatible API).
+
+  Keep grol/wasm/ghostty.html and web-site/_includes/ghostty.html in sync.
   make wasm to test changes.
 -->
 
 <head>
     <meta charset="utf-8">
-    <title>Grol REPL</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@xterm/xterm@5/css/xterm.css">
+    <title>Grol REPL (ghostty)</title>
+    <!-- No CSS needed: ghostty-web is canvas-based, not DOM-based -->
     <style>
         * {
             margin: 0;
@@ -96,10 +99,6 @@
             padding: 4px;
             overflow: hidden;
         }
-
-        .xterm {
-            height: 100%;
-        }
     </style>
 </head>
 
@@ -107,7 +106,7 @@
     <div id="header">
         <span id="version">Loading GROL...</span>
         <a href="/index.html">Textarea</a> mode
-        <a href="/ghostty.html">ghostty-web</a> mode
+        <a href="/xterm.html">xterm.js</a> mode
         <span id="status"></span>
     </div>
     <div id="image-container">
@@ -116,13 +115,18 @@
     </div>
     <div id="terminal-container"></div>
 
-    <script src="https://cdn.jsdelivr.net/npm/@xterm/xterm@5/lib/xterm.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@xterm/addon-fit@0/lib/addon-fit.js"></script>
     <script src="/wasm_exec.js"></script>
-    <script>
-        // ─── xterm.js Terminal Setup ─────────────────────────────────
+    <script type="module">
+        // ─── ghostty-web Terminal Setup ──────────────────────────────
+        import { init, Terminal, FitAddon } from 'https://cdn.jsdelivr.net/npm/ghostty-web@0.4.0/dist/ghostty-web.js';
+
+        // Initialize ghostty WASM runtime (must be called before creating Terminal)
+        await init();
+
         const xterm = new Terminal({
             cursorBlink: true,
+            cols: 80,
+            rows: 24,
             fontSize: 15,
             fontFamily: '"Cascadia Code", "Fira Code", "JetBrains Mono", Menlo, Monaco, "Courier New", monospace',
             theme: {
@@ -132,13 +136,16 @@
                 selectionBackground: '#264f78',
             },
             convertEol: false,  // We handle \r\n ourselves (x/term.Terminal does CRLF)
-            allowProposedApi: true,
         });
 
-        const fitAddon = new FitAddon.FitAddon();
+        const fitAddon = new FitAddon();
         xterm.loadAddon(fitAddon);
         xterm.open(document.getElementById('terminal-container'));
-        fitAddon.fit();
+        // ghostty-web uses observeResize() (ResizeObserver-based) instead of
+        // fit() to avoid resizing to 0x0 before the DOM has laid out.
+        // fit() calls proposeDimensions() which may return invalid dimensions
+        // if the container hasn't been rendered yet, corrupting ghostty's WASM state.
+        fitAddon.observeResize();
 
         // Set terminal globals for fortio.org/terminal WASM detection.
         // These must be set before go.run() so IsTerminal() returns true.
@@ -146,21 +153,19 @@
         globalThis.TerminalCols = xterm.cols;
         globalThis.TerminalRows = xterm.rows;
 
-        window.addEventListener('resize', () => {
-            fitAddon.fit();
-            // Update globals for fortio.org/terminal's platformGetSize
-            globalThis.TerminalCols = xterm.cols;
-            globalThis.TerminalRows = xterm.rows;
-            // Also notify Go directly if the function is registered
+        // Track resize via the terminal's own resize event (fired by observeResize)
+        xterm.onResize(({ cols, rows }) => {
+            globalThis.TerminalCols = cols;
+            globalThis.TerminalRows = rows;
             if (typeof grolSetTermSize === 'function') {
-                grolSetTermSize(xterm.cols, xterm.rows);
+                grolSetTermSize(cols, rows);
             }
         });
 
-        function closeImage() {
+        // Export closeImage to global scope for the onclick handler
+        globalThis.closeImage = function() {
             document.getElementById('image-container').style.display = 'none';
-            fitAddon.fit();
-        }
+        };
 
         // ─── localStorage-backed Virtual Filesystem ─────────────────
         //
@@ -377,9 +382,9 @@
         // This lets x/term.Terminal (Go's line editor) work transparently:
         //   - It reads raw keystrokes from os.Stdin
         //   - It writes ANSI escape sequences to os.Stdout
-        //   - xterm.js renders the escape sequences (cursor movement, etc.)
+        //   - ghostty-web renders the escape sequences (cursor movement, etc.)
 
-        // Stdin buffer: xterm.js onData → stdinBuf; Go fs.read(0) ← stdinBuf
+        // Stdin buffer: ghostty-web onData → stdinBuf; Go fs.read(0) ← stdinBuf
         let stdinBuf = new Uint8Array(0);
         let pendingRead = null;  // {buffer, offset, length, callback} when Go is waiting for input
 
@@ -393,7 +398,7 @@
             return c;
         }
 
-        // Feed raw bytes from xterm.js into the stdin buffer.
+        // Feed raw bytes from ghostty-web into the stdin buffer.
         // If Go is blocked on fs.read(0), immediately fulfill it.
         function feedStdin(data) {
             const encoded = textEncoder.encode(data);
@@ -451,7 +456,7 @@
             origFsFstat(fd, callback);
         };
 
-        // Override fs.read: bridge fd=0 (stdin) to xterm.js input buffer,
+        // Override fs.read: bridge fd=0 (stdin) to ghostty-web input buffer,
         // and support reading from virtual file descriptors.
         globalThis.fs.read = function(fd, buffer, offset, length, position, callback) {
             // Virtual file descriptors
@@ -489,15 +494,27 @@
             }
         };
 
-        // Override fs.writeSync: bridge fd=1,2 (stdout/stderr) to xterm.js
+        // Override fs.writeSync: bridge fd=1,2 (stdout/stderr) to ghostty-web
         globalThis.fs.writeSync = function(fd, buf) {
             if (fd === 1 || fd === 2) {
-                const text = textDecoder.decode(buf);
+                // buf may be a view into Go's WASM memory (from runtime.wasmWrite)
+                // or a fresh Uint8Array (from syscall.Write). Copy before decoding
+                // to avoid issues with detached buffers after WASM memory growth.
+                const bytes = new Uint8Array(buf);
+                const text = textDecoder.decode(bytes);
                 // x/term.Terminal already sends \r\n, but other Go code (log, fmt.Println)
                 // may only send \n. We normalize: replace bare \n with \r\n.
                 // This regex leaves existing \r\n unchanged.
                 const normalized = text.replace(/([^\r])\n/g, '$1\r\n').replace(/^\n/, '\r\n');
-                xterm.write(normalized);
+                try {
+                    xterm.write(normalized);
+                } catch (e) {
+                    // ghostty-web's write() calls into its WASM which may fail
+                    // (e.g., "offset is out of bounds" if terminal state is bad).
+                    // Fall back to console to prevent cascading Go panics.
+                    console.error('ghostty-web write failed:', e);
+                    console.log(text);
+                }
 
                 // Check for data: URL images in output
                 if (text.startsWith('data:image/')) {
@@ -505,7 +522,6 @@
                     const dataUrl = nl >= 0 ? text.substring(0, nl) : text;
                     document.getElementById('image').src = dataUrl;
                     document.getElementById('image-container').style.display = 'block';
-                    fitAddon.fit();
                 }
 
                 return buf.length;
@@ -537,8 +553,8 @@
             origFsWrite(fd, buf, offset, length, position, callback);
         };
 
-        // ─── xterm.js Input → Go stdin ───────────────────────────────
-        // xterm.js onData sends raw keystrokes (including ANSI escape
+        // ─── ghostty-web Input → Go stdin ────────────────────────────
+        // ghostty-web onData sends raw keystrokes (including ANSI escape
         // sequences for arrow keys, etc.) — exactly what x/term.Terminal
         // expects. No JS-side line editing needed!
         xterm.onData(data => {
@@ -555,14 +571,9 @@
 
         const go = new Go();
         // Set environment variables for the Go runtime.
-        // LOGGER_FORCE_COLOR: force fortio.org/log to emit ANSI colors
-        // COLORTERM: signal 24-bit color support (xterm.js supports truecolor)
         go.env = go.env || {};
-        // go.env["LOGGER_FORCE_COLOR"] = "true";
-        go.env["TERM"] = "xterm-256color"; // Ensure Go's term package enables color support
+        go.env["TERM"] = "xterm-256color";
         go.env["COLORTERM"] = "truecolor";
-        // go.env["LOGGER_JSON"] = "false"; // Disable JSON output since we're a terminal, not a structured log consumer.
-        // go.env["LOGGER_IGNORE_CLI_MODE"] = "true"; // Disable fortio.org/log's CLI mode detection (which looks for isatty) since we're always a terminal here.
 
         WebAssembly.instantiateStreaming(fetch("/grol.wasm"), go.importObject).then((result) => {
             // Start Go runtime. main() registers JS functions then blocks on select{}.
@@ -570,7 +581,7 @@
 
             // Update version display
             if (typeof grolVersion !== 'undefined') {
-                document.getElementById('version').textContent = 'GROL ' + grolVersion;
+                document.getElementById('version').textContent = 'GROL ' + grolVersion + ' (ghostty)';
             }
 
             // Start the interactive REPL goroutine.
@@ -591,7 +602,9 @@
             });
         }).catch((err) => {
             console.error('Failed to load WASM:', err);
-            xterm.writeln('\x1b[31mFailed to load GROL WASM: ' + err.message + '\x1b[0m');
+            try {
+                xterm.write('\x1b[31mFailed to load GROL WASM: ' + err.message + '\x1b[0m\r\n');
+            } catch(e) { /* terminal may not be ready */ }
         });
     </script>
 </body>
