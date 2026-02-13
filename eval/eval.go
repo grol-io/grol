@@ -1515,11 +1515,10 @@ func (s *State) evalIntegerInfixExpression(operator token.Type, leftVal, rightVa
 			}
 			hi, _ := bits.Mul64(uint64(la), uint64(ra)) //nolint:gosec // la,ra are absolute values, non-negative.
 			// hi != 0 means the product doesn't fit in 64 bits (unsigned).
-			// Also check sign correctness: if both same sign, result must be positive.
-			if hi != 0 || (leftVal > 0 && rightVal > 0 && result <= 0) ||
-				(leftVal < 0 && rightVal < 0 && result <= 0) ||
-				(leftVal > 0 && rightVal < 0 && result >= 0) ||
-				(leftVal < 0 && rightVal > 0 && result >= 0) {
+			// Also check sign correctness: same-sign operands must give positive result,
+			// different-sign operands must give negative result.
+			sameSign := (leftVal ^ rightVal) >= 0
+			if hi != 0 || (sameSign && result <= 0) || (!sameSign && result >= 0) {
 				return promoteToBigInt((*big.Int).Mul, leftVal, rightVal)
 			}
 		}
