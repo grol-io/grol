@@ -290,13 +290,8 @@ func prettyPrintCompact(ps *PrintState, s Node, i int) bool {
 // Normal/long form print: Decide if using new line or space as separator.
 func prettyPrintLongForm(ps *PrintState, s Node, i int) {
 	if i > 0 || ps.IndentLevel > 1 {
-		// Emit semicolon before statements starting with unary minus to prevent
-		// re-parsing as infix subtraction from the previous expression.
-		// Also emit semicolon after postfix ++/-- to prevent re-parsing as prefix.
-		_, isPrevPostfix := ps.prev.(*PostfixExpression)
-		if i > 0 && (isPrevPostfix || startsWithMinus(s)) {
-			_, _ = ps.Out.Write([]byte{';'})
-		}
+		// In long form, newlines naturally separate statements, so no semicolon needed.
+		// Just add spacing (newline or space depending on context).
 		if keepSameLineAsPrevious(s) || !needNewLineAfter(ps.prev) {
 			log.Debugf("=> PrettyPrint adding just a space")
 			_, _ = ps.Out.Write([]byte{' '})

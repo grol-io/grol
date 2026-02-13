@@ -1,0 +1,8 @@
+// This file is for double format stability edge cases
+// negative number after assignment
+x = 5;
+-3
+// prefix ++ followed by function call
+x = 42
+++x
+print(x)

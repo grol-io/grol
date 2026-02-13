@@ -1,0 +1,22 @@
+/* Pretty print an integer using _ as thousand separator */
+
+func pp(n) {
+    if n < 0 {
+        return "-" + pp(-n)
+    }
+    s := str(n)
+    result := ""
+    for i := 0:len(s) {
+        if i > 0 && (len(s) - i) % 3 == 0 {
+            result += "_"
+        }
+        result += s[i:i+1]
+    }
+    result
+}
+
+func ppp(n) {
+    println(pp(n))
+}
+
+// eg ppp(fib(100)) => 354_224_848_179_261_915_075
