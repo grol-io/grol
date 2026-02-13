@@ -121,7 +121,6 @@ func jsStartREPL(_ js.Value, args []js.Value) interface{} {
 		options := repl.Options{
 			ShowEval:    true,
 			MaxDepth:    WasmMaxDepth,
-			MaxDuration: WasmMaxDuration,
 			HistoryFile: ".grol_history",
 			MaxHistory:  terminal.DefaultHistoryCapacity,
 			AutoLoad:    true,
