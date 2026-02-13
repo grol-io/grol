@@ -95,10 +95,13 @@ var (
 
 // --- xterm.js Interactive REPL ---
 
-// wasmTerm holds the fortio.org/terminal.Terminal for resize updates.
+// wasmTerm and wasmState hold the terminal and eval state for
+// resize updates and state saving on page unload.
 var (
-	wasmTerm *terminal.Terminal
-	wasmMu   sync.Mutex
+	wasmTerm    *terminal.Terminal
+	wasmState   *eval.State
+	wasmOptions repl.Options
+	wasmMu      sync.Mutex
 )
 
 // jsStartREPL starts the interactive REPL loop in a goroutine.
@@ -119,11 +122,18 @@ func jsStartREPL(_ js.Value, args []js.Value) interface{} {
 			ShowEval:    true,
 			MaxDepth:    WasmMaxDepth,
 			MaxDuration: WasmMaxDuration,
+			HistoryFile: ".grol_history",
+			MaxHistory:  terminal.DefaultHistoryCapacity,
+			AutoLoad:    true,
+			AutoSave:    true,
 		}
-		// Capture the terminal object via PreInput so we can update size on resize
+		// Capture the terminal and state via PreInput so we can
+		// update size on resize and save state on page unload.
 		options.PreInput = func(s *eval.State) {
 			wasmMu.Lock()
 			wasmTerm = s.Term
+			wasmState = s
+			wasmOptions = options
 			wasmMu.Unlock()
 		}
 		repl.Interactive(options)
@@ -152,6 +162,23 @@ func jsSetTermSize(_ js.Value, args []js.Value) interface{} {
 	return nil
 }
 
+// jsSaveState saves history and state to the virtual filesystem.
+// Called from JS on beforeunload/pagehide to persist before the page dies.
+func jsSaveState(_ js.Value, _ []js.Value) interface{} {
+	wasmMu.Lock()
+	t := wasmTerm
+	s := wasmState
+	opts := wasmOptions
+	wasmMu.Unlock()
+	if t != nil {
+		t.SaveHistory()
+	}
+	if s != nil {
+		_ = repl.AutoSave(s, opts)
+	}
+	return nil
+}
+
 func main() {
 	cli.Main() // just to get version etc
 	_, grolVersion, _ := version.FromBuildInfoPath("grol.io/grol")
@@ -169,9 +196,15 @@ func main() {
 	// Interactive REPL API (xterm.js mode)
 	global.Set("grolStartREPL", js.FuncOf(jsStartREPL))
 	global.Set("grolSetTermSize", js.FuncOf(jsSetTermSize))
-	// IOs don't work yet https://github.com/grol-io/grol/issues/124 otherwise we'd
-	// use extensions.Config and allow HasLoad HasSave.
-	err := extensions.Init(nil)
+	global.Set("grolSaveState", js.FuncOf(jsSaveState))
+	// Enable load/save with localStorage-backed virtual filesystem.
+	// LoadSaveEmptyOnly restricts to just ".gr" (no arbitrary paths).
+	exc := &extensions.Config{
+		HasLoad:           true,
+		HasSave:           true,
+		LoadSaveEmptyOnly: true,
+	}
+	err := extensions.Init(exc)
 	if err != nil {
 		log.Critf("Error initializing extensions: %v", err)
 	}

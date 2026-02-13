@@ -161,13 +161,217 @@
             fitAddon.fit();
         }
 
-        // ─── STDIN/STDOUT/STDERR Bridge ──────────────────────────────
+        // ─── localStorage-backed Virtual Filesystem ─────────────────
         //
-        // The Go WASM runtime (wasm_exec.js) uses globalThis.fs for all
-        // file I/O. By overriding read/write/writeSync, we bridge:
+        // Go WASM uses globalThis.fs for all file I/O (via wasm_exec.js).
+        // We provide a minimal in-memory filesystem backed by localStorage
+        // so that REPL history (~/.grol_history) and state (.gr) persist
+        // across browser sessions. Files are stored as localStorage keys
+        // prefixed with "grol:vfs:".
+        //
+        // Also bridges stdin/stdout/stderr:
         //   - os.Stdout (fd=1) → xterm.write()
         //   - os.Stderr (fd=2) → xterm.write()
         //   - os.Stdin  (fd=0) ← xterm.onData()
+
+        // Set proper POSIX fs.constants (wasm_exec.js defaults them to -1).
+        // Go's syscall/fs_js.go reads these at init time to map Go flags
+        // (O_WRONLY, O_CREATE, etc.) to the values passed to fs.open().
+        globalThis.fs.constants = {
+            O_RDONLY:    0,
+            O_WRONLY:    1,
+            O_RDWR:     2,
+            O_CREAT:    0o100,
+            O_EXCL:     0o200,
+            O_TRUNC:    0o1000,
+            O_APPEND:   0o2000,
+            O_DIRECTORY: 0o200000,
+        };
+
+        // ─── Virtual File System (localStorage-backed) ───────────────
+        const VFS_PREFIX = "grol:vfs:";
+        const S_IFREG = 0o100000;
+
+        // In-memory file store: path → content string
+        // Loaded from localStorage on open, saved back on close.
+        const vfsFiles = {};    // path → string content
+        const vfsOpenFDs = {};  // fd → { path, pos, flags, data (Uint8Array) }
+        let vfsNextFD = 10;     // start above stdin/stdout/stderr
+
+        function vfsLoad(path) {
+            const key = VFS_PREFIX + path;
+            const data = localStorage.getItem(key);
+            if (data !== null) {
+                vfsFiles[path] = data;
+                return true;
+            }
+            return path in vfsFiles;
+        }
+
+        function vfsSave(path) {
+            const key = VFS_PREFIX + path;
+            if (path in vfsFiles) {
+                localStorage.setItem(key, vfsFiles[path]);
+            }
+        }
+
+        function vfsDelete(path) {
+            delete vfsFiles[path];
+            localStorage.removeItem(VFS_PREFIX + path);
+        }
+
+        // Normalize paths: strip leading "./", resolve "path.resolve" quirks
+        function vfsNormalize(p) {
+            if (typeof p !== 'string') return p;
+            // Remove leading ./
+            while (p.startsWith('./')) p = p.substring(2);
+            // Remove leading /
+            while (p.startsWith('/')) p = p.substring(1);
+            return p;
+        }
+
+        function vfsMakeStat(path, isDir) {
+            const content = vfsFiles[path] || '';
+            const size = isDir ? 0 : textEncoder.encode(content).length;
+            const ms = Date.now();
+            return {
+                dev: 0, ino: 0,
+                mode: isDir ? (0o40000 | 0o755) : (S_IFREG | 0o644),
+                nlink: 1, uid: 0, gid: 0, rdev: 0,
+                size: size,
+                blksize: 4096, blocks: Math.ceil(size / 512),
+                atimeMs: ms, mtimeMs: ms, ctimeMs: ms,
+                isDirectory() { return isDir; },
+            };
+        }
+
+        // Override fs.open
+        const origFsOpen = globalThis.fs.open.bind(globalThis.fs);
+        globalThis.fs.open = function(path, flags, mode, callback) {
+            path = vfsNormalize(path);
+            const O = globalThis.fs.constants;
+            const accessMode = flags & 3; // O_RDONLY=0, O_WRONLY=1, O_RDWR=2
+            const creating = (flags & O.O_CREAT) !== 0;
+            const truncating = (flags & O.O_TRUNC) !== 0;
+            const exclusive = (flags & O.O_EXCL) !== 0;
+            const appending = (flags & O.O_APPEND) !== 0;
+
+            const exists = vfsLoad(path);
+
+            if (exclusive && exists) {
+                const err = new Error('EEXIST: file already exists, open \'' + path + '\'');
+                err.code = 'EEXIST';
+                callback(err);
+                return;
+            }
+            if (!exists && !creating) {
+                const err = new Error('ENOENT: no such file or directory, open \'' + path + '\'');
+                err.code = 'ENOENT';
+                callback(err);
+                return;
+            }
+            if (!exists) {
+                vfsFiles[path] = '';
+            }
+            if (truncating) {
+                vfsFiles[path] = '';
+            }
+
+            const fd = vfsNextFD++;
+            const content = vfsFiles[path] || '';
+            const data = textEncoder.encode(content);
+            vfsOpenFDs[fd] = {
+                path: path,
+                pos: appending ? data.length : 0,
+                flags: flags,
+                data: data,  // snapshot for reading
+                written: [],  // accumulated write buffers
+                dirty: false,
+            };
+            callback(null, fd);
+        };
+
+        // Override fs.close
+        const origFsClose = globalThis.fs.close.bind(globalThis.fs);
+        globalThis.fs.close = function(fd, callback) {
+            const file = vfsOpenFDs[fd];
+            if (!file) {
+                origFsClose(fd, callback);
+                return;
+            }
+            // If written, assemble final content and persist
+            if (file.dirty) {
+                // Reconstruct content from written chunks
+                const totalLen = file.written.reduce((s, b) => s + b.length, 0);
+                const merged = new Uint8Array(totalLen);
+                let off = 0;
+                for (const chunk of file.written) {
+                    merged.set(chunk, off);
+                    off += chunk.length;
+                }
+                vfsFiles[file.path] = textDecoder.decode(merged);
+                vfsSave(file.path);
+            }
+            delete vfsOpenFDs[fd];
+            callback(null);
+        };
+
+        // Override fs.stat (path-based)
+        const origFsStat = globalThis.fs.stat.bind(globalThis.fs);
+        globalThis.fs.stat = function(path, callback) {
+            path = vfsNormalize(path);
+            // "." is the virtual current directory
+            if (path === '' || path === '.') {
+                callback(null, vfsMakeStat('.', true));
+                return;
+            }
+            if (vfsLoad(path)) {
+                callback(null, vfsMakeStat(path, false));
+                return;
+            }
+            origFsStat(path, callback);
+        };
+
+        // Override fs.mkdir - allow creating "." (it already exists)
+        const origFsMkdir = globalThis.fs.mkdir.bind(globalThis.fs);
+        globalThis.fs.mkdir = function(path, perm, callback) {
+            path = vfsNormalize(path);
+            if (path === '' || path === '.') {
+                callback(null);
+                return;
+            }
+            // For any other path, just succeed (flat filesystem)
+            callback(null);
+        };
+
+        // Override fs.rename
+        const origFsRename = globalThis.fs.rename.bind(globalThis.fs);
+        globalThis.fs.rename = function(from, to, callback) {
+            from = vfsNormalize(from);
+            to = vfsNormalize(to);
+            if (from in vfsFiles) {
+                vfsFiles[to] = vfsFiles[from];
+                vfsSave(to);
+                vfsDelete(from);
+                callback(null);
+                return;
+            }
+            origFsRename(from, to, callback);
+        };
+
+        // Override fs.unlink
+        const origFsUnlink = globalThis.fs.unlink.bind(globalThis.fs);
+        globalThis.fs.unlink = function(path, callback) {
+            path = vfsNormalize(path);
+            if (path in vfsFiles) {
+                vfsDelete(path);
+                callback(null);
+                return;
+            }
+            origFsUnlink(path, callback);
+        };
+
+        // ─── STDIN/STDOUT/STDERR Bridge ──────────────────────────────
         //
         // This lets x/term.Terminal (Go's line editor) work transparently:
         //   - It reads raw keystrokes from os.Stdin
@@ -218,47 +422,68 @@
         const origFsWrite = globalThis.fs.write.bind(globalThis.fs);
         const origFsWriteSync = globalThis.fs.writeSync.bind(globalThis.fs);
 
-        // Override fs.fstat: make fd 0,1,2 report as character devices.
-        // Go's os.File.Stat() calls syscall.Fstat which calls globalThis.fs.fstat.
-        // Go's log.ConsoleLogging() checks (Mode & ModeCharDevice) to decide
-        // between console (color) vs JSON logging. Without this, WASM gets JSON.
-        // S_IFCHR = 0o20000 = 8192. mode = S_IFCHR | 0o620 (owner rw, group w).
+        // Override fs.fstat: make fd 0,1,2 report as character devices,
+        // and support fstat on virtual file descriptors.
         const origFsFstat = globalThis.fs.fstat.bind(globalThis.fs);
         const S_IFCHR = 0o20000;
         const charDevMode = S_IFCHR | 0o620;
-        const now = Date.now();
         globalThis.fs.fstat = function(fd, callback) {
             if (fd <= 2) {
+                // Character device for stdin/stdout/stderr so
+                // log.ConsoleLogging() returns true (checks ModeCharDevice).
+                const ms = Date.now();
                 callback(null, {
                     dev: 0, ino: 0, mode: charDevMode, nlink: 1,
                     uid: 0, gid: 0, rdev: 0, size: 0,
                     blksize: 4096, blocks: 0,
-                    atimeMs: now, mtimeMs: now, ctimeMs: now,
+                    atimeMs: ms, mtimeMs: ms, ctimeMs: ms,
                     isDirectory() { return false; },
                 });
+                return;
+            }
+            // Virtual file descriptors
+            const file = vfsOpenFDs[fd];
+            if (file) {
+                callback(null, vfsMakeStat(file.path, false));
                 return;
             }
             origFsFstat(fd, callback);
         };
 
-        // Override fs.read: bridge fd=0 (stdin) to xterm.js input buffer
+        // Override fs.read: bridge fd=0 (stdin) to xterm.js input buffer,
+        // and support reading from virtual file descriptors.
         globalThis.fs.read = function(fd, buffer, offset, length, position, callback) {
+            // Virtual file descriptors
+            const file = vfsOpenFDs[fd];
+            if (file) {
+                const readPos = (position !== null && position !== undefined) ? position : file.pos;
+                const remaining = file.data.length - readPos;
+                if (remaining <= 0) {
+                    callback(null, 0);  // EOF
+                    return;
+                }
+                const n = Math.min(remaining, length);
+                buffer.set(file.data.subarray(readPos, readPos + n), offset);
+                if (position === null || position === undefined) {
+                    file.pos += n;
+                }
+                callback(null, n);
+                return;
+            }
+
             if (fd !== 0) {
-                // Not stdin, use original (will likely return ENOSYS)
                 origFsRead(fd, buffer, offset, length, position, callback);
                 return;
             }
 
+            // stdin
             if (stdinBuf.length > 0) {
-                // Data available, return immediately
                 const n = Math.min(stdinBuf.length, length);
                 buffer.set(stdinBuf.subarray(0, n), offset);
                 stdinBuf = stdinBuf.subarray(n);
                 if (stdinBuf.length === 0) stdinBuf = new Uint8Array(0);
                 callback(null, n);
             } else {
-                // No data yet. Save the read request; feedStdin() will fulfill it.
-                // This effectively suspends the Go goroutine until xterm.js sends input.
                 pendingRead = { buffer, offset, length, callback };
             }
         };
@@ -296,6 +521,16 @@
                 }
                 const n = this.writeSync(fd, buf);
                 callback(null, n);
+                return;
+            }
+            // Virtual file descriptors
+            const file = vfsOpenFDs[fd];
+            if (file) {
+                const chunk = new Uint8Array(buf.buffer, buf.byteOffset + offset, length);
+                file.written.push(chunk.slice());  // copy the data
+                file.dirty = true;
+                file.pos += length;
+                callback(null, length);
                 return;
             }
             origFsWrite(fd, buf, offset, length, position, callback);
@@ -344,6 +579,15 @@
             grolStartREPL(xterm.cols, xterm.rows);
 
             xterm.focus();
+
+            // Save state (history + variables) when the page is being closed.
+            // grolSaveState calls terminal.SaveHistory() and repl.AutoSave()
+            // which write to the localStorage-backed virtual filesystem.
+            window.addEventListener('pagehide', () => {
+                if (typeof grolSaveState === 'function') {
+                    grolSaveState();
+                }
+            });
         }).catch((err) => {
             console.error('Failed to load WASM:', err);
             xterm.writeln('\x1b[31mFailed to load GROL WASM: ' + err.message + '\x1b[0m');
