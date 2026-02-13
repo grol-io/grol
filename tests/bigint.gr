@@ -1,0 +1,128 @@
+
+/* BigInt (arbitrary precision integer) tests */
+
+/* type of big literals and big() */
+Assert("big literal type", type(99999999999999999999) == "BIGINT")
+Assert("big() type", type(big(42)) == "BIGINT")
+Assert("big() from string type", type(big("123")) == "BIGINT")
+
+/* big() conversion from various types */
+Assert("big(int)", big(42) == 42)
+Assert("big(0)", big(0) == 0)
+Assert("big(true)", big(true) == 1)
+Assert("big(false)", big(false) == 0)
+Assert("big(string)", big("123456789012345678901234567890") == 123456789012345678901234567890)
+Assert("big(string hex)", big("0xff") == 255)
+Assert("big(float)", big(3.7) == 3)
+Assert("big empty string", big("") == 0)
+
+/* basic arithmetic */
+Assert("big + big", big(10) + big(20) == 30)
+Assert("big - big", big(100) - big(42) == 58)
+Assert("big * big", big(6) * big(7) == 42)
+Assert("big / big", big(100) / big(3) == 33)
+Assert("big % big", big(100) % big(3) == 1)
+
+/* promotion: bigint op integer => result (normalized) */
+Assert("big + int", big(10) + 20 == 30)
+Assert("int + big", 20 + big(10) == 30)
+Assert("big * int", big(6) * 7 == 42)
+Assert("int * big", 7 * big(6) == 42)
+Assert("big - int", big(100) - 42 == 58)
+
+/* large value arithmetic */
+a = 99999999999999999999
+Assert("big literal + 1", a + 1 == 100000000000000000000)
+Assert("big * big large", a * a == 9999999999999999999800000000000000000001)
+
+/* normalization: result fitting in int64 becomes INTEGER */
+Assert("normalize big+big to int", type(big(10) + big(20)) == "INTEGER")
+Assert("normalize big-big to int", type(big(42) - big(42)) == "INTEGER")
+Assert("normalize big*int", type(big(6) * 7) == "INTEGER")
+Assert("stays bigint when large", type(a + 1) == "BIGINT")
+
+/* negation */
+Assert("negate big", -big(42) == -42)
+Assert("negate big large", -a == -(99999999999999999999))
+Assert("negate big type", type(-a) == "BIGINT")
+
+/* comparisons */
+Assert("big == big", big(100) == big(100))
+Assert("big == int", big(100) == 100)
+Assert("int == big", 100 == big(100))
+Assert("big != big", big(100) != big(99))
+Assert("big > big", big(200) > big(100))
+Assert("big < big", big(50) < big(100))
+Assert("big >= big", big(100) >= big(100))
+Assert("big <= big", big(100) <= big(100))
+Assert("big > int", big(200) > 100)
+Assert("int < big", 50 < big(100))
+
+/* bitwise operations */
+Assert("big & big", (big(0xff) & big(0x0f)) == 0x0f)
+Assert("big | big", (big(0xf0) | big(0x0f)) == 0xff)
+Assert("big ^ big", (big(0xff) ^ big(0x0f)) == 0xf0)
+Assert("big << int", big(1) << 64 == 18446744073709551616)
+Assert("big << large", type(big(1) << 64) == "BIGINT")
+Assert("big >> int", (big(1) << 64) >> 64 == 1)
+
+/* increment/decrement */
+x = big(42)
+x++
+Assert("big postfix++", x == 43)
+Assert("big postfix++ type", type(x) == "INTEGER")
+
+x = 99999999999999999999
+x++
+Assert("big postfix++ stays big", x == 100000000000000000000)
+Assert("big postfix++ stays big type", type(x) == "BIGINT")
+
+x = big(42)
+++x
+Assert("big prefix++", x == 43)
+
+x = big(10)
+x--
+Assert("big postfix--", x == 9)
+
+/* bigint + float => float */
+Assert("big + float", big(42) + 0.5 == 42.5)
+Assert("big + float type", type(big(42) + 0.5) == "FLOAT")
+Assert("float + big", 0.5 + big(42) == 42.5)
+
+/* int() from bigint */
+Assert("int(big small)", int(big(42)) == 42)
+Assert("int(big small) type", type(int(big(42))) == "INTEGER")
+IsErr("int(big large)", int(99999999999999999999), "out of.*range")
+
+/* float() from bigint */
+Assert("float(big)", type(float(big(42))) == "FLOAT")
+Assert("float(big) value", float(big(42)) == 42.)
+
+/* big() errors */
+IsErr("big(invalid string)", big("hello"), "cannot convert")
+IsErr("big(array)", big([1,2]), "cannot convert")
+
+/* division/modulo by zero */
+IsErr("big div zero", big(42) / big(0), "division by zero")
+IsErr("big mod zero", big(42) % big(0), "modulo by zero")
+
+/* negative shift */
+IsErr("big neg shift", big(1) << big(-1), "shift amount.*negative")
+
+/* int64 overflow auto-promotion */
+Assert("int add overflow", 9223372036854775807 + 1 == 9223372036854775808)
+Assert("int add overflow type", type(9223372036854775807 + 1) == "BIGINT")
+Assert("int sub underflow", (-9223372036854775807 - 1) - 1 == -9223372036854775809)
+Assert("int sub underflow type", type((-9223372036854775807 - 1) - 1) == "BIGINT")
+Assert("int mul overflow", (1 << 62) * 10 == 46116860184273879040)
+Assert("int mul overflow type", type((1 << 62) * 10) == "BIGINT")
+Assert("int div MinInt64/-1", (-9223372036854775807 - 1) / (-1) == 9223372036854775808)
+Assert("int div MinInt64/-1 type", type((-9223372036854775807 - 1) / (-1)) == "BIGINT")
+Assert("int lshift overflow", (1 << 63) == 9223372036854775808)
+Assert("int lshift overflow type", type(1 << 63) == "BIGINT")
+Assert("int no overflow stays int", 9223372036854775806 + 1 == 9223372036854775807)
+Assert("int no overflow type", type(9223372036854775806 + 1) == "INTEGER")
+IsErr("int div zero", 1 / 0, "division by zero")
+IsErr("int mod zero", 1 % 0, "modulo by zero")
+IsErr("int neg shift", 1 << (-1), "negative shift")

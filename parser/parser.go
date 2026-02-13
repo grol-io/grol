@@ -2,6 +2,7 @@ package parser
 
 import (
 	"fmt"
+	"math/big"
 	"strconv"
 	"strings"
 
@@ -337,6 +338,12 @@ func (p *Parser) parseExpression(precedence ast.Priority) ast.Node {
 			log.LogVf("parseExpression: index expression with whitespace")
 			return leftExp
 		}
+		// Avoid that 5\n-3 is parsed as 5-3 instead of two statements.
+		// A newline before MINUS means it's a new statement with unary minus.
+		if t == token.MINUS && p.nextNewline {
+			log.LogVf("parseExpression: minus after newline, treating as new statement")
+			return leftExp
+		}
 
 		p.nextToken()
 
@@ -359,12 +366,25 @@ func (p *Parser) parseIdentifier() ast.Node {
 
 func (p *Parser) parseIntegerLiteral() ast.Node {
 	value, err := strconv.ParseInt(p.curToken.Literal(), 0, 64)
-	if err != nil { // switch to float
-		return p.parseFloatLiteral()
+	if err != nil { // switch to bigint on overflow
+		return p.parseBigIntLiteral()
 	}
 	lit := &ast.IntegerLiteral{}
 	lit.Token = p.curToken
 	lit.Val = value
+	return lit
+}
+
+func (p *Parser) parseBigIntLiteral() ast.Node {
+	v := new(big.Int)
+	_, ok := v.SetString(p.curToken.Literal(), 0)
+	if !ok {
+		// try float fallback for numbers like 1e20 that are technically integer tokens
+		return p.parseFloatLiteral()
+	}
+	lit := &ast.BigIntLiteral{}
+	lit.Token = p.curToken
+	lit.Val = v
 	return lit
 }
 
