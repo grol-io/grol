@@ -223,10 +223,49 @@ func isComment(node Node) bool {
 	return ok
 }
 
+// endsAlphanumeric checks if the last printed string ends with a letter, digit, or underscore.
+// Used to detect when a space is needed before the next identifier to prevent token merging
+// (e.g., `++x` ending with "x" followed by `print(...)` starting with "p" → "xprint").
+func endsAlphanumeric(s string) bool {
+	if len(s) == 0 {
+		return false
+	}
+	c := s[len(s)-1]
+	return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_'
+}
+
+// startsWithMinus checks if a node, when pretty-printed, starts with a unary minus.
+// This is needed because a statement like `-3` starting after another statement
+// would be re-parsed as infix subtraction (e.g., `1\n-3` becomes `1 - 3`).
+// We walk the leftmost spine of the AST to find the first emitted token.
+func startsWithMinus(node Node) bool {
+	switch n := node.(type) {
+	case *PrefixExpression:
+		return n.Token.Type() == token.MINUS
+	case *InfixExpression:
+		return startsWithMinus(n.Left)
+	case *PostfixExpression:
+		return n.Prev.Type() == token.MINUS // unlikely but safe
+	default:
+		return false
+	}
+}
+
 // Compact mode: Skip comments and decide if we need a space separator or not.
 func prettyPrintCompact(ps *PrintState, s Node, i int) bool {
 	if isComment(s) {
 		return true
+	}
+	// Emit semicolon before statements starting with unary minus to prevent
+	// re-parsing as infix subtraction from the previous expression.
+	// Also emit semicolon after postfix ++/-- to prevent the operator from
+	// being re-parsed as a prefix operator on the next token (e.g., x++Assert(...) → x; ++Assert(...)).
+	if i > 0 {
+		_, isPrevPostfix := ps.prev.(*PostfixExpression)
+		if isPrevPostfix || startsWithMinus(s) {
+			_, _ = ps.Out.Write([]byte{';'})
+			return false
+		}
 	}
 	_, prevIsExpr := ps.prev.(*InfixExpression)
 	_, curIsArray := s.(*ArrayLiteral)
@@ -235,12 +274,13 @@ func prettyPrintCompact(ps *PrintState, s Node, i int) bool {
 			_, _ = ps.Out.Write([]byte{' '})
 		}
 	} else if i > 0 {
-		// Add space between identifiers and builtins/function calls
+		// Add space when previous expression ended with an alphanumeric character
+		// and next statement starts with an identifier/builtin/call.
+		// This handles plain identifiers, prefix ++x (ends with "x"), numbers, etc.
 		_, isIdentifier := s.(*Identifier)
 		_, isBuiltin := s.(*Builtin)
 		_, isCall := s.(*CallExpression)
-		_, prevIsIdentifier := ps.prev.(*Identifier)
-		if (isIdentifier || isBuiltin || isCall) && prevIsIdentifier {
+		if (isIdentifier || isBuiltin || isCall) && endsAlphanumeric(ps.last) {
 			_, _ = ps.Out.Write([]byte{' '})
 		}
 	}
@@ -250,6 +290,13 @@ func prettyPrintCompact(ps *PrintState, s Node, i int) bool {
 // Normal/long form print: Decide if using new line or space as separator.
 func prettyPrintLongForm(ps *PrintState, s Node, i int) {
 	if i > 0 || ps.IndentLevel > 1 {
+		// Emit semicolon before statements starting with unary minus to prevent
+		// re-parsing as infix subtraction from the previous expression.
+		// Also emit semicolon after postfix ++/-- to prevent re-parsing as prefix.
+		_, isPrevPostfix := ps.prev.(*PostfixExpression)
+		if i > 0 && (isPrevPostfix || startsWithMinus(s)) {
+			_, _ = ps.Out.Write([]byte{';'})
+		}
 		if keepSameLineAsPrevious(s) || !needNewLineAfter(ps.prev) {
 			log.Debugf("=> PrettyPrint adding just a space")
 			_, _ = ps.Out.Write([]byte{' '})

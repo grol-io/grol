@@ -338,6 +338,12 @@ func (p *Parser) parseExpression(precedence ast.Priority) ast.Node {
 			log.LogVf("parseExpression: index expression with whitespace")
 			return leftExp
 		}
+		// Avoid that 5\n-3 is parsed as 5-3 instead of two statements.
+		// A newline before MINUS means it's a new statement with unary minus.
+		if t == token.MINUS && p.nextNewline {
+			log.LogVf("parseExpression: minus after newline, treating as new statement")
+			return leftExp
+		}
 
 		p.nextToken()
 
