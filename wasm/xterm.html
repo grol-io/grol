@@ -496,17 +496,26 @@
                 // x/term.Terminal already sends \r\n, but other Go code (log, fmt.Println)
                 // may only send \n. We normalize: replace bare \n with \r\n.
                 // This regex leaves existing \r\n unchanged.
-                const normalized = text.replace(/([^\r])\n/g, '$1\r\n').replace(/^\n/, '\r\n');
-                xterm.write(normalized);
-
-                // Check for data: URL images in output
+                // Check for data: URL images in output — suppress the huge
+                // base64 string and show a short colored placeholder instead.
                 if (text.startsWith('data:image/')) {
                     const nl = text.indexOf('\n');
                     const dataUrl = nl >= 0 ? text.substring(0, nl) : text;
                     document.getElementById('image').src = dataUrl;
                     document.getElementById('image-container').style.display = 'block';
                     fitAddon.fit();
+                    // Show a brief colored marker instead of kilobytes of base64
+                    const kb = Math.round(dataUrl.length / 1024);
+                    const label = '\x1b[36m📷 [image ' + kb + ' KB]\x1b[0m';
+                    const rest = nl >= 0 ? text.substring(nl) : '';
+                    const replacement = label + rest;
+                    const normalized = replacement.replace(/([^\r])\n/g, '$1\r\n').replace(/^\n/, '\r\n');
+                    xterm.write(normalized);
+                    return buf.length;
                 }
+
+                const normalized = text.replace(/([^\r])\n/g, '$1\r\n').replace(/^\n/, '\r\n');
+                xterm.write(normalized);
 
                 return buf.length;
             }
