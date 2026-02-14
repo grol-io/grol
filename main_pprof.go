@@ -1,4 +1,4 @@
-//go:build !no_pprof
+//go:build !no_pprof && !wasm
 
 package main
 
