@@ -1,4 +1,6 @@
 // Gorepl is a simple interpreted language with a syntax similar to Go.
+//go:build !wasm
+
 package main
 
 import (

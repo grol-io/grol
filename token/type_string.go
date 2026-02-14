@@ -97,8 +97,9 @@ const _Type_name = "ILLEGALEOLstartValueTokensIDENTINTFLOATSTRINGLINECOMMENTBLOC
 var _Type_index = [...]uint16{0, 7, 10, 26, 31, 34, 39, 45, 56, 68, 76, 90, 111, 117, 121, 126, 134, 139, 145, 150, 156, 162, 166, 173, 175, 177, 182, 191, 197, 203, 209, 215, 223, 231, 236, 239, 258, 278, 282, 286, 288, 293, 297, 301, 307, 309, 312, 321, 331, 337, 343, 352, 361, 371, 380, 389, 397, 406, 424, 443, 447, 451, 456, 458, 462, 468, 471, 476, 484, 489, 494, 501, 504, 509, 513, 518, 525, 528, 533, 538, 541, 558, 561}
 
 func (i Type) String() string {
-	if i >= Type(len(_Type_index)-1) {
+	idx := int(i) - 0
+	if i < 0 || idx >= len(_Type_index)-1 {
 		return "Type(" + strconv.FormatInt(int64(i), 10) + ")"
 	}
-	return _Type_name[_Type_index[i]:_Type_index[i+1]]
+	return _Type_name[_Type_index[idx]:_Type_index[idx+1]]
 }

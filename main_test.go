@@ -1,4 +1,4 @@
-//go:build !tinygo && !windows
+//go:build !tinygo && !windows && !wasm
 
 package main_test
 
