@@ -1,0 +1,84 @@
+/*
+ * Shared CSS for GROL terminal REPL pages (xterm.html, ghostty.html).
+ * Each page overrides body background/color and adds terminal-specific rules.
+ */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+}
+
+#header {
+    padding: 8px 12px;
+    background: #2d2d2d;
+    border-bottom: 1px solid #444;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+}
+
+#header a {
+    color: #6cb6ff;
+    text-decoration: none;
+}
+
+#header a:hover {
+    text-decoration: underline;
+}
+
+#version {
+    color: #888;
+    font-size: 13px;
+}
+
+#status {
+    color: #888;
+    font-size: 13px;
+    margin-left: auto;
+}
+
+#image-container {
+    display: none;
+    padding: 8px;
+    background: #2d2d2d;
+    border-bottom: 1px solid #444;
+    text-align: center;
+    flex-shrink: 0;
+    position: relative;
+}
+
+#image-container img {
+    max-width: 100%;
+    max-height: 300px;
+}
+
+#close-image {
+    position: absolute;
+    top: 4px;
+    right: 8px;
+    cursor: pointer;
+    color: #888;
+    font-size: 18px;
+    background: none;
+    border: none;
+}
+
+#close-image:hover {
+    color: #fff;
+}
+
+#terminal-container {
+    flex: 1;
+    padding: 4px;
+    overflow: hidden;
+}

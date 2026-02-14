@@ -1,7 +1,18 @@
 //go:build wasm
 
 /*
-Web assembly main for grol, exposing grol (repl.EvalString for now) to JS
+Web assembly main for grol.
+
+Existing API (textarea/batch mode):
+  - grol(input, compact) → {result, errors, formatted, image}
+
+xterm.js interactive mode:
+  - grolStartREPL(cols, rows) → starts an interactive REPL goroutine
+  - grolSetTermSize(cols, rows) → updates terminal dimensions
+  - Requires JS-side stdin/stdout bridge via globalThis.fs overrides
+    (see xterm.html for the bridge implementation)
+  - JS side must set globalThis.TerminalConnected = true before go.run()
+    for fortio.org/terminal to detect the terminal emulator
 */
 
 package main
@@ -11,12 +22,15 @@ import (
 	"runtime"
 	"runtime/debug"
 	"strings"
+	"sync"
 	"syscall/js"
 	"time"
 
 	"fortio.org/cli"
 	"fortio.org/log"
+	"fortio.org/terminal"
 	"fortio.org/version"
+	"grol.io/grol/eval"
 	"grol.io/grol/extensions"
 	"grol.io/grol/repl"
 )
@@ -75,7 +89,94 @@ func jsEval(this js.Value, args []js.Value) interface{} {
 	return result
 }
 
-var TinyGoVersion string
+var (
+	TinyGoVersion string
+)
+
+// --- xterm.js Interactive REPL ---
+
+// wasmTerm and wasmState hold the terminal and eval state for
+// resize updates and state saving on page unload.
+var (
+	wasmTerm    *terminal.Terminal
+	wasmState   *eval.State
+	wasmOptions repl.Options
+	wasmMu      sync.Mutex
+)
+
+// jsStartREPL starts the interactive REPL loop in a goroutine.
+// Called from JS after the stdin/stdout bridge is set up.
+// Args: cols (int), rows (int).
+func jsStartREPL(_ js.Value, args []js.Value) interface{} {
+	cols, rows := 80, 24
+	if len(args) >= 2 {
+		cols = args[0].Int()
+		rows = args[1].Int()
+	}
+	// Set initial size globals for fortio.org/terminal's platformGetSize
+	global := js.Global()
+	global.Set("TerminalCols", cols)
+	global.Set("TerminalRows", rows)
+	go func() {
+		options := repl.Options{
+			ShowEval:    true,
+			MaxDepth:    WasmMaxDepth,
+			HistoryFile: ".grol_history",
+			MaxHistory:  terminal.DefaultHistoryCapacity,
+			AutoLoad:    true,
+			AutoSave:    true,
+		}
+		// Capture the terminal and state via PreInput so we can
+		// update size on resize and save state on page unload.
+		options.PreInput = func(s *eval.State) {
+			wasmMu.Lock()
+			wasmTerm = s.Term
+			wasmState = s
+			wasmOptions = options
+			wasmMu.Unlock()
+		}
+		repl.Interactive(options)
+	}()
+	return nil
+}
+
+// jsSetTermSize updates the terminal dimensions (called on resize).
+func jsSetTermSize(_ js.Value, args []js.Value) interface{} {
+	if len(args) < 2 {
+		return nil
+	}
+	cols := args[0].Int()
+	rows := args[1].Int()
+	// Update JS globals so platformGetSize returns the new values
+	global := js.Global()
+	global.Set("TerminalCols", cols)
+	global.Set("TerminalRows", rows)
+	// Tell the fortio.org/terminal.Terminal to re-read the size
+	wasmMu.Lock()
+	t := wasmTerm
+	wasmMu.Unlock()
+	if t != nil {
+		_ = t.UpdateSize()
+	}
+	return nil
+}
+
+// jsSaveState saves history and state to the virtual filesystem.
+// Called from JS on beforeunload/pagehide to persist before the page dies.
+func jsSaveState(_ js.Value, _ []js.Value) interface{} {
+	wasmMu.Lock()
+	t := wasmTerm
+	s := wasmState
+	opts := wasmOptions
+	wasmMu.Unlock()
+	if t != nil {
+		t.SaveHistory()
+	}
+	if s != nil {
+		_ = repl.AutoSave(s, opts)
+	}
+	return nil
+}
 
 func main() {
 	cli.Main() // just to get version etc
@@ -88,11 +189,21 @@ func main() {
 	prev := debug.SetMemoryLimit(WasmMemLimit)
 	log.Infof("Grol wasm main %s - prev memory limit %d now %d", grolVersion, prev, WasmMemLimit)
 	global := js.Global()
+	// Existing batch eval API (textarea mode)
 	global.Set("grol", js.FuncOf(jsEval))
 	global.Set("grolVersion", js.ValueOf(grolVersion))
-	// IOs don't work yet https://github.com/grol-io/grol/issues/124 otherwise we'd
-	// use extensions.Config and allow HasLoad HasSave.
-	err := extensions.Init(nil)
+	// Interactive REPL API (xterm.js mode)
+	global.Set("grolStartREPL", js.FuncOf(jsStartREPL))
+	global.Set("grolSetTermSize", js.FuncOf(jsSetTermSize))
+	global.Set("grolSaveState", js.FuncOf(jsSaveState))
+	// Enable load/save with localStorage-backed virtual filesystem.
+	// LoadSaveEmptyOnly restricts to just ".gr" (no arbitrary paths).
+	exc := &extensions.Config{
+		HasLoad:           true,
+		HasSave:           true,
+		LoadSaveEmptyOnly: true,
+	}
+	err := extensions.Init(exc)
 	if err != nil {
 		log.Critf("Error initializing extensions: %v", err)
 	}

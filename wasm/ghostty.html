@@ -1,0 +1,117 @@
+<!doctype html>
+<html>
+<!--
+  ghostty-web based interactive REPL for grol.
+  Uses globalThis.fs overrides to bridge stdin/stdout/stderr between
+  the Go WASM runtime and ghostty-web. The Go side uses x/term.Terminal
+  for line editing (ANSI escape sequences), which ghostty-web renders.
+
+  Alternative to xterm.html using https://github.com/coder/ghostty-web
+  (ghostty's terminal emulator compiled to WASM, xterm.js-compatible API).
+
+  Keep grol/wasm/ghostty.html and web-site/_includes/ghostty.html in sync.
+  make wasm to test changes.
+-->
+
+<head>
+    <meta charset="utf-8">
+    <title>Grol REPL (ghostty)</title>
+    <link rel="stylesheet" href="/term.css">
+    <style>
+        body {
+            background: #1d1e1d;
+            color: #ffffff;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="header">
+        <span id="version">Loading GROL...</span>
+        <a href="/index.html">Textarea</a> mode
+        <a href="/xterm.html">xterm.js</a> mode
+        <span id="status"></span>
+    </div>
+    <div id="image-container">
+        <button id="close-image" onclick="closeImage()">&times;</button>
+        <img id="image" src="" alt="Image output">
+    </div>
+    <div id="terminal-container"></div>
+
+    <script src="/wasm_exec.js"></script>
+    <script src="/term.js"></script>
+    <script type="module">
+        // ─── ghostty-web Terminal Setup ──────────────────────────────
+        import { init, Terminal, FitAddon } from 'https://cdn.jsdelivr.net/npm/ghostty-web@0.4.0/dist/ghostty-web.js';
+
+        // Initialize ghostty WASM runtime (must be called before creating Terminal)
+        await init();
+
+        const xterm = new Terminal({
+            cursorBlink: true,
+            cols: 80,
+            rows: 24,
+            fontSize: 15,
+            fontFamily: '"Cascadia Code", "Fira Code", "JetBrains Mono", Menlo, Monaco, "Courier New", monospace',
+            // Ghostty "Terminal Basic Dark" theme colors
+            theme: {
+                background: '#1d1e1d',
+                foreground: '#ffffff',
+                cursor: '#9d9d9d',
+                cursorAccent: '#1d1e1d',
+                selectionBackground: '#3f638a',
+                selectionForeground: '#ffffff',
+                black: '#000000',
+                red: '#c65339',
+                green: '#6ac44b',
+                yellow: '#b8b74a',
+                blue: '#6444ed',
+                magenta: '#d357db',
+                cyan: '#69c1cf',
+                white: '#d1d1d1',
+                brightBlack: '#909090',
+                brightRed: '#eb5a3a',
+                brightGreen: '#77ea51',
+                brightYellow: '#efef53',
+                brightBlue: '#d09af9',
+                brightMagenta: '#eb5af7',
+                brightCyan: '#78f1f2',
+                brightWhite: '#ededed',
+            },
+            convertEol: false,  // We handle \r\n ourselves (x/term.Terminal does CRLF)
+        });
+
+        const fitAddon = new FitAddon();
+        xterm.loadAddon(fitAddon);
+        xterm.open(document.getElementById('terminal-container'));
+        // ghostty-web uses observeResize() (ResizeObserver-based) instead of
+        // fit() to avoid resizing to 0x0 before the DOM has laid out.
+        // fit() calls proposeDimensions() which may return invalid dimensions
+        // if the container hasn't been rendered yet, corrupting ghostty's WASM state.
+        fitAddon.observeResize();
+
+        // Set terminal globals for fortio.org/terminal WASM detection.
+        // These must be set before go.run() so IsTerminal() returns true.
+        globalThis.TerminalConnected = true;
+        globalThis.TerminalCols = xterm.cols;
+        globalThis.TerminalRows = xterm.rows;
+
+        // Track resize via the terminal's own resize event (fired by observeResize)
+        xterm.onResize(({ cols, rows }) => {
+            globalThis.TerminalCols = cols;
+            globalThis.TerminalRows = rows;
+            if (typeof grolSetTermSize === 'function') {
+                grolSetTermSize(cols, rows);
+            }
+        });
+
+        // VFS, stdin/stdout bridge, and WASM init are in /term.js
+        setupGrolTerminal(xterm, {
+            versionSuffix: ' (ghostty)',
+            safeWrite: true,
+            copyBuffer: true,
+        });
+    </script>
+</body>
+
+</html>
