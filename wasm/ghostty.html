@@ -533,7 +533,7 @@
                     document.getElementById('image-container').style.display = 'block';
                     // Show a brief colored marker instead of kilobytes of base64
                     const kb = Math.round(dataUrl.length / 1024);
-                    const label = '\x1b[36m📷 [image ' + kb + ' KB]\x1b[0m';
+                    const label = '\x1b[36m📷[image ' + kb + ' KB]\x1b[0m\n';
                     const rest = nl >= 0 ? text.substring(nl) : '';
                     const replacement = label + rest;
                     const normalized = replacement.replace(/([^\r])\n/g, '$1\r\n').replace(/^\n/, '\r\n');
