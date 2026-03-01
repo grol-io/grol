@@ -1349,9 +1349,15 @@ func (s *State) evalMinusPrefixOperatorExpression(right object.Object) object.Ob
 	switch right.Type() {
 	case object.INTEGER:
 		value := right.(object.Integer).Value
+		if value == math.MinInt64 {
+			return object.BigInt{Value: new(big.Int).Neg(big.NewInt(value))}
+		}
 		return object.Integer{Value: -value}
 	case object.REGISTER:
 		value := right.(*object.Register).Int64()
+		if value == math.MinInt64 {
+			return object.BigInt{Value: new(big.Int).Neg(big.NewInt(value))}
+		}
 		return object.Integer{Value: -value}
 	case object.FLOAT:
 		value := right.(object.Float).Value
@@ -1475,6 +1481,17 @@ func Int64Value(o object.Object) (int64, bool) {
 	}
 }
 
+// absInt64ToUint64 returns |v| as uint64, including for MinInt64.
+func absInt64ToUint64(v int64) uint64 {
+	if v >= 0 {
+		return uint64(v)
+	}
+	if v == math.MinInt64 {
+		return uint64(math.MaxInt64) + 1 // or we could just put 1<<63
+	}
+	return uint64(-v)
+}
+
 // You would think this is an ideal case for generics... yet...
 // can't use fields directly in generic code,
 // https://github.com/golang/go/issues/48522
@@ -1505,15 +1522,9 @@ func (s *State) evalIntegerInfixExpression(operator token.Type, leftVal, rightVa
 	case token.ASTERISK:
 		result := leftVal * rightVal
 		if leftVal != 0 && rightVal != 0 {
-			// Use math/bits.Mul64 on absolute values to detect overflow.
-			la, ra := leftVal, rightVal
-			if la < 0 {
-				la = -la
-			}
-			if ra < 0 {
-				ra = -ra
-			}
-			hi, _ := bits.Mul64(uint64(la), uint64(ra)) //nolint:gosec // la,ra are absolute values, non-negative.
+			// Use math/bits.Mul64 on unsigned magnitudes to detect overflow.
+			la, ra := absInt64ToUint64(leftVal), absInt64ToUint64(rightVal)
+			hi, _ := bits.Mul64(la, ra)
 			// hi != 0 means the product doesn't fit in 64 bits (unsigned).
 			// Also check sign correctness: same-sign operands must give positive result,
 			// different-sign operands must give negative result.
