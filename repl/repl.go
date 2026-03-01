@@ -140,7 +140,7 @@ func AutoSave(s *eval.State, options Options) error {
 		return err
 	}
 	// Rename "atomically" (not really but close enough).
-	err = os.Rename(f.Name(), AutoSaveFile)
+	err = os.Rename(f.Name(), AutoSaveFile) //nolint:gosec // no traversal here / we do want to write the constant .gr file.
 	if err != nil {
 		log.Errf("Error renaming autosave file: %v", err)
 		return err

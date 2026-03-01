@@ -556,7 +556,10 @@ func createStrFunctions() { //nolint:funlen,gocognit,maintidx // we do have quit
 			if v < -128 || v > 255 {
 				return s.Errorf("invalid byte value %d", v)
 			}
-			buf[i] = byte(v)
+			if v < 0 {
+				v += 256
+			}
+			buf[i] = byte(v) //nolint:gosec // gosec still bugged.
 		}
 		if checkUtf8 {
 			if !utf8.Valid(buf) {

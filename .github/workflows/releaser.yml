@@ -24,7 +24,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v6 # pin@v3
         with:
-          go-version: '1.24'
+          go-version: '1.25'
           check-latest: true
       - name: Log in to Docker
         uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # pin@v2

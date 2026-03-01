@@ -215,9 +215,9 @@ func (l *Lexer) readHex() byte {
 }
 
 func (l *Lexer) readUnicode16() rune {
-	hb := int(l.readHex()) << 8
-	lb := int(l.readHex())
-	return rune(hb | lb)
+	hb := rune(l.readHex()) << 8
+	lb := rune(l.readHex())
+	return hb | lb
 }
 
 func (l *Lexer) readUnicode32() rune {
@@ -229,7 +229,7 @@ func (l *Lexer) readUnicode32() rune {
 // processEscape handles simple escape sequences.
 // Returns the rune and true if successful, or 0 and false for invalid/unicode escapes.
 // Caller should handle 'u' and 'U' separately by calling readUnicode16/32.
-func (l *Lexer) processEscape(escapeChar byte) (rune, bool) {
+func (l *Lexer) processEscape(escapeChar byte) (byte, bool) {
 	switch escapeChar {
 	case 'r':
 		return '\r', true
@@ -238,9 +238,9 @@ func (l *Lexer) processEscape(escapeChar byte) (rune, bool) {
 	case 't':
 		return '\t', true
 	case '\'', '"', '\\':
-		return rune(escapeChar), true
+		return escapeChar, true
 	case 'x':
-		return rune(l.readHex()), true
+		return l.readHex(), true
 	default:
 		return 0, false
 	}
@@ -262,11 +262,11 @@ func (l *Lexer) readString(sep byte) (string, bool) {
 				buf.WriteRune(l.readUnicode32())
 				continue
 			default:
-				r, ok := l.processEscape(escapeChar)
+				var ok bool
+				ch, ok = l.processEscape(escapeChar)
 				if !ok {
 					return buf.String(), false
 				}
-				ch = byte(r)
 			}
 		case ch == sep:
 			return buf.String(), true
@@ -290,11 +290,11 @@ func (l *Lexer) readRune() (rune, bool) {
 		case 'U':
 			r = l.readUnicode32()
 		default:
-			var ok bool
-			r, ok = l.processEscape(escapeChar)
+			b, ok := l.processEscape(escapeChar)
 			if !ok {
 				return 0, false
 			}
+			r = rune(b)
 		}
 		// Verify closing quote
 		if l.readChar() != '\'' {
