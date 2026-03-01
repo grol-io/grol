@@ -1504,16 +1504,17 @@ func promoteToBigInt(op func(*big.Int, *big.Int, *big.Int) *big.Int, leftVal, ri
 }
 
 func (s *State) evalIntegerInfixExpression(operator token.Type, leftVal, rightVal int64) object.Object {
+	var result int64
 	switch operator {
 	case token.PLUS:
-		result := leftVal + rightVal
+		result = leftVal + rightVal
 		// Signed overflow: operands have same sign but result sign differs.
 		if (rightVal^leftVal) >= 0 && (result^leftVal) < 0 {
 			return promoteToBigInt((*big.Int).Add, leftVal, rightVal)
 		}
 		return object.Integer{Value: result}
 	case token.MINUS:
-		result := leftVal - rightVal
+		result = leftVal - rightVal
 		// Signed overflow: operands have different signs and result sign differs from left.
 		if (rightVal^leftVal) < 0 && (result^leftVal) < 0 {
 			return promoteToBigInt((*big.Int).Sub, leftVal, rightVal)
@@ -1542,15 +1543,14 @@ func (s *State) evalIntegerInfixExpression(operator token.Type, leftVal, rightVa
 		if lo > maxForSign {
 			return promoteToBigInt((*big.Int).Mul, leftVal, rightVal)
 		}
-		var res int64
 		//nolint:gosec // we checked for overflow just above.
 		if sameSign {
-			res = int64(lo)
+			result = int64(lo)
 		} else {
 			// We checked for overflow above, so lo <= MaxInt64+1, so -lo is in [MinInt64, -1].
-			res = -int64(lo)
+			result = -int64(lo)
 		}
-		return object.Integer{Value: res}
+		return object.Integer{Value: result}
 	case token.SLASH:
 		if rightVal == 0 {
 			return s.NewError("division by zero")
