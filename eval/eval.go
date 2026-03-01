@@ -1503,35 +1503,52 @@ func promoteToBigInt(op func(*big.Int, *big.Int, *big.Int) *big.Int, leftVal, ri
 	return object.BigInt{Value: op(new(big.Int), l, r)}
 }
 
-func (s *State) evalIntegerInfixExpression(operator token.Type, leftVal, rightVal int64) object.Object { //nolint:gocyclo // yes...
+func (s *State) evalIntegerInfixExpression(operator token.Type, leftVal, rightVal int64) object.Object {
+	var result int64
 	switch operator {
 	case token.PLUS:
-		result := leftVal + rightVal
+		result = leftVal + rightVal
 		// Signed overflow: operands have same sign but result sign differs.
 		if (rightVal^leftVal) >= 0 && (result^leftVal) < 0 {
 			return promoteToBigInt((*big.Int).Add, leftVal, rightVal)
 		}
 		return object.Integer{Value: result}
 	case token.MINUS:
-		result := leftVal - rightVal
+		result = leftVal - rightVal
 		// Signed overflow: operands have different signs and result sign differs from left.
 		if (rightVal^leftVal) < 0 && (result^leftVal) < 0 {
 			return promoteToBigInt((*big.Int).Sub, leftVal, rightVal)
 		}
 		return object.Integer{Value: result}
 	case token.ASTERISK:
-		result := leftVal * rightVal
-		if leftVal != 0 && rightVal != 0 {
-			// Use math/bits.Mul64 on unsigned magnitudes to detect overflow.
-			la, ra := absInt64ToUint64(leftVal), absInt64ToUint64(rightVal)
-			hi, _ := bits.Mul64(la, ra)
-			// hi != 0 means the product doesn't fit in 64 bits (unsigned).
-			// Also check sign correctness: same-sign operands must give positive result,
-			// different-sign operands must give negative result.
-			sameSign := (leftVal ^ rightVal) >= 0
-			if hi != 0 || (sameSign && result <= 0) || (!sameSign && result >= 0) {
-				return promoteToBigInt((*big.Int).Mul, leftVal, rightVal)
-			}
+		if leftVal == 0 || rightVal == 0 {
+			return object.Integer{Value: 0}
+		}
+		// Use math/bits.Mul64 on unsigned magnitudes to detect overflow.
+		la, ra := absInt64ToUint64(leftVal), absInt64ToUint64(rightVal)
+		hi, lo := bits.Mul64(la, ra)
+		// hi != 0 means the product doesn't fit in 64 bits (unsigned).
+		if hi != 0 {
+			return promoteToBigInt((*big.Int).Mul, leftVal, rightVal)
+		}
+		// Check sign correctness: same-sign operands must give positive result,
+		// different-sign operands must give negative result.
+		sameSign := (leftVal ^ rightVal) >= 0
+		// For positive results, magnitude must fit in MaxInt64.
+		// For negative results, magnitude must fit in MaxInt64+1 (to accommodate MinInt64).
+		maxForSign := uint64(math.MaxInt64)
+		if !sameSign {
+			maxForSign++
+		}
+		if lo > maxForSign {
+			return promoteToBigInt((*big.Int).Mul, leftVal, rightVal)
+		}
+		//nolint:gosec // we checked for overflow just above.
+		if sameSign {
+			result = int64(lo)
+		} else {
+			// We checked for overflow above, so lo <= MaxInt64+1, so -lo is in [MinInt64, -1].
+			result = -int64(lo)
 		}
 		return object.Integer{Value: result}
 	case token.SLASH:
