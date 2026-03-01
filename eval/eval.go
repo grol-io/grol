@@ -1503,7 +1503,7 @@ func promoteToBigInt(op func(*big.Int, *big.Int, *big.Int) *big.Int, leftVal, ri
 	return object.BigInt{Value: op(new(big.Int), l, r)}
 }
 
-func (s *State) evalIntegerInfixExpression(operator token.Type, leftVal, rightVal int64) object.Object { //nolint:gocyclo // yes...
+func (s *State) evalIntegerInfixExpression(operator token.Type, leftVal, rightVal int64) object.Object {
 	switch operator {
 	case token.PLUS:
 		result := leftVal + rightVal
@@ -1520,20 +1520,37 @@ func (s *State) evalIntegerInfixExpression(operator token.Type, leftVal, rightVa
 		}
 		return object.Integer{Value: result}
 	case token.ASTERISK:
-		result := leftVal * rightVal
-		if leftVal != 0 && rightVal != 0 {
-			// Use math/bits.Mul64 on unsigned magnitudes to detect overflow.
-			la, ra := absInt64ToUint64(leftVal), absInt64ToUint64(rightVal)
-			hi, _ := bits.Mul64(la, ra)
-			// hi != 0 means the product doesn't fit in 64 bits (unsigned).
-			// Also check sign correctness: same-sign operands must give positive result,
-			// different-sign operands must give negative result.
-			sameSign := (leftVal ^ rightVal) >= 0
-			if hi != 0 || (sameSign && result <= 0) || (!sameSign && result >= 0) {
-				return promoteToBigInt((*big.Int).Mul, leftVal, rightVal)
-			}
+		if leftVal == 0 || rightVal == 0 {
+			return object.Integer{Value: 0}
 		}
-		return object.Integer{Value: result}
+		// Use math/bits.Mul64 on unsigned magnitudes to detect overflow.
+		la, ra := absInt64ToUint64(leftVal), absInt64ToUint64(rightVal)
+		hi, lo := bits.Mul64(la, ra)
+		// hi != 0 means the product doesn't fit in 64 bits (unsigned).
+		if hi != 0 {
+			return promoteToBigInt((*big.Int).Mul, leftVal, rightVal)
+		}
+		// Check sign correctness: same-sign operands must give positive result,
+		// different-sign operands must give negative result.
+		sameSign := (leftVal ^ rightVal) >= 0
+		// For positive results, magnitude must fit in MaxInt64.
+		// For negative results, magnitude must fit in MaxInt64+1 (to accommodate MinInt64).
+		maxForSign := uint64(math.MaxInt64)
+		if !sameSign {
+			maxForSign++
+		}
+		if lo > maxForSign {
+			return promoteToBigInt((*big.Int).Mul, leftVal, rightVal)
+		}
+		var res int64
+		//nolint:gosec // we checked for overflow just above.
+		if sameSign {
+			res = int64(lo)
+		} else {
+			// We checked for overflow above, so lo <= MaxInt64+1, so -lo is in [MinInt64, -1].
+			res = -int64(lo)
+		}
+		return object.Integer{Value: res}
 	case token.SLASH:
 		if rightVal == 0 {
 			return s.NewError("division by zero")
