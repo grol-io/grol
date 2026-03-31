@@ -1,6 +1,6 @@
 module grol.io/grol
 
-go 1.24.0
+go 1.25.0
 
 require (
 	fortio.org/cli v1.12.3
@@ -10,19 +10,19 @@ require (
 	fortio.org/safecast v1.2.0
 	fortio.org/sets v1.3.0
 	fortio.org/struct2env v0.4.2
-	fortio.org/terminal v0.64.1
+	fortio.org/terminal v0.65.0
 	fortio.org/testscript v0.3.2 // only for tests
 	fortio.org/version v1.0.4
 	github.com/rivo/uniseg v0.4.7
-	golang.org/x/image v0.36.0
+	golang.org/x/image v0.38.0
 )
 
 require (
 	github.com/jbuchbinder/gopnm v0.0.0-20220507095634-e31f54490ce0 // indirect
 	github.com/kortschak/goroutine v1.1.3 // indirect
 	golang.org/x/crypto/x509roots/fallback v0.0.0-20250406160420-959f8f3db0fb // indirect
-	golang.org/x/sys v0.41.0 // indirect
-	golang.org/x/term v0.40.0 // indirect
-	golang.org/x/text v0.34.0 // indirect
-	golang.org/x/tools v0.41.0 // indirect
+	golang.org/x/sys v0.42.0 // indirect
+	golang.org/x/term v0.41.0 // indirect
+	golang.org/x/text v0.35.0 // indirect
+	golang.org/x/tools v0.42.0 // indirect
 )
