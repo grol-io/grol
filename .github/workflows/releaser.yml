@@ -27,7 +27,7 @@ jobs:
           go-version: '1.25'
           check-latest: true
       - name: Log in to Docker
-        uses: docker/login-action@b45d80f862d83dbcd57f89517bcf500b2ab88fb2 # pin@v2
+        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # pin@v2
         with:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
