@@ -14,7 +14,7 @@ require (
 	fortio.org/testscript v0.3.2 // only for tests
 	fortio.org/version v1.0.4
 	github.com/rivo/uniseg v0.4.7
-	golang.org/x/image v0.42.0
+	golang.org/x/image v0.43.0
 )
 
 require (
