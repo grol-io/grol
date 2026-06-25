@@ -73,7 +73,9 @@ wasi: Makefile *.go */*.go $(GEN)
 	ls -lh wasm/grol.*
 
 wasi-run: wasi
-	wasmtime --env LOGGER_LOG_FILE_AND_LINE=true --env LOGGER_IGNORE_CLI_MODE=true --env HOME=/ --dir .::/ wasm/grol.wasi -loglevel debug
+	stty -raw;\
+		wasmtime --env FORCE_TERMINAL=1 --env LOGGER_LOG_FILE_AND_LINE=true --env LOGGER_IGNORE_CLI_MODE=true --env HOME=/ --dir .::/ wasm/grol.wasi -loglevel debug;\
+		stty sane
 
 install:
 	CGO_ENABLED=0 go install -trimpath -ldflags="-w -s" -tags "$(GO_BUILD_TAGS)" grol.io/grol@$(GIT_TAG)
