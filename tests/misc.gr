@@ -187,6 +187,40 @@ IsErr("direct assignment to non-indexable shows variable name", intVar[0] = 5, "
 func getInt() { 42 }
 IsErr("nested assignment to non-indexable shows generic message", getInt()[0] = 5, "index assignment to object of unexpected type")
 
+// Failed compound assignments report the error without replacing their target.
+// IsErr catches each failure so the following assertions reuse the same state.
+cfCompoundX=12
+IsErr("identifier compound division", cfCompoundX/=0, "division by zero"); Assert("identifier unchanged after compound error", cfCompoundX==12)
+NoErr("identifier compound update", cfCompoundX+=1, "13"); Assert("identifier compound update stored", cfCompoundX==13)
+cfCompoundArray=[12]
+IsErr("array compound division", cfCompoundArray[0]/=0, "division by zero"); Assert("array unchanged after compound error", cfCompoundArray==[12])
+NoErr("array compound update", cfCompoundArray[0]+=1, "13"); Assert("array compound update stored", cfCompoundArray==[13])
+cfCompoundMap={"a":1}
+IsErr("map compound division", cfCompoundMap.a/=0, "division by zero"); Assert("map unchanged after compound error", cfCompoundMap.a==1)
+NoErr("map compound update", cfCompoundMap.a+=1, "2"); Assert("map compound update stored", cfCompoundMap.a==2)
+cfCompoundBigArray=[0,1,2,3,4,5,6,7,12]
+IsErr("big array compound division", cfCompoundBigArray[8]/=0, "division by zero"); Assert("big array unchanged after compound error", cfCompoundBigArray==[0,1,2,3,4,5,6,7,12])
+NoErr("big array compound update", cfCompoundBigArray[8]+=1, "13"); Assert("big array compound update stored", cfCompoundBigArray[8]==13)
+cfCompoundBigMap={"k0":0,"k1":1,"k2":2,"k3":3,"k4":4}
+IsErr("big map compound division", cfCompoundBigMap.k4/=0, "division by zero"); Assert("big map unchanged after compound error", cfCompoundBigMap.k4==4)
+NoErr("big map compound update", cfCompoundBigMap.k4+=1, "5"); Assert("big map compound update stored", cfCompoundBigMap.k4==5)
+IsErr("compound assignment to undefined identifier", cfCompoundUndefined+=1, "identifier not found: cfCompoundUndefined")
+IsErr("failed compound assignment leaves identifier undefined", cfCompoundUndefined, "^identifier not found: cfCompoundUndefined$")
+cfCompoundCaught=12
+Assert("catch reports compound arithmetic error", catch(cfCompoundCaught/=0).err); Assert("caught compound error leaves target unchanged", cfCompoundCaught==12)
+cfCompoundCaughtUndefinedResult=catch(cfCompoundCaughtUndefined+=1); Assert("catch reports undefined compound error", cfCompoundCaughtUndefinedResult.err); IsErr("caught compound error leaves identifier undefined", cfCompoundCaughtUndefined, "^identifier not found: cfCompoundCaughtUndefined$")
+cfCompoundMissingMap={}
+IsErr("compound assignment to missing map key", cfCompoundMissingMap.b+=1, "no PLUS on left=nil right=1"); Assert("failed compound assignment does not create map key", len(cfCompoundMissingMap)==0)
+cfCompoundCaughtMapResult=catch(cfCompoundMissingMap.c+=1); Assert("catch reports missing-map compound error", cfCompoundCaughtMapResult.err); Assert("caught compound error does not create map key", len(cfCompoundMissingMap)==0)
+cfCompoundWide=9223372036854775807
+NoErr("compound update promotes to BigInt", cfCompoundWide+=1, "9223372036854775808"); Assert("compound BigInt update stored", type(cfCompoundWide)=="BIGINT" && cfCompoundWide==9223372036854775808)
+cfCompoundDiagnosticArray=[12]
+IsErr("out-of-bounds positive compound assignment", cfCompoundDiagnosticArray[5]+=1, "index assignment out of bounds: 5")
+IsErr("out-of-bounds negative compound assignment", cfCompoundDiagnosticArray[-3]+=1, "index assignment out of bounds: -3")
+cfCompoundNotArray=1
+IsErr("compound assignment to non-indexable variable", cfCompoundNotArray[0]+=1, "index assignment to cfCompoundNotArray of unexpected type INTEGER .1.")
+IsErr("compound assignment with non-integer array index", cfCompoundDiagnosticArray["k"]+=1, "index assignment to array with non integer index")
+
 dur := time.duration("1w1d3h")
 expected := (7+1)*86400 + 3*3600.0 // need float for == to work
 log("duration 1w1d3h in seconds is", dur, "expecting", expected)

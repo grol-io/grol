@@ -75,9 +75,6 @@ func (s *State) compoundAssignNested(node ast.Node, operator token.Type, value o
 
 	// Evaluate result of operator
 	compounded := s.evalInfixExpression(operator, indexValue, value)
-	if compounded.Type() == object.ERROR {
-		return compounded
-	}
 
 	// Set the new value at this level
 	newBase := s.evalIndexAssignmentValue(result.Base, result.Index, compounded, result.Identifier)
@@ -201,9 +198,15 @@ func (s *State) evalIndexAssignmentValue(base, index, value object.Object, ident
 			return s.NewError("index assignment out of bounds: " + index.Inspect())
 		}
 		elements := object.Elements(base)
+		if value.Type() == object.ERROR {
+			return value
+		}
 		elements[idx] = value
 		return object.NewArray(elements)
 	case object.MAP:
+		if value.Type() == object.ERROR {
+			return value
+		}
 		m := base.(object.Map)
 		return m.Set(object.Value(index), value)
 	default:
