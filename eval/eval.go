@@ -688,6 +688,8 @@ func (s *State) evalIndexRangeExpression(left object.Object, leftIdx, rightIdx a
 	if l > r {
 		return s.NewError("range index invalid: left greater then right")
 	}
+	l = max(l, 0)
+	r = max(r, 0)
 	l = min(l, int64(num))
 	r = min(r, int64(num))
 	switch left.Type() {
