@@ -75,6 +75,9 @@ func (s *State) compoundAssignNested(node ast.Node, operator token.Type, value o
 
 	// Evaluate result of operator
 	compounded := s.evalInfixExpression(operator, indexValue, value)
+	if compounded.Type() == object.ERROR {
+		return compounded
+	}
 
 	// Set the new value at this level
 	newBase := s.evalIndexAssignmentValue(result.Base, result.Index, compounded, result.Identifier)
@@ -148,6 +151,9 @@ func (s *State) evalAssignment(right object.Object, node *ast.InfixExpression) o
 		if opToEval, ok := isCompound(nodeType); ok {
 			value := s.evalIdentifier(id)
 			compounded := s.evalInfixExpression(opToEval, value, right)
+			if compounded.Type() == object.ERROR {
+				return compounded
+			}
 			return s.env.CreateOrSet(name, compounded, false)
 		}
 		log.LogVf("eval assign %#v to %s", right, name)

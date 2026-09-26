@@ -1070,13 +1070,13 @@ func TestNotCachingErrors(t *testing.T) {
 
 func TestFailedCompoundAssignmentPreservesTarget(t *testing.T) {
 	s := eval.NewState()
-	_, err := eval.EvalString(s, `
+	_, initErr := eval.EvalString(s, `
 		x=12; a=[12]; m={"a":1}
 		largeArray=[0,1,2,3,4,5,6,7,12]
 		largeMap={"k0":0,"k1":1,"k2":2,"k3":3,"k4":4}
 	`, false)
-	if err != nil {
-		t.Fatalf("failed to initialize state: %v", err)
+	if initErr != nil {
+		t.Fatalf("failed to initialize state: %v", initErr)
 	}
 
 	tests := []struct {
