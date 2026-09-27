@@ -148,6 +148,9 @@ func (s *State) evalAssignment(right object.Object, node *ast.InfixExpression) o
 		if opToEval, ok := isCompound(nodeType); ok {
 			value := s.evalIdentifier(id)
 			compounded := s.evalInfixExpression(opToEval, value, right)
+			if compounded.Type() == object.ERROR {
+				return compounded
+			}
 			return s.env.CreateOrSet(name, compounded, false)
 		}
 		log.LogVf("eval assign %#v to %s", right, name)
@@ -195,9 +198,15 @@ func (s *State) evalIndexAssignmentValue(base, index, value object.Object, ident
 			return s.NewError("index assignment out of bounds: " + index.Inspect())
 		}
 		elements := object.Elements(base)
+		if value.Type() == object.ERROR {
+			return value
+		}
 		elements[idx] = value
 		return object.NewArray(elements)
 	case object.MAP:
+		if value.Type() == object.ERROR {
+			return value
+		}
 		m := base.(object.Map)
 		return m.Set(object.Value(index), value)
 	default:
