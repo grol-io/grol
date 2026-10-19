@@ -225,8 +225,7 @@ func TestShellExec_Success(t *testing.T) {
 			if err == nil {
 				gotCode = 0
 			} else {
-				var exitErr *exec.ExitError
-				if errors.As(err, &exitErr) {
+				if exitErr, ok := errors.AsType[*exec.ExitError](err); ok {
 					gotCode = exitErr.ExitCode()
 				} else {
 					t.Fatalf("ShellExec(%q) unexpected error type: %v", tt.cmd, err)

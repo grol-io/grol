@@ -20,3 +20,16 @@ func ppp(n) {
 }
 
 // eg ppp(fib(100)) => 354_224_848_179_261_915_075
+
+
+func intbytes(n) {
+    if n < 0 {
+        return "-" + intbytes(-n)
+    }
+    h = []
+    for (n > 0) {
+        h = [n & 0xFF] + h;
+        n = n >> 8;
+    }
+    h
+}
