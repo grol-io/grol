@@ -2,8 +2,7 @@
 <img alt="GROL" src="https://grol.io/grol_mascot.png" width="33%"/>
 
 
-[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/grol-io/grol)
-[![Go Report Card](https://goreportcard.com/badge/grol.io/grol)](https://goreportcard.com/report/grol.io/grol)
+[![Ask DeepWiki](https://img.shields.io/badge/Ask-DeepWiki-blue)](https://deepwiki.com/grol-io/grol)
 [![GoDoc](https://godoc.org/grol.io/grol?status.svg)](https://pkg.go.dev/grol.io/grol)
 [![CI Checks](https://github.com/grol-io/grol/actions/workflows/gochecks.yml/badge.svg)](https://github.com/grol-io/grol/actions/workflows/gochecks.yml)
 
