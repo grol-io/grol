@@ -124,9 +124,9 @@ func (s *State) UpdateNumSet() (oldvalue, newvalue int64) {
 func (s *State) SetContext(ctx context.Context, d time.Duration) context.CancelFunc {
 	if d <= 0 {
 		log.LogVf("SetContext with unlimited duration")
-		s.Context, s.Cancel = context.WithCancel(ctx)
+		s.Context, s.Cancel = context.WithCancel(ctx) //nolint:gosec // cancel is stored in s.Cancel and returned.
 	} else {
-		s.Context, s.Cancel = context.WithTimeout(ctx, d)
+		s.Context, s.Cancel = context.WithTimeout(ctx, d) //nolint:gosec // cancel is stored in s.Cancel and returned.
 	}
 	return s.Cancel
 }

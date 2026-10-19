@@ -21,7 +21,7 @@ jobs:
       - name: Setup Go environment
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # pin@v5
         with:
-          go-version: '1.25'
+          go-version: '1.26'
           check-latest: true
       - name: Run Vulncheck
         if: matrix.os == 'ubuntu-latest'
@@ -35,7 +35,7 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # pin@v8
         with:
-          version: v2.10.1
+          version: v2.15.0
       - name: Run tests
         run: |
           go version

@@ -822,7 +822,9 @@ func (sa SmallArray) Type() Type { return ARRAY }
 func (sa SmallArray) Unwrap(forceStringKeys bool) any {
 	return Unwrap(sa.smallArr[:sa.len], forceStringKeys)
 }
+
 func (sa SmallArray) JSON(w io.Writer) error { return BigArray{elements: sa.smallArr[:sa.len]}.JSON(w) }
+
 func (sa SmallArray) Inspect() string {
 	if sa.len == 0 {
 		return "[]"
@@ -945,18 +947,18 @@ func Range(val Object, l, r int64) Object {
 	switch v := val.(type) {
 	case SmallArray:
 		if l < 0 || r > int64(v.len) {
-			return Error{Value: "range() out of bounds"}
+			return Error{Value: errRangeOOB}
 		}
 		return NewArray(v.smallArr[l:r])
 	case BigArray:
 		if l < 0 || r > int64(len(v.elements)) {
-			return Error{Value: "range() out of bounds"}
+			return Error{Value: errRangeOOB}
 		}
 		return NewArray(v.elements[l:r])
 	case String:
 		rs := []rune(v.Value)
 		if l < 0 || r > int64(len(rs)) {
-			return Error{Value: "range() out of bounds"}
+			return Error{Value: errRangeOOB}
 		}
 		return String{Value: string(rs[l:r])}
 	case *BigMap:
@@ -1404,3 +1406,5 @@ func (e Extension) JSON(w io.Writer) error {
 func (e Extension) String() string {
 	return e.Inspect()
 }
+
+const errRangeOOB = "range() out of bounds"
