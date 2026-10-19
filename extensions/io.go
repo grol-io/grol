@@ -121,8 +121,8 @@ func createIOFunctions() { //nolint:gocognit // we have multiple functions in he
 			return s.Error(err)
 		}
 		return object.MakeQuad(
-			object.String{Value: "width"}, object.Integer{Value: int64(s.Term.Width)},
-			object.String{Value: "height"}, object.Integer{Value: int64(s.Term.Height)},
+			object.String{Value: widthKey}, object.Integer{Value: int64(s.Term.Width)},
+			object.String{Value: heightKey}, object.Integer{Value: int64(s.Term.Height)},
 		)
 	}
 	MustCreate(ioFn)

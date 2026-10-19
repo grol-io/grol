@@ -376,8 +376,8 @@ func createImageFunctions() { //nolint:funlen,maintidx // this is a group of rel
 			return object.NULL
 		}
 		return object.MakeQuad(
-			object.String{Value: "height"}, object.Integer{Value: int64(img.H)},
-			object.String{Value: "width"}, object.Integer{Value: int64(img.W)},
+			object.String{Value: heightKey}, object.Integer{Value: int64(img.H)},
+			object.String{Value: widthKey}, object.Integer{Value: int64(img.W)},
 		)
 	}
 	MustCreate(imgFn)
@@ -422,8 +422,8 @@ func createImageFunctions() { //nolint:funlen,maintidx // this is a group of rel
 		descent := float64(bounds.Max.Y) / 64 // Descent below baseline in pixels
 		offset := float64(bounds.Min.X) / 64  // Offset of the first letter from start of drawing.
 		m := object.MakeQuad(
-			object.String{Value: "height"}, object.Float{Value: height},
-			object.String{Value: "width"}, object.Float{Value: width},
+			object.String{Value: heightKey}, object.Float{Value: height},
+			object.String{Value: widthKey}, object.Float{Value: width},
 		)
 		// Still a "SmallMap" with 4 elements
 		m = m.Set(object.String{Value: "descent"}, object.Float{Value: descent})

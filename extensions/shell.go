@@ -71,7 +71,7 @@ func createShellFunctions() {
 			log.Debugf("Suspending term")
 			s.Term.Suspend()
 		}
-		s.Context, s.Cancel = context.WithCancel(context.Background()) // no timeout.
+		s.Context, s.Cancel = context.WithCancel(context.Background()) //nolint:gosec // cancel is stored in s.Cancel.
 		cmd, oerr := createCmd(*s, args)
 		if oerr != nil {
 			return *oerr
