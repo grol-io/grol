@@ -384,9 +384,9 @@ func createStrFunctions() { //nolint:funlen,gocognit,maintidx // we do have quit
 	}
 	strFn.Help = "returns the number of runes in a string"
 	MustCreate(strFn)
-	strFn.Name = "width"
+	strFn.Name = widthKey
 	strFn.Callback = func(_ any, _ string, args []object.Object) object.Object {
-		return object.Integer{Value: int64(uniseg.StringWidth((args[0].(object.String).Value)))}
+		return object.Integer{Value: int64(uniseg.StringWidth(args[0].(object.String).Value))}
 	}
 	strFn.Help = "returns the display width of a string (accounting for full-width characters)"
 	MustCreate(strFn)
@@ -642,7 +642,7 @@ func createMisc() {
 			// Create a copy to avoid modifying the original array
 			shuffled := make([]object.Object, len(arr))
 			copy(shuffled, arr)
-			rand.Shuffle(len(shuffled), func(i, j int) {
+			rand.Shuffle(len(shuffled), func(i, j int) { //nolint:gosec // not security sensitive.
 				shuffled[i], shuffled[j] = shuffled[j], shuffled[i]
 			})
 			return object.NewArray(shuffled)
@@ -1126,3 +1126,8 @@ func MapToStruct[T any](inp object.Map, out *T) error {
 	}
 	return nil
 }
+
+const (
+	widthKey  = "width"
+	heightKey = "height"
+)
