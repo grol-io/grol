@@ -205,3 +205,15 @@ digit1 := num % 10 << (index * 4) // should evaluate to 768: 3 << 8
 digit2 := num % 10 << index * 4   // should evaluate to 48: (3 << 2) * 4
 Assert("num % 10 << (index * 4) with parens", digit1 == 768)
 Assert("num % 10 << index * 4 without parens", digit2 == 48)
+
+// Range bounds before the start clamp at 0 like bounds past the end clamp at len (used to panic).
+Assert("array range start before start clamps", [1,2,3][-4:] == [1,2,3])
+Assert("array range bounds before start clamp", [1,2,3][-5:-4] == [])
+Assert("string range start before start clamps", "abc"[-20:] == "abc")
+Assert("map range start before start clamps", {"a":1,"b":2,"c":3}[-20:] == {"a":1,"b":2,"c":3})
+
+// Failed compound assignment must not store the error in its target.
+cfX=12; IsErr("identifier error", cfX/=0, "division by zero"); Assert("identifier unchanged", cfX==12)
+cfA=[12]; IsErr("array error", cfA[0]/=0, "division by zero"); Assert("array unchanged", cfA==[12])
+cfM={"a":1}; IsErr("map error", cfM.a/=0, "division by zero"); Assert("map unchanged", cfM.a==1)
+IsErr("out-of-bounds compound assignment", cfA[5]+=1, "index assignment out of bounds: 5")

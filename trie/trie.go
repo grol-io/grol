@@ -1,6 +1,6 @@
 // Package trie implements a byte trie data structure.
 // It is fast as it uses arrays instead of maps and no bound checks.
-package trie // import "grol.io/grol/trie"
+package trie
 
 type Trie struct {
 	// Children of this node
