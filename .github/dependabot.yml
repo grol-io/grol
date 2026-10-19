@@ -4,6 +4,10 @@ updates:
     directory: "/" # Location of package manifests
     schedule:
       interval: "daily"
+    cooldown:
+      default-days: 3
+      exclude:
+        - "fortio.org/*" # our own releases: pick up immediately
     groups:
       "fortio":
         patterns:
