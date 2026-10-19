@@ -205,3 +205,9 @@ digit1 := num % 10 << (index * 4) // should evaluate to 768: 3 << 8
 digit2 := num % 10 << index * 4   // should evaluate to 48: (3 << 2) * 4
 Assert("num % 10 << (index * 4) with parens", digit1 == 768)
 Assert("num % 10 << index * 4 without parens", digit2 == 48)
+
+// Failed compound assignment must not store the error in its target.
+cfX=12; IsErr("identifier error", cfX/=0, "division by zero"); Assert("identifier unchanged", cfX==12)
+cfA=[12]; IsErr("array error", cfA[0]/=0, "division by zero"); Assert("array unchanged", cfA==[12])
+cfM={"a":1}; IsErr("map error", cfM.a/=0, "division by zero"); Assert("map unchanged", cfM.a==1)
+IsErr("out-of-bounds compound assignment", cfA[5]+=1, "index assignment out of bounds: 5")
