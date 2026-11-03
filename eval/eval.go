@@ -1201,9 +1201,27 @@ func (s *State) evalForSpecialForms(fe *ast.ForExpression) (object.Object, bool)
 func (s *State) evalForList(fe *ast.ForExpression, list object.Object, name string) object.Object {
 	var lastEval object.Object
 	lastEval = object.NULL
-	for object.Len(list) > 0 {
-		v := object.First(list)
-		list = object.Rest(list)
+	// Rest resolves a Reference to a Register in two steps before the remaining values are stable.
+	index := -2
+	for length := object.Len(list); length > 0; length = object.Len(list) {
+		var v object.Object
+		if array, ok := list.(object.BigArray); ok && index >= 0 {
+			elements := array.Elements()
+			v = elements[index]
+			index++
+			if len(elements)-index <= object.MaxSmallArray {
+				// Keep the snapshot made when Rest changes a BigArray into a SmallArray.
+				list = object.NewArray(elements[index:])
+			}
+		} else if _, small := list.(object.SmallArray); small && length == 1 {
+			v = object.First(list)
+			list = object.NULL
+			index++
+		} else {
+			v = object.First(list)
+			list = object.Rest(list)
+			index++
+		}
 		if v == nil {
 			return s.NewError("for list element is nil")
 		}
