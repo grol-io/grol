@@ -170,3 +170,17 @@ func testForIncrWithExprs() {
     return res
 }
 Assert("for start:end:incr with expressions", testForIncrWithExprs() == [5, 10, 15, 20, 25, 30, 35, 40])
+
+func arrayMutation(n, mutateAt) {
+    a := 0:n
+    i := 0
+    last := -1
+    for value := a {
+        if i == mutateAt { a[n-1] = 42 }
+        last = value
+        i++
+    }
+    return last
+}
+Assert("big array early write", arrayMutation(10, 0) == 42)
+Assert("big array boundary snapshot", arrayMutation(10, 1) == 9)
